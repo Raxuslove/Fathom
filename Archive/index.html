@@ -24,10 +24,7 @@
    - Sword-only loadouts Parry instead: less protection, stronger riposte
    - Sand Throw can blind the foe and spoil its next attack
    - Guarding/parrying a Heavy Attack can leave the foe Off-Balance
-   - Off-Balance foes must Steady or make a weak Glancing Attack
-   - a reckless Glancing Attack keeps them Off-Balance for one more player turn
    - enemy portrait sits on the right
-   - enemy information stays at the top; atmospheric space sits between sides
 
    Nothing is saved yet — refreshing the page starts you over
    with a fresh delver. That's Session 8's job.
@@ -66,7 +63,7 @@ button{
 .arena{
   position:relative;
   display:grid;
-  grid-template-rows:auto auto auto minmax(22px,1fr) auto auto auto auto auto auto;
+  grid-template-rows:auto minmax(0,1fr) auto auto auto auto auto auto auto;
   height:100vh;
   height:100dvh;
   max-width:480px;
@@ -89,11 +86,11 @@ button{
   text-transform:uppercase;color:var(--dim);white-space:nowrap;
 }
 
-/* ---------- 2. the foe — enemy territory at the top ---------- */
+/* ---------- 2. the foe — gets the leftover room ---------- */
 .foe{
-  display:flex;flex-direction:column;justify-content:flex-start;
-  padding:11px 13px 10px;
-  background:#11171c;
+  display:flex;flex-direction:column;justify-content:flex-end;min-height:0;
+  padding:9px 13px 10px;
+  background:radial-gradient(130% 120% at 50% 0%,#1b232b 0%,#0e1317 70%);
   border-bottom:1px solid var(--rule);
 }
 .foe-top{display:flex;align-items:flex-end;gap:11px}
@@ -160,18 +157,9 @@ button{
 .intent.unknown{border-left-color:var(--rule-hi);background:rgba(125,135,148,.05)}
 .intent.unknown b{color:var(--dim)}
 
-/* ---------- 3b. atmospheric gap — the space between them and you ---------- */
-.battle-space{
-  min-height:22px;
-  background:
-    radial-gradient(120% 110% at 50% 0%,rgba(37,48,58,.55) 0%,rgba(15,19,23,.18) 46%,rgba(9,12,15,.88) 100%),
-    #0e1317;
-  border-bottom:1px solid var(--rule);
-}
-
 /* ---------- 4. readout ---------- */
 .readout{
-  overflow-y:auto;max-height:19vh;
+  overflow-y:auto;max-height:26vh;
   padding:10px 13px;
   background:var(--panel);
   border-bottom:1px solid var(--rule);
@@ -383,8 +371,6 @@ button{
     <b>—</b>
   </div>
 
-  <div class="battle-space" aria-hidden="true"></div>
-
   <div class="readout" id="readout" role="log"></div>
 
   <section class="hero">
@@ -491,11 +477,6 @@ const INTENTS = {
     tell:"darting in to strike",
     kind:"attack", mult:0.6, armour:0
   },
-  offquick: {
-    label:"Glancing attack",
-    tell:"lashing out without its footing",
-    kind:"attack", mult:0.3, armour:0
-  },
   dodge: {
     label:"Dodge",
     tell:"circling, light on its feet",
@@ -510,11 +491,6 @@ const INTENTS = {
     label:"Recover",
     tell:"sucking air, giving ground",
     kind:"stance", mult:0, armour:0, heal:0.14
-  },
-  steady: {
-    label:"Steady",
-    tell:"planting its feet and recovering its balance",
-    kind:"stance", mult:0, armour:0
   }
 };
 
@@ -584,9 +560,8 @@ function nextFoe(){
     weakness: known[base.n] || pick(WEAKNESSES),
     revealed: !!known[base.n],
     intent: null,
-    blinded:false,          // persists until the foe next attempts an attack
-    offBalance:false,        // opens damage and restricts the foe's choices
-    offBalanceStruck:false   // after a reckless Glancing Attack, next intent must be Steady
+    blinded:false,       // persists until the foe next attempts an attack
+    offBalance:false     // lasts through one enemy turn; blocks Dodge/Guard and opens damage
   };
   rollIntent();
   say(`<p class="said">${cap(article(S.foe.name))} comes out of the dark.</p>`);
@@ -595,23 +570,13 @@ function nextFoe(){
 
 function rollIntent(){
   const f = S.foe;
-
-  // Off-Balance has its own mini-state machine. The foe cannot Guard, Dodge,
-  // Recover, or throw another Heavy Attack while its footing is gone.
-  // It can either spend the turn Steadying, or lash out weakly. If it lashes
-  // out, the player gets one more Off-Balance turn before Steady is forced.
-  if(f.offBalance){
-    if(f.offBalanceStruck){
-      f.intent = "steady";
-    } else {
-      f.intent = rnd() < 0.60 ? "steady" : "offquick";
-    }
-    return;
-  }
-
   let pool = ["heavy","quick","quick","dodge","guard"];
   if(f.hp < f.hpMax*0.30) pool.push("recover","recover");
   if(f.hp < f.hpMax*0.50) pool.push("heavy","dodge");
+
+  // Off-Balance is a short opening: the foe cannot immediately hide behind
+  // Guard or dance away with Dodge. It must attack or recover.
+  if(f.offBalance) pool = pool.filter(i => i !== "guard" && i !== "dodge");
   f.intent = pick(pool);
 }
 
@@ -821,8 +786,8 @@ function actionCost(key){
 function actionCounters(key){
   if(!S.foe) return false;
   const i = S.foe.intent;
-  if(key === "guard") return i === "heavy" || i === "quick" || i === "offquick";
-  if(key === "sand") return i === "heavy" || i === "quick" || i === "offquick";
+  if(key === "guard") return i === "heavy" || i === "quick";
+  if(key === "sand") return i === "heavy" || i === "quick";
   if(key === "strike") return i === "recover";
   if(key === "read") return i === "guard" || i === "dodge";
   if(key === "heavy"){
@@ -859,6 +824,7 @@ function takeTurn(key){
   // Full-Stamina defence is an offensive choice. Capture it BEFORE Guard/Parry
   // restores Stamina, otherwise every near-full defence would accidentally counter.
   const defendedAtFull = key === "guard" && S.stamina >= S.staminaMax;
+  const offBalanceAtTurnStart = !!S.foe.offBalance;
   let madeOffBalance = false;
 
   if(cost > 0) S.stamina -= cost;
@@ -893,19 +859,13 @@ function takeTurn(key){
 
       if(dmg > 0){
         S.hp -= dmg;
-        const attackText = f.intent === "heavy"
-          ? "came down on you"
-          : f.intent === "offquick"
-            ? "caught you with a glancing cut"
-            : "darted in";
-        out += `<p class="hurt">${I.label}: it ${attackText} for <b>${dmg}</b>.</p>`;
+        out += `<p class="hurt">${I.label}: it ${f.intent === "heavy" ? "came down on you" : "darted in"} for <b>${dmg}</b>.</p>`;
       }
 
       // Guard/Parry only creates an opening when you actually meet a committed
       // Heavy Attack. A blind miss does not count as a successful defence.
       if(key === "guard" && f.intent === "heavy" && S.hp > 0){
         f.offBalance = true;
-        f.offBalanceStruck = false;
         madeOffBalance = true;
         out += `<p class="good">The committed blow carried it past its footing. <b>Off-Balance.</b></p>`;
       }
@@ -920,23 +880,8 @@ function takeTurn(key){
           : `<p class="good">Turned the blow aside and riposted for <b>${cd}</b>.</p>`;
       }
     }
-
-    // Choosing to attack while Off-Balance buys aggression at the cost of
-    // staying vulnerable for one more player turn. Steady is forced next.
-    if(f.intent === "offquick" && f.offBalance && !madeOffBalance){
-      f.offBalanceStruck = true;
-      out += `<p class="note">It lashed out instead of recovering its footing. It is still <b>Off-Balance</b>.</p>`;
-    }
   } else {
     out += `<p class="note">${I.label}: it did not attack.</p>`;
-
-    // Steady spends the enemy's entire action and clears Off-Balance only
-    // after the player has had this turn to exploit the opening.
-    if(f.intent === "steady" && f.offBalance){
-      f.offBalance = false;
-      f.offBalanceStruck = false;
-      out += `<p class="note">It found its footing again.</p>`;
-    }
   }
 
   if(S.hp <= 0) return die(out);
@@ -949,6 +894,10 @@ function takeTurn(key){
     return;
   }
 
+  // An Off-Balance opening that existed at the START of this player turn is
+  // consumed after the foe completes this turn. A new opening created by the
+  // defence we just resolved survives into the next turn.
+  if(offBalanceAtTurnStart && !madeOffBalance) f.offBalance = false;
 
   // Everyone gets one Stamina back after a completed turn. Guard/Parry's +2 is
   // additional to this, so defending effectively restores up to +3 that turn.
@@ -1042,10 +991,7 @@ function render(){
     if(f.revealed) $("tellTxt").textContent = f.weakness.txt;
 
     const statuses = [];
-    if(f.offBalance){
-      const suffix = f.offBalanceStruck ? " · must steady" : " · exposed";
-      statuses.push(`<span class="status offbalance">Off-Balance${suffix}</span>`);
-    }
+    if(f.offBalance) statuses.push(`<span class="status offbalance">Off-Balance</span>`);
     if(f.blinded) statuses.push(`<span class="status blinded">Blinded</span>`);
     $("foeStatus").hidden = statuses.length === 0;
     $("foeStatus").innerHTML = statuses.join("");
