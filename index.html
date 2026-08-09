@@ -16,7 +16,8 @@
 
    Revision notes:
    - attack intents are separate from defensive stances
-   - Heavy Blow takes a wind-up turn before release
+   - Heavy Blow uses a commitment ladder: wind up, release / draw further / defend
+   - first draw is 2.7× Might; full draw is 4.7× Might
    - Wind is now Stamina
    - Read stays in the pad as an early weakness/layout prototype
    - +1 passive Stamina returns after every completed turn
@@ -28,6 +29,7 @@
    - a reckless Glancing Attack keeps them Off-Balance for one more player turn
    - enemy portrait sits on the right
    - enemy information stays at the top; atmospheric space sits between sides
+   - player HP and Stamina sit on the player side above the action controls
 
    Nothing is saved yet — refreshing the page starts you over
    with a fresh delver. That's Session 8's job.
@@ -185,7 +187,11 @@ button{
 .readout b{font-weight:600;color:var(--bone)}
 
 /* ---------- 5. you ---------- */
-.hero{padding:8px 13px 9px;background:#12181e;border-bottom:1px solid var(--rule)}
+.hero{
+  padding:8px 13px 9px;
+  background:#12181e;
+  border-bottom:1px solid var(--rule);
+}
 .hero .cname{margin-bottom:4px}
 .hero .cname b{font-size:13.5px}
 .staminarow{display:flex;align-items:center;gap:8px;margin-top:7px}
@@ -230,7 +236,8 @@ button{
 .act.guard  b{color:var(--stamina)}
 .act.sand   b{color:#b99b6b}
 .act.read   b{color:var(--verdigris)}
-.act.read.wide{grid-column:1/-1}
+.act.wide{grid-column:1/-1}
+.act.draw b{color:var(--warn)}
 
 .act:disabled{background:#101418;cursor:not-allowed}
 .act:disabled b{color:#3f4954}
@@ -413,6 +420,7 @@ button{
   <button class="botbtn" id="btnRun"><b>Run</b><span>—</span></button>
   <button class="botbtn go" id="btnGo" hidden><b>Go on down</b><span>the next encounter</span></button>
 
+
   <!-- skills sheet: sits above the pad so the fight stays readable -->
   <div class="sheet" id="sheet" hidden>
     <div class="sheet-scrim" id="scrim"></div>
@@ -550,7 +558,7 @@ function newDelver(){
     name:"Leofrun Fenwick", rank:6,
     hpMax:64, hp:64,
     staminaMax:10, stamina:10,
-    heavyReady:false,
+    heavyCharge:0, // 0 = none, 1 = 2.7× prepared, 2 = 4.7× fully drawn
     loadout:"shield", // prototype toggle: "shield" = Guard, "sword" = Parry
     might:9,
     depth:148, encounter:0,
@@ -567,7 +575,7 @@ function nextFoe(){
   S.encounter++;
   S.turn = 1;
   S.stamina = Math.min(S.staminaMax, S.stamina + 4); // some breath back between fights
-  S.heavyReady = false;
+  S.heavyCharge = 0;
   armed = null;
 
   const band = FOES.filter(f => f.tier === clamp(Math.floor(S.depth/70), 0, 3));
@@ -629,9 +637,13 @@ function dmgStrike(){
   if(f.intent === "guard") d *= (1 - INTENTS.guard.armour);
   return Math.max(1, Math.round(d));
 }
-function dmgHeavy(){
+function heavyMultiplier(charge=S.heavyCharge){
+  return charge >= 2 ? 4.7 : 2.7;
+}
+function dmgHeavy(charge=S.heavyCharge){
   const f = S.foe;
-  let d = (S.might*2.1 + ri(0,6)) * openingBonus();
+  const mult = heavyMultiplier(charge || 1);
+  let d = (S.might*mult + ri(0,6)) * openingBonus();
   if(f.revealed && f.weakness.eff.heavyBonus) d *= f.weakness.eff.heavyBonus;
   // Heavy is the answer to a guard: most of the blow still gets through.
   if(f.intent === "guard") d *= 0.85;
@@ -692,22 +704,27 @@ const ACTIONS = {
   },
 
   heavy:{
-    label(){ return S.heavyReady ? "Release heavy" : "Wind up heavy"; },
-    sub(){ return S.heavyReady ? "ready · 0 stamina" : "4 stamina · commits next turn"; },
-    cost(){ return S.heavyReady ? 0 : 4; },
+    label(){ return S.heavyCharge > 0 ? "Release heavy" : "Wind up heavy"; },
+    sub(){
+      if(S.heavyCharge >= 2) return "fully drawn · 4.7× might";
+      if(S.heavyCharge === 1) return "ready · 2.7× might";
+      return "4 stamina · prepares 2.7×";
+    },
+    cost(){ return S.heavyCharge > 0 ? 0 : 4; },
     preview(){
       const f = S.foe;
-      if(!S.heavyReady){
+      if(S.heavyCharge === 0){
         const back = incoming();
-        let s = `Prepare the blow · <span class="cost">4 stamina</span> · <span class="bad">no damage yet</span>`;
+        let s = `Prepare a <span class="dmg">2.7× Might</span> blow · <span class="cost">4 stamina</span> · <span class="bad">no damage yet</span>`;
         if(back) s += ` · you take <span class="bad">~${back}</span> while winding up`;
         else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
-        s += ` · next turn you must release it`;
+        s += ` · next turn: Release / Wind up further / ${defenceName()}`;
         return s;
       }
 
       const d = dmgHeavy(), back = incoming();
-      let s = `<span class="dmg">~${d} damage</span> · <span class="cost">0 stamina</span> · releases before it acts`;
+      const mult = heavyMultiplier();
+      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× Might</span> · <span class="cost">0 stamina</span> · releases before it acts`;
       if(f.offBalance) s += ` · <span class="dmg">+25% opening</span>`;
       if(f.intent === "dodge") s += ` · <span class="bad">70% miss chance</span>`;
       if(f.intent === "guard") s += ` · punches through most of its guard`;
@@ -717,17 +734,38 @@ const ACTIONS = {
     },
     run(){
       const f = S.foe;
-      if(!S.heavyReady){
-        S.heavyReady = true;
-        return `<p class="good">Drew back and committed to the heavy blow.</p>`;
+      if(S.heavyCharge === 0){
+        S.heavyCharge = 1;
+        return `<p class="good">Drew back and prepared a <b>2.7×</b> heavy blow.</p>`;
       }
 
-      S.heavyReady = false;
+      const mult = heavyMultiplier();
+      S.heavyCharge = 0;
       if(f.intent === "dodge" && rnd() < 0.70)
-        return `<p>Released the heavy swing. It slipped clear before the blow arrived.</p>`;
-      const d = dmgHeavy();
+        return `<p>Released the ${mult.toFixed(1)}× heavy swing. It slipped clear before the blow arrived.</p>`;
+      const d = dmgHeavy(mult >= 4.7 ? 2 : 1);
       f.hp -= d;
-      return `<p>Brought it down hard — <b>${d}</b>${f.intent === "guard" ? ", straight through most of the guard" : ""}.</p>`;
+      return `<p>Brought it down hard — <b>${d}</b>${mult >= 4.7 ? " from the fully drawn blow" : ""}${f.intent === "guard" ? ", straight through most of the guard" : ""}.</p>`;
+    }
+  },
+
+  draw:{
+    label(){ return S.heavyCharge >= 2 ? "Fully drawn" : "Wind up further"; },
+    sub(){ return S.heavyCharge >= 2 ? "can't draw any further" : "2 stamina · raises to 4.7×"; },
+    cost:2,
+    preview(){
+      if(S.heavyCharge >= 2) return `The blow is already fully drawn. Release it or ${defenceName()} to abandon it.`;
+      const back = incoming();
+      const full = dmgHeavy(2);
+      let s = `Commit another turn · <span class="cost">2 stamina</span> · raise the blow to <span class="dmg">4.7× Might (~${full} damage)</span>`;
+      if(back) s += ` · you take <span class="bad">~${back}</span> while drawing further`;
+      else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
+      s += ` · then Release or ${defenceName()}`;
+      return s;
+    },
+    run(){
+      S.heavyCharge = 2;
+      return `<p class="good">Drew the blow back further. It is <b>fully drawn — 4.7× Might</b>.</p>`;
     }
   },
 
@@ -741,7 +779,9 @@ const ACTIONS = {
       if(f.revealed && f.weakness.eff.guardBonus) back = Math.round(back / f.weakness.eff.guardBonus);
       const full = S.stamina >= S.staminaMax;
       const style = S.loadout;
-      let s = `Recover <span class="cost">2 stamina</span> · <span class="cost">+1 at turn end</span>`;
+      let s = S.heavyCharge > 0
+        ? `Abandon the prepared Heavy · recover <span class="cost">2 stamina</span> · <span class="cost">+1 at turn end</span>`
+        : `Recover <span class="cost">2 stamina</span> · <span class="cost">+1 at turn end</span>`;
       if(back) s += ` · take about <span class="bad">${back}</span>`;
       else s += ` · take no damage`;
       if(full && INTENTS[f.intent].kind === "attack"){
@@ -753,7 +793,14 @@ const ACTIONS = {
       return s;
     },
     run(){
+      const abandonedHeavy = S.heavyCharge > 0;
+      S.heavyCharge = 0;
       S.stamina = Math.min(S.staminaMax, S.stamina + 2);
+      if(abandonedHeavy){
+        return S.loadout === "shield"
+          ? `<p class="good">Let the prepared blow go, set your shield, and recovered your stance.</p>`
+          : `<p class="good">Let the prepared blow go and brought the blade back into a parry.</p>`;
+      }
       return S.loadout === "shield"
         ? `<p class="good">Set your shield and caught your breath.</p>`
         : `<p class="good">Set the blade to meet the attack.</p>`;
@@ -826,9 +873,10 @@ function actionCounters(key){
   if(key === "strike") return i === "recover";
   if(key === "read") return i === "guard" || i === "dodge";
   if(key === "heavy"){
-    if(S.heavyReady) return i === "guard" || i === "recover" || S.foe.offBalance;
+    if(S.heavyCharge > 0) return i === "guard" || i === "recover" || i === "steady" || S.foe.offBalance;
     return i === "dodge" || i === "guard" || i === "recover";
   }
+  if(key === "draw") return false;
   return false;
 }
 
@@ -869,7 +917,7 @@ function takeTurn(key){
   if(S.foe.hp <= 0){
     say(out + `<p class="said">The ${esc(S.foe.name)} went down and stayed down.</p>`);
     S.foe = null;
-    S.heavyReady = false;
+    S.heavyCharge = 0;
     render();
     return;
   }
@@ -944,7 +992,7 @@ function takeTurn(key){
   if(f.hp <= 0){
     say(out + `<p class="said">The ${esc(f.name)} went down and stayed down.</p>`);
     S.foe = null;
-    S.heavyReady = false;
+    S.heavyCharge = 0;
     render();
     return;
   }
@@ -960,7 +1008,7 @@ function takeTurn(key){
 }
 
 function tapRun(){
-  if(over || !S.foe || S.heavyReady) return;
+  if(over || !S.foe || S.heavyCharge > 0) return;
   if(armed !== "run"){ armed = "run"; render(); return; }
   armed = null;
 
@@ -972,7 +1020,7 @@ function tapRun(){
       (c ? `<p class="hurt">It cost <b>${c}</b> on the way out.</p>`
          : `<p class="note">It let you go.</p>`));
   S.foe = null;
-  S.heavyReady = false;
+  S.heavyCharge = 0;
   render();
 }
 
@@ -1073,12 +1121,12 @@ function render(){
     const c = runCost();
     const fatal = c >= S.hp;
     const btn = $("btnRun");
-    btn.disabled = S.heavyReady;
-    btn.classList.toggle("fatal", fatal && !S.heavyReady);
+    btn.disabled = S.heavyCharge > 0;
+    btn.classList.toggle("fatal", fatal && S.heavyCharge === 0);
     btn.classList.toggle("armed", armed === "run");
     btn.querySelector("b").textContent = armed === "run" ? "Run — commit?" : "Run";
     btn.querySelector("span").textContent =
-      S.heavyReady     ? "heavy blow committed · release it first"
+      S.heavyCharge > 0 ? `heavy prepared · Release or ${defenceName()} to abandon`
       : armed === "run" ? "tap again to break contact"
       : fatal          ? `costs ${c} hp · that kills you`
       : c === 0        ? `it will not follow · you keep nothing`
@@ -1087,19 +1135,23 @@ function render(){
 }
 
 function renderPad(){
-  const order = ["strike","heavy","guard","sand","read"];
+  // Once a Heavy is prepared, the normal pad collapses to the three decisions
+  // that matter: cash out, commit deeper, or defend and abandon the blow.
+  const order = S.heavyCharge > 0
+    ? ["heavy","draw","guard"]
+    : ["strike","heavy","guard","sand","read"];
+
   $("pad").innerHTML = order.map(k => {
     const cost = actionCost(k);
-    const committedElsewhere = S.heavyReady && k !== "heavy";
-    const off = !S.foe || over || committedElsewhere || cost > S.stamina;
+    const fullyDrawn = k === "draw" && S.heavyCharge >= 2;
+    const off = !S.foe || over || fullyDrawn || cost > S.stamina;
     const counters = S.foe && actionCounters(k);
     const isArmed = armed === k;
     const baseSub = actionSub(k);
     const sub = isArmed ? "tap again to commit"
-              : committedElsewhere ? "heavy blow committed"
               : (S.foe && cost > S.stamina) ? `${baseSub} — short`
               : baseSub;
-    const wide = k === "read" ? "wide" : "";
+    const wide = (S.heavyCharge > 0 && k === "guard") || k === "read" ? "wide" : "";
     return `<button class="act ${k} ${wide} ${counters ? "counter" : ""} ${isArmed ? "armed" : ""}"
               data-k="${k}" ${off ? "disabled" : ""}>
               <b>${actionLabel(k)}</b><span>${sub}</span></button>`;
@@ -1110,8 +1162,12 @@ function renderPreview(){
   const p = $("preview");
   if(!S.foe || over || !armed || armed === "run"){
     p.classList.add("idle");
+    const idleLine = !S.foe ? "Nothing in front of you."
+      : S.heavyCharge >= 2 ? `Heavy fully drawn: Release it, or ${defenceName()} to abandon it.`
+      : S.heavyCharge === 1 ? `Heavy prepared: Release it, Wind up further, or ${defenceName()} to abandon it.`
+      : "Tap an action to see what it costs.";
     p.innerHTML = `<div class="ttl">If you commit to that</div>
-                   <div class="line">${S.foe ? "Tap an action to see what it costs." : "Nothing in front of you."}</div>`;
+                   <div class="line">${idleLine}</div>`;
     return;
   }
   p.classList.remove("idle");
@@ -1138,7 +1194,7 @@ $("btnGo").addEventListener("click", () => {
 
 $("btnSkills").addEventListener("click", () => { $("sheet").hidden = false; });
 $("btnLoadout").addEventListener("click", () => {
-  if(S.heavyReady) return;
+  if(S.heavyCharge > 0) return;
   S.loadout = S.loadout === "shield" ? "sword" : "shield";
   armed = null;
   say(S.loadout === "shield"
