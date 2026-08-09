@@ -20,8 +20,9 @@
    - first draw is 2.7× Might; full draw is 4.7× Might
    - Wind is now Stamina
    - Read stays in the pad as an early weakness/layout prototype
-   - +1 passive Stamina returns after every completed turn
-   - Guard restores +2 Stamina and can counter at full Stamina
+   - Base passive Stamina regeneration is 0
+   - Guard/Parry restores +3 Stamina and can counter at full Stamina
+   - two successful defended attacks in a row upgrade the second defence to Perfect
    - Sword-only loadouts Parry instead: less protection, stronger riposte
    - Sand Throw can blind the foe and spoil its next attack
    - Guarding/parrying a Heavy Attack can leave the foe Off-Balance
@@ -559,6 +560,7 @@ function newDelver(){
     hpMax:64, hp:64,
     staminaMax:10, stamina:10,
     heavyCharge:0, // 0 = none, 1 = 2.7× prepared, 2 = 4.7× fully drawn
+    defenceChain:0, // 0 = normal defence, 1 = next defended attack becomes Perfect
     loadout:"shield", // prototype toggle: "shield" = Guard, "sword" = Parry
     might:9,
     depth:148, encounter:0,
@@ -576,6 +578,7 @@ function nextFoe(){
   S.turn = 1;
   S.stamina = Math.min(S.staminaMax, S.stamina + 4); // some breath back between fights
   S.heavyCharge = 0;
+  S.defenceChain = 0;
   armed = null;
 
   const band = FOES.filter(f => f.tier === clamp(Math.floor(S.depth/70), 0, 3));
@@ -649,11 +652,19 @@ function dmgHeavy(charge=S.heavyCharge){
   if(f.intent === "guard") d *= 0.85;
   return Math.max(1, Math.round(d));
 }
-function counterDamage(style){
+function counterDamage(style, perfect=false){
   // Counter damage intentionally uses Might but not random Strike damage, so the
-  // preview can tell the truth. Shield counters are modest; sword ripostes bite.
-  const mult = style === "shield" ? 0.35 : 0.75;
+  // preview can tell the truth. Perfect defence makes the return hit meaningfully
+  // stronger without turning every normal block into an attack button.
+  const mult = perfect
+    ? (style === "shield" ? 0.75 : 1.25)
+    : (style === "shield" ? 0.35 : 0.75);
   return Math.max(1, Math.round(S.might * mult));
+}
+function perfectDefenceReady(){
+  // A blinded foe will miss on its own, so that swing neither spends nor
+  // upgrades the defensive rhythm. Keep Perfect ready for a real attack.
+  return S.defenceChain >= 1 && S.foe && !S.foe.blinded && INTENTS[S.foe.intent].kind === "attack";
 }
 function incoming(openMult=1){
   const f = S.foe;
@@ -671,8 +682,9 @@ function defenceName(){ return S.loadout === "shield" ? "Guard" : "Parry"; }
 function defenceReduction(){ return S.loadout === "shield" ? 0.25 : 0.45; }
 function sandChance(){
   if(!S.foe) return 0;
-  if(S.foe.intent === "guard") return 0.25;
-  if(S.foe.intent === "dodge") return 0.40;
+  // Sand is a broad dirty trick, not a precision strike: Dodge does not help.
+  // A foe already tucked behind its Guard is protected completely.
+  if(S.foe.intent === "guard") return 0;
   return 0.60;
 }
 
@@ -682,10 +694,10 @@ function sandChance(){
    ============================================================ */
 const ACTIONS = {
   strike:{
-    label:"Strike", sub:"2 stamina", cost:2,
+    label:"Strike", sub:"3 stamina", cost:3,
     preview(){
       const f = S.foe, d = dmgStrike(), back = incoming();
-      let s = `<span class="dmg">~${d} damage</span> · <span class="cost">2 stamina</span>`;
+      let s = `<span class="dmg">~${d} damage</span> · <span class="cost">3 stamina</span>`;
       if(f.offBalance) s += ` · <span class="dmg">+25% opening</span>`;
       if(f.intent === "dodge") s += ` · <span class="bad">35% miss chance</span>`;
       if(f.intent === "guard") s += ` · its guard soaks most of it`;
@@ -708,14 +720,14 @@ const ACTIONS = {
     sub(){
       if(S.heavyCharge >= 2) return "fully drawn · 4.7× might";
       if(S.heavyCharge === 1) return "ready · 2.7× might";
-      return "4 stamina · prepares 2.7×";
+      return "6 stamina · prepares 2.7×";
     },
-    cost(){ return S.heavyCharge > 0 ? 0 : 4; },
+    cost(){ return S.heavyCharge > 0 ? 0 : 6; },
     preview(){
       const f = S.foe;
       if(S.heavyCharge === 0){
         const back = incoming();
-        let s = `Prepare a <span class="dmg">2.7× Might</span> blow · <span class="cost">4 stamina</span> · <span class="bad">no damage yet</span>`;
+        let s = `Prepare a <span class="dmg">2.7× Might</span> blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>`;
         if(back) s += ` · you take <span class="bad">~${back}</span> while winding up`;
         else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
         s += ` · next turn: Release / Wind up further / ${defenceName()}`;
@@ -770,32 +782,42 @@ const ACTIONS = {
   },
 
   guard:{
-    label(){ return defenceName(); },
-    sub(){ return "+2 stamina"; },
-    cost:-2,
+    label(){ return perfectDefenceReady() ? `Perfect ${defenceName()}` : defenceName(); },
+    sub(){ return perfectDefenceReady() ? "+3 stamina · 0 damage" : "+3 stamina"; },
+    cost:-3,
     preview(){
       const f = S.foe;
-      let back = Math.round(incoming() * defenceReduction());
-      if(f.revealed && f.weakness.eff.guardBonus) back = Math.round(back / f.weakness.eff.guardBonus);
+      const perfect = perfectDefenceReady();
+      let back = perfect ? 0 : Math.round(incoming() * defenceReduction());
+      if(!perfect && f.revealed && f.weakness.eff.guardBonus) back = Math.round(back / f.weakness.eff.guardBonus);
       const full = S.stamina >= S.staminaMax;
       const style = S.loadout;
       let s = S.heavyCharge > 0
-        ? `Abandon the prepared Heavy · recover <span class="cost">2 stamina</span> · <span class="cost">+1 at turn end</span>`
-        : `Recover <span class="cost">2 stamina</span> · <span class="cost">+1 at turn end</span>`;
-      if(back) s += ` · take about <span class="bad">${back}</span>`;
+        ? `Abandon the prepared Heavy · recover <span class="cost">3 stamina</span>`
+        : `Recover <span class="cost">3 stamina</span>`;
+      if(perfect) s += ` · <span class="dmg">PERFECT: take 0 damage</span>`;
+      else if(back) s += ` · take about <span class="bad">${back}</span>`;
       else s += ` · take no damage`;
       if(full && INTENTS[f.intent].kind === "attack"){
-        s += style === "shield"
-          ? ` · <span class="dmg">full stamina: counter ~${counterDamage(style)}</span>`
-          : ` · <span class="dmg">full stamina: riposte ~${counterDamage(style)}</span>`;
+        const cd = counterDamage(style, perfect);
+        if(perfect){
+          s += style === "shield"
+            ? ` · <span class="dmg">full stamina: perfect counter ~${cd}</span>`
+            : ` · <span class="dmg">full stamina: perfect riposte ~${cd}</span>`;
+        } else {
+          s += style === "shield"
+            ? ` · <span class="dmg">full stamina: counter ~${cd}</span>`
+            : ` · <span class="dmg">full stamina: riposte ~${cd}</span>`;
+        }
       }
       if(f.intent === "heavy") s += ` · <span class="dmg">Heavy Attack becomes Off-Balance</span>`;
+      if(INTENTS[f.intent].kind === "attack" && !perfect) s += ` · <span class="dmg">sets up Perfect ${defenceName()}</span>`;
       return s;
     },
     run(){
       const abandonedHeavy = S.heavyCharge > 0;
       S.heavyCharge = 0;
-      S.stamina = Math.min(S.staminaMax, S.stamina + 2);
+      S.stamina = Math.min(S.staminaMax, S.stamina + 3);
       if(abandonedHeavy){
         return S.loadout === "shield"
           ? `<p class="good">Let the prepared blow go, set your shield, and recovered your stance.</p>`
@@ -808,26 +830,38 @@ const ACTIONS = {
   },
 
   sand:{
-    label:"Sand throw", sub:"1 stamina · dirty trick", cost:1,
+    label:"Sand throw",
+    sub(){
+      if(S.foe && S.foe.intent === "guard") return "1 stamina · blocked by guard";
+      return "1 stamina · 60% blind";
+    },
+    cost:1,
     preview(){
       const chance = Math.round(sandChance()*100);
       const back = incoming();
-      let s = `<span class="dmg">${chance}% chance to blind</span> · <span class="cost">1 stamina</span>`;
-      if(S.foe.intent === "guard") s += ` · shielded eyes make this difficult`;
-      if(S.foe.intent === "dodge") s += ` · hard to catch while it is circling`;
+
+      if(S.foe.intent === "guard"){
+        return `<span class="bad">Blocked by Guard</span> · <span class="cost">1 stamina</span> · 0% chance to Blind`;
+      }
+
+      let s = `<span class="dmg">${chance}% chance to cause Blinded</span> · <span class="cost">1 stamina</span>`;
+      if(S.foe.intent === "dodge") s += ` · Dodge does not reduce the chance`;
       if(INTENTS[S.foe.intent].kind === "attack"){
         s += ` · success makes <span class="dmg">this attack miss</span>`;
         if(back) s += ` · failure means about <span class="bad">${back}</span> back`;
       } else {
-        s += ` · blindness waits for its next attack`;
+        s += ` · Blinded persists until its next attack attempt`;
       }
       return s;
     },
     run(){
       const f = S.foe;
+      if(f.intent === "guard"){
+        return `<p>Threw the grit, but it disappeared harmlessly against the guard.</p>`;
+      }
       if(rnd() < sandChance()){
         f.blinded = true;
-        return `<p class="good">Threw grit into its face. It is <b>Blinded</b>.</p>`;
+        return `<p class="good">Threw grit into its face. It is <b>Blinded</b> until it next tries to attack.</p>`;
       }
       return `<p>The throw went wide. Nothing but dust between you.</p>`;
     }
@@ -836,7 +870,7 @@ const ACTIONS = {
   read:{
     label:"Read it", sub:"1 stamina", cost:1,
     preview(){
-      if(S.foe.revealed) return `Already read. You know what this one cannot take · <span class="cost">+1 stamina at turn end</span>`;
+      if(S.foe.revealed) return `Already read. You know what this one cannot take.`;
       const back = incoming();
       let s = `Learn its weakness — remembered for this species · <span class="cost">1 stamina</span>`;
       if(back) s += ` · you take <span class="bad">~${back}</span> while watching`;
@@ -907,7 +941,13 @@ function takeTurn(key){
   // Full-Stamina defence is an offensive choice. Capture it BEFORE Guard/Parry
   // restores Stamina, otherwise every near-full defence would accidentally counter.
   const defendedAtFull = key === "guard" && S.stamina >= S.staminaMax;
+  const perfectDefence = key === "guard" && perfectDefenceReady();
   let madeOffBalance = false;
+
+  // The defensive rhythm only survives while you keep choosing Guard/Parry.
+  // Non-attacking enemy turns neither build nor consume it. Any other player
+  // action breaks the chain.
+  if(key !== "guard") S.defenceChain = 0;
 
   if(cost > 0) S.stamina -= cost;
 
@@ -918,6 +958,7 @@ function takeTurn(key){
     say(out + `<p class="said">The ${esc(S.foe.name)} went down and stayed down.</p>`);
     S.foe = null;
     S.heavyCharge = 0;
+    S.defenceChain = 0;
     render();
     return;
   }
@@ -935,8 +976,12 @@ function takeTurn(key){
     } else {
       let dmg = incoming();
       if(key === "guard"){
-        dmg = Math.round(dmg * defenceReduction());
-        if(f.revealed && f.weakness.eff.guardBonus) dmg = Math.round(dmg / f.weakness.eff.guardBonus);
+        if(perfectDefence){
+          dmg = 0;
+        } else {
+          dmg = Math.round(dmg * defenceReduction());
+          if(f.revealed && f.weakness.eff.guardBonus) dmg = Math.round(dmg / f.weakness.eff.guardBonus);
+        }
       }
 
       if(dmg > 0){
@@ -947,6 +992,18 @@ function takeTurn(key){
             ? "caught you with a glancing cut"
             : "darted in";
         out += `<p class="hurt">${I.label}: it ${attackText} for <b>${dmg}</b>.</p>`;
+      }
+
+      // Guard/Parry only advances toward Perfect when the foe really attacks.
+      // The second successfully defended attack is Perfect, then the rhythm resets.
+      if(key === "guard" && S.hp > 0){
+        if(perfectDefence){
+          S.defenceChain = 0;
+          out += `<p class="good"><b>Perfect ${defenceName()}.</b> The attack never got through.</p>`;
+        } else {
+          S.defenceChain = 1;
+          out += `<p class="note">Kept the defensive rhythm. The next defended attack can be a <b>Perfect ${defenceName()}</b>.</p>`;
+        }
       }
 
       // Guard/Parry only creates an opening when you actually meet a committed
@@ -961,11 +1018,17 @@ function takeTurn(key){
       // At full Stamina, defence stops being a wasted action: shield users get
       // a modest counter, sword-only users risk more damage for a stronger riposte.
       if(key === "guard" && defendedAtFull && S.hp > 0){
-        const cd = counterDamage(S.loadout);
+        const cd = counterDamage(S.loadout, perfectDefence);
         f.hp -= cd;
-        out += S.loadout === "shield"
-          ? `<p class="good">Caught it on the shield and answered for <b>${cd}</b>.</p>`
-          : `<p class="good">Turned the blow aside and riposted for <b>${cd}</b>.</p>`;
+        if(perfectDefence){
+          out += S.loadout === "shield"
+            ? `<p class="good">Perfectly caught the attack and drove the shield back for <b>${cd}</b>.</p>`
+            : `<p class="good">Perfectly turned the attack aside and riposted for <b>${cd}</b>.</p>`;
+        } else {
+          out += S.loadout === "shield"
+            ? `<p class="good">Caught it on the shield and answered for <b>${cd}</b>.</p>`
+            : `<p class="good">Turned the blow aside and riposted for <b>${cd}</b>.</p>`;
+        }
       }
     }
 
@@ -993,14 +1056,14 @@ function takeTurn(key){
     say(out + `<p class="said">The ${esc(f.name)} went down and stayed down.</p>`);
     S.foe = null;
     S.heavyCharge = 0;
+    S.defenceChain = 0;
     render();
     return;
   }
 
 
-  // Everyone gets one Stamina back after a completed turn. Guard/Parry's +2 is
-  // additional to this, so defending effectively restores up to +3 that turn.
-  S.stamina = Math.min(S.staminaMax, S.stamina + 1);
+  // Base passive Stamina regeneration is intentionally 0. Guard/Parry is the
+  // universal reset; later stat thresholds can earn passive regeneration.
   S.turn++;
   rollIntent();
   say(out);
@@ -1021,6 +1084,7 @@ function tapRun(){
          : `<p class="note">It let you go.</p>`));
   S.foe = null;
   S.heavyCharge = 0;
+  S.defenceChain = 0;
   render();
 }
 
@@ -1196,6 +1260,7 @@ $("btnSkills").addEventListener("click", () => { $("sheet").hidden = false; });
 $("btnLoadout").addEventListener("click", () => {
   if(S.heavyCharge > 0) return;
   S.loadout = S.loadout === "shield" ? "sword" : "shield";
+  S.defenceChain = 0;
   armed = null;
   say(S.loadout === "shield"
     ? `<p class="note">Test loadout: sword and shield. Defence is now <b>Guard</b>.</p>`
