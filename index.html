@@ -11,13 +11,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — combat screen, Session 1
-   Layout only. Every number below is typed in by hand.
-   Nothing here moves; there is no JavaScript at all.
+   LOWFATHOM — combat screen
+   Sessions 1 + 2. Layout, and a fight that plays.
+
+   Nothing is saved yet — refreshing the page starts you over
+   with a fresh delver. That's Session 8's job.
    ============================================================ */
 
 :root{
-  /* Same tokens as the design-chat prototypes. Don't invent new ones. */
   --deep:#0f1317; --stone:#171d23; --panel:#1c232b;
   --rule:#2e3944; --rule-hi:#43525f;
   --bone:#c2bdb1; --dim:#7d8794;
@@ -41,18 +42,16 @@ body{
 }
 button{
   font:inherit;color:inherit;cursor:pointer;
-  -webkit-tap-highlight-color:transparent;   /* kills the grey flash on Android tap */
-  touch-action:manipulation;                 /* kills the 300ms double-tap-zoom delay */
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
 :focus-visible{outline:2px solid var(--lamp);outline-offset:-3px}
 
-/* ---------- the frame ----------
-   One screen. Never scrolls as a whole — only the readout scrolls.
-   dvh = "dynamic viewport height": the real height once the phone's
-   address bar has settled. vh above it is the fallback for old browsers. */
+/* ---------- the frame ---------- */
 .arena{
+  position:relative;
   display:grid;
-  grid-template-rows:auto auto auto minmax(0,1fr) auto auto auto auto;
+  grid-template-rows:auto minmax(0,1fr) auto auto auto auto auto auto auto;
   height:100vh;
   height:100dvh;
   max-width:480px;
@@ -75,21 +74,21 @@ button{
   text-transform:uppercase;color:var(--dim);white-space:nowrap;
 }
 
-/* ---------- 2. the foe ---------- */
+/* ---------- 2. the foe — gets the leftover room ---------- */
 .foe{
+  display:flex;flex-direction:column;justify-content:flex-end;min-height:0;
   padding:9px 13px 10px;
   background:radial-gradient(130% 120% at 50% 0%,#1b232b 0%,#0e1317 70%);
   border-bottom:1px solid var(--rule);
 }
 .foe-top{display:flex;align-items:flex-end;gap:11px}
 
-/* Sprite slot. Reserved now so adding art later doesn't move anything.
-   64x64 source, nearest-neighbour, never scaled in the art tool. */
+/* Sprite slot. 64x64 source art, nearest-neighbour, scaled by the game. */
 .sprite{
-  flex:0 0 64px;height:64px;
+  flex:0 0 108px;height:108px;
   border:1px dashed #2b353f;
   display:flex;align-items:center;justify-content:center;
-  color:#39434e;font-size:22px;
+  color:#39434e;font-size:30px;
   image-rendering:pixelated;
 }
 .foe-id{flex:1;min-width:0}
@@ -98,7 +97,7 @@ button{
 .cname .lv{font-family:var(--cond);font-size:11px;letter-spacing:.1em;color:var(--dim);white-space:nowrap}
 
 .bar{position:relative;height:9px;background:#080b0e;border:1px solid var(--rule)}
-.bar i{display:block;height:100%}
+.bar i{display:block;height:100%;transition:width .3s ease-out}
 .bar.hp i{background:linear-gradient(90deg,#8e3f2c,var(--rust))}
 .bar.hp.mid i{background:linear-gradient(90deg,#8a6f34,var(--warn))}
 .bar.hp.low i{background:#c4442a}
@@ -107,18 +106,18 @@ button{
   font-family:var(--cond);font-size:10.5px;letter-spacing:.08em;color:var(--dim);
 }
 
-/* known weakness — earned by Read, kept forever */
 .tell{
   margin-top:8px;padding:4px 8px;
   border-left:2px solid var(--verdigris);background:rgba(95,148,144,.07);
   font-size:11.5px;color:#9fbdba;
 }
+.tell[hidden]{display:none}
 .tell em{
   display:block;font-style:normal;font-family:var(--cond);font-size:9px;
   letter-spacing:.2em;text-transform:uppercase;color:var(--verdigris);
 }
 
-/* ---------- 3. INTENT — the most important text on screen ---------- */
+/* ---------- 3. INTENT ---------- */
 .intent{
   padding:9px 13px 10px;
   border-bottom:1px solid var(--rule);
@@ -134,13 +133,12 @@ button{
   display:block;font-family:var(--slab);font-weight:500;font-style:italic;
   font-size:19px;line-height:1.25;color:var(--warn);
 }
-/* before you've read it / between fights */
 .intent.unknown{border-left-color:var(--rule-hi);background:rgba(125,135,148,.05)}
 .intent.unknown b{color:var(--dim)}
 
-/* ---------- 4. readout — the only thing that scrolls ---------- */
+/* ---------- 4. readout ---------- */
 .readout{
-  overflow-y:auto;
+  overflow-y:auto;max-height:26vh;
   padding:10px 13px;
   background:var(--panel);
   border-bottom:1px solid var(--rule);
@@ -162,14 +160,12 @@ button{
   font-family:var(--cond);font-size:10.5px;letter-spacing:.14em;
   text-transform:uppercase;color:var(--dim);flex:0 0 auto;
 }
-/* Wind is a pip counter, not a bar — a pool this small should be
-   countable at a glance, not estimated from a width. */
 .pips{display:flex;gap:3px;flex:1}
 .pips i{flex:1;height:11px;background:#080b0e;border:1px solid var(--rule)}
 .pips i.on{background:var(--wind);border-color:#7fb0d6}
 .windrow .n{font-family:var(--cond);font-size:10.5px;color:var(--dim);flex:0 0 auto}
 
-/* ---------- 6. preview — sits directly above the pad on purpose ---------- */
+/* ---------- 6. preview ---------- */
 .preview{padding:8px 13px 9px;background:var(--panel);border-bottom:1px solid var(--rule);min-height:56px}
 .preview .ttl{
   font-family:var(--cond);font-size:9.5px;letter-spacing:.22em;
@@ -201,123 +197,664 @@ button{
 .act.guard  b{color:var(--wind)}
 .act.read   b{color:var(--verdigris)}
 
-/* not enough wind */
-.act:disabled{background:#101418;color:#3f4954;cursor:not-allowed}
+.act:disabled{background:#101418;cursor:not-allowed}
 .act:disabled b{color:#3f4954}
 .act:disabled span{color:#333c45}
 
-/* armed = tapped once. Tap again to commit. This is the misclick guard. */
+/* armed = tapped once. Tap again to commit. */
 .act.armed{background:#243039;box-shadow:inset 0 0 0 2px var(--lamp)}
 .act.armed span{color:var(--lamp)}
 
-/* this action counters what the foe has declared */
+/* this action counters what the foe just declared */
 .act.counter::after{
   content:'';position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;
   background:var(--verdigris);box-shadow:0 0 7px var(--verdigris);
 }
 
-/* ---------- 8. run — deliberately not in the pad ---------- */
-.runbtn{
+/* ---------- 7b. menu row ---------- */
+.pad2{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--rule);border-bottom:1px solid var(--rule);
+  user-select:none;-webkit-user-select:none;
+}
+.mact{background:#141a20;border:none;padding:10px 11px;text-align:left;min-height:54px}
+.mact b{display:block;font-family:var(--slab);font-size:15px;font-weight:600;line-height:1.15}
+.mact span{
+  display:block;font-family:var(--cond);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);margin-top:2px;
+}
+.mact.skills b{color:var(--lamp)}
+.mact.pack b{color:var(--bone)}
+.mact:disabled{background:#101418;cursor:not-allowed}
+.mact:disabled b{color:#3f4954}
+.mact:disabled span{color:#333c45}
+
+/* ---------- 8. the bottom bar ---------- */
+.botbtn{
   display:flex;align-items:baseline;gap:9px;
   width:100%;background:#12181e;border:none;
   border-top:1px solid var(--rule);
   padding:11px 13px calc(11px + env(safe-area-inset-bottom));
   min-height:52px;text-align:left;
 }
-.runbtn b{font-family:var(--slab);font-size:14px;font-weight:600;color:var(--rust)}
-.runbtn span{
+.botbtn b{font-family:var(--slab);font-size:14px;font-weight:600;color:var(--rust)}
+.botbtn span{
   font-family:var(--cond);font-size:10.5px;letter-spacing:.12em;
   text-transform:uppercase;color:var(--dim);
 }
-/* add class="runbtn fatal" to see the it-would-kill-you state */
-.runbtn.fatal{background:#2a1512}
-.runbtn.fatal span{color:var(--rust)}
+.botbtn[hidden]{display:none}
+.botbtn.fatal{background:#2a1512}
+.botbtn.fatal span{color:var(--rust)}
+.botbtn.armed{background:#3a1c17;box-shadow:inset 0 0 0 2px var(--lamp)}
+.botbtn.armed span{color:var(--lamp)}
+.botbtn.go{background:#1a2229}
+.botbtn.go b{color:var(--lamp)}
 
-/* ---------- desktop is the secondary target ---------- */
+/* ---------- the skills sheet ---------- */
+.sheet{
+  position:absolute;left:0;right:0;top:0;bottom:0;
+  max-width:480px;margin:0 auto;z-index:5;
+  display:flex;flex-direction:column;justify-content:flex-end;
+}
+.sheet[hidden]{display:none}
+.sheet-scrim{flex:1;min-height:0;background:rgba(8,11,14,.78)}
+.sheet-panel{background:var(--panel);border-top:1px solid var(--rule)}
+.sheet-head{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:10px 13px;border-bottom:1px solid var(--rule);background:#12181e;
+}
+.sheet-head h2{
+  margin:0;font-family:var(--cond);font-size:10px;font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+}
+.sheet-head .slots{font-family:var(--cond);font-size:11px;letter-spacing:.1em;color:var(--lamp)}
+.skill{
+  display:block;width:100%;text-align:left;background:#141a20;border:none;
+  border-bottom:1px solid var(--rule);padding:11px 13px;min-height:64px;
+}
+.skill b{font-family:var(--slab);font-size:15px;font-weight:600;color:var(--lamp)}
+.skill .meta{
+  float:right;font-family:var(--cond);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--verdigris);
+}
+.skill p{margin:2px 0 0;font-size:12.5px;color:#a5a396;clear:both}
+.skill:disabled{background:#101418;cursor:not-allowed}
+.skill:disabled b{color:#4a545f}
+.skill:disabled .meta{color:#3f4954}
+.skill:disabled p{color:#39434e}
+.skill.empty b{color:#39434e;font-style:italic}
+.sheet-note{
+  padding:8px 13px;font-size:11px;color:#4f5a66;
+  border-bottom:1px solid var(--rule);background:#101418;
+}
+.sheet-back{
+  width:100%;min-height:52px;background:#12181e;border:none;
+  border-top:1px solid var(--rule);
+  padding:13px calc(13px + env(safe-area-inset-bottom));
+  font-family:var(--cond);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim);text-align:center;
+}
+
+/* ---------- the end ---------- */
+.dead{
+  position:absolute;inset:0;z-index:10;background:var(--deep);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:30px 22px;
+}
+.dead h2{font-family:var(--slab);font-size:23px;color:var(--rust);margin:0 0 10px;line-height:1.25}
+.dead p{color:var(--dim);margin:0 0 22px;max-width:38ch}
+.dead button{
+  background:#141a20;border:1px solid var(--lamp-dim);color:var(--lamp);
+  padding:13px 22px;min-height:52px;
+  font-family:var(--cond);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+}
+
 @media (min-width:520px){
   body{background:#0a0d11}
   .arena{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
 }
-
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 
-<div class="arena">
+<div class="arena" id="arena">
 
-  <!-- 1 · where you are -->
   <header class="strip">
-    <div class="place">The Underbarrow Crypts</div>
-    <div class="meta">148 fathoms · encounter 3</div>
+    <div class="place" id="place">The Underbarrow Crypts</div>
+    <div class="meta" id="meta">—</div>
   </header>
 
-  <!-- 2 · the foe -->
   <section class="foe">
     <div class="foe-top">
       <div class="sprite" aria-hidden="true">?</div>
       <div class="foe-id">
-        <div class="cname"><b>war-painted kobold</b><span class="lv">Lv. 24</span></div>
-        <div class="bar hp"><i style="width:38%"></i></div>
-        <div class="nums"><span>hp</span><span>13 / 34</span></div>
+        <div class="cname"><b id="foeName">—</b><span class="lv" id="foeLv"></span></div>
+        <div class="bar hp" id="foeBar"><i id="foeHp"></i></div>
+        <div class="nums"><span>hp</span><span id="foeHpN"></span></div>
       </div>
     </div>
-    <div class="tell">
+    <div class="tell" id="tell" hidden>
       <em>Known weakness</em>
-      Brittle. Heavy blows go straight through.
+      <span id="tellTxt"></span>
     </div>
   </section>
 
-  <!-- 3 · what it is about to do -->
-  <div class="intent">
+  <div class="intent unknown" id="intent">
     <em>Intent</em>
-    <b>drawing back for something committed</b>
+    <b>—</b>
   </div>
 
-  <!-- 4 · what just happened -->
-  <div class="readout" role="log">
-    <p class="said">Struck the war-painted kobold for <b>11</b>.</p>
-    <p class="hurt">It got in past you for <b>6</b>.</p>
-    <p class="note">Your arm is heavy. The lamp has not moved in some time.</p>
-  </div>
+  <div class="readout" id="readout" role="log"></div>
 
-  <!-- 5 · you -->
   <section class="hero">
-    <div class="cname"><b>Leofrun Fenwick</b><span class="lv">Rank 6</span></div>
-    <div class="bar hp mid"><i style="width:64%"></i></div>
-    <div class="nums"><span>hp</span><span>41 / 64</span></div>
+    <div class="cname"><b id="heroName">—</b><span class="lv" id="heroLv"></span></div>
+    <div class="bar hp" id="heroBar"><i id="heroHp"></i></div>
+    <div class="nums"><span>hp</span><span id="heroHpN"></span></div>
     <div class="windrow">
       <span class="lab">Wind</span>
-      <span class="pips" aria-label="wind 3 of 10">
-        <i class="on"></i><i class="on"></i><i class="on"></i>
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      </span>
-      <span class="n">3 / 10</span>
+      <span class="pips" id="pips"></span>
+      <span class="n" id="windN"></span>
     </div>
   </section>
 
-  <!-- 6 · what the armed action would do -->
-  <div class="preview">
+  <div class="preview idle" id="preview">
     <div class="ttl">If you commit to that</div>
-    <div class="line">
-      Recover <span class="cost">3 wind</span> ·
-      take only <span class="bad">~4</span> ·
-      <span class="dmg">its heavy blow is wasted</span>
+    <div class="line">Tap an action to see what it costs.</div>
+  </div>
+
+  <div class="pad" id="pad"></div>
+
+  <div class="pad2">
+    <button class="mact skills" id="btnSkills"><b>Skills</b><span>2 slots left</span></button>
+    <button class="mact pack" disabled><b>Pack</b><span>empty</span></button>
+  </div>
+
+  <button class="botbtn" id="btnRun"><b>Run</b><span>—</span></button>
+  <button class="botbtn go" id="btnGo" hidden><b>Go on down</b><span>the next encounter</span></button>
+
+  <!-- skills sheet: sits above the pad so the fight stays readable -->
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-scrim" id="scrim"></div>
+    <div class="sheet-panel">
+      <div class="sheet-head">
+        <h2>Skills</h2>
+        <span class="slots">2 of 3 slots</span>
+      </div>
+
+      <button class="skill" disabled>
+        <span class="meta">1 slot</span>
+        <b>Lay On Hands I</b>
+        <p>Close a wound. 18 hp back. Costs a slot, not wind.</p>
+      </button>
+
+      <button class="skill" disabled>
+        <span class="meta">spent</span>
+        <b>Smite I</b>
+        <p>Comes back at camp. Rest returns one slot, not all of them.</p>
+      </button>
+
+      <button class="skill empty" disabled>
+        <b>Empty slot</b>
+        <p>Nothing slotted. Books drop in the dark.</p>
+      </button>
+
+      <div class="sheet-note">Skills aren't wired up yet — that's Session 6. This is here so you can judge how the sheet sits over a fight.</div>
+      <button class="sheet-back" id="btnBack">Back to the fight</button>
     </div>
   </div>
-
-  <!-- 7 · the pad. Guard is shown armed; Heavy is shown unaffordable. -->
-  <div class="pad">
-    <button class="act strike"><b>Strike</b><span>2 wind</span></button>
-    <button class="act heavy" disabled><b>Heavy blow</b><span>4 wind — short</span></button>
-    <button class="act guard counter armed"><b>Guard</b><span>tap again to commit</span></button>
-    <button class="act read"><b>Read it</b><span>1 wind</span></button>
-  </div>
-
-  <!-- 8 · leaving -->
-  <button class="runbtn"><b>Run</b><span>costs 14 hp · you keep nothing</span></button>
 
 </div>
 
+<script>
+"use strict";
+
+/* ============================================================
+   A note, since this is your first real JavaScript file.
+
+   Everything below follows one pattern. The game's numbers live
+   in an object called S. Nothing on screen updates itself. You
+   change a number inside S, then call render(), and render()
+   repaints every bar and label from scratch. That is why you'll
+   see render() at the end of nearly every function.
+
+   In GDScript terms: S is your member variables, and render() is
+   an update_ui() that you call by hand instead of a _process()
+   loop that runs every frame.
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const rnd = () => Math.random();
+const ri = (a,b) => a + Math.floor(rnd()*(b-a+1));
+const pick = a => a[Math.floor(rnd()*a.length)];
+const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const article = n => /^[aeiou]/i.test(n) ? `an ${n}` : `a ${n}`;
+
+
+/* ============================================================
+   INTENTS — the matchup layer. The whole game is here.
+
+   Each turn the foe declares one of these. Your actions are good
+   against different ones. mult is how hard its attack lands when
+   it comes; armour is how much of your damage it soaks.
+   ============================================================ */
+const INTENTS = {
+  heavy:   {tell:"drawing back for something committed", mult:2.0, armour:0},
+  quick:   {tell:"circling, light on its feet",          mult:0.6, armour:0},
+  guard:   {tell:"set behind its guard",                 mult:0.4, armour:0.7},
+  recover: {tell:"sucking air, giving ground",           mult:0,   armour:0, heal:0.14}
+};
+
+/* Weaknesses — revealed by Read, then remembered for every
+   creature of that kind you meet afterwards. */
+const WEAKNESSES = [
+  {id:"winded",  txt:"Wind-starves quickly. Guarding it out works.", eff:{guardBonus:1.6}},
+  {id:"brittle", txt:"Brittle. Heavy blows go straight through.",    eff:{heavyBonus:1.7}},
+  {id:"slow",    txt:"Slow to reset. Fast strikes chain on it.",     eff:{strikeBonus:1.5}},
+  {id:"skittish",txt:"Skittish. It will not chase a retreat.",       eff:{runFree:true}}
+];
+
+const FOES = [
+  {n:"war-painted kobold",tier:0}, {n:"goblin cutter",tier:0}, {n:"blind rat",tier:0},
+  {n:"pale hound",tier:1},         {n:"mine wight",tier:1},    {n:"silt-crawler",tier:1},
+  {n:"bone-picker",tier:2},        {n:"drowned man",tier:2},   {n:"lamp-eater",tier:2},
+  {n:"hollow knight",tier:3},      {n:"choir-thing",tier:3}
+];
+
+const HIT_VERBS = ["Struck","Cut into","Caught","Opened up","Got through on","Landed on"];
+
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let S = null;      // the delver, and the fight in front of them
+let known = {};    // weaknesses learned so far, keyed by creature name
+let armed = null;  // which action is tapped-but-not-yet-committed
+let over = false;  // true once you're dead
+
+function newDelver(){
+  S = {
+    name:"Leofrun Fenwick", rank:6,
+    hpMax:64, hp:64,
+    windMax:10, wind:10,
+    might:9,
+    depth:148, encounter:0,
+    turn:1, foe:null
+  };
+  known = {};
+  armed = null;
+  over = false;
+  $("readout").innerHTML = "";
+  nextFoe();
+}
+
+function nextFoe(){
+  S.encounter++;
+  S.turn = 1;
+  S.wind = Math.min(S.windMax, S.wind + 4);   // some breath back between fights
+  armed = null;
+
+  const band = FOES.filter(f => f.tier === clamp(Math.floor(S.depth/70), 0, 3));
+  const base = pick(band.length ? band : FOES);
+  const power = 1 + S.depth/110;
+  const hpMax = Math.round(ri(26,44) * power * 0.55);
+
+  S.foe = {
+    key: base.n,
+    name: base.n,
+    lv: Math.round(8 + S.depth/9 + ri(-2,3)),
+    hp: hpMax, hpMax,
+    atk: Math.round(5*power) + ri(0,3),
+    weakness: known[base.n] || pick(WEAKNESSES),
+    revealed: !!known[base.n],
+    intent: null
+  };
+  rollIntent();
+  say(`<p class="said">${cap(article(S.foe.name))} comes out of the dark.</p>`);
+  render();
+}
+
+function rollIntent(){
+  const f = S.foe;
+  const pool = ["heavy","quick","quick","guard"];
+  if(f.hp < f.hpMax*0.30) pool.push("recover","recover");
+  if(f.hp < f.hpMax*0.50) pool.push("heavy");
+  f.intent = pick(pool);
+}
+
+
+/* ============================================================
+   THE MATHS — all in one place, so tuning is easy later
+   ============================================================ */
+function dmgStrike(){
+  const f = S.foe;
+  let d = S.might + ri(0,4);
+  if(f.revealed && f.weakness.eff.strikeBonus) d *= f.weakness.eff.strikeBonus;
+  if(f.intent === "guard") d *= (1 - INTENTS.guard.armour);
+  return Math.max(1, Math.round(d));
+}
+function dmgHeavy(){
+  const f = S.foe;
+  let d = S.might*2.1 + ri(0,6);
+  if(f.revealed && f.weakness.eff.heavyBonus) d *= f.weakness.eff.heavyBonus;
+  if(f.intent === "guard") d *= 0.85;
+  return Math.max(1, Math.round(d));
+}
+function incoming(openMult){
+  const f = S.foe;
+  if(!f) return 0;
+  return Math.max(0, Math.round(f.atk * INTENTS[f.intent].mult * openMult));
+}
+function runCost(){
+  const f = S.foe;
+  if(f.revealed && f.weakness.eff.runFree) return 0;
+  return Math.max(1, Math.round(4 + S.depth/26 + (f.intent === "heavy" ? 4 : 0)));
+}
+
+
+/* ============================================================
+   ACTIONS
+   Each one knows what it costs, what intents it beats, what to
+   show in the preview, and what happens when you commit to it.
+   ============================================================ */
+const ACTIONS = {
+  strike:{
+    label:"Strike", sub:"2 wind", cost:2, beats:["quick","recover"],
+    preview(){
+      const d = dmgStrike(), back = incoming(1);
+      let s = `<span class="dmg">~${d} damage</span> · <span class="cost">2 wind</span>`;
+      s += back ? ` · you take <span class="bad">~${back}</span> back` : ` · it cannot answer`;
+      return s;
+    },
+    run(){
+      const f = S.foe, d = dmgStrike();
+      if(f.intent === "quick" && rnd() < 0.35)
+        return `<p>Swung and found nothing. It was already elsewhere.</p>`;
+      f.hp -= d;
+      return `<p>${pick(HIT_VERBS)} the ${esc(f.name)} for <b>${d}</b>.</p>`;
+    }
+  },
+
+  heavy:{
+    label:"Heavy blow", sub:"4 wind", cost:4, beats:["guard","recover"],
+    preview(){
+      const f = S.foe;
+      if(f.intent === "quick")
+        return `<span class="bad">Likely to miss</span> — it is circling · <span class="cost">4 wind</span>`;
+      const d = dmgHeavy(), back = incoming(1.25);
+      let s = `<span class="dmg">~${d} damage</span> · <span class="cost">4 wind</span>`;
+      if(back) s += ` · you take <span class="bad">~${back}</span>, guard open`;
+      return s;
+    },
+    run(){
+      const f = S.foe;
+      if(f.intent === "quick" && rnd() < 0.70)
+        return `<p>Committed to the swing. It stepped inside it.</p>`;
+      const d = dmgHeavy();
+      f.hp -= d;
+      return `<p>Brought it down hard — <b>${d}</b>${f.intent === "guard" ? ", straight through the guard" : ""}.</p>`;
+    }
+  },
+
+  guard:{
+    label:"Guard", sub:"+3 wind", cost:-3, beats:["heavy"],
+    preview(){
+      const back = Math.round(incoming(1)*0.25);
+      let s = `Recover <span class="cost">3 wind</span> · take only <span class="bad">~${back}</span>`;
+      if(S.foe.intent === "heavy") s += ` · <span class="dmg">its heavy blow is wasted</span>`;
+      return s;
+    },
+    run(){
+      S.wind = Math.min(S.windMax, S.wind + 3);
+      return `<p class="good">Set and breathed. Found the wind again.</p>`;
+    }
+  },
+
+  read:{
+    label:"Read it", sub:"1 wind", cost:1, beats:["guard"],
+    preview(){
+      if(S.foe.revealed) return `Already read. You know what this one cannot take.`;
+      const back = incoming(1);
+      return `Learn its weakness — kept for every one you meet after · you take <span class="bad">~${back}</span> doing it`;
+    },
+    run(){
+      const f = S.foe;
+      if(f.revealed) return `<p class="note">Nothing new. You know this one.</p>`;
+      f.revealed = true;
+      known[f.key] = f.weakness;
+      return `<p class="good">Watched instead of swinging. ${esc(f.weakness.txt)}</p>`;
+    }
+  }
+};
+
+
+/* ============================================================
+   TAP TO PREVIEW, TAP AGAIN TO COMMIT
+
+   First tap on an action arms it and fills in the preview.
+   Second tap on the SAME action commits it.
+   Tapping a different action just moves the arming across.
+   ============================================================ */
+function tapAction(key){
+  if(over || !S.foe) return;
+
+  if(armed !== key){        // first tap — arm it, show the numbers
+    armed = key;
+    render();
+    return;
+  }
+  armed = null;             // second tap — go
+  takeTurn(key);
+}
+
+function takeTurn(key){
+  const A = ACTIONS[key];
+  if(A.cost > S.wind) return;
+  if(A.cost > 0) S.wind -= A.cost;
+
+  let out = A.run();
+
+  // did that finish it?
+  if(S.foe.hp <= 0){
+    say(out + `<p class="said">The ${esc(S.foe.name)} went down and stayed down.</p>`);
+    S.foe = null;
+    render();
+    return;
+  }
+
+  // --- the foe now does the thing it declared ---
+  const f = S.foe, I = INTENTS[f.intent];
+
+  if(I.heal){
+    const h = Math.round(f.hpMax * I.heal);
+    f.hp = Math.min(f.hpMax, f.hp + h);
+    out += `<p class="note">It gave ground and got some of itself back.</p>`;
+  } else {
+    let dmg = incoming(key === "heavy" ? 1.25 : 1);
+    if(key === "guard"){
+      dmg = Math.round(dmg * 0.25);
+      if(f.revealed && f.weakness.eff.guardBonus) dmg = Math.round(dmg / f.weakness.eff.guardBonus);
+    }
+    if(dmg > 0){
+      S.hp -= dmg;
+      out += `<p class="hurt">It ${f.intent === "heavy" ? "came down on you" : "got in past you"} for <b>${dmg}</b>.</p>`;
+    } else {
+      out += `<p class="note">Nothing came back.</p>`;
+    }
+  }
+
+  if(S.hp <= 0) return die(out);
+
+  S.wind = Math.min(S.windMax, S.wind + 1);   // one pip back every turn
+  S.turn++;
+  rollIntent();
+  say(out);
+  render();
+}
+
+function tapRun(){
+  if(over || !S.foe) return;
+  if(armed !== "run"){ armed = "run"; render(); return; }
+  armed = null;
+
+  const c = runCost();
+  S.hp -= c;
+  if(S.hp <= 0) return die(`<p class="hurt">Turned to run. Did not get far.</p>`);
+
+  say(`<p class="said">Broke contact and did not look back.</p>` +
+      (c ? `<p class="hurt">It cost <b>${c}</b> on the way out.</p>`
+         : `<p class="note">It let you go.</p>`));
+  S.foe = null;
+  render();
+}
+
+function die(out){
+  over = true;
+  say(out + `<p class="hurt said">You did not get up.</p>`);
+  render();
+  setTimeout(() => {
+    const d = document.createElement("div");
+    d.className = "dead";
+    d.innerHTML =
+      `<h2>${esc(S.name)}, ended at ${S.depth} fathoms</h2>
+       <p>The chronicle closes here. Whatever you learned to read stays read.</p>
+       <button id="btnNew">Sign a new delver</button>`;
+    $("arena").appendChild(d);
+    $("btnNew").addEventListener("click", () => { d.remove(); newDelver(); });
+  }, 1200);
+}
+
+
+/* ============================================================
+   RENDER — repaints the whole screen from S
+   ============================================================ */
+function say(html){
+  const r = $("readout");
+  r.innerHTML = html;
+  r.scrollTop = 0;
+}
+
+function hpClass(el, frac){
+  el.classList.toggle("mid", frac <= 0.50 && frac > 0.22);
+  el.classList.toggle("low", frac <= 0.22);
+}
+
+function render(){
+  $("meta").textContent = `${S.depth} fathoms · encounter ${S.encounter}`;
+  $("heroName").textContent = S.name;
+  $("heroLv").textContent = "Rank " + S.rank;
+
+  // you
+  const hf = clamp(S.hp/S.hpMax, 0, 1);
+  hpClass($("heroBar"), hf);
+  $("heroHp").style.width = hf*100 + "%";
+  $("heroHpN").textContent = `${Math.max(0,S.hp)} / ${S.hpMax}`;
+
+  // wind pips
+  let pips = "";
+  for(let i = 0; i < S.windMax; i++) pips += `<i class="${i < S.wind ? "on" : ""}"></i>`;
+  $("pips").innerHTML = pips;
+  $("windN").textContent = `${S.wind} / ${S.windMax}`;
+
+  // the foe
+  const f = S.foe;
+  if(f){
+    $("foeName").textContent = f.name;
+    $("foeLv").textContent = "Lv. " + f.lv;
+    const ff = clamp(f.hp/f.hpMax, 0, 1);
+    hpClass($("foeBar"), ff);
+    $("foeHp").style.width = ff*100 + "%";
+    $("foeHpN").textContent = `${Math.max(0,f.hp)} / ${f.hpMax}`;
+
+    $("intent").classList.remove("unknown");
+    $("intent").innerHTML = `<em>Intent</em><b>${esc(INTENTS[f.intent].tell)}</b>`;
+
+    $("tell").hidden = !f.revealed;
+    if(f.revealed) $("tellTxt").textContent = f.weakness.txt;
+  } else {
+    $("foeName").textContent = "—";
+    $("foeLv").textContent = "";
+    $("foeHp").style.width = "0%";
+    $("foeHpN").textContent = "";
+    $("intent").classList.add("unknown");
+    $("intent").innerHTML = `<em>Intent</em><b>nothing in front of you</b>`;
+    $("tell").hidden = true;
+  }
+
+  renderPad();
+  renderPreview();
+
+  // the bottom bar: Run during a fight, Go on down after one
+  $("btnRun").hidden = !f || over;
+  $("btnGo").hidden = !!f || over;
+  if(f){
+    const c = runCost();
+    const fatal = c >= S.hp;
+    const btn = $("btnRun");
+    btn.classList.toggle("fatal", fatal);
+    btn.classList.toggle("armed", armed === "run");
+    btn.querySelector("b").textContent = armed === "run" ? "Run — commit?" : "Run";
+    btn.querySelector("span").textContent =
+      armed === "run" ? "tap again to break contact"
+      : fatal          ? `costs ${c} hp · that kills you`
+      : c === 0        ? `it will not follow · you keep nothing`
+      :                  `costs ${c} hp · you keep nothing`;
+  }
+}
+
+function renderPad(){
+  const order = ["strike","heavy","guard","read"];
+  $("pad").innerHTML = order.map(k => {
+    const A = ACTIONS[k];
+    const off = !S.foe || over || A.cost > S.wind;
+    const counters = S.foe && A.beats.includes(S.foe.intent);
+    const isArmed = armed === k;
+    const sub = isArmed ? "tap again to commit"
+              : (S.foe && A.cost > S.wind) ? `${A.sub} — short`
+              : A.sub;
+    return `<button class="act ${k} ${counters ? "counter" : ""} ${isArmed ? "armed" : ""}"
+              data-k="${k}" ${off ? "disabled" : ""}>
+              <b>${A.label}</b><span>${sub}</span></button>`;
+  }).join("");
+}
+
+function renderPreview(){
+  const p = $("preview");
+  if(!S.foe || over || !armed || armed === "run"){
+    p.classList.add("idle");
+    p.innerHTML = `<div class="ttl">If you commit to that</div>
+                   <div class="line">${S.foe ? "Tap an action to see what it costs." : "Nothing in front of you."}</div>`;
+    return;
+  }
+  p.classList.remove("idle");
+  p.innerHTML = `<div class="ttl">If you commit to that</div>
+                 <div class="line">${ACTIONS[armed].preview()}</div>`;
+}
+
+
+/* ============================================================
+   WIRING — connecting the buttons to the functions above
+   ============================================================ */
+$("pad").addEventListener("click", e => {
+  const b = e.target.closest(".act");
+  if(!b || b.disabled) return;
+  tapAction(b.dataset.k);
+});
+
+$("btnRun").addEventListener("click", tapRun);
+
+$("btnGo").addEventListener("click", () => {
+  S.depth += ri(3,9);
+  nextFoe();
+});
+
+$("btnSkills").addEventListener("click", () => { $("sheet").hidden = false; });
+$("btnBack").addEventListener("click", () => { $("sheet").hidden = true; });
+$("scrim").addEventListener("click", () => { $("sheet").hidden = true; });
+
+newDelver();
+</script>
 </body>
 </html>
