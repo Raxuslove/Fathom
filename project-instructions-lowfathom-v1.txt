@@ -1,0 +1,104 @@
+# Project: Lowfathom (working title)
+
+## What this project is
+
+I am building a game: a permadeath descent RPG that plays on a phone, browser or pc. You create your own delver, you go down a shaft, and you do not come back up. It is descended from Progress Quest by way of Lowmoor — a self-playing chronicle — except the combat is mine to play, turn by turn.
+
+The loop: descend → an encounter interrupts → turn-based fight → rest or camp → descend further → die maybe/eventually. Depth is measured in fathoms and never stops. Death is permanent and closes the chronicle.
+
+The core bet: idle-game structure (a run that persists, a log that accretes, numbers that climb) welded to real tactical combat. Idle games have no decisions. Roguelikes have no continuity between sessions. This has both.
+
+## Locked decisions (do not reopen unless I ask)
+
+- **I am the adventurer.** Not a guild clerk, not a manager. First person, my hands on it.
+- **Permadeath.** No runs-back, no resurrection. The chronicle is the artifact I keep.
+- **Platform: HTML/CSS/JavaScript, PWA, mobile-first.** Not Godot — this game is mostly UI (panels, bars, text, tooltips), and CSS is the right tool for that. No frameworks, no build step, no dependencies without a strong specific reason. Capacitor for app stores later if it earns it.
+- **Mobile-first design from the start**, not retrofitted. Thumb-reachable action pad, tap-to-preview then tap-to-confirm (which also prevents fatal misclicks in a permadeath game). Desktop is the secondary target.
+- **Combat is turn-based with declared intent.** The foe telegraphs what it is about to do each turn — winding up, circling, guarding, recovering. Different actions counter different intents. This is the matchup layer that stops combat being "click the biggest number." Without it there is no game.
+- **Wind is the in-fight resource.** A small pool. Strike costs some, heavy attacks cost more, guarding restores it. Creates a spend/reset rhythm inside a single fight.
+- **Skill slots are the across-descent resource.** Skills do NOT cost wind — they cost slots that only refresh at camp (partially at rest). The pressure is "two encounters to the next safe spot and one heal left," not "which button this turn."
+- **Skills solve problems the basic actions can't.** A skill that is just Strike But Bigger is dead weight. Lay On Hands answers "running costs more HP than I have." A skill must create a decision, not replace one.
+- **Skill degrees are I / II / III.** Same skill, deeper. This keeps the skill list short and readable — no 2,000-node skill tree.
+- **Skills are found, not bought.** Books drop in the dark. Reading happens at rest/camp and fills a plip counter (0/5, 0/30). Filling it grants the skill. Exploration feeds power directly.
+- **Skills scale with stats.** A fighter can learn Fire Blast; it just won't do much. Stat points on level up decide what your found skills are worth.
+- **Buffs are real-time, not encounter-counted.** 1:1 time is what makes it feel like being the person down there rather than watching a simulation. The clock FREEZES during combat so a buff can never expire mid-boss.
+- **One boon active at a time.** No stacking four rests before a boss.
+- **Rest vs camp are different things.** Rest: short real-time cooldown (~10–15 min), quarter heal, pick one boon, partial slot refresh. Camp: full heal, sleep, rested buff, all slots back, hireling wages paid.
+- **Auto mode is categorically different, not diminished.** The hireling works ground already cleared while I'm away. It generates gold and materials and a thin XP trickle. It CANNOT descend and CANNOT die. Depth only moves when I'm at the wheel. This removes both the guilt mechanic and the "came back to a dead character" disaster.
+- **Auto-mode yields plateau** (the basket only holds so much) rather than scaling forever — so being away a long time is never better than playing.
+
+## Stats and what each one is for
+
+STR — physical skill damage. CON — hit points. DEX — traps, evasion.
+INT — magical skill damage. WIS — reading speed (plips per read), possibly smites.
+CHA — the people stat: merchant prices, hireling wages, recruitment DCs.
+LUK — rare item find chance.
+Perk-style investments exist too (e.g. wounds heal 15% faster while descending out of combat).
+
+## Open questions (decided together, not yet)
+
+- **Camp gating.** I proposed a 3-hour real-time cooldown. Claude pushed back: with permadeath, a cooldown whose correct play is "close the game" fights the design. Counter-proposal was gating camp on **place + supplies** — safe hollows every 20–40 fathoms, burning oil and rations — which produces "can I reach the next safe spot?" instead. NOT RESOLVED.
+- **Plip cost scaling.** I said deeper books cost more plips. Claude flagged that this creates skills a low-WIS build can see and never obtain, and proposed tying cost to the book's POWER instead, making WIS a speed stat rather than a gate. NOT RESOLVED.
+- **Whether a book shows its scaling stat on pickup.** Claude recommends yes — otherwise sinking five camps into a useless book reads as a trap rather than a choice. NOT RESOLVED.
+- **Where smites live.** I put them on CHA. Claude argued CHA is already carrying four jobs (smites, prices, wages, recruitment) while LUK carries one, and suggested moving smites to WIS so CHA stays purely the people stat. NOT RESOLVED.
+- **Hybrid builds.** STR→physical / INT→magical means split builds are strictly worse. Either some skills scale off two stats, or builds are meant to be narrow and we lean in. NOT RESOLVED.
+
+## Recommended v1 scope (the thing that proves it's fun)
+
+Descent → combat with intents → rest/camp → one class with three skills → permadeath.
+
+If that loop grips for forty minutes, everything else is safe to add. If it doesn't, no amount of books fixes it. Everything below is genuinely additive and can bolt on later without rework — which is exactly why it waits.
+
+## Backlog (designed, NOT being built now)
+
+- Oaths — permanent commitments that close off options for power. Gives each run an identity. Pure writing, cheap, high value; the first backlog item to pull forward.
+- Hirelings with specialties — one at a time, met on the descent, each with bonuses (carry capacity, material finding). Wages paid per camp, reducible with CHA. Better hirelings have higher recruitment DCs.
+- Wandering merchants — sell junk, negotiate on CHA.
+- "The Guild picks for you" / "You pick by hand" toggle for stat points on level up, so a level-up never blocks progress while away.
+- Multiple classes beyond the first.
+- Full book library and the deep-tome tier.
+- Pixel art beyond placeholders (see conventions below).
+- Sound, music.
+
+## Art conventions (fixed before any drawing starts)
+
+- **64×64 canvas, every enemy, no exceptions.** Draw at 1×; the game scales up with nearest-neighbour. Never scale up in the art tool.
+- **Transparent PNG. Subject faces left** (toward where I stand).
+- **Feet on the bottom edge, not floating** — otherwise every sprite sits at a different height forever.
+- **Two frames is enough.** An idle bob swapped every ~500ms reads as alive. No full animation on creature one.
+- **Pick one palette rule and hold it** across all creatures: either pull from the game's UI colours, or deliberately go brighter to pop against the dark.
+- **Missing art must fall back to a placeholder**, so creatures can be added faster than they can be drawn and nothing breaks.
+- **No player sprite.** A sprite per class per gear tier would eat all the art time before there are five monsters. My side of the field stays a silhouette or nothing.
+
+## How we work together (the build loop)
+
+- **Claude does not build prototypes unless I ask.** Claude may ask "want me to prototype this?" and wait for my answer. This is a hard rule — I want to talk designs through before anything gets built.
+- Claude writes or edits the code and sends me full replacement files to drop in. I run it and I am the eyes: Claude can read code but cannot see the rendered page, so it must not assume how something looks or feels on a real phone.
+- My loop: save in VS Code → Live Server → check on my phone → report back.
+- When something looks or feels wrong I describe it or send a screenshot. Claude should ask for a screenshot or the exact error text rather than guessing at a fix.
+- Keep the game in one HTML file for now. Split only when it becomes genuinely unwieldy, and tell me when that point arrives.
+- Ideas go into `BACKLOG.md`, not into the build on impulse. I generate a lot of ideas per session — that is the failure mode to guard against, not a resource to spend.
+- At the end of any session that completes a phase, remind me to run the two git commands with a commit message naming the session.
+- I write the flavour text, creature names, book descriptions, and oaths. That is my half. Claude should ask for them rather than filling them in with placeholder prose when the real thing would be better.
+
+## Tools
+
+VS Code + Live Server (already configured, local IP on for phone testing over wifi). Git installed and working. GitHub account `Raxuslove`. Same setup as my other project — nothing new to install.
+
+## My background & how to work with me
+
+- I'm a beginner with low programming experience. Web development is new: editors, terminals, deployment, PWA specifics are unfamiliar. Never assume I know how to do something. Be explicit about where to click, what to name files, which folder things go in, where to paste code.
+- I know the basics of GDScript from a Godot project. A short comparison to GDScript helps when explaining a JavaScript concept for the first time.
+- Realistic pace: sessions of a few hours around a per-hour job. Plan in sessions, not weeks. Each phase ends with something I can see working on my phone.
+- Prefer boring, well-documented technology over clever choices. I maintain this alone. Explain what code does in plain language.
+- If something is too complex for my level, say so and offer a simpler alternative.
+- When I report a bug, ask for exact error text or behaviour before guessing fixes.
+
+## Working style
+
+- Direct, honest pushback over validation. If a design decision is bad, say so with reasons. This has already been useful — the auto-mode guilt problem and the camp-cooldown trap were both caught this way.
+- Don't overwhelm me with options. Recommend the best approach and explain why briefly. Mention alternatives only if the choice genuinely matters.
+- Practical and concrete: runnable steps and code, not essays.
+- **Keep scope in check.** This design generates ideas faster than it can absorb them. Push back when I'm stacking features onto an unproven core. The most likely failure mode is building everything and shipping nothing.
+- I also have a second project (a pantry PWA) mid-build. If I'm drifting between the two rather than finishing either, say so.
+- Don't re-pitch or re-praise the idea; assume commitment and work the problem.

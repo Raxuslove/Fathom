@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0f1317">
+<title>Lowfathom — Encounter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   LOWFATHOM — combat screen, Session 1
+   Layout only. Every number below is typed in by hand.
+   Nothing here moves; there is no JavaScript at all.
+   ============================================================ */
+
+:root{
+  /* Same tokens as the design-chat prototypes. Don't invent new ones. */
+  --deep:#0f1317; --stone:#171d23; --panel:#1c232b;
+  --rule:#2e3944; --rule-hi:#43525f;
+  --bone:#c2bdb1; --dim:#7d8794;
+  --lamp:#e6c288; --lamp-dim:#8a7550;
+  --rust:#b4553c; --verdigris:#5f9490;
+  --wind:#6a9bc4; --warn:#d99a4e;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --slab:'Zilla Slab',Georgia,serif;
+  --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--deep);
+  color:var(--bone);
+  font-family:var(--mono);
+  font-size:13px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button{
+  font:inherit;color:inherit;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;   /* kills the grey flash on Android tap */
+  touch-action:manipulation;                 /* kills the 300ms double-tap-zoom delay */
+}
+:focus-visible{outline:2px solid var(--lamp);outline-offset:-3px}
+
+/* ---------- the frame ----------
+   One screen. Never scrolls as a whole — only the readout scrolls.
+   dvh = "dynamic viewport height": the real height once the phone's
+   address bar has settled. vh above it is the fallback for old browsers. */
+.arena{
+  display:grid;
+  grid-template-rows:auto auto auto minmax(0,1fr) auto auto auto auto;
+  height:100vh;
+  height:100dvh;
+  max-width:480px;
+  margin:0 auto;
+  background:var(--stone);
+  border-left:1px solid var(--rule);
+  border-right:1px solid var(--rule);
+  overflow:hidden;
+}
+
+/* ---------- 1. depth strip ---------- */
+.strip{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:calc(7px + env(safe-area-inset-top)) 13px 7px;
+  background:#12181e;border-bottom:1px solid var(--rule);
+}
+.strip .place{font-family:var(--slab);font-size:14px;color:var(--lamp)}
+.strip .meta{
+  font-family:var(--cond);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim);white-space:nowrap;
+}
+
+/* ---------- 2. the foe ---------- */
+.foe{
+  padding:9px 13px 10px;
+  background:radial-gradient(130% 120% at 50% 0%,#1b232b 0%,#0e1317 70%);
+  border-bottom:1px solid var(--rule);
+}
+.foe-top{display:flex;align-items:flex-end;gap:11px}
+
+/* Sprite slot. Reserved now so adding art later doesn't move anything.
+   64x64 source, nearest-neighbour, never scaled in the art tool. */
+.sprite{
+  flex:0 0 64px;height:64px;
+  border:1px dashed #2b353f;
+  display:flex;align-items:center;justify-content:center;
+  color:#39434e;font-size:22px;
+  image-rendering:pixelated;
+}
+.foe-id{flex:1;min-width:0}
+.cname{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
+.cname b{font-family:var(--slab);font-size:15px;font-weight:600}
+.cname .lv{font-family:var(--cond);font-size:11px;letter-spacing:.1em;color:var(--dim);white-space:nowrap}
+
+.bar{position:relative;height:9px;background:#080b0e;border:1px solid var(--rule)}
+.bar i{display:block;height:100%}
+.bar.hp i{background:linear-gradient(90deg,#8e3f2c,var(--rust))}
+.bar.hp.mid i{background:linear-gradient(90deg,#8a6f34,var(--warn))}
+.bar.hp.low i{background:#c4442a}
+.nums{
+  display:flex;justify-content:space-between;margin-top:2px;
+  font-family:var(--cond);font-size:10.5px;letter-spacing:.08em;color:var(--dim);
+}
+
+/* known weakness — earned by Read, kept forever */
+.tell{
+  margin-top:8px;padding:4px 8px;
+  border-left:2px solid var(--verdigris);background:rgba(95,148,144,.07);
+  font-size:11.5px;color:#9fbdba;
+}
+.tell em{
+  display:block;font-style:normal;font-family:var(--cond);font-size:9px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--verdigris);
+}
+
+/* ---------- 3. INTENT — the most important text on screen ---------- */
+.intent{
+  padding:9px 13px 10px;
+  border-bottom:1px solid var(--rule);
+  border-left:3px solid var(--warn);
+  background:rgba(217,154,78,.08);
+}
+.intent em{
+  display:block;font-style:normal;font-family:var(--cond);
+  font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--lamp-dim);
+  margin-bottom:1px;
+}
+.intent b{
+  display:block;font-family:var(--slab);font-weight:500;font-style:italic;
+  font-size:19px;line-height:1.25;color:var(--warn);
+}
+/* before you've read it / between fights */
+.intent.unknown{border-left-color:var(--rule-hi);background:rgba(125,135,148,.05)}
+.intent.unknown b{color:var(--dim)}
+
+/* ---------- 4. readout — the only thing that scrolls ---------- */
+.readout{
+  overflow-y:auto;
+  padding:10px 13px;
+  background:var(--panel);
+  border-bottom:1px solid var(--rule);
+}
+.readout p{margin:0 0 5px}
+.readout p:last-child{margin-bottom:0}
+.readout .said{font-family:var(--slab);font-size:14.5px;color:var(--bone)}
+.readout .hurt{color:#c0705c}
+.readout .good{color:var(--verdigris)}
+.readout .note{color:var(--dim);font-style:italic;font-size:12px}
+.readout b{font-weight:600;color:var(--bone)}
+
+/* ---------- 5. you ---------- */
+.hero{padding:8px 13px 9px;background:#12181e;border-bottom:1px solid var(--rule)}
+.hero .cname{margin-bottom:4px}
+.hero .cname b{font-size:13.5px}
+.windrow{display:flex;align-items:center;gap:8px;margin-top:7px}
+.windrow .lab{
+  font-family:var(--cond);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);flex:0 0 auto;
+}
+/* Wind is a pip counter, not a bar — a pool this small should be
+   countable at a glance, not estimated from a width. */
+.pips{display:flex;gap:3px;flex:1}
+.pips i{flex:1;height:11px;background:#080b0e;border:1px solid var(--rule)}
+.pips i.on{background:var(--wind);border-color:#7fb0d6}
+.windrow .n{font-family:var(--cond);font-size:10.5px;color:var(--dim);flex:0 0 auto}
+
+/* ---------- 6. preview — sits directly above the pad on purpose ---------- */
+.preview{padding:8px 13px 9px;background:var(--panel);border-bottom:1px solid var(--rule);min-height:56px}
+.preview .ttl{
+  font-family:var(--cond);font-size:9.5px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--lamp-dim);margin-bottom:2px;
+}
+.preview .line{color:#a5a396;font-size:13px}
+.preview .cost{color:var(--wind)}
+.preview .dmg{color:var(--warn)}
+.preview .bad{color:var(--rust)}
+.preview.idle .line{color:var(--dim);font-style:italic}
+
+/* ---------- 7. action pad ---------- */
+.pad{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--rule);border-bottom:1px solid var(--rule);
+  user-select:none;-webkit-user-select:none;
+}
+.act{
+  background:#141a20;border:none;padding:13px 11px;text-align:left;
+  min-height:64px;position:relative;
+}
+.act b{display:block;font-family:var(--slab);font-size:16px;font-weight:600;line-height:1.15}
+.act span{
+  display:block;font-family:var(--cond);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);margin-top:2px;
+}
+.act.strike b{color:var(--bone)}
+.act.heavy  b{color:var(--warn)}
+.act.guard  b{color:var(--wind)}
+.act.read   b{color:var(--verdigris)}
+
+/* not enough wind */
+.act:disabled{background:#101418;color:#3f4954;cursor:not-allowed}
+.act:disabled b{color:#3f4954}
+.act:disabled span{color:#333c45}
+
+/* armed = tapped once. Tap again to commit. This is the misclick guard. */
+.act.armed{background:#243039;box-shadow:inset 0 0 0 2px var(--lamp)}
+.act.armed span{color:var(--lamp)}
+
+/* this action counters what the foe has declared */
+.act.counter::after{
+  content:'';position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;
+  background:var(--verdigris);box-shadow:0 0 7px var(--verdigris);
+}
+
+/* ---------- 8. run — deliberately not in the pad ---------- */
+.runbtn{
+  display:flex;align-items:baseline;gap:9px;
+  width:100%;background:#12181e;border:none;
+  border-top:1px solid var(--rule);
+  padding:11px 13px calc(11px + env(safe-area-inset-bottom));
+  min-height:52px;text-align:left;
+}
+.runbtn b{font-family:var(--slab);font-size:14px;font-weight:600;color:var(--rust)}
+.runbtn span{
+  font-family:var(--cond);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);
+}
+/* add class="runbtn fatal" to see the it-would-kill-you state */
+.runbtn.fatal{background:#2a1512}
+.runbtn.fatal span{color:var(--rust)}
+
+/* ---------- desktop is the secondary target ---------- */
+@media (min-width:520px){
+  body{background:#0a0d11}
+  .arena{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="arena">
+
+  <!-- 1 · where you are -->
+  <header class="strip">
+    <div class="place">The Underbarrow Crypts</div>
+    <div class="meta">148 fathoms · encounter 3</div>
+  </header>
+
+  <!-- 2 · the foe -->
+  <section class="foe">
+    <div class="foe-top">
+      <div class="sprite" aria-hidden="true">?</div>
+      <div class="foe-id">
+        <div class="cname"><b>war-painted kobold</b><span class="lv">Lv. 24</span></div>
+        <div class="bar hp"><i style="width:38%"></i></div>
+        <div class="nums"><span>hp</span><span>13 / 34</span></div>
+      </div>
+    </div>
+    <div class="tell">
+      <em>Known weakness</em>
+      Brittle. Heavy blows go straight through.
+    </div>
+  </section>
+
+  <!-- 3 · what it is about to do -->
+  <div class="intent">
+    <em>Intent</em>
+    <b>drawing back for something committed</b>
+  </div>
+
+  <!-- 4 · what just happened -->
+  <div class="readout" role="log">
+    <p class="said">Struck the war-painted kobold for <b>11</b>.</p>
+    <p class="hurt">It got in past you for <b>6</b>.</p>
+    <p class="note">Your arm is heavy. The lamp has not moved in some time.</p>
+  </div>
+
+  <!-- 5 · you -->
+  <section class="hero">
+    <div class="cname"><b>Leofrun Fenwick</b><span class="lv">Rank 6</span></div>
+    <div class="bar hp mid"><i style="width:64%"></i></div>
+    <div class="nums"><span>hp</span><span>41 / 64</span></div>
+    <div class="windrow">
+      <span class="lab">Wind</span>
+      <span class="pips" aria-label="wind 3 of 10">
+        <i class="on"></i><i class="on"></i><i class="on"></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </span>
+      <span class="n">3 / 10</span>
+    </div>
+  </section>
+
+  <!-- 6 · what the armed action would do -->
+  <div class="preview">
+    <div class="ttl">If you commit to that</div>
+    <div class="line">
+      Recover <span class="cost">3 wind</span> ·
+      take only <span class="bad">~4</span> ·
+      <span class="dmg">its heavy blow is wasted</span>
+    </div>
+  </div>
+
+  <!-- 7 · the pad. Guard is shown armed; Heavy is shown unaffordable. -->
+  <div class="pad">
+    <button class="act strike"><b>Strike</b><span>2 wind</span></button>
+    <button class="act heavy" disabled><b>Heavy blow</b><span>4 wind — short</span></button>
+    <button class="act guard counter armed"><b>Guard</b><span>tap again to commit</span></button>
+    <button class="act read"><b>Read it</b><span>1 wind</span></button>
+  </div>
+
+  <!-- 8 · leaving -->
+  <button class="runbtn"><b>Run</b><span>costs 14 hp · you keep nothing</span></button>
+
+</div>
+
+</body>
+</html>

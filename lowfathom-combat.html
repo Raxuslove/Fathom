@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lowfathom — Encounter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --deep:#0f1317; --stone:#171d23; --panel:#1c232b;
+  --rule:#2e3944; --rule-hi:#43525f;
+  --bone:#c2bdb1; --dim:#7d8794;
+  --lamp:#e6c288; --lamp-dim:#8a7550;
+  --rust:#b4553c; --verdigris:#5f9490;
+  --wind:#6a9bc4; --warn:#d99a4e;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --slab:'Zilla Slab',Georgia,serif;
+  --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--deep);color:var(--bone);font-family:var(--mono);font-size:13px;line-height:1.5;
+  display:flex;align-items:center;justify-content:center;padding:16px;min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed}
+:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+
+.arena{width:100%;max-width:860px;border:1px solid var(--rule);background:var(--stone)}
+
+/* ---- depth strip ---- */
+.strip{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:7px 14px;border-bottom:1px solid var(--rule);background:#12181e;flex-wrap:wrap}
+.strip .place{font-family:var(--slab);font-size:14px;color:var(--lamp)}
+.strip .meta{font-family:var(--cond);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+
+/* ---- the field ---- */
+.field{position:relative;padding:16px 14px 10px;min-height:250px;
+  background:radial-gradient(120% 90% at 50% 118%,#1b232b 0%,#0e1317 62%)}
+
+.combatant{border:1px solid var(--rule);background:rgba(12,16,20,.9);padding:8px 11px;width:min(300px,86%)}
+.combatant.foe{margin-right:auto}
+.combatant.hero{margin-left:auto;margin-top:56px}
+.cname{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px}
+.cname b{font-family:var(--slab);font-size:14.5px;font-weight:600}
+.cname .lv{font-family:var(--cond);font-size:11px;letter-spacing:.1em;color:var(--dim)}
+.bar{position:relative;height:9px;background:#080b0e;border:1px solid var(--rule);margin-bottom:3px}
+.bar i{display:block;height:100%;transition:width .35s ease-out}
+.bar.hp i{background:linear-gradient(90deg,#8e3f2c,var(--rust))}
+.bar.hp.mid i{background:linear-gradient(90deg,#8a6f34,var(--warn))}
+.bar.hp.low i{background:#c4442a}
+.bar.wind i{background:linear-gradient(90deg,#3f5f78,var(--wind))}
+.nums{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);
+  font-family:var(--cond);letter-spacing:.08em}
+
+/* intent — the signature */
+.intent{margin-top:7px;padding:5px 8px;border-left:2px solid var(--warn);background:rgba(217,154,78,.07)}
+.intent em{display:block;font-family:var(--cond);font-size:9px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--lamp-dim);font-style:normal}
+.intent b{font-weight:400;color:var(--warn);font-style:italic}
+.intent.unknown{border-left-color:var(--rule-hi);background:rgba(125,135,148,.06)}
+.intent.unknown b{color:var(--dim)}
+
+.tellcard{margin-top:6px;padding:5px 8px;border-left:2px solid var(--verdigris);
+  background:rgba(95,148,144,.07);font-size:11.5px;color:#9fbdba}
+.tellcard em{font-style:normal;color:var(--verdigris);font-family:var(--cond);
+  font-size:9px;letter-spacing:.2em;text-transform:uppercase;display:block}
+
+/* ---- console ---- */
+.console{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);
+  border-top:1px solid var(--rule)}
+.readout{padding:12px 14px;min-height:132px;background:var(--panel);border-right:1px solid var(--rule)}
+.readout p{margin:0 0 5px}
+.readout p:last-child{margin-bottom:0}
+.readout .said{font-family:var(--slab);font-size:14.5px;color:var(--bone)}
+.readout .hurt{color:#c0705c}
+.readout .good{color:var(--verdigris)}
+.readout .note{color:var(--dim);font-style:italic;font-size:12px}
+
+.preview{margin-top:9px;padding-top:8px;border-top:1px dashed var(--rule);min-height:40px}
+.preview .ttl{font-family:var(--cond);font-size:9px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--lamp-dim);margin-bottom:3px}
+.preview .line{color:#a5a396;font-size:12.5px}
+.preview .cost{color:var(--wind)}
+.preview .dmg{color:var(--warn)}
+.preview .bad{color:var(--rust)}
+.preview.idle .line{color:var(--dim);font-style:italic}
+
+.pad{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);padding:1px}
+.act{background:#141a20;border:none;padding:11px 9px;text-align:left;
+  transition:background .1s,color .1s;position:relative}
+.act:hover:not(:disabled),.act:focus-visible:not(:disabled){background:#1e2830}
+.act b{display:block;font-family:var(--slab);font-size:14px;font-weight:600}
+.act span{display:block;font-family:var(--cond);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);margin-top:1px}
+.act:disabled{background:#101418;color:#3f4954}
+.act:disabled span{color:#333c45}
+.act.strike b{color:var(--bone)}
+.act.heavy b{color:var(--warn)}
+.act.guard b{color:var(--wind)}
+.act.read b{color:var(--verdigris)}
+.act.run b{color:var(--rust)}
+.act.counter::after{content:'';position:absolute;top:6px;right:6px;width:5px;height:5px;
+  border-radius:50%;background:var(--verdigris);box-shadow:0 0 6px var(--verdigris)}
+
+.footer{display:flex;gap:8px;padding:9px 14px;border-top:1px solid var(--rule);
+  background:#12181e;align-items:center;flex-wrap:wrap}
+.footer .grow{flex:1}
+.btn{background:#141a20;border:1px solid var(--rule);padding:5px 13px;
+  font-family:var(--cond);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+.btn:hover{border-color:var(--rule-hi);color:var(--bone)}
+.btn.key{border-color:var(--lamp-dim);color:var(--lamp)}
+.log{font-size:11px;color:var(--dim);font-family:var(--cond);letter-spacing:.06em}
+
+.dead{padding:26px 20px;text-align:center}
+.dead h2{font-family:var(--slab);font-size:24px;color:var(--rust);margin:0 0 6px}
+.dead p{color:var(--dim);margin:0 auto 16px;max-width:46ch}
+
+@media (max-width:640px){
+  .console{grid-template-columns:1fr}
+  .readout{border-right:none;border-bottom:1px solid var(--rule)}
+  .combatant{width:100%}
+  .combatant.hero{margin-top:14px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="arena" id="arena">
+
+  <div class="strip">
+    <div class="place" id="place">The Underbarrow Crypts</div>
+    <div class="meta" id="meta">148 fathoms · encounter 3</div>
+  </div>
+
+  <div class="field">
+    <div class="combatant foe">
+      <div class="cname"><b id="foeName">—</b><span class="lv" id="foeLv"></span></div>
+      <div class="bar hp"><i id="foeHp"></i></div>
+      <div class="nums"><span>hp</span><span id="foeHpN"></span></div>
+      <div class="intent unknown" id="intent"><em>Intent</em><b>—</b></div>
+      <div class="tellcard" id="tell" hidden><em>Known weakness</em><span id="tellTxt"></span></div>
+    </div>
+
+    <div class="combatant hero">
+      <div class="cname"><b id="heroName">Leofrun Fenwick</b><span class="lv" id="heroLv">Rank 6</span></div>
+      <div class="bar hp"><i id="heroHp"></i></div>
+      <div class="nums"><span>hp</span><span id="heroHpN"></span></div>
+      <div class="bar wind"><i id="heroWind"></i></div>
+      <div class="nums"><span>wind</span><span id="heroWindN"></span></div>
+    </div>
+  </div>
+
+  <div class="console">
+    <div class="readout">
+      <div id="said"></div>
+      <div class="preview idle" id="preview">
+        <div class="ttl">If you do that</div>
+        <div class="line">Hover an action to see what it costs.</div>
+      </div>
+    </div>
+    <div class="pad" id="pad"></div>
+  </div>
+
+  <div class="footer">
+    <span class="log" id="turnlog">Turn 1</span>
+    <span class="grow"></span>
+    <button class="btn" id="btnNext" hidden>Next encounter</button>
+    <button class="btn key" id="btnReset">New delver</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const rnd=()=>Math.random(), ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+const pick=a=>a[Math.floor(rnd()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* ============================================================
+   INTENTS — the matchup layer.
+   The foe shows its hand each turn. Your four actions beat
+   different hands. This is the whole game.
+   ============================================================ */
+const INTENTS={
+  heavy:  {tell:"drawing back for something committed", mult:2.0, evade:0,   armour:0},
+  quick:  {tell:"circling, light on its feet",          mult:0.6, evade:.75, armour:0},
+  guard:  {tell:"set behind its guard",                 mult:0.4, evade:0,   armour:.7},
+  recover:{tell:"sucking air, giving ground",           mult:0,   evade:0,   armour:0, heal:.14}
+};
+
+/* Weaknesses — revealed by Read, then remembered forever.
+   This is the "knowledge accretes" layer, like learning type charts. */
+const WEAKNESSES=[
+  {id:"winded",  txt:"Wind-starves quickly. Guarding it out works.",      eff:{guardBonus:1.6}},
+  {id:"brittle", txt:"Brittle. Heavy blows go straight through.",         eff:{heavyBonus:1.7}},
+  {id:"slow",    txt:"Slow to reset. Fast strikes chain on it.",          eff:{strikeBonus:1.5}},
+  {id:"skittish",txt:"Skittish. It will not chase a retreat.",            eff:{runFree:true}}
+];
+
+const FOES=[
+  {n:"war-painted kobold",tier:0},{n:"goblin cutter",tier:0},{n:"blind rat",tier:0},
+  {n:"pale hound",tier:1},{n:"mine wight",tier:1},{n:"silt-crawler",tier:1},
+  {n:"bone-picker",tier:2},{n:"drowned man",tier:2},{n:"lamp-eater",tier:2},
+  {n:"hollow knight",tier:3},{n:"choir-thing",tier:3}
+];
+
+const HIT_VERBS=["Struck","Cut into","Caught","Opened up","Got through on","Landed on"];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let S=null, known={}, over=false;
+
+function newDelver(){
+  S={
+    name:"Leofrun Fenwick", rank:6,
+    hpMax:64, hp:64,
+    windMax:10, wind:10,
+    might:9, guardSkill:4,
+    depth:148, encounter:0,
+    foe:null, turn:1, dead:false
+  };
+  known={};
+  over=false;
+  $("btnNext").hidden=true;
+  nextFoe();
+}
+
+function nextFoe(){
+  S.encounter++; S.turn=1;
+  S.wind=Math.min(S.windMax,S.wind+4);
+  const band=FOES.filter(f=>f.tier===clamp(Math.floor(S.depth/70),0,3));
+  const base=pick(band.length?band:FOES);
+  const power=1+S.depth/110;
+  const hpMax=Math.round(ri(26,44)*power*0.55);
+  S.foe={
+    key:base.n, name:base.n, lv:Math.round(8+S.depth/9+ri(-2,3)),
+    hp:hpMax, hpMax,
+    atk:Math.round(5*power)+ri(0,3),
+    weakness:known[base.n]||pick(WEAKNESSES),
+    revealed:!!known[base.n],
+    intent:null
+  };
+  rollIntent();
+  say(`<p class="said">${cap(article(S.foe.name))} comes out of the dark.</p>`);
+  $("btnNext").hidden=true;
+  render();
+}
+
+function rollIntent(){
+  const f=S.foe;
+  const pool=["heavy","quick","quick","guard"];
+  if(f.hp<f.hpMax*0.3) pool.push("recover","recover");
+  if(f.hp<f.hpMax*0.5) pool.push("heavy");
+  f.intent=pick(pool);
+}
+
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const article=n=>/^[aeiou]/i.test(n)?`an ${n}`:`a ${n}`;
+
+/* ============================================================
+   ACTIONS — every one previews its exact cost.
+   ============================================================ */
+const ACTIONS={
+  strike:{
+    label:"Strike", sub:"2 wind", cost:2,
+    beats:["quick","recover"],
+    preview(){
+      const d=dmgStrike();
+      const back=incoming(1);
+      return `<span class="dmg">~${d} damage</span> · <span class="cost">2 wind</span>` +
+             (back?` · you take <span class="bad">~${back}</span> back`:` · it cannot answer`);
+    },
+    run(){
+      const f=S.foe, d=dmgStrike();
+      let miss=false;
+      if(f.intent==="quick"&&rnd()<0.35) miss=true;
+      if(miss) return `<p>Swung and found nothing. It was already elsewhere.</p>`;
+      f.hp-=d;
+      return `<p>${pick(HIT_VERBS)} the ${esc(f.name)} for <b>${d}</b>.</p>`;
+    }
+  },
+  heavy:{
+    label:"Heavy blow", sub:"4 wind", cost:4,
+    beats:["guard","recover"],
+    preview(){
+      const f=S.foe;
+      if(f.intent==="quick") return `<span class="bad">Likely to miss</span> — it is circling · <span class="cost">4 wind</span>`;
+      const d=dmgHeavy();
+      const back=incoming(1.25);
+      return `<span class="dmg">~${d} damage</span> · <span class="cost">4 wind</span>` +
+             (back?` · you take <span class="bad">~${back}</span>, guard open`:``);
+    },
+    run(){
+      const f=S.foe;
+      if(f.intent==="quick"&&rnd()<0.7) return `<p>Committed to the swing. It stepped inside it.</p>`;
+      const d=dmgHeavy(); f.hp-=d;
+      return `<p>Brought it down hard — <b>${d}</b>${f.intent==="guard"?", straight through the guard":""}.</p>`;
+    }
+  },
+  guard:{
+    label:"Guard", sub:"+3 wind", cost:-3,
+    beats:["heavy"],
+    preview(){
+      const back=Math.round(incoming(1)*0.25);
+      return `Recover <span class="cost">3 wind</span> · take only <span class="bad">~${back}</span>` +
+             (S.foe.intent==="heavy"?` · <span class="dmg">its heavy blow is wasted</span>`:``);
+    },
+    run(){
+      S.wind=Math.min(S.windMax,S.wind+3);
+      return `<p class="good">Set and breathed. Found the wind again.</p>`;
+    }
+  },
+  read:{
+    label:"Read it", sub:"1 wind", cost:1,
+    beats:["guard"],
+    preview(){
+      if(S.foe.revealed) return `Already read. <span class="line">You know what it cannot take.</span>`;
+      const back=incoming(1);
+      return `Learn its weakness — kept for every one you meet after · you take <span class="bad">~${back}</span> doing it`;
+    },
+    run(){
+      const f=S.foe;
+      if(f.revealed) return `<p class="note">Nothing new. You know this one.</p>`;
+      f.revealed=true; known[f.key]=f.weakness;
+      return `<p class="good">Watched instead of swinging. ${esc(f.weakness.txt)}</p>`;
+    }
+  },
+  run:{
+    label:"Run", sub:"", cost:3, isRun:true,
+    beats:[],
+    preview(){
+      const c=runCost();
+      if(c===0) return `<span class="good">It will not follow.</span> Clean break.`;
+      const fatal=c>=S.hp;
+      return `Costs <span class="${fatal?'bad':'dmg'}">${c} hp</span> to break contact` +
+             (fatal?` — <span class="bad">that kills you</span>`:` · you keep nothing from this fight`);
+    },
+    run(){
+      const c=runCost();
+      S.hp-=c;
+      if(S.hp<=0) return `<p class="hurt">Turned to run. Did not get far.</p>`;
+      say(`<p class="said">Broke contact and did not look back.</p>`+
+          (c?`<p class="hurt">It cost ${c} on the way out.</p>`:`<p class="note">It let you go.</p>`));
+      S.foe=null; $("btnNext").hidden=false; render();
+      return null;
+    }
+  }
+};
+
+function dmgStrike(){
+  const f=S.foe; let d=S.might+ri(0,4);
+  if(f.revealed&&f.weakness.eff.strikeBonus) d*=f.weakness.eff.strikeBonus;
+  if(f.intent==="guard") d*=(1-INTENTS.guard.armour);
+  return Math.max(1,Math.round(d));
+}
+function dmgHeavy(){
+  const f=S.foe; let d=S.might*2.1+ri(0,6);
+  if(f.revealed&&f.weakness.eff.heavyBonus) d*=f.weakness.eff.heavyBonus;
+  if(f.intent==="guard") d*=0.85;
+  return Math.max(1,Math.round(d));
+}
+function incoming(openMult){
+  const f=S.foe; if(!f) return 0;
+  const I=INTENTS[f.intent];
+  return Math.max(0,Math.round(f.atk*I.mult*openMult));
+}
+function runCost(){
+  const f=S.foe;
+  if(f.revealed&&f.weakness.eff.runFree) return 0;
+  return Math.max(1,Math.round(4+S.depth/26+(f.intent==="heavy"?4:0)));
+}
+
+/* ============================================================
+   TURN RESOLUTION
+   ============================================================ */
+function act(key){
+  if(over||!S.foe) return;
+  const A=ACTIONS[key];
+  if(A.cost>S.wind&&!A.isRun) return;
+
+  let out="";
+  if(!A.isRun&&A.cost>0) S.wind-=A.cost;
+
+  const r=A.run();
+  if(r===null) return;            // run() handled its own ending
+  out+=r;
+
+  if(S.hp<=0) return die(out);
+
+  if(S.foe.hp<=0){
+    say(out+`<p class="said">The ${esc(S.foe.name)} went down and stayed down.</p>`);
+    S.foe=null; $("btnNext").hidden=false; render(); return;
+  }
+
+  // --- foe acts on its declared intent ---
+  const f=S.foe, I=INTENTS[f.intent];
+  if(I.heal){
+    const h=Math.round(f.hpMax*I.heal); f.hp=Math.min(f.hpMax,f.hp+h);
+    out+=`<p class="note">It gave ground and got some of itself back.</p>`;
+  }else{
+    let dmg=incoming(key==="heavy"?1.25:1);
+    if(key==="guard"){
+      dmg=Math.round(dmg*0.25);
+      if(f.revealed&&f.weakness.eff.guardBonus) dmg=Math.round(dmg/f.weakness.eff.guardBonus);
+    }
+    if(dmg>0){
+      S.hp-=dmg;
+      out+=`<p class="hurt">It ${f.intent==="heavy"?"came down on you":"got in past you"} for <b>${dmg}</b>.</p>`;
+    }else out+=`<p class="note">Nothing came back.</p>`;
+  }
+
+  if(S.hp<=0) return die(out);
+
+  S.wind=Math.min(S.windMax,S.wind+1);
+  S.turn++;
+  rollIntent();
+  say(out);
+  render();
+}
+
+function die(out){
+  over=true; S.dead=true;
+  say(out+`<p class="hurt said">You did not get up.</p>`);
+  render();
+  setTimeout(()=>{
+    $("arena").innerHTML=
+     `<div class="dead">
+        <h2>${esc(S.name)}, ended at ${S.depth} fathoms</h2>
+        <p>The chronicle closes here. What the Guild recovers, the next delver may carry —
+           and whatever you learned to read stays read.</p>
+        <button class="btn key" onclick="location.reload()">Sign a new delver</button>
+      </div>`;
+  },1400);
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function say(html){ $("said").innerHTML=html; }
+
+function render(){
+  $("place").textContent="The Underbarrow Crypts";
+  $("meta").textContent=`${S.depth} fathoms · encounter ${S.encounter}`;
+  $("heroName").textContent=S.name;
+  $("heroLv").textContent="Rank "+S.rank;
+
+  const hpF=clamp(S.hp/S.hpMax,0,1);
+  const hb=$("heroHp").parentElement;
+  hb.classList.toggle("mid",hpF<=.5&&hpF>.22);
+  hb.classList.toggle("low",hpF<=.22);
+  $("heroHp").style.width=hpF*100+"%";
+  $("heroHpN").textContent=`${Math.max(0,S.hp)} / ${S.hpMax}`;
+  $("heroWind").style.width=(S.wind/S.windMax)*100+"%";
+  $("heroWindN").textContent=`${S.wind} / ${S.windMax}`;
+
+  const f=S.foe;
+  if(f){
+    $("foeName").textContent=f.name;
+    $("foeLv").textContent="Lv. "+f.lv;
+    $("foeHp").style.width=clamp(f.hp/f.hpMax,0,1)*100+"%";
+    $("foeHpN").textContent=`${Math.max(0,f.hp)} / ${f.hpMax}`;
+    const box=$("intent");
+    box.classList.remove("unknown");
+    box.innerHTML=`<em>Intent</em><b>${esc(INTENTS[f.intent].tell)}</b>`;
+    $("tell").hidden=!f.revealed;
+    if(f.revealed) $("tellTxt").textContent=f.weakness.txt;
+  }else{
+    $("intent").classList.add("unknown");
+    $("intent").innerHTML=`<em>Intent</em><b>—</b>`;
+  }
+  $("turnlog").textContent=`Turn ${S.turn}`;
+  renderPad();
+}
+
+function renderPad(){
+  const pad=$("pad");
+  const order=["strike","heavy","guard","read","run"];
+  pad.innerHTML=order.map(k=>{
+    const A=ACTIONS[k];
+    const disabled=!S.foe||over||(A.cost>S.wind&&!A.isRun);
+    const counters=S.foe&&A.beats.includes(S.foe.intent);
+    return `<button class="act ${k} ${counters?"counter":""}" data-k="${k}" ${disabled?"disabled":""}>
+      <b>${A.label}</b><span>${A.sub||"break contact"}</span></button>`;
+  }).join("");
+}
+
+/* preview on hover / focus */
+$("pad").addEventListener("mouseover",e=>{
+  const b=e.target.closest(".act"); if(!b||b.disabled||!S.foe) return; showPreview(b.dataset.k);
+});
+$("pad").addEventListener("focusin",e=>{
+  const b=e.target.closest(".act"); if(!b||b.disabled||!S.foe) return; showPreview(b.dataset.k);
+});
+$("pad").addEventListener("mouseleave",clearPreview);
+$("pad").addEventListener("click",e=>{
+  const b=e.target.closest(".act"); if(!b||b.disabled) return; act(b.dataset.k);
+});
+
+function showPreview(k){
+  const p=$("preview");
+  p.classList.remove("idle");
+  p.innerHTML=`<div class="ttl">If you do that</div><div class="line">${ACTIONS[k].preview()}</div>`;
+}
+function clearPreview(){
+  const p=$("preview");
+  p.classList.add("idle");
+  p.innerHTML=`<div class="ttl">If you do that</div><div class="line">Hover an action to see what it costs.</div>`;
+}
+
+$("btnNext").addEventListener("click",()=>{S.depth+=ri(3,9);nextFoe();});
+$("btnReset").addEventListener("click",()=>{newDelver();});
+
+newDelver();
+</script>
+</body>
+</html>

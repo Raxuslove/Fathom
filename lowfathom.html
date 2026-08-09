@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lowfathom — Guild Dispatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --deep:#0f1317;
+  --stone:#171d23;
+  --panel:#1c232b;
+  --rule:#2e3944;
+  --rule-hi:#43525f;
+  --bone:#c2bdb1;
+  --dim:#7d8794;
+  --lamp:#e6c288;
+  --lamp-dim:#8a7550;
+  --rust:#b4553c;
+  --verdigris:#5f9490;
+  --uncommon:#6f9e79;
+  --rare:#6a9bc4;
+  --epic:#a87fc0;
+  --legend:#d99a4e;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --slab:'Zilla Slab',Georgia,serif;
+  --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--deep);
+  color:var(--bone);
+  font-family:var(--mono);
+  font-size:13px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+
+/* ---------- shell ---------- */
+.shell{
+  display:grid;
+  grid-template-columns:76px minmax(240px,300px) minmax(0,1fr);
+  grid-template-rows:auto minmax(0,1fr);
+  height:100vh;
+  max-width:1400px;
+  margin:0 auto;
+  border-left:1px solid var(--rule);
+  border-right:1px solid var(--rule);
+}
+.topbar{
+  grid-column:1/-1;
+  display:flex;align-items:baseline;gap:18px;
+  padding:10px 16px;
+  border-bottom:1px solid var(--rule);
+  background:var(--stone);
+  flex-wrap:wrap;
+}
+.mark{
+  font-family:var(--slab);font-weight:700;font-size:17px;
+  letter-spacing:.06em;color:var(--lamp);
+}
+.mark small{
+  display:block;font-family:var(--cond);font-weight:500;font-size:10px;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--dim);
+}
+.topbar .who{font-family:var(--slab);font-size:14px;color:var(--bone)}
+.topbar .who em{font-style:normal;color:var(--dim)}
+.topbar .spacer{flex:1}
+.topbar .saved{font-size:11px;color:var(--dim)}
+
+/* ---------- signature: the shaft ---------- */
+.shaft{
+  grid-row:2;
+  background:linear-gradient(180deg,#0c1014 0%,#12181e 40%,#0a0d11 100%);
+  border-right:1px solid var(--rule);
+  position:relative;overflow:hidden;
+}
+.shaft-scale{position:absolute;inset:0}
+.tickmark{
+  position:absolute;left:0;right:0;
+  border-top:1px solid #232c35;
+  font-family:var(--cond);font-size:9px;letter-spacing:.1em;
+  color:#4a5561;padding-left:5px;
+}
+.tickmark.major{border-top-color:#37444f;color:#6d7a87}
+.stratum-band{
+  position:absolute;left:0;right:0;
+  display:flex;align-items:center;
+  writing-mode:vertical-rl;
+  font-family:var(--cond);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:#55636f;
+  padding:6px 0 0 4px;
+}
+.lamp{
+  position:absolute;left:0;right:0;height:0;
+  border-top:1px solid var(--lamp);
+  box-shadow:0 0 14px 3px rgba(230,194,136,.30);
+  transition:top .5s linear;
+}
+.lamp::after{
+  content:'';position:absolute;left:50%;top:-3px;
+  width:6px;height:6px;margin-left:-3px;border-radius:50%;
+  background:var(--lamp);box-shadow:0 0 10px 2px rgba(230,194,136,.65);
+}
+.shaft-readout{
+  position:absolute;bottom:0;left:0;right:0;
+  border-top:1px solid var(--rule);background:rgba(10,13,17,.94);
+  padding:6px 5px;text-align:center;
+}
+.shaft-readout b{display:block;font-family:var(--slab);font-size:15px;color:var(--lamp)}
+.shaft-readout span{font-family:var(--cond);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
+/* ---------- columns ---------- */
+.rail{
+  grid-row:2;overflow-y:auto;
+  border-right:1px solid var(--rule);
+  background:var(--stone);
+}
+.main{grid-row:2;display:flex;flex-direction:column;min-height:0}
+
+.panel{border-bottom:1px solid var(--rule);padding:11px 13px}
+.panel h2{
+  margin:0 0 8px;font-family:var(--cond);font-size:10px;font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+}
+.row{display:flex;justify-content:space-between;gap:10px;padding:1.5px 0}
+.row dt{color:var(--dim)}
+.row dd{margin:0;text-align:right}
+dl{margin:0}
+
+.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 8px;margin-top:2px}
+.stat{display:flex;justify-content:space-between;font-size:12px}
+.stat i{font-style:normal;color:var(--dim);font-family:var(--cond);letter-spacing:.08em}
+.stat b{font-weight:500}
+.stat .mod{color:var(--verdigris);font-size:11px}
+
+.meter{position:relative;height:13px;background:#0c1014;border:1px solid var(--rule);margin:5px 0 2px}
+.meter i{display:block;height:100%;background:var(--verdigris);transition:width .25s}
+.meter.hp i{background:linear-gradient(90deg,#8e3f2c,var(--rust))}
+.meter.xp i{background:linear-gradient(90deg,#4a6f6c,var(--verdigris))}
+.meter.quest i{background:linear-gradient(90deg,#6d5b34,var(--lamp-dim))}
+.meter.enc i{background:#4d5b68}
+.meter.enc.over i{background:var(--rust)}
+.meter span{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:10px;letter-spacing:.06em;color:#e6e2d8;text-shadow:0 0 4px #000,0 0 3px #000;
+}
+
+.gearlist{display:grid;gap:1px;font-size:12px}
+.gearlist div{display:flex;justify-content:space-between;gap:8px}
+.gearlist i{font-style:normal;color:var(--dim);font-family:var(--cond);flex:0 0 62px}
+.gearlist b{font-weight:400;flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-common{color:var(--bone)} .c-uncommon{color:var(--uncommon)}
+.c-rare{color:var(--rare)} .c-epic{color:var(--epic)} .c-legend{color:var(--legend)}
+
+.tasklist{list-style:none;margin:0;padding:0;font-size:12px}
+.tasklist li{padding:1.5px 0 1.5px 17px;position:relative;color:var(--dim)}
+.tasklist li::before{content:'☐';position:absolute;left:0}
+.tasklist li.done{color:#59636e;text-decoration:line-through}
+.tasklist li.done::before{content:'☑';text-decoration:none}
+.tasklist li.now{color:var(--lamp);text-decoration:none}
+.tasklist li.now::before{content:'▸';color:var(--lamp)}
+
+/* ---------- chronicle ---------- */
+.chronicle{flex:1;overflow-y:auto;padding:12px 16px;min-height:0;scroll-behavior:smooth}
+.entry{display:flex;gap:10px;padding:2px 0;animation:fade .4s ease-out}
+.entry time{color:#4f5a66;flex:0 0 46px;font-size:11px;padding-top:1px}
+.entry p{margin:0;flex:1}
+.entry.flavor p{color:#7f8b8a;font-style:italic}
+.entry.beat p{color:var(--lamp);font-family:var(--slab);font-size:14px;letter-spacing:.01em}
+.entry.choice p{color:var(--verdigris)}
+.entry.hurt p{color:#c0705c}
+@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+/* ---------- footer / combat ---------- */
+.actionbar{border-top:1px solid var(--rule);background:var(--stone);padding:9px 16px}
+.actionline{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.actionline .doing{flex:1;min-width:180px;color:var(--bone)}
+.foe{font-family:var(--cond);letter-spacing:.04em;color:#c0705c;flex:0 0 auto}
+.foe b{font-weight:600}
+.foehp{display:inline-block;width:74px;height:7px;background:#0c1014;border:1px solid var(--rule);vertical-align:middle;margin-left:7px}
+.foehp i{display:block;height:100%;background:var(--rust);transition:width .18s}
+
+/* ---------- choices ---------- */
+.choicedock{border-top:1px solid var(--rule);background:var(--panel);max-height:47%;overflow-y:auto}
+.choicedock.empty{background:var(--stone)}
+.dockhead{
+  display:flex;align-items:center;gap:10px;padding:9px 16px;
+  border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--panel);z-index:2;
+}
+.choicedock.empty .dockhead{border-bottom:none;background:var(--stone)}
+.dockhead h2{margin:0;font-family:var(--cond);font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.tally{
+  font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.1em;
+  padding:1px 8px;border:1px solid var(--lamp-dim);color:var(--lamp);
+}
+.tally.zero{border-color:var(--rule);color:var(--dim)}
+.tally.waiting{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(230,194,136,0)}50%{box-shadow:0 0 9px 0 rgba(230,194,136,.35)}}
+
+.card{padding:12px 16px;border-bottom:1px solid var(--rule)}
+.card:last-child{border-bottom:none}
+.card h3{margin:0 0 4px;font-family:var(--slab);font-size:15px;font-weight:600;color:var(--lamp)}
+.card .brief{margin:0 0 10px;color:#a5a396;max-width:64ch}
+.opts{display:flex;flex-direction:column;gap:5px}
+.opt{
+  display:block;width:100%;text-align:left;
+  background:#141a20;border:1px solid var(--rule);
+  padding:7px 11px;transition:border-color .12s,background .12s;
+}
+.opt:hover{border-color:var(--rule-hi);background:#1a222a}
+.opt b{display:block;font-weight:500;color:var(--bone)}
+.opt span{display:block;color:var(--dim);font-size:11.5px;margin-top:1px}
+.emptynote{padding:11px 16px;color:var(--dim);font-size:12px}
+
+/* ---------- misc ---------- */
+.ctrls{display:flex;gap:6px;margin-top:8px}
+.ctrl{
+  flex:1;background:#141a20;border:1px solid var(--rule);padding:5px;
+  font-family:var(--cond);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+}
+.ctrl:hover{border-color:var(--rule-hi);color:var(--bone)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:var(--deep)}
+::-webkit-scrollbar-thumb{background:#2b353f;border:2px solid var(--deep)}
+::-webkit-scrollbar-thumb:hover{background:#3b4854}
+
+@media (max-width:820px){
+  .shell{grid-template-columns:52px minmax(0,1fr);grid-template-rows:auto minmax(0,1.35fr) auto;height:auto;min-height:100vh}
+  .shaft{grid-row:2;grid-column:1}
+  .main{grid-row:2;grid-column:2;min-height:66vh}
+  .rail{grid-row:3;grid-column:1/-1;border-right:none;border-top:1px solid var(--rule)}
+  .choicedock{max-height:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="topbar">
+    <div class="mark">LOWFATHOM<small>Guild Dispatch</small></div>
+    <div class="who" id="who">—</div>
+    <div class="spacer"></div>
+    <div class="saved" id="saved">not yet saved</div>
+  </header>
+
+  <!-- SIGNATURE: the shaft -->
+  <div class="shaft" id="shaft">
+    <div class="shaft-scale" id="shaftScale"></div>
+    <div class="lamp" id="lamp" style="top:50%"></div>
+    <div class="shaft-readout"><b id="depthNum">0</b><span>fathoms</span></div>
+  </div>
+
+  <aside class="rail">
+    <section class="panel">
+      <h2>Adventurer</h2>
+      <dl>
+        <div class="row"><dt>Folk</dt><dd id="pFolk">—</dd></div>
+        <div class="row"><dt>Trade</dt><dd id="pTrade">—</dd></div>
+        <div class="row"><dt>Origin</dt><dd id="pOrigin">—</dd></div>
+        <div class="row"><dt>Rank</dt><dd id="pRank">—</dd></div>
+      </dl>
+      <div class="statgrid" id="statgrid"></div>
+      <div class="meter hp"><i id="hpBar"></i><span id="hpTxt"></span></div>
+      <div class="meter xp"><i id="xpBar"></i><span id="xpTxt"></span></div>
+    </section>
+
+    <section class="panel">
+      <h2>Kit <span style="float:right;color:#4f5a66" id="ilvl"></span></h2>
+      <div class="gearlist" id="gear"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Hold</h2>
+      <dl>
+        <div class="row"><dt>Gold</dt><dd id="gold">0</dd></div>
+        <div class="row"><dt>Bundles</dt><dd id="bundles">0</dd></div>
+      </dl>
+      <div class="meter enc" id="encMeter"><i id="encBar"></i><span id="encTxt"></span></div>
+    </section>
+
+    <section class="panel">
+      <h2>The Hireling</h2>
+      <div class="row"><dt id="hName">—</dt><dd id="hRank"></dd></div>
+      <div style="color:var(--dim);font-size:11.5px" id="hRole"></div>
+      <div class="meter"><i id="hBar"></i><span id="hTxt"></span></div>
+    </section>
+
+    <section class="panel">
+      <h2>Noticeboard</h2>
+      <ul class="tasklist" id="board"></ul>
+      <div class="meter quest"><i id="qBar"></i><span id="qTxt"></span></div>
+      <div class="ctrls">
+        <button class="ctrl" id="btnPause">Hold</button>
+        <button class="ctrl" id="btnWipe">New delve</button>
+      </div>
+    </section>
+  </aside>
+
+  <main class="main">
+    <div class="chronicle" id="chronicle"></div>
+
+    <div class="actionbar">
+      <div class="actionline">
+        <div class="doing" id="doing">Signing the register…</div>
+        <div class="foe" id="foe" hidden><b id="foeName"></b><span class="foehp"><i id="foeBar"></i></span></div>
+      </div>
+      <div class="meter"><i id="actBar"></i></div>
+    </div>
+
+    <div class="choicedock empty" id="dock">
+      <div class="dockhead">
+        <h2>Decisions</h2>
+        <span class="tally zero" id="tally">0 waiting</span>
+      </div>
+      <div id="cards"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. WORD STOCK — the flavour lives here. Add freely.
+   ============================================================ */
+const D = {
+  first:["Leofrun","Wulfric","Adela","Godric","Eadgyth","Cuthbert","Merewald","Hild","Osric","Beorn","Aelfwine","Sigeric","Wynflaed","Brihtric","Ceolwen","Dunstan","Aethelred","Mildreth"],
+  last:["Fenwick","Sedgemoor","Ashcombe","Underhill","Marlgrave","Crowbridge","Blackfen","Winterbourne","Hollowmere","Draycott","Stanbridge","Thistlewood","Colefax","Wrenfield"],
+  folk:["Human","Fenborn","Stonekin","Ashblood","Tallfolk","Undertaken","Marshget"],
+  trade:["Paladin","Reeve","Delver","Warden","Hedge-priest","Ratter","Lampwright","Sapper","Bonesetter"],
+  origin:["Foundling","Guild-bound","Debtor","Second son","Second daughter","Oathbreaker","Ferryman's get","Pressed levy"],
+  hireRole:["hedge-witch's servant","guild-sworn linkboy","one-eyed muleteer","chandler's apprentice","discharged pikeman","rope-girl off the winch","excommunicate clerk","fen-guide, unlicensed"],
+
+  foeAdj:["war-painted","scarred","fatigued","half-starved","old and terrible","twice-hanged","lamp-blinded","mud-caked","chattering","silent","rain-rotted","overfed","limping"],
+  foeTiers:[
+    ["kobold","cave goblin","goblin cutter","blind rat","moor-tick","warren whelp"],
+    ["giant spider","tunnel troll","pale hound","mine wight","goblin drummer","silt-crawler"],
+    ["ghoul","drowned man","bone-picker","chapel rat","barrow-hound","lamp-eater"],
+    ["barrow-wight","shadow-eater","hollow knight","choir-thing","the unremembered","drowned priest"],
+    ["thing that was a delver","warden of the sill","unlit one","last verger","fathom-wyrm's get"]
+  ],
+  killVerb:["Put down","Unmade","Had the better of","Ran down","Broke","Saw off","Ended","Laid out","Finished","Saw to"],
+
+  junk:["gnawed bone","matted tail","crude shiv","spinneret","cracked tooth","damp rag","tallow stub","splintered haft","chitin plate","wet twine","clipped coin","kobold ear"],
+  goods:[["iron token","guild seal","oil flask","silver pin","tin reliquary","sealed writ"],
+         ["deep-forged rivet","chapel key","mercury vial","bone whistle","ledger page"],
+         ["obelisk shard","black candle","drowned man's ring","verger's bell"]],
+
+  gearPrefix:["storm-tempered","Guild-made","rune-etched","plain","brigand's","hallowed","deep-forged","rust-eaten","lamplit","fen-cured","salvaged","weeping","tallow-sealed"],
+  gearMat:["boiled leather","ringmail","scale","brigandine","banded iron","waxed hide","chapel-steel","black iron"],
+  slots:{Weapon:["shortsword","hand-axe","warhammer","falchion","boar-spear","cudgel"],
+         Shield:["pavise","buckler","kite shield","door-shield"],
+         Helm:["great helm","kettle hat","coif","sallet"],
+         Breastplate:["gambeson","cuirass","hauberk","jack"],
+         Pauldrons:["spaulders","shoulder-guards","mantle"],
+         Bracers:["vambraces","bracers","wrist-wraps"],
+         Gauntlets:["demi-gauntlets","mitts","gloves"],
+         Leggings:["chausses","greaves","leggings"],
+         Boots:["marching boots","sabatons","fen-boots"]},
+
+  strataNamed:["The Goblin Warren","The Abandoned Mines","The Underbarrow Crypts","The Drowned Undertemple","The Wyrm's Vault"],
+  strataAdj:["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"],
+  strataNoun:["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"],
+
+  boardVerb:["Thin out","Drive back","Clear the stair of","Put down","Account for","Hold the line against","Make an end of"],
+
+  flavour:[
+    "Far above, the creak of the Guild windlass echoes faintly down the shaft.",
+    "Water moves somewhere it shouldn't.",
+    "The lamp gutters. {H} trims it without stopping.",
+    "Someone has scratched a tally into the wall. It runs on past the lamplight.",
+    "The air tastes of iron and old rain.",
+    "A draught from below, warmer than it has any right to be.",
+    "{G} says nothing for a long while.",
+    "Boot prints in the silt, going down. Not coming back.",
+    "The dark here does not so much resist the lamp as ignore it.",
+    "{G} counts the rope knots again, and gets a different number.",
+    "A door, bricked up from this side.",
+    "Rockfall, distant. {H} waits. Nothing follows.",
+    "Small bones, arranged deliberately. {G} steps around them.",
+    "The Guild's paint-marks stop here. Everything past is unsurveyed.",
+    "Something has been eating the lichen, and lately.",
+    "{H} writes the day's tally by lamplight and seals it for the winch.",
+    "A hymn, badly remembered, from a direction with no room behind it.",
+    "The silt is warm. {G} does not mention it."
+  ]
+};
+
+/* ============================================================
+   2. WRITTEN DECISIONS — the part that makes it yours.
+   Each returns a log line. Effects mutate S directly.
+   ============================================================ */
+const DECKS = [
+{ id:"fork", title:"The gallery splits",
+  brief:"Left, a worked stair going down steeply — Guild paint, then no paint. Right, a natural fissure breathing warm air.",
+  opts:[
+    {l:"Take the worked stair", d:"Fast descent. More of them down there.",
+     f:S=>{S.depth+=14;S.aggro=1.5;return "Took the worked stair. The steps are cut for shorter legs than ours."}},
+    {l:"Take the fissure", d:"Slow going. Nobody has picked it over.",
+     f:S=>{S.depth+=4;S.luck+=0.35;return "Took the fissure. Warm air, and the smell of something kept."}},
+    {l:"Send the hireling ahead", d:"Learn both. Risk them.",
+     f:S=>{S.depth+=9;if(rnd()<0.4){S.hire.xp+=90;return `${S.hire.name} came back grey and would not say what from. Knows the way now.`}
+           S.hire.xp+=40;return `${S.hire.name} scouted both and picked the fissure. Sound call.`}}
+  ]},
+
+{ id:"blade", title:"A sword left standing",
+  brief:"Point-down in the silt, upright, too clean for how long it has plainly been here.",
+  opts:[
+    {l:"Take it", d:"Better steel than we own. Something wanted it found.",
+     f:S=>{S.gear.Weapon=mkGear("Weapon",S.ilvl+4,"epic");S.marked=(S.marked||0)+1;
+           return "Took the standing sword. It came out of the silt without resistance."}},
+    {l:"Leave it", d:"Nothing lost. Nothing gained.",
+     f:S=>{S.rep+=1;return "Left the standing sword where it stood. It was still there on the way back."}},
+    {l:"Break it against the wall", d:"The Guild will hear you did.",
+     f:S=>{S.rep+=3;S.hp=Math.max(1,S.hp-6);return "Broke the standing sword. Whatever was in it went into the arm that swung."}}
+  ]},
+
+{ id:"survivor", title:"A delver from a lost party",
+  brief:"Three days without water, by the look. Says there were six of them. Will not say what happened to five.",
+  opts:[
+    {l:"Give water and rations", d:"Costs us. Guild hears about it.",
+     f:S=>{S.rep+=4;S.gold=Math.max(0,S.gold-40);return "Gave up half the water. They drank and then wept, in that order."}},
+    {l:"Take their map, move on", d:"They knew a way down.",
+     f:S=>{S.depth+=20;S.rep-=5;return "Took the map. Left them the lamp, at least, which was more than they had."}},
+    {l:"Haul them to the winch", d:"Lose a day of descent. Gain a name.",
+     f:S=>{S.depth=Math.max(0,S.depth-24);S.rep+=9;
+           return "Hauled them up to the sill. The Guild clerk wrote it down, which is how these things become true."}}
+  ]},
+
+{ id:"parley", title:"The kobolds want to talk",
+  brief:"One of them, older than the rest, holding a stick with a rag on it. It has clearly been rehearsed.",
+  opts:[
+    {l:"Pay the toll", d:"Quiet passage. Cheap at the price.",
+     f:S=>{S.gold=Math.max(0,S.gold-Math.round(30+S.rank*14));S.aggro=0.5;
+           return "Paid the toll. They stood aside, and one of them bowed, badly."}},
+    {l:"Refuse", d:"They will remember it. So will the warren.",
+     f:S=>{S.aggro=2.0;S.luck+=0.2;return "Refused the toll. The old one folded the rag up carefully before it left."}},
+    {l:"Hire them as guides", d:"Cheaper than the Guild's maps.",
+     f:S=>{S.depth+=16;S.gold=Math.max(0,S.gold-60);S.aggro=0.7;
+           return "Hired the warren. They took us down two galleries and would go no further, for any coin."}}
+  ]},
+
+{ id:"levy", title:"A levy from the Guild",
+  brief:"Carried down by the winch, sealed, itemised. A share of everything taken below the third sill.",
+  opts:[
+    {l:"Pay in full", d:"Standing with the Guild. Empty purse.",
+     f:S=>{S.gold=Math.round(S.gold*0.6);S.rep+=6;return "Paid the levy in full and sent the receipt up. The winch took it without comment."}},
+    {l:"Pay a token", d:"Nobody counts very hard.",
+     f:S=>{S.gold=Math.round(S.gold*0.9);S.rep-=1;return "Sent up a token sum and a long explanation. The explanation was the expensive part."}},
+    {l:"Send back the empty box", d:"A statement.",
+     f:S=>{S.rep-=8;S.luck+=0.3;return "Sent the box back empty. It came down again the next day, still empty, which was somehow worse."}}
+  ]},
+
+{ id:"hireask", title:"The hireling asks for something",
+  brief:"Has been working up to it for two days, by the look of them.",
+  opts:[
+    {l:"Grant it", d:"Whatever it is.",
+     f:S=>{S.hire.xp+=200;S.gold=Math.max(0,S.gold-70);
+           return `Granted it. ${S.hire.name} has been different since — steadier, and quieter.`}},
+    {l:"Not yet", d:"Later. Down further.",
+     f:S=>{S.hire.mood=(S.hire.mood||0)-1;return `Told ${S.hire.name} to ask again lower down. They took it well enough.`}},
+    {l:"Ask what it costs first", d:"Reasonable. Also insulting.",
+     f:S=>{S.hire.xp+=60;S.hire.mood=(S.hire.mood||0)-1;
+           return `Asked the price first. ${S.hire.name} named it, exactly, and did not look up while doing so.`}}
+  ]},
+
+{ id:"door", title:"A door that was sealed from below",
+  brief:"Bar on this side. Scratches on this side. Both facts sit badly together.",
+  opts:[
+    {l:"Open it", d:"Obviously.",
+     f:S=>{S.depth+=18;S.aggro=1.8;S.luck+=0.4;return "Opened it. The corridor beyond had been swept. Recently."}},
+    {l:"Reinforce it", d:"Leave it for whoever comes after.",
+     f:S=>{S.rep+=3;return "Wedged the door and painted the Guild mark for a hard seal. Someone will thank us or curse us."}},
+    {l:"Camp against it and listen", d:"Lose hours. Learn something.",
+     f:S=>{S.hp=Math.min(S.hpMax,S.hp+Math.round(S.hpMax*0.4));S.luck+=0.2;
+           return "Camped against the door and listened all night. It breathed twice, hours apart."}}
+  ]},
+
+{ id:"lamp", title:"The deep lamp",
+  brief:"Burning already, in a niche, at a depth where nothing should still be burning.",
+  opts:[
+    {l:"Take it", d:"It will not go out. That is the problem.",
+     f:S=>{S.gear.Helm=mkGear("Helm",S.ilvl+3,"rare");S.marked=(S.marked||0)+1;S.luck+=0.5;
+           return "Took the deep lamp. It has not needed oil since, and casts no shadow of its own."}},
+    {l:"Snuff it", d:"On principle.",
+     f:S=>{S.rep+=2;S.aggro=1.4;return "Snuffed the deep lamp. The dark that replaced it arrived a beat too quickly."}},
+    {l:"Refill it and go on", d:"Whoever left it may want it lit.",
+     f:S=>{S.luck+=0.25;S.rep+=1;return "Topped up the deep lamp and left it burning. It seemed the courteous thing."}}
+  ]}
+];
+
+/* ============================================================
+   3. HELPERS
+   ============================================================ */
+const $=id=>document.getElementById(id);
+const rnd=()=>Math.random();
+const pick=a=>a[Math.floor(rnd()*a.length)];
+const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const RARITY=[["common",1,""],["uncommon",.62,"†"],["rare",.28,"‡"],["epic",.10,"§"],["legend",.03,"◈"]];
+
+function rollRarity(luck){
+  const r=rnd()/(1+luck*0.35);
+  for(let i=RARITY.length-1;i>0;i--) if(r<RARITY[i][1]*0.30) return RARITY[i][0];
+  return "common";
+}
+function rarityMark(r){return (RARITY.find(x=>x[0]===r)||RARITY[0])[2];}
+
+function mkGear(slot,lvl,forceRarity){
+  const rar=forceRarity||rollRarity(0.2);
+  const base=pick(D.slots[slot]);
+  const needsMat=/mail|plate|guard|mantle|brace|gaunt|greave|boot|helm|coif|hat|shield|pavise|buckler/i.test(base)&&rnd()<0.75;
+  const name=[pick(D.gearPrefix),needsMat?pick(D.gearMat):null,base].filter(Boolean).join(" ");
+  return {name,lvl:Math.max(1,Math.round(lvl+ri(-2,3))),rar};
+}
+function stratumName(i){
+  if(i<D.strataNamed.length) return D.strataNamed[i];
+  const seed=i*7919;
+  const adj=D.strataAdj[seed%D.strataAdj.length];
+  const noun=D.strataNoun[(seed>>3)%D.strataNoun.length];
+  return `The ${adj} ${noun}`;
+}
+const FATHOMS_PER_STRATUM=60;
+
+/* ============================================================
+   4. STATE
+   ============================================================ */
+let S=null, timer=null, paused=false, lastSave=0;
+
+function newGame(){
+  const name=`${pick(D.first)} ${pick(D.last)}`;
+  const hire=`${pick(D.first)} ${pick(D.last)}`;
+  const st={};
+  ["STR","CON","DEX","INT","WIS","CHA"].forEach(k=>st[k]=ri(9,16));
+  const S2={
+    v:1, name, folk:pick(D.folk), trade:pick(D.trade), origin:pick(D.origin),
+    rank:1, xp:0, stats:st,
+    hpMax:20+st.CON, hp:20+st.CON,
+    depth:0, gold:0, rep:0, luck:0, aggro:1, marked:0,
+    ilvl:1, gear:{}, bundles:0, encMax:24,
+    hire:{name:hire, role:pick(D.hireRole), rank:1, xp:0, mood:0},
+    quest:{text:"",prog:0,total:1},
+    board:[], choices:[], log:[],
+    action:null, foe:null,
+    started:Date.now()
+  };
+  Object.keys(D.slots).forEach(s=>S2.gear[s]=mkGear(s,1));
+  rollBoard(S2);
+  newQuest(S2);
+  S=S2;
+  push(S,`${name}, ${S.folk.toLowerCase()} ${S.trade.toLowerCase()}, signed the register and went down.`,"beat");
+  push(S,`${S.hire.name} — ${S.hire.role} — signed under them for a share.`,"");
+}
+
+function xpNeeded(r){return Math.round(60*Math.pow(r,1.55));}
+function stratumIndex(S){return Math.floor(S.depth/FATHOMS_PER_STRATUM);}
+function foeTier(S){return clamp(Math.floor(stratumIndex(S)/1.4),0,D.foeTiers.length-1);}
+
+function push(S,text,cls){
+  const e={t:Date.now(),text,cls:cls||""};
+  S.log.push(e); if(S.log.length>400) S.log.shift();
+  renderEntry(e);
+}
+
+function rollBoard(S){
+  S.board=[];
+  const tier=foeTier(S);
+  for(let i=0;i<7;i++){
+    S.board.push({text:`${pick(D.boardVerb)} the ${pick(D.foeTiers[tier])}s`,done:false});
+  }
+}
+function newQuest(S){
+  const tier=foeTier(S);
+  const kinds=[
+    ()=>({text:`${pick(D.boardVerb)} the ${pick(D.foeTiers[tier])}s`,total:ri(8,16)}),
+    ()=>({text:`Survey ${stratumName(stratumIndex(S)+1)}`,total:ri(10,18)}),
+    ()=>({text:`Recover the Guild's lost ${pick(["ledger","survey chain","paint","reliquary","winch-hook"])}`,total:ri(9,15)}),
+    ()=>({text:`Sink the shaft another ${ri(20,45)} fathoms`,total:ri(12,20)})
+  ];
+  const q=pick(kinds)();
+  S.quest={text:q.text,prog:0,total:q.total};
+}
+
+function mkFoe(S){
+  const tier=foeTier(S);
+  const base=pick(D.foeTiers[tier]);
+  const adj=rnd()<0.72?pick(D.foeAdj):null;
+  const power=1+stratumIndex(S)*0.55+S.rank*0.25;
+  const hpMax=Math.round((7+ri(0,7))*power*(rnd()<0.12?1.9:1));
+  return {name:[adj,base].filter(Boolean).join(" "),hp:hpMax,hpMax,power};
+}
+
+/* ============================================================
+   5. THE ENGINE — action state machine
+   ============================================================ */
+function chooseAction(S){
+  if(S.hp<=0){
+    S.hp=1;
+    return {kind:"fallback",label:"Falling back to the last camp",dur:9000};
+  }
+  if(S.hp<S.hpMax*0.32) return {kind:"camp",label:"Making camp",dur:8000};
+  if(S.bundles>=S.encMax) return {kind:"winch",label:"Loading the winch basket",dur:6500};
+  if(S.quest.prog>=S.quest.total) return {kind:"turnin",label:"Writing up the return",dur:5000};
+
+  const r=rnd();
+  if(r<0.56){const f=mkFoe(S);S.foe=f;return {kind:"fight",label:`Running down ${article(f.name)}`,dur:0,foe:f};}
+  if(r<0.74) return {kind:"descend",label:"Working down the next pitch",dur:ri(5000,9000)};
+  if(r<0.86) return {kind:"search",label:"Turning over the silt",dur:ri(4000,7000)};
+  return {kind:"flavour",label:"Moving on",dur:ri(3500,6500)};
+}
+function article(n){return /^[aeiou]/i.test(n)?`an ${n}`:`a ${n}`;}
+
+function resolveAction(S,a){
+  switch(a.kind){
+    case "fight":{
+      const f=S.foe;S.foe=null;
+      const xp=Math.round(9+f.hpMax*0.8);
+      S.xp+=xp; S.hire.xp+=Math.round(xp*0.45); S.quest.prog++;
+      let line=`${pick(D.killVerb)} ${article(f.name)}.`;
+      if(rnd()<0.55){
+        const drop=makeDrop(S);
+        S.bundles+=1;
+        line+=` Took ${drop.mark?drop.mark+" ":""}${drop.name}${drop.rar!=="common"?` (${drop.rar})`:""}.`;
+        push(S,line,""); markLastRarity(drop.rar);
+      } else push(S,line,"");
+      if(rnd()<0.20) upgradeGear(S);
+      checkRank(S);
+      break;
+    }
+    case "descend":{
+      const d=ri(4,11);const before=stratumIndex(S);
+      S.depth+=d;S.quest.prog+=0.5;
+      if(stratumIndex(S)>before){
+        push(S,`Crossed the sill into ${stratumName(stratumIndex(S))}.`,"beat");
+        rollBoard(S);
+      } else if(rnd()<0.35) push(S,`Sank another ${d} fathoms. The rope is getting philosophical.`,"");
+      break;
+    }
+    case "search":{
+      const drop=makeDrop(S);S.bundles+=1;
+      push(S,`Turned up ${drop.mark?drop.mark+" ":""}${drop.name} in the silt.`,"");
+      markLastRarity(drop.rar);
+      if(rnd()<0.25) upgradeGear(S);
+      break;
+    }
+    case "camp":{
+      S.hp=S.hpMax;
+      push(S,"Made camp. Ate. Slept badly. Went on.","");
+      break;
+    }
+    case "fallback":{
+      S.hp=S.hpMax;S.depth=Math.max(0,S.depth-ri(8,18));S.bundles=Math.round(S.bundles*0.6);
+      push(S,"Went down and did not stay down. Woke at the last camp, lighter by whatever was dropped.","hurt");
+      break;
+    }
+    case "winch":{
+      const paid=Math.round(S.bundles*(6+stratumIndex(S)*4)*(1+S.luck*0.2));
+      S.gold+=paid;S.bundles=0;
+      push(S,`Sent the basket up. The Guild's assay came back at ${paid} gold.`,"");
+      break;
+    }
+    case "turnin":{
+      const bonus=Math.round(40+S.rank*22);
+      S.gold+=bonus;S.xp+=Math.round(xpNeeded(S.rank)*0.22);
+      const open=S.board.find(b=>!b.done); if(open) open.done=true;
+      push(S,`Signed off: ${S.quest.text}. Paid ${bonus} gold.`,"beat");
+      if(S.board.every(b=>b.done)) rollBoard(S);
+      newQuest(S);checkRank(S);
+      break;
+    }
+    case "flavour":{
+      const line=pick(D.flavour).replace(/\{H\}/g,S.name.split(" ")[0]).replace(/\{G\}/g,S.hire.name.split(" ")[0]);
+      push(S,line,"flavor");
+      break;
+    }
+  }
+  checkHireRank(S);
+  if(S.choices.length<5 && rnd()<0.075) offerChoice(S);
+}
+
+function makeDrop(S){
+  const tier=clamp(Math.floor(stratumIndex(S)/2),0,D.goods.length-1);
+  const rar=rollRarity(S.luck);
+  const name=rar==="common"?pick(D.junk):pick(D.goods[tier]);
+  return {name,rar,mark:rarityMark(rar)};
+}
+function markLastRarity(rar){
+  const el=$("chronicle").lastElementChild;
+  if(!el||rar==="common")return;
+  const p=el.querySelector("p");
+  p.innerHTML=p.innerHTML.replace(/(†|‡|§|◈)([^.(]*)/,`<span class="c-${rar}">$1$2</span>`);
+}
+function upgradeGear(S){
+  const slot=pick(Object.keys(D.slots));
+  const target=S.ilvl+ri(0,3);
+  const cur=S.gear[slot];
+  const next=mkGear(slot,target);
+  if(next.lvl>cur.lvl){
+    S.gear[slot]=next;
+    push(S,`Swapped out for ${rarityMark(next.rar)?rarityMark(next.rar)+" ":""}${next.name} (${next.lvl}).`,"");
+    markLastRarity(next.rar);
+    S.ilvl=Object.values(S.gear).reduce((a,g)=>a+g.lvl,0)/9;
+  }
+}
+function checkRank(S){
+  while(S.xp>=xpNeeded(S.rank)){
+    S.xp-=xpNeeded(S.rank);S.rank++;
+    const st=pick(["STR","CON","DEX","INT","WIS","CHA"]);S.stats[st]++;
+    S.hpMax+=ri(4,9);S.hp=S.hpMax;
+    push(S,`Rank ${S.rank}. The Guild amended the register. ${st} improved.`,"beat");
+  }
+}
+function checkHireRank(S){
+  const need=Math.round(180*Math.pow(S.hire.rank,1.4));
+  if(S.hire.xp>=need){
+    S.hire.xp-=need;S.hire.rank++;
+    push(S,`${S.hire.name} made rank ${S.hire.rank}. Signed a better share.`,"");
+  }
+}
+function offerChoice(S){
+  const unused=DECKS.filter(d=>!S.choices.some(c=>c.id===d.id));
+  if(!unused.length)return;
+  const d=pick(unused);
+  S.choices.push({id:d.id,title:d.title,brief:d.brief});
+  push(S,`— A decision waits: ${d.title.toLowerCase()}.`,"choice");
+  renderChoices();
+}
+function takeChoice(id,idx){
+  const deck=DECKS.find(d=>d.id===id);
+  const i=S.choices.findIndex(c=>c.id===id);
+  if(!deck||i<0)return;
+  S.choices.splice(i,1);
+  const line=deck.opts[idx].f(S);
+  S.luck=clamp(S.luck,0,3);S.aggro=clamp(S.aggro,0.4,2.2);
+  push(S,line,"beat");
+  renderChoices();renderAll();save();
+}
+
+/* ---- combat sub-loop ---- */
+let foeClock=0;
+function tickFight(S,dt){
+  foeClock+=dt;
+  if(foeClock<420)return false;
+  foeClock=0;
+  const f=S.foe; if(!f)return true;
+  const dmg=ri(2,5)+Math.round(S.ilvl*0.55)+Math.round(S.stats.STR*0.16);
+  f.hp-=dmg;
+  const back=Math.max(0,ri(0,4)+Math.round(f.power*0.9*S.aggro)-Math.round(S.ilvl*0.32));
+  S.hp-=back;
+  if(S.hp<=0){S.foe=null;return true;}
+  return f.hp<=0;
+}
+
+/* ============================================================
+   6. LOOP
+   ============================================================ */
+const TICK=100;
+function loop(){
+  if(paused||!S)return;
+  if(!S.action) S.action=chooseAction(S);
+  const a=S.action;
+
+  if(a.kind==="fight"){
+    const done=tickFight(S,TICK);
+    renderFoe();
+    if(done){resolveAction(S,a);S.action=null;renderAll();}
+    else setBar($("actBar"),1-(S.foe?S.foe.hp/S.foe.hpMax:0));
+  }else{
+    a.el=(a.el||0)+TICK;
+    setBar($("actBar"),a.el/a.dur);
+    if(a.el>=a.dur){resolveAction(S,a);S.action=null;renderAll();}
+  }
+  $("doing").textContent=S.action?S.action.label+"…":a.label+"…";
+  if(Date.now()-lastSave>10000) save();
+}
+
+/* ============================================================
+   7. RENDER
+   ============================================================ */
+function setBar(el,f){el.style.width=clamp(f*100,0,100).toFixed(1)+"%";}
+
+function renderEntry(e){
+  const c=$("chronicle");
+  const near=c.scrollHeight-c.scrollTop-c.clientHeight<80;
+  const d=document.createElement("div");
+  d.className="entry "+e.cls;
+  const t=new Date(e.t);
+  d.innerHTML=`<time>${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}</time><p>${esc(e.text)}</p>`;
+  c.appendChild(d);
+  while(c.children.length>220) c.removeChild(c.firstChild);
+  if(near) c.scrollTop=c.scrollHeight;
+}
+
+function renderAll(){
+  if(!S)return;
+  $("who").innerHTML=`${esc(S.name)} <em>·</em> Rank ${S.rank} <em>·</em> ${esc(stratumName(stratumIndex(S)))}`;
+  $("pFolk").textContent=S.folk;$("pTrade").textContent=S.trade;
+  $("pOrigin").textContent=S.origin;$("pRank").textContent=S.rank;
+
+  $("statgrid").innerHTML=Object.entries(S.stats).map(([k,v])=>{
+    const m=Math.floor((v-10)/2);
+    return `<div class="stat"><i>${k}</i><b>${v} <span class="mod">${m>=0?"+":""}${m}</span></b></div>`;
+  }).join("");
+
+  setBar($("hpBar"),S.hp/S.hpMax);$("hpTxt").textContent=`${Math.max(0,Math.round(S.hp))} / ${S.hpMax} hp`;
+  const need=xpNeeded(S.rank);
+  setBar($("xpBar"),S.xp/need);$("xpTxt").textContent=`${Math.max(0,Math.round(need-S.xp))} xp to rank ${S.rank+1}`;
+
+  $("ilvl").textContent="kit "+S.ilvl.toFixed(1);
+  $("gear").innerHTML=Object.entries(S.gear).map(([s,g])=>
+    `<div><i>${s}</i><b class="c-${g.rar}">${rarityMark(g.rar)} ${esc(g.name)}</b><span style="color:var(--dim);flex:0 0 22px;text-align:right">${g.lvl}</span></div>`).join("");
+
+  $("gold").textContent=S.gold.toLocaleString();
+  $("bundles").textContent=S.bundles;
+  setBar($("encBar"),S.bundles/S.encMax);
+  $("encTxt").textContent=`${S.bundles} / ${S.encMax} stone`;
+  $("encMeter").classList.toggle("over",S.bundles>=S.encMax);
+
+  $("hName").textContent=S.hire.name;
+  $("hRank").textContent="Rank "+S.hire.rank;
+  $("hRole").textContent=S.hire.role;
+  const hn=Math.round(180*Math.pow(S.hire.rank,1.4));
+  setBar($("hBar"),S.hire.xp/hn);$("hTxt").textContent=`${S.hire.xp} / ${hn}`;
+
+  $("board").innerHTML=S.board.map((b,i)=>{
+    const firstOpen=S.board.findIndex(x=>!x.done);
+    const cls=b.done?"done":(i===firstOpen?"now":"");
+    return `<li class="${cls}">${esc(b.text)}</li>`;
+  }).join("");
+  setBar($("qBar"),S.quest.prog/S.quest.total);
+  $("qTxt").textContent=`${esc(S.quest.text)} — ${Math.round(clamp(S.quest.prog/S.quest.total,0,1)*100)}%`;
+
+  $("depthNum").textContent=Math.round(S.depth);
+  renderShaft();
+}
+
+function renderShaft(){
+  const h=$("shaft").clientHeight-40;
+  const span=140;
+  const top=Math.max(0,S.depth-span*0.42);
+  const scale=$("shaftScale");
+  let html="";
+  for(let f=Math.ceil(top/10)*10; f<top+span; f+=10){
+    const y=((f-top)/span)*h;
+    const major=f%FATHOMS_PER_STRATUM===0;
+    html+=`<div class="tickmark ${major?"major":""}" style="top:${y}px">${major?f:""}</div>`;
+  }
+  const s0=Math.floor(top/FATHOMS_PER_STRATUM);
+  for(let s=s0;s<=Math.floor((top+span)/FATHOMS_PER_STRATUM);s++){
+    const y=((s*FATHOMS_PER_STRATUM-top)/span)*h;
+    if(y<-20)continue;
+    html+=`<div class="stratum-band" style="top:${Math.max(2,y)}px;height:${(FATHOMS_PER_STRATUM/span)*h}px">${esc(stratumName(s))}</div>`;
+  }
+  scale.innerHTML=html;
+  $("lamp").style.top=(((S.depth-top)/span)*h)+"px";
+}
+
+function renderFoe(){
+  const box=$("foe");
+  if(!S.foe){box.hidden=true;return;}
+  box.hidden=false;
+  $("foeName").textContent=S.foe.name;
+  setBar($("foeBar"),S.foe.hp/S.foe.hpMax);
+}
+
+function renderChoices(){
+  const n=S.choices.length;
+  const t=$("tally");
+  t.textContent=n===1?"1 waiting":`${n} waiting`;
+  t.classList.toggle("zero",n===0);
+  t.classList.toggle("waiting",n>0);
+  $("dock").classList.toggle("empty",n===0);
+  const wrap=$("cards");
+  if(!n){wrap.innerHTML=`<p class="emptynote">Nothing needs you yet. The delve continues without instruction.</p>`;return;}
+  wrap.innerHTML=S.choices.map(c=>{
+    const deck=DECKS.find(d=>d.id===c.id);
+    return `<article class="card">
+      <h3>${esc(deck.title)}</h3>
+      <p class="brief">${esc(deck.brief)}</p>
+      <div class="opts">${deck.opts.map((o,i)=>
+        `<button class="opt" data-id="${deck.id}" data-i="${i}"><b>${esc(o.l)}</b><span>${esc(o.d)}</span></button>`).join("")}</div>
+    </article>`;
+  }).join("");
+}
+
+/* ============================================================
+   8. PERSISTENCE
+   ============================================================ */
+const KEY="lowfathom:save";
+async function save(){
+  lastSave=Date.now();
+  try{
+    const slim={...S,action:null,foe:null,log:S.log.slice(-120)};
+    await window.storage.set(KEY,JSON.stringify(slim));
+    $("saved").textContent="saved just now";
+  }catch(e){$("saved").textContent="save unavailable";}
+}
+async function load(){
+  try{
+    const r=await window.storage.get(KEY);
+    if(r&&r.value){const d=JSON.parse(r.value);if(d&&d.v===1)return d;}
+  }catch(e){}
+  return null;
+}
+
+/* ============================================================
+   9. BOOT
+   ============================================================ */
+$("cards").addEventListener("click",e=>{
+  const b=e.target.closest(".opt");if(!b)return;
+  takeChoice(b.dataset.id,+b.dataset.i);
+});
+$("btnPause").addEventListener("click",()=>{
+  paused=!paused;
+  $("btnPause").textContent=paused?"Resume":"Hold";
+  $("doing").textContent=paused?"Held at the sill.":"…";
+});
+$("btnWipe").addEventListener("click",async()=>{
+  if(!confirm("Start a new delve? The current chronicle is lost."))return;
+  $("chronicle").innerHTML="";newGame();renderAll();renderChoices();await save();
+});
+window.addEventListener("resize",()=>{if(S)renderShaft();});
+
+(async function boot(){
+  const saved=await load();
+  if(saved){
+    S=saved;
+    S.log.forEach(renderEntry);
+    push(S,"The winch brought up the last dispatch. Reading on.","flavor");
+  }else newGame();
+  renderAll();renderChoices();
+  timer=setInterval(loop,TICK);
+})();
+</script>
+</body>
+</html>
