@@ -36,7 +36,7 @@ No logic at all. Layout only, with fake numbers hardcoded.
 
 - [x] Foe panel: name, level, HP bar
 - [x] Intent line — the most important text on screen, must be readable at arm's length
-- [x] Your panel: HP bar, wind bar
+- [x] Your panel: HP bar, Stamina bar
 - [x] 2×2 action pad pinned to the bottom, inside thumb reach
 - [x] Readout area for what just happened
 - [x] Check on the phone in portrait. Then check it one-handed.
@@ -48,10 +48,10 @@ No logic at all. Layout only, with fake numbers hardcoded.
 
 ### Session 2 · Combat that plays ★ THE GATE
 - [x] Turn loop: you act, foe acts on its declared intent, repeat
-- [x] Wind pool — spend on Strike/Heavy, restore on Guard
+- [x] Stamina pool — spend on Strike/Heavy, restore on Guard
 - [x] Intents roll each turn and display before you choose
 - [x] Tap-to-preview → tap-to-confirm (also prevents fatal misclicks)
-- [x] Preview shows exact numbers: damage, wind cost, what comes back at you
+- [x] Preview shows exact numbers: damage, Stamina cost, what comes back at you
 - [x] Run, with its HP cost shown and a red warning when it would kill you
 - [x] Death is real — screen ends the run
 - [x] One hardcoded enemy is enough

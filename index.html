@@ -17,8 +17,8 @@
    Revision notes:
    - attack intents are separate from defensive stances
    - Heavy Blow uses a commitment ladder: wind up, release / draw further / defend
-   - first draw is 2.7× Might; full draw is 4.7× Might
-   - Wind is now Stamina
+   - first draw is 2.7× STR; full draw is 4.7× STR
+   - Stamina is the in-fight resource
    - Read stays in the pad as an early weakness/layout prototype
    - Base passive Stamina regeneration is 0
    - Guard/Parry restores +3 Stamina and can counter at full Stamina
@@ -562,7 +562,7 @@ function newDelver(){
     heavyCharge:0, // 0 = none, 1 = 2.7× prepared, 2 = 4.7× fully drawn
     defenceChain:0, // 0 = normal defence, 1 = next defended attack becomes Perfect
     loadout:"shield", // prototype toggle: "shield" = Guard, "sword" = Parry
-    might:9,
+    STR:9,
     depth:148, encounter:0,
     turn:1, foe:null
   };
@@ -635,7 +635,7 @@ function openingBonus(){
 }
 function dmgStrike(){
   const f = S.foe;
-  let d = (S.might + ri(0,4)) * openingBonus();
+  let d = (S.STR + ri(0,4)) * openingBonus();
   if(f.revealed && f.weakness.eff.strikeBonus) d *= f.weakness.eff.strikeBonus;
   if(f.intent === "guard") d *= (1 - INTENTS.guard.armour);
   return Math.max(1, Math.round(d));
@@ -646,20 +646,20 @@ function heavyMultiplier(charge=S.heavyCharge){
 function dmgHeavy(charge=S.heavyCharge){
   const f = S.foe;
   const mult = heavyMultiplier(charge || 1);
-  let d = (S.might*mult + ri(0,6)) * openingBonus();
+  let d = (S.STR*mult + ri(0,6)) * openingBonus();
   if(f.revealed && f.weakness.eff.heavyBonus) d *= f.weakness.eff.heavyBonus;
   // Heavy is the answer to a guard: most of the blow still gets through.
   if(f.intent === "guard") d *= 0.85;
   return Math.max(1, Math.round(d));
 }
 function counterDamage(style, perfect=false){
-  // Counter damage intentionally uses Might but not random Strike damage, so the
+  // Counter damage intentionally uses STR but not random Strike damage, so the
   // preview can tell the truth. Perfect defence makes the return hit meaningfully
   // stronger without turning every normal block into an attack button.
   const mult = perfect
     ? (style === "shield" ? 0.75 : 1.25)
     : (style === "shield" ? 0.35 : 0.75);
-  return Math.max(1, Math.round(S.might * mult));
+  return Math.max(1, Math.round(S.STR * mult));
 }
 function perfectDefenceReady(){
   // A blinded foe will miss on its own, so that swing neither spends nor
@@ -718,8 +718,8 @@ const ACTIONS = {
   heavy:{
     label(){ return S.heavyCharge > 0 ? "Release heavy" : "Wind up heavy"; },
     sub(){
-      if(S.heavyCharge >= 2) return "fully drawn · 4.7× might";
-      if(S.heavyCharge === 1) return "ready · 2.7× might";
+      if(S.heavyCharge >= 2) return "fully drawn · 4.7× STR";
+      if(S.heavyCharge === 1) return "ready · 2.7× STR";
       return "6 stamina · prepares 2.7×";
     },
     cost(){ return S.heavyCharge > 0 ? 0 : 6; },
@@ -727,7 +727,7 @@ const ACTIONS = {
       const f = S.foe;
       if(S.heavyCharge === 0){
         const back = incoming();
-        let s = `Prepare a <span class="dmg">2.7× Might</span> blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>`;
+        let s = `Prepare a <span class="dmg">2.7× STR</span> blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>`;
         if(back) s += ` · you take <span class="bad">~${back}</span> while winding up`;
         else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
         s += ` · next turn: Release / Wind up further / ${defenceName()}`;
@@ -736,7 +736,7 @@ const ACTIONS = {
 
       const d = dmgHeavy(), back = incoming();
       const mult = heavyMultiplier();
-      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× Might</span> · <span class="cost">0 stamina</span> · releases before it acts`;
+      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× STR</span> · <span class="cost">0 stamina</span> · releases before it acts`;
       if(f.offBalance) s += ` · <span class="dmg">+25% opening</span>`;
       if(f.intent === "dodge") s += ` · <span class="bad">70% miss chance</span>`;
       if(f.intent === "guard") s += ` · punches through most of its guard`;
@@ -769,7 +769,7 @@ const ACTIONS = {
       if(S.heavyCharge >= 2) return `The blow is already fully drawn. Release it or ${defenceName()} to abandon it.`;
       const back = incoming();
       const full = dmgHeavy(2);
-      let s = `Commit another turn · <span class="cost">2 stamina</span> · raise the blow to <span class="dmg">4.7× Might (~${full} damage)</span>`;
+      let s = `Commit another turn · <span class="cost">2 stamina</span> · raise the blow to <span class="dmg">4.7× STR (~${full} damage)</span>`;
       if(back) s += ` · you take <span class="bad">~${back}</span> while drawing further`;
       else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
       s += ` · then Release or ${defenceName()}`;
@@ -777,7 +777,7 @@ const ACTIONS = {
     },
     run(){
       S.heavyCharge = 2;
-      return `<p class="good">Drew the blow back further. It is <b>fully drawn — 4.7× Might</b>.</p>`;
+      return `<p class="good">Drew the blow back further. It is <b>fully drawn — 4.7× STR</b>.</p>`;
     }
   },
 
