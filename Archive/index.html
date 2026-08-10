@@ -12,19 +12,31 @@
 <style>
 /* ============================================================
    LOWFATHOM — combat screen
-   Session 2 combat revision. Layout, telegraphs, and a fight that plays.
+   Session 3 vertical-slice prototype. Combat now starts at the mouth of the shaft
+   and tests enemy identity, reading, XP, levels, and early depth scaling.
 
    Revision notes:
    - attack intents are separate from defensive stances
-   - Heavy Blow takes a wind-up turn before release
-   - Wind is now Stamina
+   - Heavy Blow uses a commitment ladder: wind up, release / draw further / defend
+   - first draw is 2.7× STR; full draw is 4.7× STR
+   - Stamina is the in-fight resource
    - Read stays in the pad as an early weakness/layout prototype
-   - +1 passive Stamina returns after every completed turn
-   - Guard restores +2 Stamina and can counter at full Stamina
+   - Base passive Stamina regeneration is 0
+   - Guard/Parry restores +3 Stamina; normal defence counters at full Stamina
+   - two successful defended attacks in a row upgrade the second defence to Perfect
+   - Perfect Guard/Parry always counters, even below full Stamina
    - Sword-only loadouts Parry instead: less protection, stronger riposte
    - Sand Throw can blind the foe and spoil its next attack
    - Guarding/parrying a Heavy Attack can leave the foe Off-Balance
+   - Off-Balance foes must Steady or make a weak Glancing Attack
+   - a reckless Glancing Attack keeps them Off-Balance for one more player turn
    - enemy portrait sits on the right
+   - enemy information stays at the top; atmospheric space sits between sides
+   - player HP and Stamina sit on the player side above the action controls
+   - six goblin archetypes use distinct intent weights and fixed weaknesses
+   - the delver starts at Level 1 and 0 fathoms; XP and depth now progress
+   - Read permanently learns each goblin archetype's weakness for the current run
+   - repeated Study reads build capped archetype knowledge: Studied at 3, Mastered at 6
 
    Nothing is saved yet — refreshing the page starts you over
    with a fresh delver. That's Session 8's job.
@@ -63,7 +75,7 @@ button{
 .arena{
   position:relative;
   display:grid;
-  grid-template-rows:auto minmax(0,1fr) auto auto auto auto auto auto auto;
+  grid-template-rows:auto auto auto minmax(22px,1fr) auto auto auto auto auto auto;
   height:100vh;
   height:100dvh;
   max-width:480px;
@@ -86,11 +98,11 @@ button{
   text-transform:uppercase;color:var(--dim);white-space:nowrap;
 }
 
-/* ---------- 2. the foe — gets the leftover room ---------- */
+/* ---------- 2. the foe — enemy territory at the top ---------- */
 .foe{
-  display:flex;flex-direction:column;justify-content:flex-end;min-height:0;
-  padding:9px 13px 10px;
-  background:radial-gradient(130% 120% at 50% 0%,#1b232b 0%,#0e1317 70%);
+  display:flex;flex-direction:column;justify-content:flex-start;
+  padding:11px 13px 10px;
+  background:#11171c;
   border-bottom:1px solid var(--rule);
 }
 .foe-top{display:flex;align-items:flex-end;gap:11px}
@@ -128,6 +140,11 @@ button{
   display:block;font-style:normal;font-family:var(--cond);font-size:9px;
   letter-spacing:.2em;text-transform:uppercase;color:var(--verdigris);
 }
+.knowledge{
+  margin-top:5px;padding-top:5px;border-top:1px solid rgba(95,148,144,.22);
+  font-family:var(--cond);font-size:10.5px;line-height:1.35;color:var(--dim);
+}
+.knowledge b{color:#9fbdba;font-weight:600}
 .statusline{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
 .statusline[hidden]{display:none}
 .status{
@@ -157,9 +174,18 @@ button{
 .intent.unknown{border-left-color:var(--rule-hi);background:rgba(125,135,148,.05)}
 .intent.unknown b{color:var(--dim)}
 
+/* ---------- 3b. atmospheric gap — the space between them and you ---------- */
+.battle-space{
+  min-height:22px;
+  background:
+    radial-gradient(120% 110% at 50% 0%,rgba(37,48,58,.55) 0%,rgba(15,19,23,.18) 46%,rgba(9,12,15,.88) 100%),
+    #0e1317;
+  border-bottom:1px solid var(--rule);
+}
+
 /* ---------- 4. readout ---------- */
 .readout{
-  overflow-y:auto;max-height:26vh;
+  overflow-y:auto;max-height:19vh;
   padding:10px 13px;
   background:var(--panel);
   border-bottom:1px solid var(--rule);
@@ -173,7 +199,11 @@ button{
 .readout b{font-weight:600;color:var(--bone)}
 
 /* ---------- 5. you ---------- */
-.hero{padding:8px 13px 9px;background:#12181e;border-bottom:1px solid var(--rule)}
+.hero{
+  padding:8px 13px 9px;
+  background:#12181e;
+  border-bottom:1px solid var(--rule);
+}
 .hero .cname{margin-bottom:4px}
 .hero .cname b{font-size:13.5px}
 .staminarow{display:flex;align-items:center;gap:8px;margin-top:7px}
@@ -185,6 +215,13 @@ button{
 .pips i{flex:1;height:11px;background:#080b0e;border:1px solid var(--rule)}
 .pips i.on{background:var(--stamina);border-color:#7fb0d6}
 .staminarow .n{font-family:var(--cond);font-size:10.5px;color:var(--dim);flex:0 0 auto}
+
+.progressrow{
+  display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+  margin-top:6px;font-family:var(--cond);font-size:10.5px;letter-spacing:.06em;color:var(--dim);
+}
+.progressrow .stats{color:#9aa5b0}
+.progressrow .xp{white-space:nowrap;color:var(--lamp-dim)}
 
 /* ---------- 6. preview ---------- */
 .preview{padding:8px 13px 9px;background:var(--panel);border-bottom:1px solid var(--rule);min-height:56px}
@@ -218,7 +255,8 @@ button{
 .act.guard  b{color:var(--stamina)}
 .act.sand   b{color:#b99b6b}
 .act.read   b{color:var(--verdigris)}
-.act.read.wide{grid-column:1/-1}
+.act.wide{grid-column:1/-1}
+.act.draw b{color:var(--warn)}
 
 .act:disabled{background:#101418;cursor:not-allowed}
 .act:disabled b{color:#3f4954}
@@ -320,6 +358,27 @@ button{
   text-transform:uppercase;color:var(--dim);text-align:center;
 }
 
+/* ---------- level-up choice — prototype only ---------- */
+.levelup{
+  position:absolute;inset:0;z-index:9;background:rgba(8,11,14,.86);
+  display:flex;align-items:flex-end;
+}
+.levelup[hidden]{display:none}
+.levelup-panel{width:100%;background:var(--panel);border-top:1px solid var(--lamp-dim)}
+.levelup-head{padding:12px 13px 10px;border-bottom:1px solid var(--rule);background:#12181e}
+.levelup-head em{
+  display:block;font-style:normal;font-family:var(--cond);font-size:9.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--lamp-dim);
+}
+.levelup-head b{display:block;margin-top:2px;font-family:var(--slab);font-size:19px;color:var(--lamp)}
+.levelup-opt{
+  display:block;width:100%;text-align:left;background:#141a20;border:none;border-bottom:1px solid var(--rule);
+  padding:12px 13px;min-height:64px;
+}
+.levelup-opt b{display:block;font-family:var(--slab);font-size:16px;color:var(--bone)}
+.levelup-opt span{display:block;margin-top:2px;font-family:var(--cond);font-size:11px;color:var(--dim)}
+.levelup-note{padding:9px 13px 12px;font-size:11px;color:#59636e;background:#101418}
+
 /* ---------- the end ---------- */
 .dead{
   position:absolute;inset:0;z-index:10;background:var(--deep);
@@ -346,7 +405,7 @@ button{
 <div class="arena" id="arena">
 
   <header class="strip">
-    <div class="place" id="place">The Underbarrow Crypts</div>
+    <div class="place" id="place">The Shaft</div>
     <div class="meta" id="meta">—</div>
   </header>
 
@@ -362,6 +421,7 @@ button{
     <div class="tell" id="tell" hidden>
       <em>Known weakness</em>
       <span id="tellTxt"></span>
+      <div class="knowledge" id="knowledgeTxt"></div>
     </div>
     <div class="statusline" id="foeStatus" hidden></div>
   </section>
@@ -370,6 +430,8 @@ button{
     <em>Intent</em>
     <b>—</b>
   </div>
+
+  <div class="battle-space" aria-hidden="true"></div>
 
   <div class="readout" id="readout" role="log"></div>
 
@@ -381,6 +443,10 @@ button{
       <span class="lab">Stamina</span>
       <span class="pips" id="pips"></span>
       <span class="n" id="staminaN"></span>
+    </div>
+    <div class="progressrow">
+      <span class="stats" id="heroStats">STR — · CON — · DEX —</span>
+      <span class="xp" id="heroXp">0 / 0 XP</span>
     </div>
   </section>
 
@@ -398,6 +464,25 @@ button{
 
   <button class="botbtn" id="btnRun"><b>Run</b><span>—</span></button>
   <button class="botbtn go" id="btnGo" hidden><b>Go on down</b><span>the next encounter</span></button>
+
+
+  <div class="levelup" id="levelup" hidden>
+    <div class="levelup-panel">
+      <div class="levelup-head">
+        <em>Level up</em>
+        <b id="levelupTitle">Choose a stat point</b>
+      </div>
+      <button class="levelup-opt" data-stat="STR">
+        <b>STR +1</b>
+        <span id="levelupStr">More physical damage.</span>
+      </button>
+      <button class="levelup-opt" data-stat="CON">
+        <b>CON +1</b>
+        <span id="levelupCon">More maximum HP.</span>
+      </button>
+      <div class="levelup-note">Prototype choice only. DEX / INT / WIS / CHA exist on the test delver but their combat jobs are not being invented early just to fill this screen.</div>
+    </div>
+  </div>
 
   <!-- skills sheet: sits above the pad so the fight stays readable -->
   <div class="sheet" id="sheet" hidden>
@@ -458,6 +543,17 @@ const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const article = n => /^[aeiou]/i.test(n) ? `an ${n}` : `a ${n}`;
 
+function weightedPick(items, weightOf){
+  const total = items.reduce((sum,item) => sum + Math.max(0,weightOf(item)), 0);
+  if(total <= 0) return items[0];
+  let roll = rnd() * total;
+  for(const item of items){
+    roll -= Math.max(0,weightOf(item));
+    if(roll <= 0) return item;
+  }
+  return items[items.length-1];
+}
+
 
 /* ============================================================
    INTENTS — the matchup layer. The whole game is here.
@@ -477,6 +573,11 @@ const INTENTS = {
     tell:"darting in to strike",
     kind:"attack", mult:0.6, armour:0
   },
+  offquick: {
+    label:"Glancing attack",
+    tell:"lashing out without its footing",
+    kind:"attack", mult:0.3, armour:0
+  },
   dodge: {
     label:"Dodge",
     tell:"circling, light on its feet",
@@ -491,23 +592,77 @@ const INTENTS = {
     label:"Recover",
     tell:"sucking air, giving ground",
     kind:"stance", mult:0, armour:0, heal:0.14
+  },
+  steady: {
+    label:"Steady",
+    tell:"planting its feet and recovering its balance",
+    kind:"stance", mult:0, armour:0
   }
 };
 
-/* Weaknesses are still a prototype. Read reveals one for the current
-   species and remembers it for later encounters in this run. */
-const WEAKNESSES = [
-  {id:"winded",  txt:"Stamina-starves quickly. Guarding it out works.", eff:{guardBonus:1.6}},
-  {id:"brittle", txt:"Brittle. Heavy blows go straight through.",       eff:{heavyBonus:1.7}},
-  {id:"slow",    txt:"Slow to reset. Fast strikes chain on it.",        eff:{strikeBonus:1.5}},
-  {id:"skittish",txt:"Skittish. It will not chase a retreat.",          eff:{runFree:true}}
-];
+/* Session 3: the intent profile is the actual enemy content.
+   Each goblin has a fixed weakness and a weighted set of intents. Read does not
+   randomise a weakness anymore: it learns that species and remembers it for the run.
 
+   For this prototype, the bonus turns on once the weakness is known. That keeps the
+   exact preview truthful and gives Read a concrete mechanical payoff. */
 const FOES = [
-  {n:"war-painted kobold",tier:0}, {n:"goblin cutter",tier:0}, {n:"blind rat",tier:0},
-  {n:"pale hound",tier:1},         {n:"mine wight",tier:1},    {n:"silt-crawler",tier:1},
-  {n:"bone-picker",tier:2},        {n:"drowned man",tier:2},   {n:"lamp-eater",tier:2},
-  {n:"hollow knight",tier:3},      {n:"choir-thing",tier:3}
+  {
+    id:"cutter", name:"goblin cutter", unlock:0, hp:32, atk:7, xp:9, danger:0,
+    intents:{quick:55, heavy:15, dodge:10, guard:10, recover:10}, recoverAt:0.35,
+    weakness:{
+      id:"overcommit",
+      txt:"Overcommits on close cuts. Counters and ripostes deal +50% damage.",
+      eff:{counterBonus:1.50}
+    }
+  },
+  {
+    id:"scrounger", name:"goblin scrounger", unlock:4, hp:30, atk:6, xp:10, danger:0,
+    intents:{quick:35, heavy:10, dodge:30, guard:25, recover:0},
+    hurtIntents:{quick:15, heavy:5, dodge:25, guard:15, recover:40}, hurtAt:0.65,
+    weakness:{
+      id:"open_recovery",
+      txt:"Drops everything to recover. Strike deals +50% while it is Recovering.",
+      eff:{recoverStrikeBonus:1.50}
+    }
+  },
+  {
+    id:"skitter", name:"goblin skitter", unlock:8, hp:27, atk:6, xp:11, danger:1,
+    intents:{quick:35, heavy:5, dodge:45, guard:5, recover:10}, recoverAt:0.30,
+    weakness:{
+      id:"frail_frame",
+      txt:"Built to evade, not absorb. Heavy blows that land deal +40% damage.",
+      eff:{heavyBonus:1.40}
+    }
+  },
+  {
+    id:"shieldback", name:"goblin shieldback", unlock:14, hp:38, atk:6, xp:12, danger:1,
+    intents:{quick:25, heavy:10, dodge:5, guard:45, recover:15}, recoverAt:0.35,
+    weakness:{
+      id:"braced_wrong",
+      txt:"Its shield braces light work. A Heavy that lands during Guard deals +50% damage.",
+      eff:{guardHeavyBonus:1.50}
+    }
+  },
+  {
+    id:"mauler", name:"goblin mauler", unlock:22, hp:34, atk:8, xp:14, danger:1,
+    intents:{quick:30, heavy:50, dodge:5, guard:5, recover:10}, recoverAt:0.28,
+    weakness:{
+      id:"top_heavy",
+      txt:"Top-heavy. While Off-Balance it takes +50% damage instead of +25%.",
+      eff:{offBalanceBonus:1.50}
+    }
+  },
+  {
+    id:"oldhand", name:"goblin oldhand", unlock:32, hp:42, atk:8, xp:16, danger:2,
+    intents:{quick:30, heavy:20, dodge:20, guard:20, recover:10}, recoverAt:0.30,
+    chargedIntents:{quick:20, heavy:5, dodge:50, guard:20, recover:5},
+    weakness:{
+      id:"deep_commitment",
+      txt:"Reads ordinary commitment. A fully drawn Heavy that lands deals +50% damage.",
+      eff:{fullHeavyBonus:1.50}
+    }
+  }
 ];
 
 const HIT_VERBS = ["Struck","Cut into","Caught","Opened up","Got through on","Landed on"];
@@ -517,22 +672,78 @@ const HIT_VERBS = ["Struck","Cut into","Caught","Opened up","Got through on","La
    STATE
    ============================================================ */
 let S = null;      // the delver, and the fight in front of them
-let known = {};    // weaknesses learned so far, keyed by creature name
+let knowledge = {}; // per-archetype Read progress during this delver's run
 let armed = null;  // which action is tapped-but-not-yet-committed
 let over = false;  // true once you're dead
 
+function xpToNext(level=S.level){
+  return Math.round(20 + 10*Math.pow(level,1.5));
+}
+function maxHp(){
+  // CON is the HP investment in this prototype. Level itself does not grant HP.
+  return S.CON * 6;
+}
+function knowledgeReads(key){
+  return knowledge[key]?.reads || 0;
+}
+function knowledgeTier(key){
+  const reads = knowledgeReads(key);
+  if(reads >= 6) return "mastered";
+  if(reads >= 3) return "studied";
+  if(reads >= 1) return "known";
+  return "unknown";
+}
+function knowledgeDamageTakenMult(key){
+  return knowledgeReads(key) >= 3 ? 0.95 : 1;
+}
+function masteryWeaknessBoost(){
+  return S.foe && knowledgeReads(S.foe.key) >= 6 ? 0.05 : 0;
+}
+function boostedWeaknessMultiplier(mult){
+  return mult + masteryWeaknessBoost();
+}
+function knowledgeSummary(key){
+  const reads = knowledgeReads(key);
+  if(reads >= 6) return `<b>Mastered · 6/6</b> · take 5% less damage · weakness payoff +5%`;
+  if(reads >= 3) return `<b>Studied · ${reads}/6</b> · take 5% less damage · ${6-reads} more ${6-reads === 1 ? "study" : "studies"} to Mastered (+5% weakness payoff)`;
+  return `<b>Known · ${reads}/3</b> · ${3-reads} more ${3-reads === 1 ? "study" : "studies"} to Studied (take 5% less damage)`;
+}
+function spawnWeight(profile, depth){
+  if(depth < profile.unlock) return 0;
+  // Soft overlapping bands: a species peaks for a while after introduction but
+  // never vanishes completely. This is deliberately not infinite-depth solved yet.
+  return Math.max(0.5, 2.2 - Math.abs(depth - (profile.unlock + 18))/24);
+}
+function chooseFoeProfile(){
+  const available = FOES.filter(f => S.depth >= f.unlock);
+
+  // Session 3 playtest rule: once a new archetype is unlocked, guarantee its first
+  // appearance before returning to the weighted pool. RNG should not hide content
+  // that this slice exists to test.
+  const unseen = available.find(f => !S.seenFoes[f.id]);
+  if(unseen) return unseen;
+
+  return weightedPick(available, f => spawnWeight(f,S.depth));
+}
+function xpReward(f){
+  return Math.max(1, Math.round(f.profile.xp * (1 + S.depth/100)));
+}
+
 function newDelver(){
   S = {
-    name:"Leofrun Fenwick", rank:6,
-    hpMax:64, hp:64,
+    name:"Leofrun Fenwick", level:1, xp:0, statPoints:0,
+    STR:10, CON:10, DEX:10, INT:10, WIS:10, CHA:10,
+    hpMax:0, hp:0,
     staminaMax:10, stamina:10,
-    heavyReady:false,
+    heavyCharge:0, // 0 = none, 1 = 2.7× prepared, 2 = 4.7× fully drawn
+    defenceChain:0, // 0 = normal defence, 1 = next defended attack becomes Perfect
     loadout:"shield", // prototype toggle: "shield" = Guard, "sword" = Parry
-    might:9,
-    depth:148, encounter:0,
+    depth:0, encounter:0, seenFoes:{},
     turn:1, foe:null
   };
-  known = {};
+  S.hpMax = maxHp();
+  S.hp = S.hpMax;
+  knowledge = {};
   armed = null;
   over = false;
   $("readout").innerHTML = "";
@@ -542,27 +753,33 @@ function newDelver(){
 function nextFoe(){
   S.encounter++;
   S.turn = 1;
-  S.stamina = Math.min(S.staminaMax, S.stamina + 4); // some breath back between fights
-  S.heavyReady = false;
+  S.stamina = Math.min(S.staminaMax, S.stamina + 4); // Session 3 test breathing room
+  S.heavyCharge = 0;
+  S.defenceChain = 0;
   armed = null;
 
-  const band = FOES.filter(f => f.tier === clamp(Math.floor(S.depth/70), 0, 3));
-  const base = pick(band.length ? band : FOES);
-  const power = 1 + S.depth/110;
-  const hpMax = Math.round(ri(26,44) * power * 0.55);
+  const base = chooseFoeProfile();
+  const hpScale = 1 + S.depth/90;
+  const atkScale = 1 + S.depth/120;
+  const hpRoll = 0.94 + rnd()*0.12;
+  const hpMax = Math.round(base.hp * hpScale * hpRoll);
 
   S.foe = {
-    key: base.n,
-    name: base.n,
-    lv: Math.round(8 + S.depth/9 + ri(-2,3)),
+    key: base.id,
+    name: base.name,
+    profile: base,
+    lv: Math.max(1, 1 + Math.floor(S.depth/12) + base.danger),
     hp: hpMax, hpMax,
-    atk: Math.round(5*power) + ri(0,3),
-    weakness: known[base.n] || pick(WEAKNESSES),
-    revealed: !!known[base.n],
+    atk: Math.max(1, Math.round(base.atk * atkScale)),
+    weakness: base.weakness,
+    revealed: knowledgeReads(base.id) >= 1,
+    readUsed:false,
     intent: null,
-    blinded:false,       // persists until the foe next attempts an attack
-    offBalance:false     // lasts through one enemy turn; blocks Dodge/Guard and opens damage
+    blinded:false,          // persists until the foe next attempts an attack
+    offBalance:false,        // opens damage and restricts the foe's choices
+    offBalanceStruck:false   // after a reckless Glancing Attack, next intent must be Steady
   };
+  S.seenFoes[base.id] = true;
   rollIntent();
   say(`<p class="said">${cap(article(S.foe.name))} comes out of the dark.</p>`);
   render();
@@ -570,63 +787,149 @@ function nextFoe(){
 
 function rollIntent(){
   const f = S.foe;
-  let pool = ["heavy","quick","quick","dodge","guard"];
-  if(f.hp < f.hpMax*0.30) pool.push("recover","recover");
-  if(f.hp < f.hpMax*0.50) pool.push("heavy","dodge");
 
-  // Off-Balance is a short opening: the foe cannot immediately hide behind
-  // Guard or dance away with Dodge. It must attack or recover.
-  if(f.offBalance) pool = pool.filter(i => i !== "guard" && i !== "dodge");
-  f.intent = pick(pool);
+  // Off-Balance has its own mini-state machine. The foe cannot Guard, Dodge,
+  // Recover, or throw another Heavy Attack while its footing is gone.
+  if(f.offBalance){
+    if(f.offBalanceStruck){
+      f.intent = "steady";
+    } else {
+      f.intent = rnd() < 0.60 ? "steady" : "offquick";
+    }
+    return;
+  }
+
+  const p = f.profile;
+  const frac = f.hp / f.hpMax;
+  let weights = {...p.intents};
+
+  // The Scrounger changes personality once wounded: recovery becomes its puzzle.
+  if(p.hurtIntents && frac <= p.hurtAt) weights = {...p.hurtIntents};
+
+  // Other profiles only add Recover when they are actually hurt enough to need it.
+  if(!p.hurtIntents && weights.recover && frac > (p.recoverAt ?? 0.30)) weights.recover = 0;
+
+  // The Oldhand recognises a visible Heavy commitment and tries to slip it. Its
+  // protected weakness is therefore valuable precisely because it is hard to land.
+  if(p.chargedIntents && S.heavyCharge > 0){
+    weights = {...p.chargedIntents};
+    if(frac > (p.recoverAt ?? 0.30)) weights.recover = 0;
+  }
+
+  const choices = Object.entries(weights).filter(([,w]) => w > 0);
+  f.intent = weightedPick(choices, ([,w]) => w)[0];
 }
-
 
 /* ============================================================
    THE MATHS — all in one place, so tuning is easy later
    ============================================================ */
+function weaknessEff(){
+  // Read is what teaches you how to exploit the archetype. Until then the exact
+  // preview remains truthful because no hidden bonus is being secretly applied.
+  if(!S.foe || !S.foe.revealed) return {};
+  const base = S.foe.weakness.eff;
+  const eff = {...base};
+
+  // Mastery adds a small universal payoff to the archetype's existing weakness
+  // rather than inventing a second weakness. +50% becomes +55%, +40% becomes +45%.
+  for(const k of Object.keys(eff)){
+    if(typeof eff[k] === "number" && eff[k] > 1) eff[k] = boostedWeaknessMultiplier(eff[k]);
+  }
+  return eff;
+}
 function openingBonus(){
-  return S.foe && S.foe.offBalance ? 1.25 : 1;
+  if(!S.foe || !S.foe.offBalance) return 1;
+  return weaknessEff().offBalanceBonus || 1.25;
 }
 function dmgStrike(){
   const f = S.foe;
-  let d = (S.might + ri(0,4)) * openingBonus();
-  if(f.revealed && f.weakness.eff.strikeBonus) d *= f.weakness.eff.strikeBonus;
+  const eff = weaknessEff();
+  let d = (S.STR + ri(0,4)) * openingBonus();
+  if(eff.strikeBonus) d *= eff.strikeBonus;
+  if(eff.recoverStrikeBonus && f.intent === "recover") d *= eff.recoverStrikeBonus;
   if(f.intent === "guard") d *= (1 - INTENTS.guard.armour);
   return Math.max(1, Math.round(d));
 }
-function dmgHeavy(){
+function heavyMultiplier(charge=S.heavyCharge){
+  return charge >= 2 ? 4.7 : 2.7;
+}
+function dmgHeavy(charge=S.heavyCharge){
   const f = S.foe;
-  let d = (S.might*2.1 + ri(0,6)) * openingBonus();
-  if(f.revealed && f.weakness.eff.heavyBonus) d *= f.weakness.eff.heavyBonus;
-  // Heavy is the answer to a guard: most of the blow still gets through.
+  const eff = weaknessEff();
+  const useCharge = charge || 1;
+  const mult = heavyMultiplier(useCharge);
+  let d = (S.STR*mult + ri(0,6)) * openingBonus();
+  if(eff.heavyBonus) d *= eff.heavyBonus;
+  if(eff.fullHeavyBonus && useCharge >= 2) d *= eff.fullHeavyBonus;
+  if(eff.guardHeavyBonus && f.intent === "guard") d *= eff.guardHeavyBonus;
+  // Heavy is the general answer to a guard: most of the blow still gets through.
   if(f.intent === "guard") d *= 0.85;
   return Math.max(1, Math.round(d));
 }
-function counterDamage(style){
-  // Counter damage intentionally uses Might but not random Strike damage, so the
-  // preview can tell the truth. Shield counters are modest; sword ripostes bite.
-  const mult = style === "shield" ? 0.35 : 0.75;
-  return Math.max(1, Math.round(S.might * mult));
+function counterDamage(style, perfect=false){
+  const mult = perfect
+    ? (style === "shield" ? 0.75 : 1.25)
+    : (style === "shield" ? 0.35 : 0.75);
+  let d = S.STR * mult;
+  const eff = weaknessEff();
+  if(eff.counterBonus) d *= eff.counterBonus;
+  return Math.max(1, Math.round(d));
+}
+function perfectDefenceReady(){
+  // A blinded foe will miss on its own, so that swing neither spends nor
+  // upgrades the defensive rhythm. Keep Perfect ready for a real attack.
+  return S.defenceChain >= 1 && S.foe && !S.foe.blinded && INTENTS[S.foe.intent].kind === "attack";
 }
 function incoming(openMult=1){
   const f = S.foe;
   if(!f) return 0;
   const I = INTENTS[f.intent];
   if(I.kind !== "attack") return 0;
-  return Math.max(0, Math.round(f.atk * I.mult * openMult));
+  const learnedDefence = knowledgeDamageTakenMult(f.key);
+  return Math.max(0, Math.round(f.atk * I.mult * openMult * learnedDefence));
 }
 function runCost(){
   const f = S.foe;
-  if(f.revealed && f.weakness.eff.runFree) return 0;
   return Math.max(1, Math.round(4 + S.depth/26 + (f.intent === "heavy" ? 4 : 0)));
 }
 function defenceName(){ return S.loadout === "shield" ? "Guard" : "Parry"; }
 function defenceReduction(){ return S.loadout === "shield" ? 0.25 : 0.45; }
 function sandChance(){
   if(!S.foe) return 0;
-  if(S.foe.intent === "guard") return 0.25;
-  if(S.foe.intent === "dodge") return 0.40;
+  // Sand is a broad dirty trick, not a precision strike: Dodge does not help.
+  // A foe already tucked behind its Guard is protected completely.
+  if(S.foe.intent === "guard") return 0;
   return 0.60;
+}
+
+function awardKill(f){
+  const gain = xpReward(f);
+  S.xp += gain;
+  let levels = 0;
+
+  while(S.xp >= xpToNext(S.level)){
+    S.xp -= xpToNext(S.level);
+    S.level++;
+    S.statPoints++;
+    levels++;
+  }
+
+  let html = `<p class="good">Earned <b>${gain} XP</b>.</p>`;
+  if(levels){
+    html += `<p class="good"><b>Level ${S.level}.</b> ${levels === 1 ? "A stat point is waiting." : `${levels} stat points are waiting.`} Leveling itself does not heal you.</p>`;
+  }
+  return html;
+}
+
+function finishKill(out){
+  const f = S.foe;
+  const reward = awardKill(f);
+  say(out + `<p class="said">The ${esc(f.name)} went down and stayed down.</p>` + reward);
+  S.foe = null;
+  S.heavyCharge = 0;
+  S.defenceChain = 0;
+  armed = null;
+  render();
 }
 
 /* ============================================================
@@ -635,11 +938,11 @@ function sandChance(){
    ============================================================ */
 const ACTIONS = {
   strike:{
-    label:"Strike", sub:"2 stamina", cost:2,
+    label:"Strike", sub:"3 stamina", cost:3,
     preview(){
       const f = S.foe, d = dmgStrike(), back = incoming();
-      let s = `<span class="dmg">~${d} damage</span> · <span class="cost">2 stamina</span>`;
-      if(f.offBalance) s += ` · <span class="dmg">+25% opening</span>`;
+      let s = `<span class="dmg">~${d} damage</span> · <span class="cost">3 stamina</span>`;
+      if(f.offBalance) s += ` · <span class="dmg">+${Math.round((openingBonus()-1)*100)}% opening</span>`;
       if(f.intent === "dodge") s += ` · <span class="bad">35% miss chance</span>`;
       if(f.intent === "guard") s += ` · its guard soaks most of it`;
       if(back) s += ` · you take <span class="bad">~${back}</span> if it survives`;
@@ -657,23 +960,28 @@ const ACTIONS = {
   },
 
   heavy:{
-    label(){ return S.heavyReady ? "Release heavy" : "Wind up heavy"; },
-    sub(){ return S.heavyReady ? "ready · 0 stamina" : "4 stamina · commits next turn"; },
-    cost(){ return S.heavyReady ? 0 : 4; },
+    label(){ return S.heavyCharge > 0 ? "Release heavy" : "Wind up heavy"; },
+    sub(){
+      if(S.heavyCharge >= 2) return "fully drawn · 4.7× STR";
+      if(S.heavyCharge === 1) return "ready · 2.7× STR";
+      return "6 stamina · prepares 2.7×";
+    },
+    cost(){ return S.heavyCharge > 0 ? 0 : 6; },
     preview(){
       const f = S.foe;
-      if(!S.heavyReady){
+      if(S.heavyCharge === 0){
         const back = incoming();
-        let s = `Prepare the blow · <span class="cost">4 stamina</span> · <span class="bad">no damage yet</span>`;
+        let s = `Prepare a <span class="dmg">2.7× STR</span> blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>`;
         if(back) s += ` · you take <span class="bad">~${back}</span> while winding up`;
         else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
-        s += ` · next turn you must release it`;
+        s += ` · next turn: Release / Wind up further / ${defenceName()}`;
         return s;
       }
 
       const d = dmgHeavy(), back = incoming();
-      let s = `<span class="dmg">~${d} damage</span> · <span class="cost">0 stamina</span> · releases before it acts`;
-      if(f.offBalance) s += ` · <span class="dmg">+25% opening</span>`;
+      const mult = heavyMultiplier();
+      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× STR</span> · <span class="cost">0 stamina</span> · releases before it acts`;
+      if(f.offBalance) s += ` · <span class="dmg">+${Math.round((openingBonus()-1)*100)}% opening</span>`;
       if(f.intent === "dodge") s += ` · <span class="bad">70% miss chance</span>`;
       if(f.intent === "guard") s += ` · punches through most of its guard`;
       if(back) s += ` · you take <span class="bad">~${back}</span> if it survives`;
@@ -682,43 +990,82 @@ const ACTIONS = {
     },
     run(){
       const f = S.foe;
-      if(!S.heavyReady){
-        S.heavyReady = true;
-        return `<p class="good">Drew back and committed to the heavy blow.</p>`;
+      if(S.heavyCharge === 0){
+        S.heavyCharge = 1;
+        return `<p class="good">Drew back and prepared a <b>2.7×</b> heavy blow.</p>`;
       }
 
-      S.heavyReady = false;
+      const mult = heavyMultiplier();
+      S.heavyCharge = 0;
       if(f.intent === "dodge" && rnd() < 0.70)
-        return `<p>Released the heavy swing. It slipped clear before the blow arrived.</p>`;
-      const d = dmgHeavy();
+        return `<p>Released the ${mult.toFixed(1)}× heavy swing. It slipped clear before the blow arrived.</p>`;
+      const d = dmgHeavy(mult >= 4.7 ? 2 : 1);
       f.hp -= d;
-      return `<p>Brought it down hard — <b>${d}</b>${f.intent === "guard" ? ", straight through most of the guard" : ""}.</p>`;
+      return `<p>Brought it down hard — <b>${d}</b>${mult >= 4.7 ? " from the fully drawn blow" : ""}${f.intent === "guard" ? ", straight through most of the guard" : ""}.</p>`;
+    }
+  },
+
+  draw:{
+    label(){ return S.heavyCharge >= 2 ? "Fully drawn" : "Wind up further"; },
+    sub(){ return S.heavyCharge >= 2 ? "can't draw any further" : "2 stamina · raises to 4.7×"; },
+    cost:2,
+    preview(){
+      if(S.heavyCharge >= 2) return `The blow is already fully drawn. Release it or ${defenceName()} to abandon it.`;
+      const back = incoming();
+      const full = dmgHeavy(2);
+      let s = `Commit another turn · <span class="cost">2 stamina</span> · raise the blow to <span class="dmg">4.7× STR (~${full} damage)</span>`;
+      if(back) s += ` · you take <span class="bad">~${back}</span> while drawing further`;
+      else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
+      s += ` · then Release or ${defenceName()}`;
+      return s;
+    },
+    run(){
+      S.heavyCharge = 2;
+      return `<p class="good">Drew the blow back further. It is <b>fully drawn — 4.7× STR</b>.</p>`;
     }
   },
 
   guard:{
-    label(){ return defenceName(); },
-    sub(){ return "+2 stamina"; },
-    cost:-2,
+    label(){ return perfectDefenceReady() ? `Perfect ${defenceName()}` : defenceName(); },
+    sub(){ return perfectDefenceReady() ? "+3 stamina · 0 damage" : "+3 stamina"; },
+    cost:-3,
     preview(){
       const f = S.foe;
-      let back = Math.round(incoming() * defenceReduction());
-      if(f.revealed && f.weakness.eff.guardBonus) back = Math.round(back / f.weakness.eff.guardBonus);
+      const perfect = perfectDefenceReady();
+      let back = perfect ? 0 : Math.round(incoming() * defenceReduction());
       const full = S.stamina >= S.staminaMax;
       const style = S.loadout;
-      let s = `Recover <span class="cost">2 stamina</span> · <span class="cost">+1 at turn end</span>`;
-      if(back) s += ` · take about <span class="bad">${back}</span>`;
+      let s = S.heavyCharge > 0
+        ? `Abandon the prepared Heavy · recover <span class="cost">3 stamina</span>`
+        : `Recover <span class="cost">3 stamina</span>`;
+      if(perfect) s += ` · <span class="dmg">PERFECT: take 0 damage</span>`;
+      else if(back) s += ` · take about <span class="bad">${back}</span>`;
       else s += ` · take no damage`;
-      if(full && INTENTS[f.intent].kind === "attack"){
-        s += style === "shield"
-          ? ` · <span class="dmg">full stamina: counter ~${counterDamage(style)}</span>`
-          : ` · <span class="dmg">full stamina: riposte ~${counterDamage(style)}</span>`;
+      if(INTENTS[f.intent].kind === "attack" && (perfect || full)){
+        const cd = counterDamage(style, perfect);
+        if(perfect){
+          s += style === "shield"
+            ? ` · <span class="dmg">perfect counter ~${cd}</span>`
+            : ` · <span class="dmg">perfect riposte ~${cd}</span>`;
+        } else {
+          s += style === "shield"
+            ? ` · <span class="dmg">full stamina: counter ~${cd}</span>`
+            : ` · <span class="dmg">full stamina: riposte ~${cd}</span>`;
+        }
       }
       if(f.intent === "heavy") s += ` · <span class="dmg">Heavy Attack becomes Off-Balance</span>`;
+      if(INTENTS[f.intent].kind === "attack" && !perfect) s += ` · <span class="dmg">sets up Perfect ${defenceName()}</span>`;
       return s;
     },
     run(){
-      S.stamina = Math.min(S.staminaMax, S.stamina + 2);
+      const abandonedHeavy = S.heavyCharge > 0;
+      S.heavyCharge = 0;
+      S.stamina = Math.min(S.staminaMax, S.stamina + 3);
+      if(abandonedHeavy){
+        return S.loadout === "shield"
+          ? `<p class="good">Let the prepared blow go, set your shield, and recovered your stance.</p>`
+          : `<p class="good">Let the prepared blow go and brought the blade back into a parry.</p>`;
+      }
       return S.loadout === "shield"
         ? `<p class="good">Set your shield and caught your breath.</p>`
         : `<p class="good">Set the blade to meet the attack.</p>`;
@@ -726,50 +1073,102 @@ const ACTIONS = {
   },
 
   sand:{
-    label:"Sand throw", sub:"1 stamina · dirty trick", cost:1,
+    label:"Sand throw",
+    sub(){
+      if(S.foe && S.foe.intent === "guard") return "1 stamina · blocked by guard";
+      return "1 stamina · 60% blind";
+    },
+    cost:1,
     preview(){
       const chance = Math.round(sandChance()*100);
       const back = incoming();
-      let s = `<span class="dmg">${chance}% chance to blind</span> · <span class="cost">1 stamina</span>`;
-      if(S.foe.intent === "guard") s += ` · shielded eyes make this difficult`;
-      if(S.foe.intent === "dodge") s += ` · hard to catch while it is circling`;
+
+      if(S.foe.intent === "guard"){
+        return `<span class="bad">Blocked by Guard</span> · <span class="cost">1 stamina</span> · 0% chance to Blind`;
+      }
+
+      let s = `<span class="dmg">${chance}% chance to cause Blinded</span> · <span class="cost">1 stamina</span>`;
+      if(S.foe.intent === "dodge") s += ` · Dodge does not reduce the chance`;
       if(INTENTS[S.foe.intent].kind === "attack"){
         s += ` · success makes <span class="dmg">this attack miss</span>`;
         if(back) s += ` · failure means about <span class="bad">${back}</span> back`;
       } else {
-        s += ` · blindness waits for its next attack`;
+        s += ` · Blinded persists until its next attack attempt`;
       }
       return s;
     },
     run(){
       const f = S.foe;
+      if(f.intent === "guard"){
+        return `<p>Threw the grit, but it disappeared harmlessly against the guard.</p>`;
+      }
       if(rnd() < sandChance()){
         f.blinded = true;
-        return `<p class="good">Threw grit into its face. It is <b>Blinded</b>.</p>`;
+        return `<p class="good">Threw grit into its face. It is <b>Blinded</b> until it next tries to attack.</p>`;
       }
       return `<p>The throw went wide. Nothing but dust between you.</p>`;
     }
   },
 
   read:{
-    label:"Read it", sub:"1 stamina", cost:1,
+    label(){ return S.foe && S.foe.revealed ? "Study it" : "Read it"; },
+    sub(){
+      if(!S.foe) return "—";
+      if(S.foe.readUsed) return "already studied this encounter";
+      const reads = knowledgeReads(S.foe.key);
+      if(reads === 0) return "1 stamina · reveal weakness";
+      if(reads >= 6) return "mastered · no further gain";
+      return `2 stamina · ${reads}/${reads < 3 ? 3 : 6} knowledge`;
+    },
+    cost(){ return S.foe && S.foe.revealed ? 2 : 1; },
     preview(){
-      if(S.foe.revealed) return `Already read. You know what this one cannot take · <span class="cost">+1 stamina at turn end</span>`;
+      const f = S.foe;
+      const reads = knowledgeReads(f.key);
+      if(f.readUsed) return `You already studied this ${esc(f.name)}. Knowledge can advance only once per encounter.`;
+      if(reads >= 6) return `This archetype is already <span class="dmg">Mastered</span>. There is nothing further to gain from Study.`;
+
       const back = incoming();
-      let s = `Learn its weakness — remembered for this species · <span class="cost">1 stamina</span>`;
+      let s;
+      if(reads === 0){
+        s = `Reveal its weakness permanently · <span class="cost">1 stamina</span> · future encounters can be Studied`;
+      } else if(reads < 3){
+        s = `Study this archetype · <span class="cost">2 stamina</span> · ${reads+1}/3 knowledge · at 3: <span class="dmg">take 5% less damage from it</span>`;
+      } else {
+        s = `Study this archetype · <span class="cost">2 stamina</span> · ${reads+1}/6 knowledge · at 6: <span class="dmg">weakness payoff +5%</span>`;
+      }
       if(back) s += ` · you take <span class="bad">~${back}</span> while watching`;
       else s += ` · <span class="dmg">safe to study: it is not attacking</span>`;
       return s;
     },
     run(){
       const f = S.foe;
-      if(f.revealed) return `<p class="note">Nothing new. You know this one.</p>`;
+      const before = knowledgeReads(f.key);
+      if(f.readUsed) return `<p class="note">You have already studied this one during this encounter.</p>`;
+      if(before >= 6) return `<p class="note">You already know this archetype as well as this system allows.</p>`;
+
+      f.readUsed = true;
+      knowledge[f.key] = {reads: before + 1};
       f.revealed = true;
-      known[f.key] = f.weakness;
-      return `<p class="good">Watched instead of swinging. ${esc(f.weakness.txt)}</p>`;
+      const after = before + 1;
+
+      if(before === 0){
+        return `<p class="good">Watched instead of swinging. ${esc(f.weakness.txt)}</p>` +
+               `<p class="note">Knowledge <b>1/3</b>. Read this archetype in two more encounters to become Studied and take 5% less damage from it.</p>`;
+      }
+      if(after === 3){
+        return `<p class="good"><b>Studied: ${esc(cap(f.name))}.</b> You now take 5% less damage from this archetype.</p>` +
+               `<p class="note">Knowledge <b>3/6</b>. Three more studies will Master it and improve its weakness payoff by 5%.</p>`;
+      }
+      if(after === 6){
+        return `<p class="good"><b>Mastered: ${esc(cap(f.name))}.</b> Its weakness payoff is now 5% stronger.</p>` +
+               `<p class="note">Knowledge <b>6/6</b>. This archetype cannot be studied further.</p>`;
+      }
+      const target = after < 3 ? 3 : 6;
+      const reward = after < 3 ? "Studied: 5% less damage" : "Mastered: weakness payoff +5%";
+      return `<p class="good">Studied the ${esc(f.name)} under pressure.</p>` +
+             `<p class="note">Knowledge <b>${after}/${target}</b> · next reward: ${reward}.</p>`;
     }
-  }
-};
+  }};
 
 function actionLabel(key){
   const v = ACTIONS[key].label;
@@ -786,14 +1185,15 @@ function actionCost(key){
 function actionCounters(key){
   if(!S.foe) return false;
   const i = S.foe.intent;
-  if(key === "guard") return i === "heavy" || i === "quick";
-  if(key === "sand") return i === "heavy" || i === "quick";
+  if(key === "guard") return i === "heavy" || i === "quick" || i === "offquick";
+  if(key === "sand") return i === "heavy" || i === "quick" || i === "offquick";
   if(key === "strike") return i === "recover";
   if(key === "read") return i === "guard" || i === "dodge";
   if(key === "heavy"){
-    if(S.heavyReady) return i === "guard" || i === "recover" || S.foe.offBalance;
+    if(S.heavyCharge > 0) return i === "guard" || i === "recover" || i === "steady" || S.foe.offBalance;
     return i === "dodge" || i === "guard" || i === "recover";
   }
+  if(key === "draw") return false;
   return false;
 }
 
@@ -821,11 +1221,17 @@ function takeTurn(key){
   const cost = actionCost(key);
   if(cost > S.stamina) return;
 
-  // Full-Stamina defence is an offensive choice. Capture it BEFORE Guard/Parry
+  // Normal Full-Stamina defence is an offensive choice. Capture it BEFORE Guard/Parry
   // restores Stamina, otherwise every near-full defence would accidentally counter.
+  // Perfect Defence counters regardless of starting Stamina.
   const defendedAtFull = key === "guard" && S.stamina >= S.staminaMax;
-  const offBalanceAtTurnStart = !!S.foe.offBalance;
+  const perfectDefence = key === "guard" && perfectDefenceReady();
   let madeOffBalance = false;
+
+  // The defensive rhythm only survives while you keep choosing Guard/Parry.
+  // Non-attacking enemy turns neither build nor consume it. Any other player
+  // action breaks the chain.
+  if(key !== "guard") S.defenceChain = 0;
 
   if(cost > 0) S.stamina -= cost;
 
@@ -833,10 +1239,7 @@ function takeTurn(key){
 
   // Player actions always resolve before the foe's declared intent.
   if(S.foe.hp <= 0){
-    say(out + `<p class="said">The ${esc(S.foe.name)} went down and stayed down.</p>`);
-    S.foe = null;
-    S.heavyReady = false;
-    render();
+    finishKill(out);
     return;
   }
 
@@ -853,55 +1256,89 @@ function takeTurn(key){
     } else {
       let dmg = incoming();
       if(key === "guard"){
-        dmg = Math.round(dmg * defenceReduction());
-        if(f.revealed && f.weakness.eff.guardBonus) dmg = Math.round(dmg / f.weakness.eff.guardBonus);
+        if(perfectDefence){
+          dmg = 0;
+        } else {
+          dmg = Math.round(dmg * defenceReduction());
+        }
       }
 
       if(dmg > 0){
         S.hp -= dmg;
-        out += `<p class="hurt">${I.label}: it ${f.intent === "heavy" ? "came down on you" : "darted in"} for <b>${dmg}</b>.</p>`;
+        const attackText = f.intent === "heavy"
+          ? "came down on you"
+          : f.intent === "offquick"
+            ? "caught you with a glancing cut"
+            : "darted in";
+        out += `<p class="hurt">${I.label}: it ${attackText} for <b>${dmg}</b>.</p>`;
+      }
+
+      // Guard/Parry only advances toward Perfect when the foe really attacks.
+      // The second successfully defended attack is Perfect, then the rhythm resets.
+      if(key === "guard" && S.hp > 0){
+        if(perfectDefence){
+          S.defenceChain = 0;
+          out += `<p class="good"><b>Perfect ${defenceName()}.</b> The attack never got through.</p>`;
+        } else {
+          S.defenceChain = 1;
+          out += `<p class="note">Kept the defensive rhythm. The next defended attack can be a <b>Perfect ${defenceName()}</b>.</p>`;
+        }
       }
 
       // Guard/Parry only creates an opening when you actually meet a committed
       // Heavy Attack. A blind miss does not count as a successful defence.
       if(key === "guard" && f.intent === "heavy" && S.hp > 0){
         f.offBalance = true;
+        f.offBalanceStruck = false;
         madeOffBalance = true;
         out += `<p class="good">The committed blow carried it past its footing. <b>Off-Balance.</b></p>`;
       }
 
-      // At full Stamina, defence stops being a wasted action: shield users get
-      // a modest counter, sword-only users risk more damage for a stronger riposte.
-      if(key === "guard" && defendedAtFull && S.hp > 0){
-        const cd = counterDamage(S.loadout);
+      // Normal defence counters only when started at full Stamina. Perfect Defence
+      // always counters: maintaining the defensive rhythm is itself the payoff.
+      if(key === "guard" && (defendedAtFull || perfectDefence) && S.hp > 0){
+        const cd = counterDamage(S.loadout, perfectDefence);
         f.hp -= cd;
-        out += S.loadout === "shield"
-          ? `<p class="good">Caught it on the shield and answered for <b>${cd}</b>.</p>`
-          : `<p class="good">Turned the blow aside and riposted for <b>${cd}</b>.</p>`;
+        if(perfectDefence){
+          out += S.loadout === "shield"
+            ? `<p class="good">Perfectly caught the attack and drove the shield back for <b>${cd}</b>.</p>`
+            : `<p class="good">Perfectly turned the attack aside and riposted for <b>${cd}</b>.</p>`;
+        } else {
+          out += S.loadout === "shield"
+            ? `<p class="good">Caught it on the shield and answered for <b>${cd}</b>.</p>`
+            : `<p class="good">Turned the blow aside and riposted for <b>${cd}</b>.</p>`;
+        }
       }
+    }
+
+    // Choosing to attack while Off-Balance buys aggression at the cost of
+    // staying vulnerable for one more player turn. Steady is forced next.
+    if(f.intent === "offquick" && f.offBalance && !madeOffBalance){
+      f.offBalanceStruck = true;
+      out += `<p class="note">It lashed out instead of recovering its footing. It is still <b>Off-Balance</b>.</p>`;
     }
   } else {
     out += `<p class="note">${I.label}: it did not attack.</p>`;
+
+    // Steady spends the enemy's entire action and clears Off-Balance only
+    // after the player has had this turn to exploit the opening.
+    if(f.intent === "steady" && f.offBalance){
+      f.offBalance = false;
+      f.offBalanceStruck = false;
+      out += `<p class="note">It found its footing again.</p>`;
+    }
   }
 
   if(S.hp <= 0) return die(out);
 
   if(f.hp <= 0){
-    say(out + `<p class="said">The ${esc(f.name)} went down and stayed down.</p>`);
-    S.foe = null;
-    S.heavyReady = false;
-    render();
+    finishKill(out);
     return;
   }
 
-  // An Off-Balance opening that existed at the START of this player turn is
-  // consumed after the foe completes this turn. A new opening created by the
-  // defence we just resolved survives into the next turn.
-  if(offBalanceAtTurnStart && !madeOffBalance) f.offBalance = false;
 
-  // Everyone gets one Stamina back after a completed turn. Guard/Parry's +2 is
-  // additional to this, so defending effectively restores up to +3 that turn.
-  S.stamina = Math.min(S.staminaMax, S.stamina + 1);
+  // Base passive Stamina regeneration is intentionally 0. Guard/Parry is the
+  // universal reset; later stat thresholds can earn passive regeneration.
   S.turn++;
   rollIntent();
   say(out);
@@ -909,7 +1346,7 @@ function takeTurn(key){
 }
 
 function tapRun(){
-  if(over || !S.foe || S.heavyReady) return;
+  if(over || !S.foe || S.heavyCharge > 0) return;
   if(armed !== "run"){ armed = "run"; render(); return; }
   armed = null;
 
@@ -921,7 +1358,8 @@ function tapRun(){
       (c ? `<p class="hurt">It cost <b>${c}</b> on the way out.</p>`
          : `<p class="note">It let you go.</p>`));
   S.foe = null;
-  S.heavyReady = false;
+  S.heavyCharge = 0;
+  S.defenceChain = 0;
   render();
 }
 
@@ -959,7 +1397,9 @@ function hpClass(el, frac){
 function render(){
   $("meta").textContent = `${S.depth} fathoms · encounter ${S.encounter}`;
   $("heroName").textContent = S.name;
-  $("heroLv").textContent = "Rank " + S.rank;
+  $("heroLv").textContent = "Level " + S.level;
+  $("heroStats").textContent = `STR ${S.STR} · CON ${S.CON} · DEX ${S.DEX}`;
+  $("heroXp").textContent = `${S.xp} / ${xpToNext(S.level)} XP`;
 
   // you
   const hf = clamp(S.hp/S.hpMax, 0, 1);
@@ -988,10 +1428,18 @@ function render(){
     $("intent").innerHTML = `<em>Intent</em><b>${esc(I.label)} — ${esc(I.tell)}</b>`;
 
     $("tell").hidden = !f.revealed;
-    if(f.revealed) $("tellTxt").textContent = f.weakness.txt;
+    if(f.revealed){
+      $("tellTxt").textContent = f.weakness.txt;
+      $("knowledgeTxt").innerHTML = knowledgeSummary(f.key);
+    } else {
+      $("knowledgeTxt").innerHTML = "";
+    }
 
     const statuses = [];
-    if(f.offBalance) statuses.push(`<span class="status offbalance">Off-Balance</span>`);
+    if(f.offBalance){
+      const suffix = f.offBalanceStruck ? " · must steady" : " · exposed";
+      statuses.push(`<span class="status offbalance">Off-Balance${suffix}</span>`);
+    }
     if(f.blinded) statuses.push(`<span class="status blinded">Blinded</span>`);
     $("foeStatus").hidden = statuses.length === 0;
     $("foeStatus").innerHTML = statuses.join("");
@@ -1009,22 +1457,31 @@ function render(){
 
   $("loadoutTxt").textContent = S.loadout === "shield" ? "sword + shield · Guard" : "sword only · Parry";
 
+  $("levelup").hidden = S.statPoints <= 0 || over;
+  if(S.statPoints > 0){
+    $("levelupTitle").textContent = S.statPoints === 1
+      ? `Level ${S.level} — choose your stat point`
+      : `Level ${S.level} — ${S.statPoints} stat points waiting`;
+    $("levelupStr").textContent = `STR ${S.STR} → ${S.STR+1} · Strike and Heavy damage rise.`;
+    $("levelupCon").textContent = `CON ${S.CON} → ${S.CON+1} · maximum HP +6. Current HP also rises by 6.`;
+  }
+
   renderPad();
   renderPreview();
 
   // the bottom bar: Run during a fight, Go on down after one
   $("btnRun").hidden = !f || over;
-  $("btnGo").hidden = !!f || over;
+  $("btnGo").hidden = !!f || over || S.statPoints > 0;
   if(f){
     const c = runCost();
     const fatal = c >= S.hp;
     const btn = $("btnRun");
-    btn.disabled = S.heavyReady;
-    btn.classList.toggle("fatal", fatal && !S.heavyReady);
+    btn.disabled = S.heavyCharge > 0;
+    btn.classList.toggle("fatal", fatal && S.heavyCharge === 0);
     btn.classList.toggle("armed", armed === "run");
     btn.querySelector("b").textContent = armed === "run" ? "Run — commit?" : "Run";
     btn.querySelector("span").textContent =
-      S.heavyReady     ? "heavy blow committed · release it first"
+      S.heavyCharge > 0 ? `heavy prepared · Release or ${defenceName()} to abandon`
       : armed === "run" ? "tap again to break contact"
       : fatal          ? `costs ${c} hp · that kills you`
       : c === 0        ? `it will not follow · you keep nothing`
@@ -1033,19 +1490,24 @@ function render(){
 }
 
 function renderPad(){
-  const order = ["strike","heavy","guard","sand","read"];
+  // Once a Heavy is prepared, the normal pad collapses to the three decisions
+  // that matter: cash out, commit deeper, or defend and abandon the blow.
+  const order = S.heavyCharge > 0
+    ? ["heavy","draw","guard"]
+    : ["strike","heavy","guard","sand","read"];
+
   $("pad").innerHTML = order.map(k => {
     const cost = actionCost(k);
-    const committedElsewhere = S.heavyReady && k !== "heavy";
-    const off = !S.foe || over || committedElsewhere || cost > S.stamina;
+    const fullyDrawn = k === "draw" && S.heavyCharge >= 2;
+    const readLocked = k === "read" && S.foe && (S.foe.readUsed || knowledgeReads(S.foe.key) >= 6);
+    const off = !S.foe || over || fullyDrawn || readLocked || cost > S.stamina;
     const counters = S.foe && actionCounters(k);
     const isArmed = armed === k;
     const baseSub = actionSub(k);
     const sub = isArmed ? "tap again to commit"
-              : committedElsewhere ? "heavy blow committed"
               : (S.foe && cost > S.stamina) ? `${baseSub} — short`
               : baseSub;
-    const wide = k === "read" ? "wide" : "";
+    const wide = (S.heavyCharge > 0 && k === "guard") || k === "read" ? "wide" : "";
     return `<button class="act ${k} ${wide} ${counters ? "counter" : ""} ${isArmed ? "armed" : ""}"
               data-k="${k}" ${off ? "disabled" : ""}>
               <b>${actionLabel(k)}</b><span>${sub}</span></button>`;
@@ -1056,8 +1518,12 @@ function renderPreview(){
   const p = $("preview");
   if(!S.foe || over || !armed || armed === "run"){
     p.classList.add("idle");
+    const idleLine = !S.foe ? "Nothing in front of you."
+      : S.heavyCharge >= 2 ? `Heavy fully drawn: Release it, or ${defenceName()} to abandon it.`
+      : S.heavyCharge === 1 ? `Heavy prepared: Release it, Wind up further, or ${defenceName()} to abandon it.`
+      : "Tap an action to see what it costs.";
     p.innerHTML = `<div class="ttl">If you commit to that</div>
-                   <div class="line">${S.foe ? "Tap an action to see what it costs." : "Nothing in front of you."}</div>`;
+                   <div class="line">${idleLine}</div>`;
     return;
   }
   p.classList.remove("idle");
@@ -1078,14 +1544,33 @@ $("pad").addEventListener("click", e => {
 $("btnRun").addEventListener("click", tapRun);
 
 $("btnGo").addEventListener("click", () => {
-  S.depth += ri(3,9);
+  S.depth += ri(2,5);
   nextFoe();
+});
+
+$("levelup").addEventListener("click", e => {
+  const b = e.target.closest(".levelup-opt");
+  if(!b || S.statPoints <= 0) return;
+
+  const stat = b.dataset.stat;
+  const oldMax = S.hpMax;
+  if(stat === "STR") S.STR++;
+  if(stat === "CON") S.CON++;
+  S.statPoints--;
+  S.hpMax = maxHp();
+  S.hp += S.hpMax - oldMax;
+
+  say(stat === "STR"
+    ? `<p class="good">Put the point into <b>STR ${S.STR}</b>. Physical attacks hit harder.</p>`
+    : `<p class="good">Put the point into <b>CON ${S.CON}</b>. Maximum HP rose to <b>${S.hpMax}</b>.</p>`);
+  render();
 });
 
 $("btnSkills").addEventListener("click", () => { $("sheet").hidden = false; });
 $("btnLoadout").addEventListener("click", () => {
-  if(S.heavyReady) return;
+  if(S.heavyCharge > 0) return;
   S.loadout = S.loadout === "shield" ? "sword" : "shield";
+  S.defenceChain = 0;
   armed = null;
   say(S.loadout === "shield"
     ? `<p class="note">Test loadout: sword and shield. Defence is now <b>Guard</b>.</p>`
