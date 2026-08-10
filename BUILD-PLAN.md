@@ -67,10 +67,10 @@ clicking the biggest number, we fix combat before building anything else on top 
 ## PHASE 2 — Make it a game (Sessions 3–7)
 
 ### Session 3 · Enemies and reading
-- [ ] 5–6 enemies with different stats and intent tendencies
-- [ ] Difficulty scales with depth
-- [ ] The Read action — costs a turn, reveals a weakness
-- [ ] Weaknesses remembered permanently, per species, across the run
+- [x] 5–6 enemies with different stats and intent tendencies
+- [x] Difficulty scales with depth
+- [x] The Read action — costs a turn, reveals a weakness
+- [x] Weaknesses remembered permanently, per species, across the run
 
 **Your input needed:** creature names and one line of flavour each.
 
