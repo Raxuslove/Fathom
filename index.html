@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0f1317">
-<title>Lowfathom v0.4 — The Descent</title>
+<title>Lowfathom v0.054 — Rest & Camp</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.4 descent + combat prototype
-   Session 4 adds the active descent around the Session 3 combat slice.
-   The player now chooses to descend, explore at the current depth, or stop;
-   travel builds interruption pressure and combat is the first live event type.
+   LOWFATHOM — v0.052 rest + camp prototype
+   Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
+   The player can now Rest between fights, discover one-use safe hollows, spend
+   Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
    - attack intents are separate from defensive stances
@@ -36,10 +36,16 @@
    - player HP and Stamina sit on the player side above the action controls
    - six goblin archetypes use distinct intent weights and fixed weaknesses
    - the delver starts at Level 1 and 0 fathoms; XP and depth now progress
-   - Session 4: Descend moves continuously through 20-fathom strata
+   - Session 4: Descend moves continuously through 60-fathom strata
    - Session 4: Explore holds depth while using the same interruption engine
    - Session 4: interruption pressure rises after a short quiet stretch
    - Session 4: combat is currently the only implemented interruption result
+   - Session 5: Rest heals 25% Max HP and recharges through 15 travel activity
+   - Session 5: two deterministic one-use safe hollows exist per 60-fathom stratum
+   - Session 5: ordinary hollows auto-resume after 15 seconds unless the player interacts
+   - Session 5: the pre-boss staging hollow never auto-resumes
+   - Session 5: Camp costs 1 Camp Supply and fully restores HP + Stamina
+   - Session 5: Pack is a soft screen; descent continues behind it until interrupted
    - Read permanently learns each goblin archetype's weakness for the current run
    - repeated Study reads build capped archetype knowledge: Studied at 3, Mastered at 6
 
@@ -99,15 +105,20 @@ button{
 }
 .travel[hidden]{display:none}
 .travel-top{
-  display:grid;grid-template-columns:148px minmax(0,1fr);gap:14px;
+  display:grid;grid-template-columns:minmax(168px,1.12fr) minmax(128px,.88fr);gap:12px;
   align-content:start;
   padding:calc(12px + env(safe-area-inset-top)) 12px 18px;
   background:#12181e;border-bottom:1px solid var(--rule);
 }
 .travel-info{min-width:0;display:flex;flex-direction:column;justify-content:space-between;padding:2px 0}
+.travel-band-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:2px}
 .travel-info em{
   display:block;font-style:normal;font-family:var(--cond);font-size:9px;
-  letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:2px;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--dim);
+}
+.build-version{
+  flex:0 0 auto;font-family:var(--cond);font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:#59636e;
 }
 .travel-info h1{
   margin:0;font-family:var(--slab);font-size:18px;font-weight:600;
@@ -127,55 +138,95 @@ button{
 .travel-status.moving{color:#a9987e}
 .travel-status.exploring{color:#82a6a3}
 
-/* Mini shaft: a continuous absolute-depth window. The marker does not reset at a stratum boundary. */
-.shaft-view{
-  position:relative;width:148px;height:206px;overflow:hidden;
+/* Side-on cave route. The delver settles around 40% across the view, leaving
+   real screen-space ahead for later scouting, warnings and discovered landmarks. */
+.trail-view{
+  position:relative;width:100%;height:154px;overflow:hidden;
   background:
-    radial-gradient(80% 45% at 50% 30%,rgba(45,57,67,.31),transparent 72%),
-    linear-gradient(90deg,#090d11 0%,#141a20 20%,#10161b 50%,#141a20 80%,#090d11 100%);
+    radial-gradient(95% 70% at 46% 52%,rgba(39,51,61,.30),transparent 70%),
+    linear-gradient(180deg,#0a0e12 0%,#11171c 52%,#090d11 100%);
   border:1px solid var(--rule);
 }
-.shaft-view::after{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  box-shadow:inset 0 12px 18px rgba(7,10,13,.48),inset 0 -12px 18px rgba(7,10,13,.48);
+.trail-view::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:4;
+  box-shadow:inset 13px 0 20px rgba(7,10,13,.56),inset -13px 0 20px rgba(7,10,13,.56),
+             inset 0 8px 14px rgba(7,10,13,.28),inset 0 -8px 14px rgba(7,10,13,.28);
 }
-.shaft-walls{
-  position:absolute;inset:9px 25px;
-  border-left:1px solid #28323b;border-right:1px solid #28323b;
-  box-shadow:inset 8px 0 16px rgba(0,0,0,.2),inset -8px 0 16px rgba(0,0,0,.2);
+.trail-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.trail-corridor{
+  fill:none;stroke:#151e25;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;
+  vector-effect:non-scaling-stroke;
 }
-.shaft-track{position:absolute;inset:11px 14px;overflow:hidden}
-.shaft-scale{position:absolute;inset:0}
-.shaft-line{
-  position:absolute;left:15px;right:9px;border-top:1px solid #26313a;
-  transition:top .48s linear;will-change:top;
+.trail-path{
+  fill:none;stroke:#3a4853;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;
+  vector-effect:non-scaling-stroke;
 }
-.shaft-line.major{border-top-color:var(--lamp-dim)}
-.shaft-line span{
-  position:absolute;left:-15px;top:-7px;font-family:var(--cond);font-size:9.5px;
-  letter-spacing:.04em;color:#606d78;background:rgba(10,13,17,.72);padding-right:2px;
+.trail-tick{stroke:#42515d;stroke-width:1;vector-effect:non-scaling-stroke}
+.trail-boundary{stroke:var(--lamp-dim);stroke-width:1;stroke-dasharray:3 4;opacity:.72;vector-effect:non-scaling-stroke}
+.trail-label{
+  fill:#687580;font-family:var(--cond);font-size:9px;letter-spacing:.03em;
+  paint-order:stroke;stroke:#0b1014;stroke-width:3px;stroke-linejoin:round;
 }
-.shaft-line.major span{color:var(--lamp-dim)}
-.shaft-marker{
-  position:absolute;left:50%;top:0;transform:translate(-50%,-50%);
-  display:flex;align-items:center;gap:4px;z-index:2;transition:top .48s linear;will-change:top;
+.trail-label.major{fill:var(--lamp-dim)}
+.trail-marker{
+  position:absolute;left:0;top:50%;
+  /* Anchor the CENTER of the 8px delver dot to the route coordinate.
+     Do not center the whole dot+label group: that made the label width shift
+     the actual dot several fathoms left of where it belonged. */
+  transform:translate(-4px,-50%);
+  display:flex;align-items:center;gap:4px;z-index:5;will-change:left,top;
 }
-.shaft-marker i{
-  width:7px;height:7px;border-radius:50%;background:var(--lamp);
-  box-shadow:0 0 11px 3px rgba(230,194,136,.45);
+.trail-marker i{
+  width:8px;height:8px;border-radius:50%;background:var(--lamp);
+  box-shadow:0 0 11px 3px rgba(230,194,136,.48);
 }
-.shaft-marker span{
+.trail-marker span{
   font-family:var(--cond);font-size:9.5px;letter-spacing:.04em;color:var(--lamp);
-  white-space:nowrap;background:rgba(10,13,17,.84);padding:0 2px;
+  white-space:nowrap;background:rgba(10,13,17,.86);padding:0 2px;
 }
-.shaft-marker.exploring i{box-shadow:0 0 13px 4px rgba(95,148,144,.38);background:#9fbdba}
-.shaft-marker.exploring span{color:#9fbdba}
+.trail-marker.exploring i{box-shadow:0 0 13px 4px rgba(95,148,144,.40);background:#9fbdba}
+.trail-marker.exploring span{color:#9fbdba}
+
+.travel-middle{
+  min-height:0;display:flex;flex-direction:column;justify-content:flex-end;
+  background:
+    radial-gradient(80% 75% at 50% 0%,rgba(35,45,54,.22),transparent 70%),
+    #0f1419;
+}
+.safe-hollow-card{
+  margin:auto 12px 12px;padding:11px 12px 12px;
+  border:1px solid var(--lamp-dim);background:#171d22;
+  box-shadow:0 8px 28px rgba(0,0,0,.22);
+}
+.safe-hollow-card[hidden]{display:none}
+.safe-hollow-card.stage{border-color:var(--warn)}
+.safe-hollow-card em{
+  display:block;font-style:normal;font-family:var(--cond);font-size:9px;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--lamp-dim);
+}
+.safe-hollow-card.stage em{color:var(--warn)}
+.safe-hollow-card h2{
+  margin:2px 0 5px;font-family:var(--slab);font-size:18px;font-weight:600;color:var(--lamp);
+}
+.safe-hollow-card p{margin:0 0 9px;color:#9aa3aa;font-size:11.5px;line-height:1.4}
+.hollow-countdown{
+  margin:7px 0 0;font-family:var(--cond);font-size:9.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--dim);
+}
+.hollow-actions{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule)}
+.hollow-btn{border:none;background:#12181e;padding:9px 10px;text-align:left;min-height:54px}
+.hollow-btn b{display:block;font-family:var(--slab);font-size:14px;color:var(--bone)}
+.hollow-btn span{display:block;margin-top:2px;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.hollow-btn.camp b{color:var(--lamp)}
+.hollow-btn.continue b{color:var(--verdigris)}
+.hollow-btn:disabled{background:#0f1418;cursor:not-allowed}
+.hollow-btn:disabled b,.hollow-btn:disabled span{color:#3f4954}
 
 .travel-log-wrap{
   min-height:0;
   height:clamp(128px,20vh,170px);
   max-height:100%;
-  align-self:end;
+  flex:0 0 auto;
   display:flex;flex-direction:column;
   background:var(--panel);
   border-top:1px solid var(--rule);
@@ -218,12 +269,78 @@ button{
 }
 .travel-act.descend b{color:var(--lamp)}
 .travel-act.explore b{color:var(--verdigris)}
+.travel-act.rest b{color:var(--stamina)}
+.travel-act.pack b{color:var(--bone)}
+.travel-act.rest,.travel-act.pack{min-height:52px;padding:9px 11px}
 .travel-act.stop{grid-column:1/-1;min-height:46px;padding:9px 11px}
 .travel-act.stop b{font-size:13.5px;color:var(--dim)}
 .travel-act.active{background:#202b33;box-shadow:inset 0 0 0 1px var(--lamp-dim)}
 .travel-act.explore.active{box-shadow:inset 0 0 0 1px var(--verdigris)}
 .travel-act:disabled{background:#101418;cursor:not-allowed}
 .travel-act:disabled b,.travel-act:disabled span{color:#39434e}
+
+/* ---------- Session 5: minimal Pack sheet ---------- */
+.pack-sheet{
+  position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;justify-content:flex-end;
+}
+.pack-sheet[hidden]{display:none}
+.pack-scrim{flex:1;min-height:0;background:rgba(8,11,14,.72)}
+.pack-panel{background:var(--panel);border-top:1px solid var(--rule-hi)}
+.pack-head{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:10px 13px;border-bottom:1px solid var(--rule);background:#12181e;
+}
+.pack-head h2{margin:0;font-family:var(--slab);font-size:17px;font-weight:600;color:var(--lamp)}
+.pack-head span{font-family:var(--cond);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.pack-item{padding:13px;border-bottom:1px solid var(--rule)}
+.pack-item-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.pack-item b{font-family:var(--slab);font-size:15px;font-weight:600;color:var(--bone)}
+.pack-item strong{font-family:var(--cond);font-size:14px;color:var(--lamp)}
+.pack-item p{margin:4px 0 0;color:var(--dim);font-size:11.5px}
+.pack-note{padding:10px 13px;color:#59636e;font-size:10.5px;background:#101418}
+.pack-close{
+  width:100%;min-height:50px;border:none;border-top:1px solid var(--rule);background:#12181e;
+  padding:12px 13px calc(12px + env(safe-area-inset-bottom));
+  font-family:var(--cond);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
+}
+
+
+/* ---------- Session 5: camp boon choice ---------- */
+.travel-boon,.combat-boon{
+  display:flex;align-items:baseline;gap:7px;margin-top:5px;
+  font-family:var(--cond);font-size:9.5px;color:var(--dim);
+}
+.travel-boon[hidden],.combat-boon[hidden]{display:none}
+.travel-boon b,.combat-boon b{
+  flex:0 0 auto;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--lamp-dim);font-weight:600;
+}
+.travel-boon span,.combat-boon span{min-width:0;color:#9e9a8f}
+
+.boonpick{
+  position:absolute;inset:0;z-index:11;background:rgba(8,11,14,.84);
+  display:flex;align-items:flex-end;
+}
+.boonpick[hidden]{display:none}
+.boonpick-panel{
+  width:100%;max-height:88%;overflow-y:auto;background:var(--panel);
+  border-top:1px solid var(--lamp-dim);
+}
+.boonpick-head{padding:12px 13px 10px;border-bottom:1px solid var(--rule);background:#12181e}
+.boonpick-head em{
+  display:block;font-style:normal;font-family:var(--cond);font-size:9px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--lamp-dim);
+}
+.boonpick-head b{display:block;margin-top:2px;font-family:var(--slab);font-size:19px;color:var(--lamp)}
+.boonpick-head p{margin:4px 0 0;font-size:10.5px;color:var(--dim)}
+.boon-opt{
+  display:block;width:100%;text-align:left;background:#141a20;border:none;
+  border-bottom:1px solid var(--rule);padding:11px 13px;min-height:62px;
+}
+.boon-opt b{display:block;font-family:var(--slab);font-size:15px;font-weight:600;color:var(--bone)}
+.boon-opt span{display:block;margin-top:2px;font-family:var(--cond);font-size:10.5px;line-height:1.35;color:var(--dim)}
+.boon-opt:active{background:#202a31}
+.boonpick-note{padding:8px 13px 11px;background:#101418;color:#59636e;font-size:10.5px}
 
 /* ---------- 1. depth strip ---------- */
 .strip{
@@ -545,17 +662,18 @@ button{
 
   <section class="travel" id="travel">
     <div class="travel-top">
-      <div class="shaft-view" aria-label="Nearby depth in the shaft">
-        <div class="shaft-walls"></div>
-        <div class="shaft-track" id="shaftTrack">
-          <div class="shaft-scale" id="shaftScale"></div>
-          <div class="shaft-marker" id="shaftMarker"><i></i><span id="shaftMarkerTxt">0.0</span></div>
-        </div>
+      <div class="trail-view" aria-label="Nearby route through the caves">
+        <svg class="trail-svg" id="trailSvg" viewBox="0 0 220 154" preserveAspectRatio="none" aria-hidden="true">
+          <path class="trail-corridor" id="trailCorridor" d=""></path>
+          <path class="trail-path" id="trailPath" d=""></path>
+          <g id="trailMarks"></g>
+        </svg>
+        <div class="trail-marker" id="trailMarker"><i></i></div>
       </div>
 
       <div class="travel-info">
         <div>
-          <em id="travelBand">Stratum 1</em>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.054</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -566,10 +684,23 @@ button{
       </div>
     </div>
 
-    <section class="travel-log-wrap" aria-label="Delve log">
-      <div class="travel-log-head">Delve log · scroll to review</div>
-      <div class="travel-log" id="travelLog" role="log" aria-live="polite"></div>
-    </section>
+    <div class="travel-middle">
+      <section class="safe-hollow-card" id="safeHollowCard" hidden aria-live="polite">
+        <em id="safeHollowKind">Safe hollow</em>
+        <h2 id="safeHollowTitle">Defensible ground</h2>
+        <p id="safeHollowText">You can make camp here once, or leave it behind.</p>
+        <div class="hollow-actions">
+          <button class="hollow-btn camp" id="btnCampHere"><b>Make camp</b><span id="campHereSub">1 Camp Supply · full recovery</span></button>
+          <button class="hollow-btn continue" id="btnLeaveHollow"><b>Continue</b><span>leave this hollow behind</span></button>
+        </div>
+        <div class="hollow-countdown" id="hollowCountdown"></div>
+      </section>
+
+      <section class="travel-log-wrap" aria-label="Delve log">
+        <div class="travel-log-head">Delve log · scroll to review</div>
+        <div class="travel-log" id="travelLog" role="log" aria-live="polite"></div>
+      </section>
+    </div>
 
     <section class="travel-hero">
       <div class="travel-hero-top"><b id="travelHeroName">—</b><span id="travelHeroLv">Level —</span></div>
@@ -578,14 +709,42 @@ button{
         <span id="travelHpN">— hp</span>
         <span id="travelXp">— XP</span>
       </div>
+      <div class="travel-boon" id="travelBoon" hidden><b>Boon</b><span id="travelBoonTxt"></span></div>
     </section>
 
     <div class="travel-actions">
       <button class="travel-act descend" id="btnDescend"><b>Descend</b><span>push deeper</span></button>
       <button class="travel-act explore" id="btnExplore"><b>Explore</b><span>hold this depth</span></button>
+      <button class="travel-act rest" id="btnRest"><b>Rest</b><span id="restSub">25% Max HP</span></button>
+      <button class="travel-act pack" id="btnPack"><b>Backpack</b><span id="packSub">2 Camp Supplies</span></button>
       <button class="travel-act stop" id="btnStopTravel" disabled><b>Stop</b><span>hold where you are</span></button>
     </div>
   </section>
+
+  <div class="pack-sheet" id="packSheet" hidden>
+    <div class="pack-scrim" id="packScrim"></div>
+    <div class="pack-panel">
+      <div class="pack-head"><h2>Backpack</h2><span>your pack · travel continues</span></div>
+      <div class="pack-item">
+        <div class="pack-item-top"><b>Camp Supplies</b><strong id="packCampSupplies">×2</strong></div>
+        <p>Consumed when you make a full camp at a safe hollow.</p>
+      </div>
+      <div class="pack-note">v0.052 tracks only Camp Supplies. Books, scrolls, ingredients and other finds plug into this backpack later.</div>
+      <button class="pack-close" id="btnPackClose">Back to the delve</button>
+    </div>
+  </div>
+
+  <div class="boonpick" id="boonPick" hidden>
+    <div class="boonpick-panel">
+      <div class="boonpick-head">
+        <em>Camp boon</em>
+        <b>Choose how you prepare</b>
+        <p>One boon active at a time · 10 minutes of active delve time · paused whenever you are not Descending or Exploring.</p>
+      </div>
+      <div id="boonOptions"></div>
+      <div class="boonpick-note">Prototype boon set. Camp fully restores you first; the boon then shapes the next stretch of the delve.</div>
+    </div>
+  </div>
 
   <header class="strip">
     <div class="place" id="place">The Shaft</div>
@@ -631,6 +790,7 @@ button{
       <span class="stats" id="heroStats">STR — · CON — · DEX —</span>
       <span class="xp" id="heroXp">0 / 0 XP</span>
     </div>
+    <div class="combat-boon" id="combatBoon" hidden><b>Boon</b><span id="combatBoonTxt"></span></div>
   </section>
 
   <div class="preview idle" id="preview">
@@ -852,8 +1012,8 @@ const HIT_VERBS = ["Struck","Cut into","Caught","Opened up","Got through on","La
    SESSION 4 — STRATA + TRAVEL
 
    These are traversal pacing knobs, not combat balance.
-   20 fathoms is deliberately a prototype band size so strata transitions
-   are visible during a short phone playtest.
+   Strata now use the intended 60-fathom prototype length. Session 5 also
+   defines deterministic recovery landmarks inside each stratum.
    ============================================================ */
 const STRATA_NAMED = [
   "The Goblin Warren",
@@ -864,15 +1024,60 @@ const STRATA_NAMED = [
 ];
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
-const FATHOMS_PER_STRATUM = 20;
+const FATHOMS_PER_STRATUM = 60;
+const BUILD_VERSION = "v0.054";
 
 const TRAVEL_TICK_MS = 500;
 const TRAVEL_STEP = 0.25;          // 0.5 fathom / second while Descending
 const TRAVEL_QUIET = 3;            // a short breathing stretch after an event
 const TRAVEL_FORCE_EVENT = 16;     // prototype anti-drought cap
-const MINI_SHAFT_SPAN = 16;          // fathoms visible in the minimap
-const MINI_SHAFT_BEHIND = 6;         // once deep enough, keep the marker 6 fathoms from the top
-const MINI_SHAFT_TICK = 2;           // minor tick spacing
+const TRAIL_BEHIND = 8;               // fathoms kept visible behind the delver
+const TRAIL_AHEAD = 12;                // extra room ahead for future scouting information
+const TRAIL_SPAN = TRAIL_BEHIND + TRAIL_AHEAD;
+const TRAIL_TICK = 4;                  // labelled depth spacing on the route
+const TRAIL_W = 220;
+const TRAIL_H = 154;
+const TRAIL_MARKER_Y = 77;             // visually centered while the route slopes downward
+
+/* Strike momentum prototype. Normal Strike is unchanged. Double Strike lands just
+   below the first 2.7× Heavy; Perfect Strike sits above it but below 4.7× Heavy. */
+const STRIKE_MULT = [1.0, 2.4, 3.5];
+
+/* Session 5 recovery pacing. These are deliberately isolated so phone
+   playtesting can change them without touching combat balance. */
+const REST_RECOVERY_REQUIRED = 15;      // active travel-equivalent after each Rest
+const REST_HEAL_FRACTION = 0.25;        // always based on Max HP, never current HP
+const HOLLOW_EARLY_OFFSET = 20;         // ordinary one-use safe hollow
+const HOLLOW_STAGE_OFFSET = 52;         // special pre-boss staging hollow
+const HOLLOW_AUTO_RESUME_MS = 15000;    // ordinary hollow only
+const STARTING_CAMP_SUPPLIES = 2;
+const BOON_DURATION_MS = 10 * 60 * 1000; // prototype: active delve time; frozen whenever travel is held/interrupted
+const BOONS = {
+  whetstone:{
+    id:"whetstone", name:"Whetstone Work",
+    desc:"The first Strike of every fight costs 0 Stamina."
+  },
+  oiled:{
+    id:"oiled", name:"Oiled Joints",
+    desc:"Maximum Stamina +2 while the boon lasts."
+  },
+  setfeet:{
+    id:"setfeet", name:"Set Your Feet",
+    desc:"Guard / Parry restores 5 Stamina instead of 3."
+  },
+  poultice:{
+    id:"poultice", name:"Poultice",
+    desc:"After each kill, recover 6% of Max HP."
+  },
+  keptwatch:{
+    id:"keptwatch", name:"Kept Watch",
+    desc:"Your Read / Study action costs 0 Stamina once each encounter."
+  },
+  makingplan:{
+    id:"makingplan", name:"Making a Plan",
+    desc:"Gain 20% more XP from defeated enemies."
+  }
+};
 
 function stratumIndex(depth=S?.depth || 0){
   return Math.max(0, Math.floor(depth / FATHOMS_PER_STRATUM));
@@ -894,6 +1099,7 @@ let S = null;      // the delver, and the fight in front of them
 let knowledge = {}; // per-archetype Read progress during this delver's run
 let armed = null;  // which action is tapped-but-not-yet-committed
 let over = false;  // true once you're dead
+let hollowTimer = null; // UI countdown for ordinary safe hollows
 
 function xpToNext(level=S.level){
   return Math.round(20 + 10*Math.pow(level,1.5));
@@ -945,7 +1151,8 @@ function chooseFoeProfile(){
   return weightedPick(available, f => spawnWeight(f,S.depth));
 }
 function xpReward(f){
-  return Math.max(1, Math.round(f.profile.xp * (1 + S.depth/100)));
+  const base = Math.max(1, Math.round(f.profile.xp * (1 + S.depth/100)));
+  return boonActive("makingplan") ? Math.max(1, Math.round(base * 1.20)) : base;
 }
 
 function newDelver(){
@@ -955,12 +1162,19 @@ function newDelver(){
     hpMax:0, hp:0,
     staminaMax:10, stamina:10,
     heavyCharge:0, // 0 = none, 1 = 2.7× prepared, 2 = 4.7× fully drawn
+    strikeChain:0, // 0 = Strike, 1 = Double Strike, 2 = Perfect Strike
     defenceChain:0, // 0 = normal defence, 1 = next defended attack becomes Perfect
     loadout:"shield", // prototype toggle: "shield" = Guard, "sword" = Parry
     depth:0, encounter:0, seenFoes:{},
     travelMode:"stopped",      // "stopped" | "descend" | "explore"
     travelSinceEvent:0,         // distance-equivalent used by interruption pressure
     travelLog:[],               // persistent descent/exploration messages for this run
+    restRecovery:REST_RECOVERY_REQUIRED,
+    inventory:{campSupplies:STARTING_CAMP_SUPPLIES},
+    hollowStates:{},            // "found" | "used" | "passed", keyed by stratum + kind
+    activeHollow:null,          // current one-use recovery landmark, if paused at one
+    boon:null,                  // {id, expiresAt, remainingMs, frozen}
+    pendingBoonChoice:false,
     turn:1, foe:null
   };
   S.hpMax = maxHp();
@@ -968,20 +1182,259 @@ function newDelver(){
   knowledge = {};
   armed = null;
   over = false;
+  clearHollowTimer();
   $("readout").innerHTML = "";
   $("travelLog").innerHTML = "";
-  travelLogAdd(`The shaft waits below. Choose how you want to move.`, "note");
-  say(`<p class="note">The shaft waits below. Choose how you want to move.</p>`);
+  $("packSheet").hidden = true;
+  travelLogAdd(`The way down waits. Choose how you want to move.`, "note");
+  say(`<p class="note">The way down waits. Choose how you want to move.</p>`);
   render();
 }
 
+function boonDef(id=S?.boon?.id){
+  return id ? BOONS[id] || null : null;
+}
+function boonRemainingMs(){
+  if(!S?.boon) return 0;
+  if(S.boon.frozen) return Math.max(0, S.boon.remainingMs || 0);
+  return Math.max(0, (S.boon.expiresAt || 0) - Date.now());
+}
+function formatBoonTime(ms){
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const sec = total % 60;
+  return `${m}:${String(sec).padStart(2,"0")}`;
+}
+function boonActive(id){
+  return !!S?.boon && S.boon.id === id && boonRemainingMs() > 0;
+}
+function removeBoonEffects(){
+  if(!S?.boon) return;
+  if(S.boon.id === "oiled"){
+    S.staminaMax = Math.max(1, S.staminaMax - 2);
+    S.stamina = Math.min(S.stamina, S.staminaMax);
+  }
+}
+function clearBoon(expired=false){
+  if(!S?.boon) return false;
+  const old = boonDef();
+  removeBoonEffects();
+  S.boon = null;
+  if(expired && old) travelLogAdd(`<b>${esc(old.name)}</b> fades.`, "note");
+  return true;
+}
+function checkBoonExpiry(){
+  if(!S?.boon || S.boon.frozen) return false;
+  if(boonRemainingMs() > 0) return false;
+  return clearBoon(true);
+}
+function pauseBoonClock(){
+  checkBoonExpiry();
+  if(!S?.boon || S.boon.frozen) return;
+  S.boon.remainingMs = boonRemainingMs();
+  S.boon.expiresAt = null;
+  S.boon.frozen = true;
+}
+function resumeBoonClock(){
+  if(!S?.boon || !S.boon.frozen) return;
+  if((S.boon.remainingMs || 0) <= 0){ clearBoon(true); return; }
+  S.boon.expiresAt = Date.now() + S.boon.remainingMs;
+  S.boon.remainingMs = 0;
+  S.boon.frozen = false;
+}
+function activateBoon(id){
+  const def = BOONS[id];
+  if(!def || !S) return;
+  clearBoon(false);
+  const running = S.travelMode === "descend" || S.travelMode === "explore";
+  S.boon = running
+    ? {id, expiresAt:Date.now()+BOON_DURATION_MS, remainingMs:0, frozen:false}
+    : {id, expiresAt:null, remainingMs:BOON_DURATION_MS, frozen:true};
+  if(id === "oiled"){
+    S.staminaMax += 2;
+    S.stamina = S.staminaMax;
+  }
+  S.pendingBoonChoice = false;
+  travelLogAdd(`Camp boon: <b>${esc(def.name)}</b>.`, "good");
+  render();
+}
+function guardRestoreAmount(){
+  return boonActive("setfeet") ? 5 : 3;
+}
+function poulticeHealAmount(){
+  return Math.max(1, Math.round(S.hpMax * 0.06));
+}
+function renderBoonChoice(){
+  const picker = $("boonPick");
+  if(!picker) return;
+  picker.hidden = !S?.pendingBoonChoice || over;
+  if(picker.hidden) return;
+  $("boonOptions").innerHTML = Object.values(BOONS).map(b =>
+    `<button class="boon-opt" data-boon="${b.id}"><b>${esc(b.name)}</b><span>${esc(b.desc)}</span></button>`
+  ).join("");
+}
+function renderActiveBoon(){
+  const def = boonDef();
+  const remaining = boonRemainingMs();
+  const text = def ? `${def.name} · ${formatBoonTime(remaining)}${S.boon.frozen ? " · paused" : ""}` : "";
+  for(const [wrapId,textId] of [["travelBoon","travelBoonTxt"],["combatBoon","combatBoonTxt"]]){
+    const wrap=$(wrapId), txt=$(textId);
+    if(!wrap || !txt) continue;
+    wrap.hidden = !def;
+    txt.textContent = text;
+  }
+}
+
+function restHealAmount(){
+  return Math.max(1, Math.round(S.hpMax * REST_HEAL_FRACTION));
+}
+function restReady(){
+  return !!S && S.restRecovery >= REST_RECOVERY_REQUIRED - 0.001;
+}
+function canRest(){
+  return !!S && !over && !S.foe && S.statPoints <= 0 && restReady() && S.hp < S.hpMax;
+}
+function hollowKey(stratum, kind){
+  return `${stratum}:${kind}`;
+}
+function hollowInfo(stratum, kind){
+  const offset = kind === "stage" ? HOLLOW_STAGE_OFFSET : HOLLOW_EARLY_OFFSET;
+  return {
+    stratum,
+    kind,
+    key:hollowKey(stratum,kind),
+    depth:stratum * FATHOMS_PER_STRATUM + offset
+  };
+}
+function findCrossedHollow(beforeDepth, afterDepth){
+  const first = Math.max(0, Math.floor(beforeDepth / FATHOMS_PER_STRATUM));
+  const last = Math.max(first, Math.floor(afterDepth / FATHOMS_PER_STRATUM));
+  const candidates = [];
+  for(let i = first; i <= last; i++){
+    candidates.push(hollowInfo(i,"early"), hollowInfo(i,"stage"));
+  }
+  return candidates
+    .filter(h => h.depth > beforeDepth + 0.0001 && h.depth <= afterDepth + 0.0001)
+    .filter(h => !S.hollowStates[h.key])
+    .sort((a,b) => a.depth - b.depth)[0] || null;
+}
+function clearHollowTimer(){
+  if(hollowTimer !== null){
+    clearInterval(hollowTimer);
+    hollowTimer = null;
+  }
+}
+function startHollowTimer(){
+  clearHollowTimer();
+  const h = S?.activeHollow;
+  if(!h || h.kind === "stage" || h.autoResumeCancelled) return;
+  hollowTimer = setInterval(() => {
+    if(!S?.activeHollow || S.activeHollow.key !== h.key){
+      clearHollowTimer();
+      return;
+    }
+    if(Date.now() >= S.activeHollow.autoResumeAt){
+      leaveHollow(true);
+      return;
+    }
+    renderSafeHollow();
+  },100);
+}
+function cancelHollowAutoResume(){
+  const h = S?.activeHollow;
+  if(!h || h.kind === "stage" || h.autoResumeCancelled) return;
+  h.autoResumeCancelled = true;
+  clearHollowTimer();
+  renderSafeHollow();
+}
+function discoverHollow(h){
+  closePack();
+  S.depth = h.depth;
+  pauseBoonClock();
+  S.travelMode = "stopped";
+  S.travelSinceEvent = 0;
+  S.hollowStates[h.key] = "found";
+  S.activeHollow = {
+    ...h,
+    autoResumeCancelled:h.kind === "stage",
+    autoResumeAt:h.kind === "stage" ? null : Date.now() + HOLLOW_AUTO_RESUME_MS
+  };
+  travelLogAdd(h.kind === "stage"
+    ? `<b>Staging hollow.</b> Safe ground before the stratum boundary.`
+    : `<b>Safe hollow.</b> You could make camp here.`, "beat");
+  render();
+  startHollowTimer();
+}
+function leaveHollow(auto=false){
+  const h = S?.activeHollow;
+  if(!h) return;
+  clearHollowTimer();
+  S.hollowStates[h.key] = "passed";
+  S.activeHollow = null;
+  S.travelMode = "descend";
+  resumeBoonClock();
+  travelLogAdd(auto
+    ? `You move on from the hollow.`
+    : `You leave the hollow behind and continue down.`, "note");
+  render();
+}
+function campAtHollow(){
+  const h = S?.activeHollow;
+  if(!h || S.inventory.campSupplies <= 0) return;
+  cancelHollowAutoResume();
+  clearHollowTimer();
+  S.inventory.campSupplies--;
+  S.hp = S.hpMax;
+  S.stamina = S.staminaMax;
+  S.heavyCharge = 0;
+  S.strikeChain = 0;
+  S.defenceChain = 0;
+  S.restRecovery = REST_RECOVERY_REQUIRED;
+  S.hollowStates[h.key] = "used";
+  S.activeHollow = null;
+  pauseBoonClock();
+  S.travelMode = "stopped";
+  S.pendingBoonChoice = true;
+  travelLogAdd(`You make camp. <b>HP and Stamina fully restored.</b> Choose a boon for the next stretch.`, "good");
+  render();
+}
+function takeRest(){
+  if(!canRest()) return;
+  cancelHollowAutoResume();
+  pauseBoonClock();
+  S.travelMode = "stopped";
+  const before = S.hp;
+  const nominal = restHealAmount();
+  S.hp = Math.min(S.hpMax, S.hp + nominal);
+  const healed = S.hp - before;
+  S.restRecovery = 0;
+  travelLogAdd(`You rest and recover <b>${healed} HP</b>.`, "good");
+  render();
+}
+function openPack(){
+  if(!S || over || S.foe) return;
+  cancelHollowAutoResume();
+  renderPack();
+  $("packSheet").hidden = false;
+}
+function closePack(){
+  $("packSheet").hidden = true;
+}
+function renderPack(){
+  if(!S) return;
+  $("packCampSupplies").textContent = `×${S.inventory.campSupplies}`;
+}
+
 function nextFoe(){
+  closePack();
+  pauseBoonClock();
   S.travelMode = "stopped";
   S.travelSinceEvent = 0;
   S.encounter++;
   S.turn = 1;
   S.stamina = Math.min(S.staminaMax, S.stamina + 4); // Session 3 test breathing room
   S.heavyCharge = 0;
+  S.strikeChain = 0;
   S.defenceChain = 0;
   armed = null;
 
@@ -1002,6 +1455,7 @@ function nextFoe(){
     weakness: base.weakness,
     revealed: knowledgeReads(base.id) >= 1,
     readUsed:false,
+    whetstoneUsed:false,
     intent: null,
     blinded:false,          // persists until the foe next attempts an attack
     offBalance:false,        // opens damage and restricts the foe's choices
@@ -1014,19 +1468,21 @@ function nextFoe(){
 }
 
 function startTravel(mode){
-  if(!S || over || S.foe || S.statPoints > 0) return;
+  if(!S || over || S.foe || S.statPoints > 0 || S.activeHollow || S.pendingBoonChoice) return;
   if(mode !== "descend" && mode !== "explore") return;
   if(S.travelMode === mode) return;
   S.travelMode = mode;
+  resumeBoonClock();
   armed = null;
   travelLogAdd(mode === "descend"
     ? `You start down again.`
-    : `You leave the shaft line and explore outward at <b>${formatDepth(S.depth)} fathoms</b>.`, mode === "descend" ? "" : "note");
+    : `You leave the downward route and explore outward at <b>${formatDepth(S.depth)} fathoms</b>.`, mode === "descend" ? "" : "note");
   render();
 }
 
 function stopTravel(){
   if(!S || S.travelMode === "stopped") return;
+  pauseBoonClock();
   S.travelMode = "stopped";
   travelLogAdd(`You hold at <b>${formatDepth(S.depth)} fathoms</b>.`, "note");
   render();
@@ -1045,21 +1501,36 @@ function travelInterruptionChance(){
 }
 
 function travelTick(){
-  if(!S || over || S.foe || S.statPoints > 0 || S.travelMode === "stopped") return;
+  if(!S || over) return;
+  const expired = checkBoonExpiry();
+  if(expired) render();
+  else renderActiveBoon();
+  if(S.foe || S.statPoints > 0 || S.pendingBoonChoice || S.travelMode === "stopped") return;
 
+  const beforeDepth = S.depth;
   const beforeStratum = stratumIndex(S.depth);
   S.travelSinceEvent += TRAVEL_STEP;
+  S.restRecovery = Math.min(REST_RECOVERY_REQUIRED, S.restRecovery + TRAVEL_STEP);
+
   if(S.travelMode === "descend"){
     S.depth = Math.round((S.depth + TRAVEL_STEP) * 100) / 100;
     const afterStratum = stratumIndex(S.depth);
     if(afterStratum !== beforeStratum){
       travelLogAdd(`You cross into <b>${esc(stratumName(afterStratum))}</b>.`, "beat");
     }
+
+    // Recovery landmarks outrank the generic interruption roll. If the player
+    // reaches one, descent pauses before a random encounter can fire on that tick.
+    const hollow = findCrossedHollow(beforeDepth, S.depth);
+    if(hollow){
+      discoverHollow(hollow);
+      return;
+    }
   }
 
   if(rnd() < travelInterruptionChance()){
-    // Session 4 only wires COMBAT into the generic interruption point.
-    // Later this is where traps, finds, NPCs, merchants, books, warnings, etc. branch.
+    // Combat is still the only random event wired into the generic pool.
+    // Safe hollows are deterministic landmarks rather than random events.
     nextFoe();
     return;
   }
@@ -1124,10 +1595,21 @@ function openingBonus(){
   if(!S.foe || !S.foe.offBalance) return 1;
   return weaknessEff().offBalanceBonus || 1.25;
 }
-function dmgStrike(){
+function strikeStage(){
+  return clamp(S?.strikeChain || 0, 0, 2);
+}
+function strikeName(stage=strikeStage()){
+  return stage === 2 ? "Perfect Strike" : stage === 1 ? "Double Strike" : "Strike";
+}
+function strikeMultiplier(stage=strikeStage()){
+  return STRIKE_MULT[clamp(stage,0,2)];
+}
+function dmgStrike(stage=strikeStage()){
   const f = S.foe;
   const eff = weaknessEff();
-  let d = (S.STR + ri(0,4)) * openingBonus();
+  const mult = strikeMultiplier(stage);
+  const swing = stage === 0 ? ri(0,4) : stage === 1 ? ri(0,5) : ri(0,6);
+  let d = (S.STR * mult + swing) * openingBonus();
   if(eff.strikeBonus) d *= eff.strikeBonus;
   if(eff.recoverStrikeBonus && f.intent === "recover") d *= eff.recoverStrikeBonus;
   if(f.intent === "guard") d *= (1 - INTENTS.guard.armour);
@@ -1159,8 +1641,9 @@ function counterDamage(style, perfect=false){
   return Math.max(1, Math.round(d));
 }
 function perfectDefenceReady(){
-  // A blinded foe will miss on its own, so that swing neither spends nor
-  // upgrades the defensive rhythm. Keep Perfect ready for a real attack.
+  // A blinded attack cannot consume a prepared Perfect Defence because it misses
+  // on its own. Guarding that blind swing can still build/maintain the rhythm;
+  // Perfect remains reserved for the next real attack.
   return S.defenceChain >= 1 && S.foe && !S.foe.blinded && INTENTS[S.foe.intent].kind === "attack";
 }
 function incoming(openMult=1){
@@ -1197,7 +1680,7 @@ function awardKill(f){
     levels++;
   }
 
-  let html = `<p class="good">Earned <b>${gain} XP</b>.</p>`;
+  let html = `<p class="good">Earned <b>${gain} XP</b>${boonActive("makingplan") ? " · Making a Plan" : ""}.</p>`;
   if(levels){
     html += `<p class="good"><b>Level ${S.level}.</b> ${levels === 1 ? "A stat point is waiting." : `${levels} stat points are waiting.`} Leveling itself does not heal you.</p>`;
   }
@@ -1207,12 +1690,22 @@ function awardKill(f){
 function finishKill(out){
   const f = S.foe;
   const reward = awardKill(f);
+  let sustain = "";
+  if(boonActive("poultice") && S.hp < S.hpMax){
+    const before = S.hp;
+    S.hp = Math.min(S.hpMax, S.hp + poulticeHealAmount());
+    const healed = S.hp - before;
+    if(healed > 0) sustain = `<p class="good">Poultice: recovered <b>${healed} HP</b> after the kill.</p>`;
+  }
   travelLogAdd(`You put down the <b>${esc(f.name)}</b>.`, "good");
-  say(out + `<p class="said">The ${esc(f.name)} went down and stayed down.</p>` + reward);
+  say(out + `<p class="said">The ${esc(f.name)} went down and stayed down.</p>` + reward + sustain);
   S.foe = null;
   S.heavyCharge = 0;
+  S.strikeChain = 0;
   S.defenceChain = 0;
   armed = null;
+  // The boon remains paused after combat. It resumes only when the player
+  // explicitly starts Descending or Exploring again.
   render();
 }
 
@@ -1222,12 +1715,24 @@ function finishKill(out){
    ============================================================ */
 const ACTIONS = {
   strike:{
-    label:"Strike", sub:"3 stamina", cost:3,
+    label(){ return strikeName(); },
+    sub(){
+      const free = boonActive("whetstone") && S.foe && !S.foe.whetstoneUsed;
+      const stage = strikeStage();
+      const chain = stage === 0 ? "start chain" : stage === 1 ? "2/3 momentum" : "3/3 momentum";
+      return `${free ? "0" : "3"} stamina · ${chain}`;
+    },
+    cost(){ return boonActive("whetstone") && S.foe && !S.foe.whetstoneUsed ? 0 : 3; },
     preview(){
-      const f = S.foe, d = dmgStrike(), back = incoming();
-      let s = `<span class="dmg">~${d} damage</span> · <span class="cost">3 stamina</span>`;
+      const f = S.foe, stage = strikeStage(), d = dmgStrike(stage), back = incoming();
+      const c = actionCost("strike");
+      const mult = strikeMultiplier(stage);
+      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× STR</span> · <span class="cost">${c} stamina</span>`;
+      if(c === 0) s += ` · <span class="dmg">Whetstone Work</span>`;
+      if(stage < 2) s += ` · hit to build <span class="dmg">${strikeName(stage+1)}</span>`;
+      else s += ` · hit completes the chain, then resets`;
       if(f.offBalance) s += ` · <span class="dmg">+${Math.round((openingBonus()-1)*100)}% opening</span>`;
-      if(f.intent === "dodge") s += ` · <span class="bad">35% miss chance</span>`;
+      if(f.intent === "dodge") s += ` · <span class="bad">35% miss chance · miss breaks momentum</span>`;
       if(f.intent === "guard") s += ` · its guard soaks most of it`;
       if(back) s += ` · you take <span class="bad">~${back}</span> if it survives`;
       else s += ` · it is not attacking`;
@@ -1235,11 +1740,20 @@ const ACTIONS = {
     },
     run(){
       const f = S.foe;
-      if(f.intent === "dodge" && rnd() < 0.35)
-        return `<p>Swung and found nothing. It was already elsewhere.</p>`;
-      const d = dmgStrike();
+      const stage = strikeStage();
+      const name = strikeName(stage);
+      if(boonActive("whetstone") && !f.whetstoneUsed) f.whetstoneUsed = true;
+      if(f.intent === "dodge" && rnd() < 0.35){
+        S.strikeChain = 0;
+        return `<p>${name} found nothing. It was already elsewhere. <b>Momentum broken.</b></p>`;
+      }
+      const d = dmgStrike(stage);
       f.hp -= d;
-      return `<p>${pick(HIT_VERBS)} the ${esc(f.name)} for <b>${d}</b>.</p>`;
+      S.strikeChain = stage >= 2 ? 0 : stage + 1;
+      const momentum = stage >= 2
+        ? ` <span class="note">The three-hit rhythm completes and resets.</span>`
+        : ` <span class="note">Momentum: next Strike becomes <b>${strikeName(stage+1)}</b>.</span>`;
+      return `<p>${stage === 0 ? pick(HIT_VERBS) : name} the ${esc(f.name)} for <b>${d}</b>.</p>${momentum}`;
     }
   },
 
@@ -1311,8 +1825,8 @@ const ACTIONS = {
 
   guard:{
     label(){ return perfectDefenceReady() ? `Perfect ${defenceName()}` : defenceName(); },
-    sub(){ return perfectDefenceReady() ? "+3 stamina · 0 damage" : "+3 stamina"; },
-    cost:-3,
+    sub(){ const r=guardRestoreAmount(); return perfectDefenceReady() ? `+${r} stamina · 0 damage` : `+${r} stamina`; },
+    cost(){ return -guardRestoreAmount(); },
     preview(){
       const f = S.foe;
       const perfect = perfectDefenceReady();
@@ -1320,8 +1834,8 @@ const ACTIONS = {
       const full = S.stamina >= S.staminaMax;
       const style = S.loadout;
       let s = S.heavyCharge > 0
-        ? `Abandon the prepared Heavy · recover <span class="cost">3 stamina</span>`
-        : `Recover <span class="cost">3 stamina</span>`;
+        ? `Abandon the prepared Heavy · recover <span class="cost">${guardRestoreAmount()} stamina</span>`
+        : `Recover <span class="cost">${guardRestoreAmount()} stamina</span>`;
       if(perfect) s += ` · <span class="dmg">PERFECT: take 0 damage</span>`;
       else if(back) s += ` · take about <span class="bad">${back}</span>`;
       else s += ` · take no damage`;
@@ -1344,7 +1858,7 @@ const ACTIONS = {
     run(){
       const abandonedHeavy = S.heavyCharge > 0;
       S.heavyCharge = 0;
-      S.stamina = Math.min(S.staminaMax, S.stamina + 3);
+      S.stamina = Math.min(S.staminaMax, S.stamina + guardRestoreAmount());
       if(abandonedHeavy){
         return S.loadout === "shield"
           ? `<p class="good">Let the prepared blow go, set your shield, and recovered your stance.</p>`
@@ -1400,11 +1914,15 @@ const ACTIONS = {
       if(!S.foe) return "—";
       if(S.foe.readUsed) return "already studied this encounter";
       const reads = knowledgeReads(S.foe.key);
-      if(reads === 0) return "1 stamina · reveal weakness";
       if(reads >= 6) return "mastered · no further gain";
+      if(boonActive("keptwatch")) return `0 stamina · Kept Watch`;
+      if(reads === 0) return "1 stamina · reveal weakness";
       return `2 stamina · ${reads}/${reads < 3 ? 3 : 6} knowledge`;
     },
-    cost(){ return S.foe && S.foe.revealed ? 2 : 1; },
+    cost(){
+      if(S.foe && boonActive("keptwatch") && !S.foe.readUsed && knowledgeReads(S.foe.key) < 6) return 0;
+      return S.foe && S.foe.revealed ? 2 : 1;
+    },
     preview(){
       const f = S.foe;
       const reads = knowledgeReads(f.key);
@@ -1412,14 +1930,16 @@ const ACTIONS = {
       if(reads >= 6) return `This archetype is already <span class="dmg">Mastered</span>. There is nothing further to gain from Study.`;
 
       const back = incoming();
+      const c = actionCost("read");
       let s;
       if(reads === 0){
-        s = `Reveal its weakness permanently · <span class="cost">1 stamina</span> · future encounters can be Studied`;
+        s = `Reveal its weakness permanently · <span class="cost">${c} stamina</span> · future encounters can be Studied`;
       } else if(reads < 3){
-        s = `Study this archetype · <span class="cost">2 stamina</span> · ${reads+1}/3 knowledge · at 3: <span class="dmg">take 5% less damage from it</span>`;
+        s = `Study this archetype · <span class="cost">${c} stamina</span> · ${reads+1}/3 knowledge · at 3: <span class="dmg">take 5% less damage from it</span>`;
       } else {
-        s = `Study this archetype · <span class="cost">2 stamina</span> · ${reads+1}/6 knowledge · at 6: <span class="dmg">weakness payoff +5%</span>`;
+        s = `Study this archetype · <span class="cost">${c} stamina</span> · ${reads+1}/6 knowledge · at 6: <span class="dmg">weakness payoff +5%</span>`;
       }
+      if(c === 0) s += ` · <span class="dmg">Kept Watch</span>`;
       if(back) s += ` · you take <span class="bad">~${back}</span> while watching`;
       else s += ` · <span class="dmg">safe to study: it is not attacking</span>`;
       return s;
@@ -1512,6 +2032,10 @@ function takeTurn(key){
   const perfectDefence = key === "guard" && perfectDefenceReady();
   let madeOffBalance = false;
 
+  // Strike momentum is deliberately brittle: only consecutive landed Strikes
+  // advance it. Any other action abandons the sequence before that action resolves.
+  if(key !== "strike") S.strikeChain = 0;
+
   // The defensive rhythm only survives while you keep choosing Guard/Parry.
   // Non-attacking enemy turns neither build nor consume it. Any other player
   // action breaks the chain.
@@ -1536,6 +2060,20 @@ function takeTurn(key){
   } else if(I.kind === "attack") {
     if(f.blinded){
       out += `<p class="good">${I.label}: blinded, it attacked empty air.</p>`;
+
+      // Session 5 correction: choosing Guard/Parry still keeps the defensive
+      // rhythm even though Blind makes the attack miss before contact. It can
+      // build Perfect from 0 -> 1, and an already-prepared Perfect is preserved
+      // rather than being wasted on an attack that never reached you.
+      if(key === "guard" && S.hp > 0){
+        if(S.defenceChain < 1){
+          S.defenceChain = 1;
+          out += `<p class="note">Held the defensive rhythm through the blind swing. The next real defended attack can be a <b>Perfect ${defenceName()}</b>.</p>`;
+        } else {
+          out += `<p class="note">Kept the prepared <b>Perfect ${defenceName()}</b>. The blind swing did not consume it.</p>`;
+        }
+      }
+
       f.blinded = false;
     } else {
       let dmg = incoming();
@@ -1644,7 +2182,10 @@ function tapRun(){
          : `<p class="note">It let you go.</p>`));
   S.foe = null;
   S.heavyCharge = 0;
+  S.strikeChain = 0;
   S.defenceChain = 0;
+  // The boon remains paused after combat. It resumes only when the player
+  // explicitly starts Descending or Exploring again.
   render();
 }
 
@@ -1702,40 +2243,117 @@ function renderCombatHeader(){
   $("meta").textContent = `${formatDepth(S.depth)} fathoms · encounter ${S.encounter}`;
 }
 
-function renderMiniShaft(){
-  const viewTop = Math.max(0, S.depth - MINI_SHAFT_BEHIND);
-  const viewBottom = viewTop + MINI_SHAFT_SPAN;
-  const scale = $("shaftScale");
-  const wanted = new Set();
+let trailVisualDepth = null;
+let trailAnimFrame = null;
 
-  const firstTick = Math.floor(viewTop / MINI_SHAFT_TICK) * MINI_SHAFT_TICK;
-  for(let d = firstTick; d <= viewBottom + MINI_SHAFT_TICK; d += MINI_SHAFT_TICK){
-    if(d < 0) continue;
-    const key = d.toFixed(2);
-    wanted.add(key);
-    let line = scale.querySelector(`[data-depth="${key}"]`);
-    if(!line){
-      line = document.createElement("div");
-      line.dataset.depth = key;
-      scale.appendChild(line);
-    }
-    const isBoundary = Math.abs(d % FATHOMS_PER_STRATUM) < 0.001;
-    line.className = `shaft-line ${isBoundary ? "major" : ""}`;
-    const pct = ((d - viewTop) / MINI_SHAFT_SPAN) * 100;
-    line.style.top = `${pct}%`;
-    const showLabel = isBoundary || Math.abs(d % 4) < 0.001;
-    line.innerHTML = showLabel ? `<span>${formatDepth(d).replace('.0','')}</span>` : "";
+function trailWave(depth){
+  // Deterministic cave undulation. The overall line still trends downward to the right;
+  // these small variations stop it looking like a graph or conveyor belt.
+  return Math.sin(depth * 0.72) * 6 + Math.sin(depth * 1.61 + 0.8) * 2.5;
+}
+
+function drawTrail(depth){
+  const viewStart = Math.max(0, depth - TRAIL_BEHIND);
+  const currentOffset = depth - viewStart;
+  const currentWave = trailWave(depth);
+  const xOf = d => ((d - viewStart) / TRAIL_SPAN) * TRAIL_W;
+  const yOf = d => TRAIL_MARKER_Y + (d - depth) * 2.25 + (trailWave(d) - currentWave);
+
+  const pts = [];
+  const from = Math.max(0, viewStart - 0.5);
+  const to = viewStart + TRAIL_SPAN + 0.5;
+  for(let d = from; d <= to + 0.001; d += 0.5){
+    pts.push([xOf(d), clamp(yOf(d), 10, TRAIL_H - 10)]);
   }
+  const path = pts.map((p,i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  $("trailCorridor").setAttribute("d", path);
+  $("trailPath").setAttribute("d", path);
 
-  for(const line of [...scale.querySelectorAll(".shaft-line")]){
-    if(!wanted.has(line.dataset.depth)) line.remove();
+  let marks = "";
+  const firstTick = Math.ceil(viewStart / TRAIL_TICK) * TRAIL_TICK;
+  const last = viewStart + TRAIL_SPAN;
+  for(let d = firstTick; d <= last + 0.001; d += TRAIL_TICK){
+    const x = xOf(d), y = clamp(yOf(d), 12, TRAIL_H - 12);
+    const major = Math.abs(d % FATHOMS_PER_STRATUM) < 0.001;
+    marks += `<line class="trail-tick" x1="${x.toFixed(1)}" y1="${(y-5).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(y+5).toFixed(1)}"></line>`;
+    marks += `<text class="trail-label ${major ? "major" : ""}" x="${(x+3).toFixed(1)}" y="${(y-7).toFixed(1)}">${formatDepth(d).replace('.0','')}</text>`;
   }
+  const firstBoundary = Math.ceil(viewStart / FATHOMS_PER_STRATUM) * FATHOMS_PER_STRATUM;
+  for(let d = firstBoundary; d <= last + 0.001; d += FATHOMS_PER_STRATUM){
+    if(d <= 0) continue;
+    const x = xOf(d);
+    marks += `<line class="trail-boundary" x1="${x.toFixed(1)}" y1="7" x2="${x.toFixed(1)}" y2="${TRAIL_H-7}"></line>`;
+  }
+  $("trailMarks").innerHTML = marks;
 
-  const markerPct = ((S.depth - viewTop) / MINI_SHAFT_SPAN) * 100;
-  const marker = $("shaftMarker");
-  marker.style.top = `${clamp(markerPct, 0, 100)}%`;
+  // At the mouth of the delve the marker begins on the left. Once enough ground is
+  // behind you it settles around 40% across and the cave route scrolls past it.
+  const markerX = xOf(depth);
+  const markerY = clamp(yOf(depth), 10, TRAIL_H - 10);
+  const marker = $("trailMarker");
+  marker.style.left = `${(markerX / TRAIL_W) * 100}%`;
+  marker.style.top = `${(markerY / TRAIL_H) * 100}%`;
   marker.classList.toggle("exploring", S.travelMode === "explore");
-  $("shaftMarkerTxt").textContent = formatDepth(S.depth);
+  // Keep the label synchronized with the geometry while the route eases between ticks.
+}
+
+function renderTrail(){
+  const target = S.depth;
+  if(trailVisualDepth === null || Math.abs(target - trailVisualDepth) > 2){
+    trailVisualDepth = target;
+    drawTrail(target);
+    return;
+  }
+  if(Math.abs(target - trailVisualDepth) < 0.001){
+    drawTrail(target);
+    return;
+  }
+
+  if(trailAnimFrame !== null) cancelAnimationFrame(trailAnimFrame);
+  const startDepth = trailVisualDepth;
+  const delta = target - startDepth;
+  const started = performance.now();
+  const duration = Math.min(480, TRAVEL_TICK_MS * 0.94);
+  const step = now => {
+    const t = clamp((now - started) / duration, 0, 1);
+    const eased = 1 - Math.pow(1 - t, 2);
+    trailVisualDepth = startDepth + delta * eased;
+    drawTrail(trailVisualDepth);
+    if(t < 1) trailAnimFrame = requestAnimationFrame(step);
+    else { trailVisualDepth = target; trailAnimFrame = null; drawTrail(target); }
+  };
+  trailAnimFrame = requestAnimationFrame(step);
+}
+
+function renderSafeHollow(){
+  const card = $("safeHollowCard");
+  const h = S?.activeHollow;
+  card.hidden = !h;
+  if(!h) return;
+
+  const stage = h.kind === "stage";
+  card.classList.toggle("stage", stage);
+  $("safeHollowKind").textContent = stage ? "Staging hollow" : "Safe hollow";
+  $("safeHollowTitle").textContent = stage ? "The descent waits here" : "Defensible ground";
+  $("safeHollowText").textContent = stage
+    ? "A hard shelter before the stratum boundary. It will not move you on automatically."
+    : "You can make camp here once, or leave it behind and continue deeper.";
+
+  const camp = $("btnCampHere");
+  camp.disabled = S.inventory.campSupplies <= 0;
+  $("campHereSub").textContent = S.inventory.campSupplies > 0
+    ? `1 Camp Supply · ${S.inventory.campSupplies} carried · full recovery`
+    : `no Camp Supplies carried`;
+
+  const countdown = $("hollowCountdown");
+  if(stage){
+    countdown.textContent = "No auto-continue at the pre-boss staging hollow.";
+  } else if(h.autoResumeCancelled){
+    countdown.textContent = "Auto-continue cancelled. The hollow will wait for your choice.";
+  } else {
+    const left = Math.max(0, (h.autoResumeAt - Date.now()) / 1000);
+    countdown.textContent = `Continuing automatically in ${left.toFixed(1)}s · tap anywhere to hold here`;
+  }
 }
 
 function renderTravel(){
@@ -1746,6 +2364,7 @@ function renderTravel(){
 
   const idx = stratumIndex();
   $("travelBand").textContent = `Stratum ${idx + 1}`;
+  $("buildVersion").textContent = BUILD_VERSION;
   $("travelStratum").textContent = stratumName(idx);
   $("travelDepth").textContent = formatDepth(S.depth);
   $("travelHeroName").textContent = S.name;
@@ -1754,27 +2373,56 @@ function renderTravel(){
   $("travelHpN").textContent = `${Math.max(0,S.hp)} / ${S.hpMax} hp`;
   $("travelXp").textContent = `${S.xp} / ${xpToNext(S.level)} XP`;
 
-  renderMiniShaft();
+  renderTrail();
+
+  renderSafeHollow();
+  renderPack();
+  renderActiveBoon();
+  renderBoonChoice();
 
   const status = $("travelStatus");
   status.classList.toggle("moving", S.travelMode === "descend");
   status.classList.toggle("exploring", S.travelMode === "explore");
-  if(S.travelMode === "descend"){
-    status.innerHTML = `<b>Descending.</b> The shaft keeps moving until something interrupts you.`;
+  if(S.activeHollow){
+    status.innerHTML = S.activeHollow.kind === "stage"
+      ? `<b>Staging hollow.</b> Safe ground before the stratum boundary.`
+      : `<b>Safe hollow.</b> Camp here or decide to move on.`;
+  } else if(S.travelMode === "descend"){
+    status.innerHTML = `<b>Descending.</b> You keep moving deeper until something interrupts you.`;
   } else if(S.travelMode === "explore"){
     status.innerHTML = `<b>Exploring.</b> Depth is locked at ${formatDepth(S.depth)} fathoms.`;
   } else {
     status.innerHTML = `<b>Held.</b> Descend deeper or explore this depth.`;
   }
 
+  const atHollow = !!S.activeHollow;
+  const choosingBoon = !!S.pendingBoonChoice;
   $("btnDescend").classList.toggle("active", S.travelMode === "descend");
   $("btnExplore").classList.toggle("active", S.travelMode === "explore");
-  $("btnStopTravel").disabled = S.travelMode === "stopped";
+  $("btnDescend").disabled = atHollow || choosingBoon;
+  $("btnExplore").disabled = atHollow || choosingBoon;
+  $("btnStopTravel").disabled = atHollow || choosingBoon || S.travelMode === "stopped";
+
+  const heal = restHealAmount();
+  const ready = restReady();
+  const rest = $("btnRest");
+  rest.disabled = !canRest();
+  if(S.hp >= S.hpMax){
+    $("restSub").textContent = ready ? `full HP · rest ready` : `full HP · ${S.restRecovery.toFixed(1)} / ${REST_RECOVERY_REQUIRED}`;
+  } else if(!ready){
+    $("restSub").textContent = `${S.restRecovery.toFixed(1)} / ${REST_RECOVERY_REQUIRED} recovery`;
+  } else {
+    $("restSub").textContent = `+${heal} HP · ready`;
+  }
+  $("packSub").textContent = `${S.inventory.campSupplies} Camp ${S.inventory.campSupplies === 1 ? "Supply" : "Supplies"}`;
 }
 
 function render(){
+  checkBoonExpiry();
   renderCombatHeader();
   renderTravel();
+  renderActiveBoon();
+  renderBoonChoice();
   $("heroName").textContent = S.name;
   $("heroLv").textContent = "Level " + S.level;
   $("heroStats").textContent = `STR ${S.STR} · CON ${S.CON} · DEX ${S.DEX}`;
@@ -1922,7 +2570,21 @@ $("pad").addEventListener("click", e => {
 $("btnRun").addEventListener("click", tapRun);
 $("btnDescend").addEventListener("click", () => startTravel("descend"));
 $("btnExplore").addEventListener("click", () => startTravel("explore"));
+$("btnRest").addEventListener("click", takeRest);
+$("btnPack").addEventListener("click", openPack);
 $("btnStopTravel").addEventListener("click", stopTravel);
+$("btnCampHere").addEventListener("click", campAtHollow);
+$("btnLeaveHollow").addEventListener("click", () => leaveHollow(false));
+$("btnPackClose").addEventListener("click", closePack);
+$("packScrim").addEventListener("click", closePack);
+$("boonOptions").addEventListener("click", e => {
+  const b = e.target.closest(".boon-opt");
+  if(!b || !S?.pendingBoonChoice) return;
+  activateBoon(b.dataset.boon);
+});
+$("travel").addEventListener("pointerdown", () => {
+  if(S?.activeHollow) cancelHollowAutoResume();
+}, {passive:true});
 
 $("levelup").addEventListener("click", e => {
   const b = e.target.closest(".levelup-opt");
