@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0f1317">
-<title>Lowfathom v0.054 — Rest & Camp</title>
+<title>Lowfathom v0.061 — Skills & Character</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.052 rest + camp prototype
+   LOWFATHOM — v0.061 skills + character prototype
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -59,7 +59,7 @@
   --bone:#c2bdb1; --dim:#7d8794;
   --lamp:#e6c288; --lamp-dim:#8a7550;
   --rust:#b4553c; --verdigris:#5f9490;
-  --stamina:#6a9bc4; --warn:#d99a4e;
+  --stamina:#c89b4b; --warn:#d99a4e;
   --mono:'IBM Plex Mono',ui-monospace,monospace;
   --slab:'Zilla Slab',Georgia,serif;
   --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
@@ -253,7 +253,7 @@ button{
 .travel-hero-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px}
 .travel-hero-top b{font-family:var(--slab);font-size:13.5px;font-weight:600}
 .travel-hero-top span{font-family:var(--cond);font-size:10px;color:var(--dim)}
-.travel-hp{height:8px;background:#080b0e;border:1px solid var(--rule)}
+.travel-hp{position:relative;overflow:visible;height:8px;background:#080b0e;border:1px solid var(--rule)}
 .travel-hp i{display:block;height:100%;background:linear-gradient(90deg,#8e3f2c,var(--rust));transition:width .25s}
 .travel-hero-meta{display:flex;justify-content:space-between;gap:10px;margin-top:4px;font-family:var(--cond);font-size:10px;color:var(--dim)}
 
@@ -365,11 +365,38 @@ button{
 
 /* Sprite slot. 64x64 source art, nearest-neighbour, scaled by the game. */
 .sprite{
+  position:relative;overflow:visible;
   flex:0 0 108px;height:108px;
   border:1px dashed #2b353f;
   display:flex;align-items:center;justify-content:center;
   color:#39434e;font-size:30px;
   image-rendering:pixelated;
+}
+.sprite::before,.sprite::after{content:"";position:absolute;inset:-4px;opacity:0;pointer-events:none}
+.sprite::before{
+  border:2px solid rgba(246,210,106,.96);
+  box-shadow:0 0 0 1px rgba(255,244,204,.4) inset, 0 0 8px rgba(246,210,106,.5), 0 0 16px rgba(227,169,64,.35);
+}
+.sprite::after{
+  inset:-10px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,245,214,.34) 0%, rgba(255,231,153,.18) 30%, rgba(0,0,0,0) 72%),
+    conic-gradient(from 0deg, rgba(255,240,190,0) 0deg, rgba(255,219,117,.68) 42deg, rgba(255,250,224,0) 88deg, rgba(255,212,96,.55) 148deg, rgba(255,248,220,0) 206deg, rgba(255,196,78,.52) 278deg, rgba(255,240,190,0) 360deg);
+  filter:blur(5px);
+}
+.sprite.smite-flare::before{animation:smiteBorder .72s ease-out forwards}
+.sprite.smite-flare::after{animation:smiteAura .72s ease-out forwards}
+@keyframes smiteBorder{
+  0%{opacity:0;transform:scale(.96);box-shadow:0 0 0 1px rgba(255,244,204,.18) inset, 0 0 0 rgba(246,210,106,0), 0 0 0 rgba(227,169,64,0)}
+  20%{opacity:1;transform:scale(1);box-shadow:0 0 0 1px rgba(255,244,204,.7) inset, 0 0 14px rgba(246,210,106,.92), 0 0 28px rgba(227,169,64,.62)}
+  56%{opacity:1;transform:scale(1.02)}
+  100%{opacity:0;transform:scale(1.05);box-shadow:0 0 0 1px rgba(255,244,204,.1) inset, 0 0 10px rgba(246,210,106,.1), 0 0 18px rgba(227,169,64,.05)}
+}
+@keyframes smiteAura{
+  0%{opacity:0;transform:scale(.9) rotate(0deg)}
+  18%{opacity:.95;transform:scale(1) rotate(10deg)}
+  45%{opacity:.78;transform:scale(1.03) rotate(28deg)}
+  100%{opacity:0;transform:scale(1.08) rotate(54deg)}
 }
 .foe-id{flex:1;min-width:0}
 .cname{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
@@ -381,6 +408,29 @@ button{
 .bar.hp i{background:linear-gradient(90deg,#8e3f2c,var(--rust))}
 .bar.hp.mid i{background:linear-gradient(90deg,#8a6f34,var(--warn))}
 .bar.hp.low i{background:#c4442a}
+.heal-pop,.heal-pluses{pointer-events:none;position:absolute;inset:0;overflow:visible}
+.heal-pop{z-index:3}
+.heal-label{
+  position:absolute;right:6px;top:-24px;transform:translateY(0);
+  font-family:var(--cond);font-size:16px;font-weight:600;color:#b9e8a8;
+  text-shadow:0 0 4px #132016,0 0 10px rgba(112,198,103,.72);opacity:0;animation:healFloat .9s ease-out forwards;
+}
+.heal-plus{
+  position:absolute;font-family:var(--cond);font-size:17px;font-weight:700;color:#b9e8a8;
+  text-shadow:0 0 4px #132016,0 0 10px rgba(112,198,103,.82);opacity:0;animation:healSpark .82s ease-out forwards;
+}
+.bar.healing,.travel-hp.healing{box-shadow:0 0 0 2px rgba(112,198,103,.66),0 0 20px rgba(112,198,103,.38)}
+.bar.healing i,.travel-hp.healing i{filter:brightness(1.2) saturate(1.18)}
+@keyframes healFloat{
+  0%{opacity:0;transform:translateY(8px) scale(.92)}
+  16%{opacity:1;transform:translateY(0) scale(1.08)}
+  100%{opacity:0;transform:translateY(-18px) scale(1.02)}
+}
+@keyframes healSpark{
+  0%{opacity:0;transform:translateY(7px) scale(.7)}
+  16%{opacity:1;transform:translateY(0) scale(1.12)}
+  100%{opacity:0;transform:translateY(-19px) scale(1.2)}
+}
 .nums{
   display:flex;justify-content:space-between;margin-top:2px;
   font-family:var(--cond);font-size:10.5px;letter-spacing:.08em;color:var(--dim);
@@ -469,7 +519,7 @@ button{
 }
 .pips{display:flex;gap:3px;flex:1}
 .pips i{flex:1;height:11px;background:#080b0e;border:1px solid var(--rule)}
-.pips i.on{background:var(--stamina);border-color:#7fb0d6}
+.pips i.on{background:var(--stamina);border-color:#e0b866}
 .staminarow .n{font-family:var(--cond);font-size:10.5px;color:var(--dim);flex:0 0 auto}
 
 .progressrow{
@@ -568,6 +618,74 @@ button{
 .botbtn.armed span{color:var(--lamp)}
 .botbtn.go{background:#1a2229}
 .botbtn.go b{color:var(--lamp)}
+
+/* ---------- Session 6: rest skill recovery ---------- */
+.restskillpick{
+  position:absolute;inset:0;z-index:10;background:rgba(8,11,14,.84);
+  display:flex;align-items:flex-end;
+}
+.restskillpick[hidden]{display:none}
+.restskillpick-panel{
+  width:100%;max-height:82%;overflow-y:auto;background:var(--panel);
+  border-top:1px solid var(--verdigris);
+}
+.restskillpick-head{padding:12px 13px 10px;border-bottom:1px solid var(--rule);background:#12181e}
+.restskillpick-head em{
+  display:block;font-style:normal;font-family:var(--cond);font-size:9px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--verdigris);
+}
+.restskillpick-head b{display:block;margin-top:2px;font-family:var(--slab);font-size:19px;color:var(--bone)}
+.restskillpick-head p{margin:4px 0 0;font-size:10.5px;color:var(--dim)}
+.restskill-opt{
+  display:block;width:100%;text-align:left;background:#141a20;border:none;
+  border-bottom:1px solid var(--rule);padding:11px 13px;min-height:62px;
+}
+.restskill-opt b{display:block;font-family:var(--slab);font-size:15px;font-weight:600;color:var(--bone)}
+.restskill-opt span{display:block;margin-top:2px;font-family:var(--cond);font-size:10.5px;line-height:1.35;color:var(--dim)}
+.restskill-opt:active{background:#202a31}
+.restskillpick-note{padding:8px 13px 11px;background:#101418;color:#59636e;font-size:10.5px}
+
+/* ---------- Session 6: character sheet ---------- */
+.travel-hero{cursor:pointer;transition:background .12s,box-shadow .12s}
+.travel-hero:active{background:#182129;box-shadow:inset 0 0 0 1px var(--lamp-dim)}
+.char-sheet{
+  position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;justify-content:flex-end;
+}
+.char-sheet[hidden]{display:none}
+.char-scrim{flex:1;min-height:0;background:rgba(8,11,14,.76)}
+.char-panel{max-height:90%;overflow-y:auto;background:var(--panel);border-top:1px solid var(--lamp-dim)}
+.char-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:12px 13px 10px;background:#12181e;border-bottom:1px solid var(--rule)}
+.char-head em{display:block;font-style:normal;font-family:var(--cond);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--lamp-dim)}
+.char-head h2{margin:1px 0 0;font-family:var(--slab);font-size:20px;color:var(--bone);line-height:1.15}
+.char-head div>span{display:block;margin-top:2px;font-family:var(--cond);font-size:10.5px;color:var(--dim)}
+.char-live{font-family:var(--cond);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+.char-vitals{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
+.char-vitals div{padding:10px 13px;background:#141a20}
+.char-vitals em{display:block;font-style:normal;font-family:var(--cond);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.char-vitals b{display:block;margin-top:2px;font-family:var(--slab);font-size:16px;color:var(--bone)}
+.char-vitals div:nth-child(2) b{color:var(--stamina)}
+.char-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
+.char-stat{display:flex;justify-content:space-between;gap:8px;padding:9px 11px;background:#12181e;font-family:var(--cond);font-size:11px;color:var(--dim)}
+.char-stat b{color:var(--bone);font-weight:600}
+.char-section-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:10px 13px;background:#101418;border-bottom:1px solid var(--rule)}
+.char-section-head b{font-family:var(--cond);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--lamp-dim)}
+.char-section-head span{font-family:var(--cond);font-size:10.5px;color:var(--verdigris)}
+.char-skill{padding:11px 13px;border-bottom:1px solid var(--rule);background:#141a20}
+.char-skill-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.char-skill-top b{font-family:var(--slab);font-size:15px;color:var(--lamp)}
+.char-skill-top span{font-family:var(--cond);font-size:10.5px;letter-spacing:.08em;color:var(--verdigris);white-space:nowrap}
+.char-skill>p{margin:3px 0 0;font-size:12px;color:#a5a396}
+.char-note{padding:9px 13px;background:#101418;color:#59636e;font-size:10.5px;border-bottom:1px solid var(--rule)}
+.char-close{width:100%;min-height:52px;background:#12181e;border:none;padding:13px calc(13px + env(safe-area-inset-bottom));font-family:var(--cond);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.skill-wrap{background:#141a20;border-bottom:1px solid var(--rule)}
+.skill-wrap .skill{border-bottom:none}
+.skill-more{display:block;width:100%;border:none;border-top:1px solid rgba(46,57,68,.65);background:#12181e;padding:7px 13px;text-align:left;font-family:var(--cond);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--verdigris)}
+.skill-detail{padding:9px 13px 10px;background:#101418;border-top:1px solid var(--rule);font-size:11px;color:var(--dim)}
+.skill-detail[hidden]{display:none}
+.skill-detail p{margin:0 0 6px;display:grid;grid-template-columns:62px 1fr;gap:8px}
+.skill-detail p:last-child{margin-bottom:0}
+.skill-detail b{font-family:var(--cond);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--lamp-dim);font-weight:600}
+.skill-detail span{color:#9aa3aa}
 
 /* ---------- the skills sheet ---------- */
 .sheet{
@@ -702,7 +820,7 @@ button{
       </section>
     </div>
 
-    <section class="travel-hero">
+    <section class="travel-hero" id="travelHeroCard" role="button" tabindex="0" aria-label="Open character sheet">
       <div class="travel-hero-top"><b id="travelHeroName">—</b><span id="travelHeroLv">Level —</span></div>
       <div class="travel-hp"><i id="travelHp"></i></div>
       <div class="travel-hero-meta">
@@ -729,8 +847,27 @@ button{
         <div class="pack-item-top"><b>Camp Supplies</b><strong id="packCampSupplies">×2</strong></div>
         <p>Consumed when you make a full camp at a safe hollow.</p>
       </div>
-      <div class="pack-note">v0.052 tracks only Camp Supplies. Books, scrolls, ingredients and other finds plug into this backpack later.</div>
+      <div class="pack-note">v0.061 still tracks only Camp Supplies. Books, scrolls, ingredients and other finds plug into this backpack later.</div>
       <button class="pack-close" id="btnPackClose">Back to the delve</button>
+    </div>
+  </div>
+
+  <div class="char-sheet" id="charSheet" hidden>
+    <div class="char-scrim" id="charScrim"></div>
+    <div class="char-panel">
+      <div class="char-head">
+        <div><em>Character</em><h2 id="charName">—</h2><span id="charClassLevel">Votary · Level —</span></div>
+        <span class="char-live">travel continues</span>
+      </div>
+      <div class="char-vitals">
+        <div><em>HP</em><b id="charHp">—</b></div>
+        <div><em>Stamina</em><b id="charStamina">—</b></div>
+      </div>
+      <div class="char-stats" id="charStats"></div>
+      <div class="char-section-head"><b>Skills</b><span id="charSkillSummary">—</span></div>
+      <div class="char-skills" id="charSkills"></div>
+      <div class="char-note">Skill descriptions show what the ability does. “See more” shows its mechanics and current scaling.</div>
+      <button class="char-close" id="btnCharClose">Back to the delve</button>
     </div>
   </div>
 
@@ -758,7 +895,7 @@ button{
         <div class="bar hp" id="foeBar"><i id="foeHp"></i></div>
         <div class="nums"><span>hp</span><span id="foeHpN"></span></div>
       </div>
-      <div class="sprite" aria-hidden="true">?</div>
+      <div class="sprite" id="foeSprite" aria-hidden="true">?</div>
     </div>
     <div class="tell" id="tell" hidden>
       <em>Known weakness</em>
@@ -801,7 +938,7 @@ button{
   <div class="pad" id="pad"></div>
 
   <div class="pad2">
-    <button class="mact skills" id="btnSkills"><b>Skills</b><span>2 slots left</span></button>
+    <button class="mact skills" id="btnSkills"><b>Skills</b><span id="skillSummary">7 / 7 uses ready</span></button>
     <button class="mact pack" id="btnLoadout"><b>Loadout</b><span id="loadoutTxt">sword + shield</span></button>
   </div>
 
@@ -825,33 +962,28 @@ button{
     </div>
   </div>
 
+  <div class="restskillpick" id="restSkillPick" hidden>
+    <div class="restskillpick-panel">
+      <div class="restskillpick-head">
+        <em>Rest</em>
+        <b>Recover one skill use</b>
+        <p>Rest already restored HP. Choose one spent skill use to recover.</p>
+      </div>
+      <div id="restSkillOptions"></div>
+      <div class="restskillpick-note">Camp restores every skill fully. Rest returns one spent use of one skill.</div>
+    </div>
+  </div>
+
   <!-- skills sheet: sits above the pad so the fight stays readable -->
   <div class="sheet" id="sheet" hidden>
     <div class="sheet-scrim" id="scrim"></div>
     <div class="sheet-panel">
       <div class="sheet-head">
-        <h2>Skills</h2>
-        <span class="slots">2 of 3 slots</span>
+        <h2>Votary Skills</h2>
+        <span class="slots" id="sheetSlots">7 / 7 uses ready</span>
       </div>
-
-      <button class="skill" disabled>
-        <span class="meta">1 slot</span>
-        <b>Lay On Hands I</b>
-        <p>Close a wound. 18 hp back. Costs a slot, not stamina.</p>
-      </button>
-
-      <button class="skill" disabled>
-        <span class="meta">spent</span>
-        <b>Smite I</b>
-        <p>Comes back at camp. Rest returns one slot, not all of them.</p>
-      </button>
-
-      <button class="skill empty" disabled>
-        <b>Empty slot</b>
-        <p>Nothing slotted. Books drop in the dark.</p>
-      </button>
-
-      <div class="sheet-note">Skills aren't wired up yet — that's Session 6. This is here so you can judge how the sheet sits over a fight.</div>
+      <div id="skillsList"></div>
+      <div class="sheet-note" id="sheetNote">Skills spend uses across the descent. Camp restores them all. Rest restores one spent use of one chosen skill.</div>
       <button class="sheet-back" id="btnBack">Back to the fight</button>
     </div>
   </div>
@@ -1025,7 +1157,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.054";
+const BUILD_VERSION = "v0.063";
 
 const TRAVEL_TICK_MS = 500;
 const TRAVEL_STEP = 0.25;          // 0.5 fathom / second while Descending
@@ -1078,6 +1210,33 @@ const BOONS = {
     desc:"Gain 20% more XP from defeated enemies."
   }
 };
+const SKILL_DEFS = {
+  layonhands:{
+    id:"layonhands", name:"Lay On Hands", degree:"I", max:2,
+    desc:"Heal 15 HP. Quick-use: once per turn, and it does not end your turn. Costs no Stamina.",
+    mechanics:"Restore up to 15 HP. Cannot be used at full HP. Quick-use means you may still take your normal combat action afterward, but only one Lay On Hands can be used each turn.",
+    scaling:"No stat scaling at Degree I. The heal is a flat 15 HP."
+  },
+  holdfast:{
+    id:"holdfast", name:"Hold Fast", degree:"I", max:2,
+    desc:"Negate the foe's declared attack this turn. A prepared Heavy remains prepared.",
+    mechanics:"Only usable against an attack intent. Consumes your turn, deals no damage, restores no Stamina and makes no counterattack. Strike and defence rhythm break; a prepared Heavy is preserved.",
+    scaling:"No stat scaling at Degree I."
+  },
+  smite:{
+    id:"smite", name:"Smite", degree:"I", max:2,
+    desc:"Strike with your weapon and Radiant power. Costs no Stamina.",
+    mechanics:"Consumes your normal combat action. Deals a weapon-strength Physical component plus 6 Radiant damage. The Physical part can be Dodged or reduced by Guard, but the Radiant part still lands through ordinary Dodge and Guard. A prepared Heavy is abandoned if you Smite instead.",
+    scaling:"Physical damage scales with STR. Radiant damage is flat at Degree I."
+  },
+  withdraw:{
+    id:"withdraw", name:"Withdraw", degree:"I", max:1,
+    desc:"Leave the fight immediately with no Run HP cost. You gain no XP or kill rewards.",
+    mechanics:"Ends the current encounter immediately. No XP, kill reward or Poultice trigger. Any prepared Heavy is abandoned.",
+    scaling:"No stat scaling at Degree I."
+  }
+};
+const SKILL_ORDER = ["layonhands","holdfast","smite","withdraw"];
 
 function stratumIndex(depth=S?.depth || 0){
   return Math.max(0, Math.floor(depth / FATHOMS_PER_STRATUM));
@@ -1100,6 +1259,10 @@ let knowledge = {}; // per-archetype Read progress during this delver's run
 let armed = null;  // which action is tapped-but-not-yet-committed
 let over = false;  // true once you're dead
 let hollowTimer = null; // UI countdown for ordinary safe hollows
+let healFxTimer = null;
+let smiteFxTimer = null;
+let combatExpandedSkill = null;
+let charExpandedSkill = null;
 
 function xpToNext(level=S.level){
   return Math.round(20 + 10*Math.pow(level,1.5));
@@ -1175,6 +1338,10 @@ function newDelver(){
     activeHollow:null,          // current one-use recovery landmark, if paused at one
     boon:null,                  // {id, expiresAt, remainingMs, frozen}
     pendingBoonChoice:false,
+    pendingRestSkillChoice:false,
+    skillQuickUsed:false,
+    className:"Votary",
+    skills: Object.fromEntries(SKILL_ORDER.map(id => [id,{cur:SKILL_DEFS[id].max,max:SKILL_DEFS[id].max,degree:SKILL_DEFS[id].degree}])),
     turn:1, foe:null
   };
   S.hpMax = maxHp();
@@ -1186,6 +1353,9 @@ function newDelver(){
   $("readout").innerHTML = "";
   $("travelLog").innerHTML = "";
   $("packSheet").hidden = true;
+  $("sheet").hidden = true;
+  $("restSkillPick").hidden = true;
+  $("charSheet").hidden = true;
   travelLogAdd(`The way down waits. Choose how you want to move.`, "note");
   say(`<p class="note">The way down waits. Choose how you want to move.</p>`);
   render();
@@ -1284,6 +1454,150 @@ function renderActiveBoon(){
     txt.textContent = text;
   }
 }
+function triggerHealFx(amount, targets=["combat"]){
+  if(!amount || amount <= 0) return;
+  const seen = new Set();
+  const roots = [];
+  for(const target of targets){
+    const root = target === "travel" ? $("travelHp")?.parentElement : $("heroBar");
+    if(root && !seen.has(root)){
+      seen.add(root);
+      roots.push(root);
+    }
+  }
+  roots.forEach(root => {
+    root.classList.remove("healing");
+    root.classList.add("healing");
+    root.querySelectorAll(".heal-pop,.heal-pluses").forEach(n => n.remove());
+
+    const pop = document.createElement("div");
+    pop.className = "heal-pop";
+    pop.innerHTML = `<span class="heal-label">+${amount}</span>`;
+    root.appendChild(pop);
+
+    const pluses = document.createElement("div");
+    pluses.className = "heal-pluses";
+    pluses.innerHTML = [
+      `<span class="heal-plus" style="left:7%;top:-4px;animation-delay:0s">+</span>`,
+      `<span class="heal-plus" style="left:27%;top:-10px;animation-delay:.04s">+</span>`,
+      `<span class="heal-plus" style="left:48%;top:-3px;animation-delay:.08s">+</span>`,
+      `<span class="heal-plus" style="left:69%;top:-9px;animation-delay:.12s">+</span>`,
+      `<span class="heal-plus" style="left:87%;top:-2px;animation-delay:.16s">+</span>`
+    ].join("");
+    root.appendChild(pluses);
+
+    setTimeout(() => {
+      root.classList.remove("healing");
+      pop.remove();
+      pluses.remove();
+    }, 850);
+  });
+}
+function triggerSmiteFx(){
+  const sprite = $("foeSprite");
+  if(!sprite) return;
+  sprite.classList.remove("smite-flare");
+  // Force a reflow so repeated Smites restart the animation cleanly.
+  void sprite.offsetWidth;
+  sprite.classList.add("smite-flare");
+  if(smiteFxTimer !== null) clearTimeout(smiteFxTimer);
+  smiteFxTimer = setTimeout(() => {
+    sprite.classList.remove("smite-flare");
+    smiteFxTimer = null;
+  }, 760);
+}
+
+function restoreAllSkills(){
+  for(const id of SKILL_ORDER){
+    const sk = skillState(id);
+    if(sk) sk.cur = sk.max;
+  }
+}
+function recoverOneSkillUse(id){
+  const sk = skillState(id);
+  if(!sk || sk.cur >= sk.max) return false;
+  sk.cur++;
+  return true;
+}
+function skillDisplayName(id){
+  const def = SKILL_DEFS[id];
+  const sk = skillState(id);
+  return `${def.name} ${sk?.degree || def.degree}`;
+}
+function closeSkillSheet(){ $("sheet").hidden = true; }
+function closeRestSkillPick(){
+  if(!S) return;
+  S.pendingRestSkillChoice = false;
+  $("restSkillPick").hidden = true;
+}
+function renderRestSkillPick(){
+  const picker = $("restSkillPick");
+  if(!picker) return;
+  const show = !!S?.pendingRestSkillChoice && !over;
+  picker.hidden = !show;
+  if(!show) return;
+  $("restSkillOptions").innerHTML = SKILL_ORDER.filter(id => {
+    const sk = skillState(id);
+    return sk && sk.cur < sk.max;
+  }).map(id => {
+    const sk = skillState(id), def = SKILL_DEFS[id];
+    return `<button class="restskill-opt" data-skill="${id}"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses ready → ${Math.min(sk.max, sk.cur+1)}/${sk.max} after Rest</span></button>`;
+  }).join("");
+}
+function skillDetailHtml(def){
+  return `<p><b>Mechanics</b><span>${esc(def.mechanics)}</span></p><p><b>Scaling</b><span>${esc(def.scaling)}</span></p>`;
+}
+function renderSkillSheet(){
+  const list = $("skillsList");
+  if(!list || !S) return;
+  $("sheetSlots").textContent = `${skillUsesReady()} / ${skillUsesMax()} uses ready`;
+  $("skillSummary").textContent = `${skillUsesReady()} / ${skillUsesMax()} uses ready`;
+  list.innerHTML = SKILL_ORDER.map(id => {
+    const def = SKILL_DEFS[id], sk = skillState(id);
+    const noAttack = id === "holdfast" && (!S.foe || INTENTS[S.foe.intent].kind !== "attack");
+    const unusable = over || !S.foe || sk.cur <= 0 || (id === "layonhands" && (S.skillQuickUsed || S.hp >= S.hpMax)) || noAttack;
+    let meta = `${sk.cur}/${sk.max} uses ready`;
+    if(id === "layonhands" && S.hp >= S.hpMax) meta = `${sk.cur}/${sk.max} uses ready · already at full HP`;
+    if(id === "layonhands" && S.skillQuickUsed) meta = `${sk.cur}/${sk.max} uses ready · once per turn`;
+    if(noAttack && S.foe) meta = `${sk.cur}/${sk.max} uses ready · no attack to hold against`;
+    if(sk.cur <= 0) meta = `${sk.cur}/${sk.max} uses ready · spent`;
+    const open = combatExpandedSkill === id;
+    return `<div class="skill-wrap">
+      <button class="skill ${sk.cur <= 0 ? "spent" : ""}" data-skill="${id}" ${unusable ? "disabled" : ""}>
+        <span class="meta">${esc(meta)}</span><b>${esc(def.name)} ${esc(sk.degree)}</b><p>${esc(def.desc)}</p>
+      </button>
+      <button class="skill-more" data-skill-more="${id}">${open ? "Hide details" : "See more"}</button>
+      <div class="skill-detail" ${open ? "" : "hidden"}>${skillDetailHtml(def)}</div>
+    </div>`;
+  }).join("");
+}
+function openCharacterSheet(){
+  if(!S || over || S.foe) return;
+  renderCharacterSheet();
+  $("charSheet").hidden = false;
+}
+function closeCharacterSheet(){
+  $("charSheet").hidden = true;
+}
+function renderCharacterSheet(){
+  if(!S || !$("charSheet")) return;
+  $("charName").textContent = S.name;
+  $("charClassLevel").textContent = `${S.className || "Votary"} · Level ${S.level}`;
+  $("charHp").textContent = `${Math.max(0,S.hp)} / ${S.hpMax}`;
+  $("charStamina").textContent = `${S.stamina} / ${S.staminaMax}`;
+  $("charStats").innerHTML = ["STR","CON","DEX","INT","WIS","CHA"].map(stat => `<div class="char-stat"><span>${stat}</span><b>${S[stat]}</b></div>`).join("");
+  $("charSkillSummary").textContent = `${skillUsesReady()} / ${skillUsesMax()} uses ready`;
+  $("charSkills").innerHTML = SKILL_ORDER.map(id => {
+    const def = SKILL_DEFS[id], sk = skillState(id), open = charExpandedSkill === id;
+    return `<div class="char-skill">
+      <div class="char-skill-top"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses</span></div>
+      <p>${esc(def.desc)}</p>
+      <button class="skill-more" data-char-skill-more="${id}">${open ? "Hide details" : "See more"}</button>
+      <div class="skill-detail" ${open ? "" : "hidden"}>${skillDetailHtml(def)}</div>
+    </div>`;
+  }).join("");
+}
+
 
 function restHealAmount(){
   return Math.max(1, Math.round(S.hpMax * REST_HEAL_FRACTION));
@@ -1291,8 +1605,23 @@ function restHealAmount(){
 function restReady(){
   return !!S && S.restRecovery >= REST_RECOVERY_REQUIRED - 0.001;
 }
+function skillState(id){
+  return S?.skills?.[id] || null;
+}
+function skillUsesReady(){
+  return SKILL_ORDER.reduce((n,id) => n + (skillState(id)?.cur || 0), 0);
+}
+function skillUsesMax(){
+  return SKILL_ORDER.reduce((n,id) => n + (skillState(id)?.max || 0), 0);
+}
+function skillsNeedRestoration(){
+  return SKILL_ORDER.some(id => {
+    const sk = skillState(id);
+    return sk && sk.cur < sk.max;
+  });
+}
 function canRest(){
-  return !!S && !over && !S.foe && S.statPoints <= 0 && restReady() && S.hp < S.hpMax;
+  return !!S && !over && !S.foe && S.statPoints <= 0 && !S.pendingRestSkillChoice && restReady() && (S.hp < S.hpMax || skillsNeedRestoration());
 }
 function hollowKey(stratum, kind){
   return `${stratum}:${kind}`;
@@ -1383,19 +1712,23 @@ function campAtHollow(){
   if(!h || S.inventory.campSupplies <= 0) return;
   cancelHollowAutoResume();
   clearHollowTimer();
+  const healedHp = S.hpMax - S.hp;
   S.inventory.campSupplies--;
   S.hp = S.hpMax;
   S.stamina = S.staminaMax;
   S.heavyCharge = 0;
   S.strikeChain = 0;
   S.defenceChain = 0;
+  S.skillQuickUsed = false;
+  restoreAllSkills();
   S.restRecovery = REST_RECOVERY_REQUIRED;
   S.hollowStates[h.key] = "used";
   S.activeHollow = null;
   pauseBoonClock();
   S.travelMode = "stopped";
   S.pendingBoonChoice = true;
-  travelLogAdd(`You make camp. <b>HP and Stamina fully restored.</b> Choose a boon for the next stretch.`, "good");
+  travelLogAdd(`You make camp. <b>HP, Stamina and all skill uses fully restored.</b> Choose a boon for the next stretch.`, "good");
+  if(healedHp > 0) triggerHealFx(healedHp, ["travel"]);
   render();
 }
 function takeRest(){
@@ -1408,7 +1741,15 @@ function takeRest(){
   S.hp = Math.min(S.hpMax, S.hp + nominal);
   const healed = S.hp - before;
   S.restRecovery = 0;
-  travelLogAdd(`You rest and recover <b>${healed} HP</b>.`, "good");
+  if(healed > 0) triggerHealFx(healed, ["travel"]);
+  if(skillsNeedRestoration()){
+    S.pendingRestSkillChoice = true;
+    travelLogAdd(healed > 0
+      ? `You rest and recover <b>${healed} HP</b>. Choose one spent skill use to restore.`
+      : `You rest and steady yourself. Choose one spent skill use to restore.`, "good");
+  } else {
+    travelLogAdd(`You rest and recover <b>${healed} HP</b>.`, "good");
+  }
   render();
 }
 function openPack(){
@@ -1427,6 +1768,7 @@ function renderPack(){
 
 function nextFoe(){
   closePack();
+  closeCharacterSheet();
   pauseBoonClock();
   S.travelMode = "stopped";
   S.travelSinceEvent = 0;
@@ -1436,6 +1778,7 @@ function nextFoe(){
   S.heavyCharge = 0;
   S.strikeChain = 0;
   S.defenceChain = 0;
+  S.skillQuickUsed = false;
   armed = null;
 
   const base = chooseFoeProfile();
@@ -1615,6 +1958,18 @@ function dmgStrike(stage=strikeStage()){
   if(f.intent === "guard") d *= (1 - INTENTS.guard.armour);
   return Math.max(1, Math.round(d));
 }
+function damageTypeMultiplier(type, foe=S.foe){
+  return foe?.profile?.damageTypes?.[type] ?? 1;
+}
+function dmgSmite(){
+  const f = S.foe;
+  let physical = (S.STR + ri(0,4)) * openingBonus();
+  if(f.intent === "guard") physical *= (1 - INTENTS.guard.armour);
+  physical = Math.max(1, Math.round(physical));
+  const radiant = Math.max(0, Math.round(6 * damageTypeMultiplier("radiant", f)));
+  return {physical, radiant, total:physical + radiant};
+}
+
 function heavyMultiplier(charge=S.heavyCharge){
   return charge >= 2 ? 4.7 : 2.7;
 }
@@ -1703,6 +2058,7 @@ function finishKill(out){
   S.heavyCharge = 0;
   S.strikeChain = 0;
   S.defenceChain = 0;
+  S.skillQuickUsed = false;
   armed = null;
   // The boon remains paused after combat. It resumes only when the player
   // explicitly starts Descending or Exploring again.
@@ -1754,6 +2110,39 @@ const ACTIONS = {
         ? ` <span class="note">The three-hit rhythm completes and resets.</span>`
         : ` <span class="note">Momentum: next Strike becomes <b>${strikeName(stage+1)}</b>.</span>`;
       return `<p>${stage === 0 ? pick(HIT_VERBS) : name} the ${esc(f.name)} for <b>${d}</b>.</p>${momentum}`;
+    }
+  },
+
+  smite:{
+    label:"Smite I",
+    sub:"0 stamina · 1.0× STR + 6 Radiant",
+    cost:0,
+    preview(){
+      const d = dmgSmite(), back = incoming();
+      let text = `<span class="dmg">~${d.physical} Physical + ${d.radiant} Radiant</span> · <span class="cost">0 stamina</span> · 1 skill use`;
+      if(S.foe.intent === "dodge") text += ` · <span class="bad">35% chance the Physical part misses, but Radiant still lands</span>`;
+      if(S.foe.intent === "guard") text += ` · guard reduces the Physical part, not Radiant`;
+      if(back) text += ` · you take <span class="bad">~${back}</span> if it survives`;
+      return text;
+    },
+    run(){
+      const f = S.foe;
+      const sk = skillState("smite");
+      if(!sk || sk.cur <= 0) return `<p class="note">Smite is spent.</p>`;
+      sk.cur--;
+      triggerSmiteFx();
+      const abandonedHeavy = S.heavyCharge > 0;
+      S.heavyCharge = 0;
+      const d = dmgSmite();
+      if(f.intent === "dodge" && rnd() < 0.35){
+        f.hp -= d.radiant;
+        return `<p>Called Radiance through the weapon. The ${esc(f.name)} slipped the blow, but the light still seared it for <b>${d.radiant} Radiant</b>.</p>` +
+               (abandonedHeavy ? `<p class="note">The prepared Heavy was abandoned.</p>` : "");
+      }
+      f.hp -= d.total;
+      return `<p>Smote the ${esc(f.name)} for <b>${d.physical} Physical</b> + <b>${d.radiant} Radiant</b>.</p>` +
+             (f.intent === "guard" ? `<p class="note">Its guard blunted the weapon blow, but not the Radiance.</p>` : "") +
+             (abandonedHeavy ? `<p class="note">The prepared Heavy was abandoned.</p>` : "");
     }
   },
 
@@ -1974,6 +2363,76 @@ const ACTIONS = {
     }
   }};
 
+function applyLayOnHands(){
+  const sk = skillState("layonhands");
+  if(!S.foe || !sk || sk.cur <= 0 || S.skillQuickUsed || S.hp >= S.hpMax) return;
+  const before = S.hp;
+  S.hp = Math.min(S.hpMax, S.hp + 15);
+  const healed = S.hp - before;
+  if(healed <= 0) return;
+  sk.cur--;
+  S.skillQuickUsed = true;
+  closeSkillSheet();
+  triggerHealFx(healed, ["combat"]);
+  say(`<p class="good"><b>${esc(skillDisplayName("layonhands"))}.</b> Closed a wound for <b>${healed}</b> HP.</p><p class="note">Quick-use skill: it did not end your turn.</p>`);
+  render();
+}
+function useHoldFast(){
+  const sk = skillState("holdfast");
+  if(!S.foe || !sk || sk.cur <= 0 || INTENTS[S.foe.intent].kind !== "attack") return;
+  sk.cur--;
+  closeSkillSheet();
+  armed = null;
+  const f = S.foe, I = INTENTS[f.intent];
+  let out = `<p class="good"><b>${esc(skillDisplayName("holdfast"))}.</b> You braced through <b>${esc(I.label)}</b> and gave up no ground.</p>`;
+  if(f.blinded){
+    out += `<p class="note">It was already blinded. The attempt whistled into empty air, and your commitment remained intact.</p>`;
+    f.blinded = false;
+  } else {
+    out += `<p class="note">The attack was negated. No Stamina came back, and there was no counter.</p>`;
+  }
+  if(f.intent === "offquick" && f.offBalance){
+    f.offBalanceStruck = true;
+    out += `<p class="note">It lashed out instead of regaining its footing. It is still <b>Off-Balance</b>.</p>`;
+  }
+  S.defenceChain = 0;
+  S.strikeChain = 0;
+  S.turn++;
+  S.skillQuickUsed = false;
+  rollIntent();
+  say(out);
+  render();
+}
+function useSmite(){
+  const sk = skillState("smite");
+  if(!S.foe || !sk || sk.cur <= 0) return;
+  closeSkillSheet();
+  armed = null;
+  takeTurn("smite");
+}
+function useWithdrawSkill(){
+  const sk = skillState("withdraw");
+  if(!S.foe || !sk || sk.cur <= 0) return;
+  sk.cur--;
+  closeSkillSheet();
+  armed = null;
+  travelLogAdd(`You withdraw and hold at <b>${formatDepth(S.depth)} fathoms</b>.`, "danger");
+  say(`<p class="said"><b>${esc(skillDisplayName("withdraw"))}.</b> Broke contact cleanly.</p><p class="note">No HP cost, but you gain no XP or kill reward.</p>`);
+  S.foe = null;
+  S.heavyCharge = 0;
+  S.strikeChain = 0;
+  S.defenceChain = 0;
+  S.skillQuickUsed = false;
+  render();
+}
+function useSkill(id){
+  if(!S || over) return;
+  if(id === "layonhands") return applyLayOnHands();
+  if(id === "holdfast") return useHoldFast();
+  if(id === "smite") return useSmite();
+  if(id === "withdraw") return useWithdrawSkill();
+}
+
 function actionLabel(key){
   const v = ACTIONS[key].label;
   return typeof v === "function" ? v() : v;
@@ -2162,6 +2621,7 @@ function takeTurn(key){
   // Base passive Stamina regeneration is intentionally 0. Guard/Parry is the
   // universal reset; later stat thresholds can earn passive regeneration.
   S.turn++;
+  S.skillQuickUsed = false;
   rollIntent();
   say(out);
   render();
@@ -2184,6 +2644,7 @@ function tapRun(){
   S.heavyCharge = 0;
   S.strikeChain = 0;
   S.defenceChain = 0;
+  S.skillQuickUsed = false;
   // The boon remains paused after combat. It resumes only when the player
   // explicitly starts Descending or Exploring again.
   render();
@@ -2407,10 +2868,15 @@ function renderTravel(){
   const ready = restReady();
   const rest = $("btnRest");
   rest.disabled = !canRest();
-  if(S.hp >= S.hpMax){
-    $("restSub").textContent = ready ? `full HP · rest ready` : `full HP · ${S.restRecovery.toFixed(1)} / ${REST_RECOVERY_REQUIRED}`;
-  } else if(!ready){
+  const missingSkills = skillsNeedRestoration();
+  if(!ready){
     $("restSub").textContent = `${S.restRecovery.toFixed(1)} / ${REST_RECOVERY_REQUIRED} recovery`;
+  } else if(S.hp >= S.hpMax && missingSkills){
+    $("restSub").textContent = `full HP · recover 1 skill use`;
+  } else if(S.hp >= S.hpMax){
+    $("restSub").textContent = `full HP · nothing to restore`;
+  } else if(missingSkills){
+    $("restSub").textContent = `+${heal} HP · recover 1 skill use`;
   } else {
     $("restSub").textContent = `+${heal} HP · ready`;
   }
@@ -2483,6 +2949,9 @@ function render(){
   }
 
   $("loadoutTxt").textContent = S.loadout === "shield" ? "sword + shield · Guard" : "sword only · Parry";
+  renderSkillSheet();
+  renderRestSkillPick();
+  renderCharacterSheet();
 
   $("levelup").hidden = S.statPoints <= 0 || over;
   if(S.statPoints > 0){
@@ -2604,7 +3073,48 @@ $("levelup").addEventListener("click", e => {
   render();
 });
 
-$("btnSkills").addEventListener("click", () => { $("sheet").hidden = false; });
+$("btnSkills").addEventListener("click", () => {
+  if(over) return;
+  $("sheet").hidden = false;
+  renderSkillSheet();
+});
+$("skillsList").addEventListener("click", e => {
+  const more = e.target.closest(".skill-more[data-skill-more]");
+  if(more){
+    const id = more.dataset.skillMore;
+    combatExpandedSkill = combatExpandedSkill === id ? null : id;
+    renderSkillSheet();
+    return;
+  }
+  const b = e.target.closest(".skill[data-skill]");
+  if(!b || b.disabled) return;
+  useSkill(b.dataset.skill);
+});
+$("travelHeroCard").addEventListener("click", openCharacterSheet);
+$("travelHeroCard").addEventListener("keydown", e => {
+  if(e.key === "Enter" || e.key === " "){
+    e.preventDefault();
+    openCharacterSheet();
+  }
+});
+$("charSkills").addEventListener("click", e => {
+  const more = e.target.closest(".skill-more[data-char-skill-more]");
+  if(!more) return;
+  const id = more.dataset.charSkillMore;
+  charExpandedSkill = charExpandedSkill === id ? null : id;
+  renderCharacterSheet();
+});
+$("btnCharClose").addEventListener("click", closeCharacterSheet);
+$("charScrim").addEventListener("click", closeCharacterSheet);
+$("restSkillOptions").addEventListener("click", e => {
+  const b = e.target.closest(".restskill-opt[data-skill]");
+  if(!b || !S?.pendingRestSkillChoice) return;
+  if(recoverOneSkillUse(b.dataset.skill)){
+    travelLogAdd(`Rest also restored <b>1 use</b> of <b>${esc(skillDisplayName(b.dataset.skill))}</b>.`, "good");
+    closeRestSkillPick();
+    render();
+  }
+});
 $("btnLoadout").addEventListener("click", () => {
   if(S.heavyCharge > 0) return;
   S.loadout = S.loadout === "shield" ? "sword" : "shield";
@@ -2615,8 +3125,8 @@ $("btnLoadout").addEventListener("click", () => {
     : `<p class="note">Test loadout: sword only. Defence is now <b>Parry</b>.</p>`);
   render();
 });
-$("btnBack").addEventListener("click", () => { $("sheet").hidden = true; });
-$("scrim").addEventListener("click", () => { $("sheet").hidden = true; });
+$("btnBack").addEventListener("click", closeSkillSheet);
+$("scrim").addEventListener("click", closeSkillSheet);
 
 setInterval(travelTick, TRAVEL_TICK_MS);
 newDelver();
