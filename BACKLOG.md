@@ -21,3 +21,5 @@ Maybe having creatures run away. < need ability to block that. ex. Creature prep
 
 
 That would be a later addition to the game, where if you have killed 100 goblins total no matter the type you gain 10% permanent reduction in damage taken from all types. But that's not for this phase yet.
+
+weapon attack = Weapon stats & str

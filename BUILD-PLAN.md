@@ -77,10 +77,10 @@ clicking the biggest number, we fix combat before building anything else on top 
 ---
 
 ### Session 4 · The descent
-- [ ] Depth in fathoms, always climbing
-- [ ] Encounters interrupt the descent, combat screen slides in
-- [ ] Strata with names — hand-written ones first, procedural after they run out
-- [ ] The shaft visual: depth marker creeping down
+- [x] Depth in fathoms, always climbing
+- [x] Encounters interrupt the descent, combat screen slides in
+- [x] Strata with names — hand-written ones first, procedural after they run out
+- [x] The shaft visual: depth marker creeping down
 
 **Done when:** you can descend, fight, descend again, and see the depth number rise.
 **Your input needed:** stratum names for the first five bands.
@@ -91,21 +91,21 @@ clicking the biggest number, we fix combat before building anything else on top 
 ⚠ **Resolve camp gating before starting this session.** 3-hour cooldown vs. safe
 hollows + supplies. The whole session's shape depends on which one.
 
-- [ ] Real-time clocks stored as timestamps, diffed on load
-- [ ] Rest: ~10–15 min cooldown, quarter heal, choose one boon
-- [ ] Camp: full heal, rested buff, all slots back
-- [ ] One boon active at a time
-- [ ] Clock freezes during combat
+- [x] Real-time clocks stored as timestamps, diffed on load
+- [x] Rest: ~10–15 min cooldown, quarter heal, choose one boon
+- [x] Camp: full heal, rested buff, all slots back
+- [X] One boon active at a time
+- [x] Clock freezes during combat
 
 **Your input needed:** the boon list — names and what each does.
 
 ---
 
 ### Session 6 · Skills and slots
-- [ ] Skill slots as a resource — refresh fully at camp, partially at rest
-- [ ] First class with three skills
-- [ ] Each skill solves a problem the basic four can't
-- [ ] Degrees display as I / II / III
+- [x] Skill slots as a resource — refresh fully at camp, partially at rest
+- [x] First class with three skills
+- [x] Each skill solves a problem the basic four can't
+- [x] Degrees display as I / II / III
 
 **Your input needed:** the three skills, what problem each solves, and what II and III change.
 

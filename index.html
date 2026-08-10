@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0f1317">
-<title>Lowfathom v0.061 — Skills & Character</title>
+<title>Lowfathom v0.076 — Explore Timer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.061 skills + character prototype
+   LOWFATHOM — v0.076 Explore timer + v0.075 Smite FX correction
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -39,7 +39,7 @@
    - Session 4: Descend moves continuously through 60-fathom strata
    - Session 4: Explore holds depth while using the same interruption engine
    - Session 4: interruption pressure rises after a short quiet stretch
-   - Session 4: combat is currently the only implemented interruption result
+   - Session 4: combat remains the generic random interruption result
    - Session 5: Rest heals 25% Max HP and recharges through 15 travel activity
    - Session 5: two deterministic one-use safe hollows exist per 60-fathom stratum
    - Session 5: ordinary hollows auto-resume after 15 seconds unless the player interacts
@@ -48,6 +48,10 @@
    - Session 5: Pack is a soft screen; descent continues behind it until interrupted
    - Read permanently learns each goblin archetype's weakness for the current run
    - repeated Study reads build capped archetype knowledge: Studied at 3, Mastered at 6
+   - v0.075: class-use features are named Abilities; practiced competencies are Skills
+   - v0.075: Perception, Investigation, Stealth, Acrobatics, Athletics and Survival have practice ranks
+   - v0.075: Explore can surface a one-time glint event using Perception and Investigation checks
+   - v0.076: Explore shows elapsed active exploration time at the current depth
 
    Nothing is saved yet — refreshing the page starts you over
    with a fresh delver. That's Session 8's job.
@@ -221,6 +225,28 @@ button{
 .hollow-btn.continue b{color:var(--verdigris)}
 .hollow-btn:disabled{background:#0f1418;cursor:not-allowed}
 .hollow-btn:disabled b,.hollow-btn:disabled span{color:#3f4954}
+
+/* ---------- v0.075: skill-driven exploration event ---------- */
+.travel-event-card{
+  margin:auto 12px 12px;padding:11px 12px 12px;border:1px solid var(--verdigris);
+  background:#151d21;box-shadow:0 8px 28px rgba(0,0,0,.24);
+}
+.travel-event-card[hidden]{display:none}
+.travel-event-card em{display:block;font-style:normal;font-family:var(--cond);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--verdigris)}
+.travel-event-card h2{margin:2px 0 5px;font-family:var(--slab);font-size:18px;font-weight:600;color:var(--bone)}
+.travel-event-card p{margin:0 0 9px;color:#a0a6a6;font-size:11.5px;line-height:1.42}
+.travel-event-roll{margin:7px 0 9px;padding:7px 8px;border-left:2px solid var(--lamp-dim);background:#11171c;font-family:var(--cond);font-size:10.5px;line-height:1.4;color:var(--dim)}
+.travel-event-roll[hidden]{display:none}
+.travel-event-roll b{color:var(--bone);font-weight:600}.travel-event-roll .good{color:#92b896}.travel-event-roll .bad{color:#b97363}
+.travel-event-actions{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule)}
+.travel-event-btn{border:none;background:#12181e;padding:9px 10px;text-align:left;min-height:54px}
+.travel-event-btn.wide{grid-column:1/-1}
+.travel-event-btn b{display:block;font-family:var(--slab);font-size:14px;color:var(--bone)}
+.travel-event-btn span{display:block;margin-top:2px;font-family:var(--cond);font-size:9px;line-height:1.25;color:var(--dim)}
+.travel-event-btn.skill b{color:var(--verdigris)}
+.travel-event-btn.investigate b{color:var(--lamp)}
+.travel-event-btn.ignore b{color:var(--dim)}
+.travel-event-btn:active{background:#202a31}
 
 .travel-log-wrap{
   min-height:0;
@@ -590,7 +616,7 @@ button{
   display:block;font-family:var(--cond);font-size:10.5px;letter-spacing:.12em;
   text-transform:uppercase;color:var(--dim);margin-top:2px;
 }
-.mact.skills b{color:var(--lamp)}
+.mact.abilities b{color:var(--lamp)}
 .mact.pack b{color:var(--bone)}
 .mact:disabled{background:#101418;cursor:not-allowed}
 .mact:disabled b{color:#3f4954}
@@ -619,7 +645,7 @@ button{
 .botbtn.go{background:#1a2229}
 .botbtn.go b{color:var(--lamp)}
 
-/* ---------- Session 6: rest skill recovery ---------- */
+/* ---------- Session 6: rest ability recovery ---------- */
 .restskillpick{
   position:absolute;inset:0;z-index:10;background:rgba(8,11,14,.84);
   display:flex;align-items:flex-end;
@@ -659,14 +685,29 @@ button{
 .char-head h2{margin:1px 0 0;font-family:var(--slab);font-size:20px;color:var(--bone);line-height:1.15}
 .char-head div>span{display:block;margin-top:2px;font-family:var(--cond);font-size:10.5px;color:var(--dim)}
 .char-live{font-family:var(--cond);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+.char-head #charBackground{display:block;margin-top:2px;font-family:var(--cond);font-size:10px;color:var(--dim)}
+
 .char-vitals{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
 .char-vitals div{padding:10px 13px;background:#141a20}
 .char-vitals em{display:block;font-style:normal;font-family:var(--cond);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
 .char-vitals b{display:block;margin-top:2px;font-family:var(--slab);font-size:16px;color:var(--bone)}
 .char-vitals div:nth-child(2) b{color:var(--stamina)}
 .char-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
+.char-folk-trait{padding:8px 13px;background:#101418;border-bottom:1px solid var(--rule);font-family:var(--cond);font-size:10px;line-height:1.35;color:var(--dim)}
+.char-folk-trait b{color:var(--lamp-dim);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.char-folk-trait .pos{color:#92b896}.char-folk-trait .neg{color:#b97363}
 .char-stat{display:flex;justify-content:space-between;gap:8px;padding:9px 11px;background:#12181e;font-family:var(--cond);font-size:11px;color:var(--dim)}
 .char-stat b{color:var(--bone);font-weight:600}
+.char-field-skills{background:var(--rule);border-bottom:1px solid var(--rule)}
+.char-field-skill{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 11px;background:#12181e;border-bottom:1px solid var(--rule)}
+.char-field-skill:last-child{border-bottom:none}
+.char-field-skill b{display:block;font-family:var(--slab);font-size:14px;color:var(--bone);font-weight:600}
+.char-field-skill p{margin:2px 0 0;font-family:var(--cond);font-size:9.5px;line-height:1.3;color:var(--dim)}
+.char-field-skill p strong{color:var(--verdigris);font-weight:600}
+.char-field-progress{text-align:right;white-space:nowrap}
+.char-field-progress strong{display:block;font-family:var(--cond);font-size:10px;color:var(--verdigris);font-weight:600}
+.char-field-progress span{display:block;margin-top:2px;font-family:var(--cond);font-size:9px;color:var(--dim)}
+.char-field-note{padding:8px 13px;background:#101418;color:#59636e;font-size:10.5px;border-bottom:1px solid var(--rule)}
 .char-section-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:10px 13px;background:#101418;border-bottom:1px solid var(--rule)}
 .char-section-head b{font-family:var(--cond);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--lamp-dim)}
 .char-section-head span{font-family:var(--cond);font-size:10.5px;color:var(--verdigris)}
@@ -687,7 +728,7 @@ button{
 .skill-detail b{font-family:var(--cond);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--lamp-dim);font-weight:600}
 .skill-detail span{color:#9aa3aa}
 
-/* ---------- the skills sheet ---------- */
+/* ---------- the abilities sheet ---------- */
 .sheet{
   position:absolute;left:0;right:0;top:0;bottom:0;
   max-width:480px;margin:0 auto;z-index:5;
@@ -753,6 +794,93 @@ button{
 .levelup-opt span{display:block;margin-top:2px;font-family:var(--cond);font-size:11px;color:var(--dim)}
 .levelup-note{padding:9px 13px 12px;font-size:11px;color:#59636e;background:#101418}
 
+/* ---------- Session 7: character creation ---------- */
+.creator{
+  position:absolute;inset:0;z-index:30;background:var(--deep);
+  display:flex;flex-direction:column;overflow-y:auto;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.creator[hidden]{display:none}
+.creator-head{
+  padding:calc(18px + env(safe-area-inset-top)) 15px 13px;
+  background:#12181e;border-bottom:1px solid var(--rule);
+}
+.creator-head em{
+  display:block;font-style:normal;font-family:var(--cond);font-size:9.5px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--lamp-dim);
+}
+.creator-head h1{margin:2px 0 2px;font-family:var(--slab);font-size:28px;font-weight:600;color:var(--lamp)}
+.creator-head p{margin:0;color:var(--dim);font-size:11.5px;max-width:42ch}
+.creator-body{padding:0 13px 16px}
+.creator-section{padding:13px 0;border-bottom:1px solid var(--rule)}
+.creator-section-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:7px}
+.creator-section-head b{font-family:var(--slab);font-size:17px;font-weight:600;color:var(--bone)}
+.creator-section-head span{font-family:var(--cond);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.creator-section p{margin:0 0 8px;color:var(--dim);font-size:11px}
+.creator-name{
+  width:100%;height:48px;border:1px solid var(--rule-hi);background:#11171c;color:var(--bone);
+  padding:0 12px;font-family:var(--slab);font-size:18px;border-radius:0;
+}
+.creator-name::placeholder{color:#4f5b66}
+.creator-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.creator-choice{
+  min-height:58px;border:1px solid var(--rule);background:#141a20;text-align:left;padding:8px 10px;
+  color:#aaa69d;
+}
+.creator-choice b{display:block;font-family:var(--slab);font-size:14px;font-weight:600;color:inherit}
+.creator-choice span{display:block;margin-top:2px;font-family:var(--cond);font-size:9px;line-height:1.3;letter-spacing:.04em;color:var(--dim)}
+.creator-choice span .pos{color:#92b896}.creator-choice span .neg{color:#b97363}
+.creator-choice.selected{border-color:var(--lamp-dim);background:#20272d;color:var(--lamp);box-shadow:inset 0 0 0 1px rgba(230,194,136,.12)}
+.creator-choice.selected span{color:#aaa18f}
+.creator-choice:active{background:#202a31}
+.creator-choice.folk-card{
+  min-height:72px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:12px;
+}
+.creator-choice.folk-card b{margin:0;align-self:center}
+.creator-choice.folk-card .folk-meta{
+  justify-self:end;display:flex;flex-direction:column;gap:2px;min-width:82px;
+  margin-top:0;text-align:left;line-height:1.25;
+}
+.creator-choice.folk-card .folk-meta-line{display:block;white-space:nowrap}
+.creator-choice.folk-card .folk-meta-line .pos{color:#92b896}
+.creator-choice.folk-card .folk-meta-line .neg{color:#b97363}
+.creator-folk-flavor{
+  margin:8px 0 0!important;padding:8px 10px;border-left:2px solid var(--lamp-dim);
+  background:#12181e;color:#99968d!important;font-family:var(--slab);font-size:12px!important;line-height:1.35;
+}
+.creator-folk-flavor[hidden]{display:none}
+.creator-human{margin-top:8px;border:1px solid var(--lamp-dim);background:#12181e}
+.creator-human[hidden]{display:none}
+.creator-human-head{padding:9px 10px;border-bottom:1px solid var(--rule)}
+.creator-human-head b{display:block;font-family:var(--slab);font-size:14px;color:var(--lamp)}
+.creator-human-head span{display:block;margin-top:2px;font-family:var(--cond);font-size:9.5px;color:var(--dim)}
+.creator-human-row{display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--rule)}
+.creator-human-row:last-child{border-bottom:none}
+.creator-human-row>span{font-family:var(--cond);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.creator-human-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+.creator-human-stat{min-height:35px;border:1px solid var(--rule);background:#171d23;font-family:var(--cond);font-size:9px;color:#929aa1;padding:0}
+.creator-human-stat.selected{border-color:var(--lamp-dim);background:#252a2e;color:var(--lamp)}
+.creator-human-stat:disabled{opacity:.28;cursor:not-allowed}
+.creator-identity{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);
+}
+.creator-identity div{background:#12181e;padding:10px 11px}
+.creator-identity em{display:block;font-style:normal;font-family:var(--cond);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.creator-identity b{display:block;margin-top:2px;font-family:var(--slab);font-size:15px;font-weight:600;color:var(--bone)}
+.creator-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.creator-stat{background:#12181e;padding:8px 9px;text-align:center}
+.creator-stat span{display:block;font-family:var(--cond);font-size:9px;letter-spacing:.14em;color:var(--dim)}
+.creator-stat b{display:block;font-family:var(--slab);font-size:18px;color:var(--bone)}
+.creator-stat small{display:block;min-height:13px;margin-top:1px;font-family:var(--cond);font-size:9px;color:var(--dim)}
+.creator-stat small.pos{color:#92b896}.creator-stat small.neg{color:#b97363}
+.creator-note{margin-top:8px!important;color:#59636e!important;font-size:10.5px!important}
+.creator-sign{
+  width:calc(100% - 26px);margin:0 13px 13px;min-height:58px;border:1px solid var(--lamp-dim);
+  background:#171d23;color:var(--lamp);font-family:var(--slab);font-size:20px;font-weight:600;
+}
+.creator-sign:disabled{border-color:var(--rule);background:#101418;color:#3e4851;cursor:not-allowed}
+.creator-sign span{display:block;margin-top:1px;font-family:var(--cond);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
 /* ---------- the end ---------- */
 .dead{
   position:absolute;inset:0;z-index:10;background:var(--deep);
@@ -760,7 +888,14 @@ button{
   text-align:center;padding:30px 22px;
 }
 .dead h2{font-family:var(--slab);font-size:23px;color:var(--rust);margin:0 0 10px;line-height:1.25}
-.dead p{color:var(--dim);margin:0 0 22px;max-width:38ch}
+.dead p{color:var(--dim);margin:0 0 12px;max-width:38ch}
+.dead .chronicle{
+  width:min(360px,100%);margin:4px 0 20px;border:1px solid var(--rule);background:#12181e;text-align:left;
+}
+.dead .chronicle div{display:flex;justify-content:space-between;gap:14px;padding:7px 10px;border-bottom:1px solid var(--rule)}
+.dead .chronicle div:last-child{border-bottom:none}
+.dead .chronicle span{font-family:var(--cond);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.dead .chronicle b{font-family:var(--slab);font-size:13px;font-weight:500;color:var(--bone);text-align:right}
 .dead button{
   background:#141a20;border:1px solid var(--lamp-dim);color:var(--lamp);
   padding:13px 22px;min-height:52px;
@@ -778,6 +913,57 @@ button{
 
 <div class="arena" id="arena">
 
+  <section class="creator" id="creator" aria-label="Create a delver">
+    <div class="creator-head">
+      <em>Lowfathom · Character creation</em>
+      <h1>Before the descent</h1>
+      <p>Give the dark a name to remember.</p>
+    </div>
+    <div class="creator-body">
+      <section class="creator-section">
+        <div class="creator-section-head"><b>Name</b><span>your chronicle begins here</span></div>
+        <input class="creator-name" id="creatorName" maxlength="32" autocomplete="off" placeholder="Name your delver">
+      </section>
+
+      <section class="creator-section">
+        <div class="creator-section-head"><b>Folk</b><span>race</span></div>
+        <p>Your Folk is your race. Folk now shapes your starting attributes: every Folk gains a primary +2, a secondary +1, and a drawback. Humans are Adaptable and choose all three.</p>
+        <div class="creator-grid" id="folkChoices"></div>
+        <p class="creator-folk-flavor" id="folkFlavor" hidden></p>
+        <div class="creator-human" id="humanTraits" hidden>
+          <div class="creator-human-head"><b>Adaptable</b><span>Choose three different attributes: +2, +1, and −2.</span></div>
+          <div class="creator-human-row"><span>Primary +2</span><div class="creator-human-stats" id="humanPlus2"></div></div>
+          <div class="creator-human-row"><span>Secondary +1</span><div class="creator-human-stats" id="humanPlus1"></div></div>
+          <div class="creator-human-row"><span>Drawback −2</span><div class="creator-human-stats" id="humanMinus2"></div></div>
+        </div>
+      </section>
+
+      <section class="creator-section">
+        <div class="creator-section-head"><b>Trade</b><span>before the Guild</span></div>
+        <p>What work taught you before you took up the descent. Flavor-only for now.</p>
+        <div class="creator-grid" id="tradeChoices"></div>
+      </section>
+
+      <section class="creator-section">
+        <div class="creator-section-head"><b>Origin</b><span>where you came from</span></div>
+        <p>A first prototype list so we can judge the shape of the creator. Flavor-only for now.</p>
+        <div class="creator-grid" id="originChoices"></div>
+      </section>
+
+      <section class="creator-section">
+        <div class="creator-section-head"><b>Starting character</b><span>v0.076</span></div>
+        <div class="creator-identity">
+          <div><em>Class</em><b>Votary</b></div>
+          <div><em>Starting level</em><b>Level 1</b></div>
+          <div><em>Starting HP</em><b id="creatorHp">60</b></div>
+        </div>
+        <div class="creator-stats" id="creatorStats"></div>
+        <p class="creator-note">These are your final starting attributes after Folk modifiers. Trade and Origin remain flavor-only for now.</p>
+      </section>
+    </div>
+    <button class="creator-sign" id="btnSignFate" disabled>Sign Your Fate<span id="creatorReadyText">name, folk, trade and origin required</span></button>
+  </section>
+
   <section class="travel" id="travel">
     <div class="travel-top">
       <div class="trail-view" aria-label="Nearby route through the caves">
@@ -791,7 +977,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.054</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.076</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -803,6 +989,14 @@ button{
     </div>
 
     <div class="travel-middle">
+      <section class="travel-event-card" id="travelEventCard" hidden aria-live="polite">
+        <em id="travelEventKind">Observation</em>
+        <h2 id="travelEventTitle">A glint in the dark</h2>
+        <p id="travelEventText"></p>
+        <div class="travel-event-roll" id="travelEventRoll" hidden></div>
+        <div class="travel-event-actions" id="travelEventActions"></div>
+      </section>
+
       <section class="safe-hollow-card" id="safeHollowCard" hidden aria-live="polite">
         <em id="safeHollowKind">Safe hollow</em>
         <h2 id="safeHollowTitle">Defensible ground</h2>
@@ -847,7 +1041,7 @@ button{
         <div class="pack-item-top"><b>Camp Supplies</b><strong id="packCampSupplies">×2</strong></div>
         <p>Consumed when you make a full camp at a safe hollow.</p>
       </div>
-      <div class="pack-note">v0.061 still tracks only Camp Supplies. Books, scrolls, ingredients and other finds plug into this backpack later.</div>
+      <div class="pack-note">v0.076 still tracks only Camp Supplies. Books, scrolls, ingredients and other finds plug into this backpack later.</div>
       <button class="pack-close" id="btnPackClose">Back to the delve</button>
     </div>
   </div>
@@ -856,7 +1050,7 @@ button{
     <div class="char-scrim" id="charScrim"></div>
     <div class="char-panel">
       <div class="char-head">
-        <div><em>Character</em><h2 id="charName">—</h2><span id="charClassLevel">Votary · Level —</span></div>
+        <div><em>Character</em><h2 id="charName">—</h2><span id="charClassLevel">Votary · Level —</span><span id="charBackground">—</span></div>
         <span class="char-live">travel continues</span>
       </div>
       <div class="char-vitals">
@@ -864,9 +1058,13 @@ button{
         <div><em>Stamina</em><b id="charStamina">—</b></div>
       </div>
       <div class="char-stats" id="charStats"></div>
-      <div class="char-section-head"><b>Skills</b><span id="charSkillSummary">—</span></div>
-      <div class="char-skills" id="charSkills"></div>
-      <div class="char-note">Skill descriptions show what the ability does. “See more” shows its mechanics and current scaling.</div>
+      <div class="char-folk-trait" id="charFolkTrait"></div>
+      <div class="char-section-head"><b>Skills</b><span>practice through use</span></div>
+      <div class="char-field-skills" id="charSkills"></div>
+      <div class="char-field-note">Checks currently use d20 + (attribute − 10) + Skill rank + situational bonuses. Meaningful event practice can grant Skill XP; repeating the same event type cannot be farmed for more.</div>
+      <div class="char-section-head"><b>Abilities</b><span id="charAbilitySummary">—</span></div>
+      <div class="char-abilities" id="charAbilities"></div>
+      <div class="char-note">Ability descriptions show what each class ability does. “See more” shows its mechanics and current scaling.</div>
       <button class="char-close" id="btnCharClose">Back to the delve</button>
     </div>
   </div>
@@ -938,7 +1136,7 @@ button{
   <div class="pad" id="pad"></div>
 
   <div class="pad2">
-    <button class="mact skills" id="btnSkills"><b>Skills</b><span id="skillSummary">7 / 7 uses ready</span></button>
+    <button class="mact abilities" id="btnAbilities"><b>Abilities</b><span id="abilitySummary">7 / 7 uses ready</span></button>
     <button class="mact pack" id="btnLoadout"><b>Loadout</b><span id="loadoutTxt">sword + shield</span></button>
   </div>
 
@@ -958,32 +1156,32 @@ button{
         <b>CON +1</b>
         <span id="levelupCon">More maximum HP.</span>
       </button>
-      <div class="levelup-note">Prototype choice only. DEX / INT / WIS / CHA exist on the test delver but their combat jobs are not being invented early just to fill this screen.</div>
+      <div class="levelup-note">Prototype level-up choice only. STR and CON remain the only selectable level-up stats in this slice; DEX, INT, WIS and CHA now have broader system roles that will be expanded separately.</div>
     </div>
   </div>
 
-  <div class="restskillpick" id="restSkillPick" hidden>
+  <div class="restskillpick" id="restAbilityPick" hidden>
     <div class="restskillpick-panel">
       <div class="restskillpick-head">
         <em>Rest</em>
-        <b>Recover one skill use</b>
-        <p>Rest already restored HP. Choose one spent skill use to recover.</p>
+        <b>Recover one ability use</b>
+        <p>Rest already restored HP. Choose one spent ability use to recover.</p>
       </div>
-      <div id="restSkillOptions"></div>
-      <div class="restskillpick-note">Camp restores every skill fully. Rest returns one spent use of one skill.</div>
+      <div id="restAbilityOptions"></div>
+      <div class="restskillpick-note">Camp restores every ability fully. Rest returns one spent use of one ability.</div>
     </div>
   </div>
 
-  <!-- skills sheet: sits above the pad so the fight stays readable -->
+  <!-- abilities sheet: sits above the pad so the fight stays readable -->
   <div class="sheet" id="sheet" hidden>
     <div class="sheet-scrim" id="scrim"></div>
     <div class="sheet-panel">
       <div class="sheet-head">
-        <h2>Votary Skills</h2>
+        <h2>Votary Abilities</h2>
         <span class="slots" id="sheetSlots">7 / 7 uses ready</span>
       </div>
-      <div id="skillsList"></div>
-      <div class="sheet-note" id="sheetNote">Skills spend uses across the descent. Camp restores them all. Rest restores one spent use of one chosen skill.</div>
+      <div id="abilitiesList"></div>
+      <div class="sheet-note" id="sheetNote">Abilities spend uses across the descent. Camp restores them all. Rest restores one spent use of one chosen ability.</div>
       <button class="sheet-back" id="btnBack">Back to the fight</button>
     </div>
   </div>
@@ -1157,7 +1355,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.063";
+const BUILD_VERSION = "v0.076";
 
 const TRAVEL_TICK_MS = 500;
 const TRAVEL_STEP = 0.25;          // 0.5 fathom / second while Descending
@@ -1210,7 +1408,7 @@ const BOONS = {
     desc:"Gain 20% more XP from defeated enemies."
   }
 };
-const SKILL_DEFS = {
+const ABILITY_DEFS = {
   layonhands:{
     id:"layonhands", name:"Lay On Hands", degree:"I", max:2,
     desc:"Heal 15 HP. Quick-use: once per turn, and it does not end your turn. Costs no Stamina.",
@@ -1236,7 +1434,46 @@ const SKILL_DEFS = {
     scaling:"No stat scaling at Degree I."
   }
 };
-const SKILL_ORDER = ["layonhands","holdfast","smite","withdraw"];
+const ABILITY_ORDER = ["layonhands","holdfast","smite","withdraw"];
+
+const STAT_KEYS = ["STR","CON","DEX","INT","WIS","CHA"];
+const FOLK_TRAITS = {
+  "Human":    {adaptive:true, desc:"Adaptable · choose +2 / +1 / −2", flavor:"No single inheritance decides the road ahead."},
+  "Half-Elf": {mods:{CHA:2,WIS:1,CON:-1}, flavor:"Between traditions, quick to read people and changing situations."},
+  "High-Elf": {mods:{INT:2,DEX:1,STR:-1}, flavor:"Studious and precise, with little reliance on brute strength."},
+  "Drow":     {mods:{DEX:2,CHA:1,CON:-1}, flavor:"Quick-footed and forceful in presence, though less hardy."},
+  "Orc":      {mods:{STR:2,CON:1,INT:-1}, flavor:"Powerfully built, enduring, and inclined toward direct solutions."},
+  "Half-Orc": {mods:{STR:2,WIS:1,CHA:-1}, flavor:"Strong and watchful, more comfortable acting than persuading."},
+  "Dwarf":    {mods:{CON:2,STR:1,DEX:-1}, flavor:"Stout and powerful, trading quickness for staying power."},
+  "Halfling": {mods:{DEX:2,CHA:1,STR:-1}, flavor:"Quick and personable, but physically slight."}
+};
+const FOLK_OPTIONS = Object.keys(FOLK_TRAITS);
+const TRADE_OPTIONS = [
+  "Smith's Apprentice",
+  "Merchant's Clerk",
+  "Apothecary's Hand",
+  "Scribe's Apprentice",
+  "Hunter's Hand",
+  "Mason's Apprentice",
+  "Stablehand",
+  "Caravan Hand"
+];
+const ORIGIN_OPTIONS = ["Market Town","Border Village","River Country","Hill Country","Forest Edge","Old City"];
+const STARTING_STATS = {STR:10,CON:10,DEX:10,INT:10,WIS:10,CHA:10};
+
+/* v0.075: Skills are practiced competencies. Class features such as Smite and
+   Lay On Hands are Abilities. Skills improve through meaningful use rather than
+   being repeatedly clicked in a safe place. */
+const SKILL_DEFS = {
+  perception:{name:"Perception", stat:"WIS", desc:"Notice subtle signs, movement, sounds and things that do not belong."},
+  investigation:{name:"Investigation", stat:"INT", desc:"Examine clues, mechanisms, objects and places to understand what is actually there."},
+  stealth:{name:"Stealth", stat:"DEX", desc:"Move, hide and position yourself without drawing notice."},
+  acrobatics:{name:"Acrobatics", stat:"DEX", desc:"Balance, tumble, squeeze through and control precise movement."},
+  athletics:{name:"Athletics", stat:"STR", desc:"Climb, force, haul, jump and overcome obstacles through physical power."},
+  survival:{name:"Survival", stat:"WIS", desc:"Read tracks, terrain, signs of danger and the practical conditions of the delve."}
+};
+const SKILL_ORDER = ["perception","investigation","stealth","acrobatics","athletics","survival"];
+const GLINT_EVENT_TRIGGER = 2.5;
 
 function stratumIndex(depth=S?.depth || 0){
   return Math.max(0, Math.floor(depth / FATHOMS_PER_STRATUM));
@@ -1248,6 +1485,12 @@ function stratumName(index=stratumIndex()){
 }
 function formatDepth(depth=S?.depth || 0){
   return Number(depth).toFixed(1);
+}
+function formatExploreTime(ms=S?.exploreElapsedMs || 0){
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2,"0")}`;
 }
 
 
@@ -1261,8 +1504,9 @@ let over = false;  // true once you're dead
 let hollowTimer = null; // UI countdown for ordinary safe hollows
 let healFxTimer = null;
 let smiteFxTimer = null;
-let combatExpandedSkill = null;
-let charExpandedSkill = null;
+let creatorDraft = {name:"", folk:null, trade:null, origin:null, humanPlus2:null, humanPlus1:null, humanMinus2:null};
+let combatExpandedAbility = null;
+let charExpandedAbility = null;
 
 function xpToNext(level=S.level){
   return Math.round(20 + 10*Math.pow(level,1.5));
@@ -1317,31 +1561,126 @@ function xpReward(f){
   const base = Math.max(1, Math.round(f.profile.xp * (1 + S.depth/100)));
   return boonActive("makingplan") ? Math.max(1, Math.round(base * 1.20)) : base;
 }
+function folkModifiers(folk, draft=creatorDraft){
+  const trait = FOLK_TRAITS[folk];
+  const mods = Object.fromEntries(STAT_KEYS.map(k => [k,0]));
+  if(!trait) return mods;
+  if(trait.adaptive){
+    if(draft.humanPlus2) mods[draft.humanPlus2] += 2;
+    if(draft.humanPlus1) mods[draft.humanPlus1] += 1;
+    if(draft.humanMinus2) mods[draft.humanMinus2] -= 2;
+    return mods;
+  }
+  for(const [stat,val] of Object.entries(trait.mods || {})) mods[stat] = val;
+  return mods;
+}
+function startingStatsForProfile(profile){
+  const mods = folkModifiers(profile.folk, profile);
+  return Object.fromEntries(STAT_KEYS.map(stat => [stat, STARTING_STATS[stat] + (mods[stat] || 0)]));
+}
+function folkTraitText(folk){
+  const trait = FOLK_TRAITS[folk];
+  if(!trait) return "";
+  if(trait.adaptive) return "Choose +2 · +1 · −2";
+  const bits = Object.entries(trait.mods).sort((a,b) => b[1]-a[1]).map(([stat,val]) => `${stat} ${val > 0 ? "+" : ""}${val}`);
+  return bits.join(" · ");
+}
+function folkFlavorText(folk){
+  return FOLK_TRAITS[folk]?.flavor || "";
+}
+function formatFolkMods(mods){
+  return STAT_KEYS.filter(stat => mods?.[stat]).sort((a,b) => (mods[b] || 0) - (mods[a] || 0)).map(stat => {
+    const val = mods[stat];
+    const cls = val > 0 ? "pos" : "neg";
+    return `<span class="${cls}">${stat} ${val > 0 ? "+" : ""}${val}</span>`;
+  }).join(" · ");
+}
+function humanTraitsComplete(draft=creatorDraft){
+  const picks = [draft.humanPlus2,draft.humanPlus1,draft.humanMinus2];
+  return picks.every(Boolean) && new Set(picks).size === 3;
+}
 
-function newDelver(){
+function skillState(id){ return S?.skills?.[id] || null; }
+function skillXpNeeded(rank){ return 3 + Math.max(0,rank) * 2; }
+function signed(n){ return n >= 0 ? `+${n}` : `${n}`; }
+function skillCheckBonus(id){
+  const def = SKILL_DEFS[id], st = skillState(id);
+  if(!def || !st || !S) return 0;
+  return (S[def.stat] - 10) + st.rank;
+}
+function runSkillCheck(id, dc, situational=0){
+  const def = SKILL_DEFS[id], st = skillState(id);
+  const roll = ri(1,20);
+  const attrBonus = S[def.stat] - 10;
+  const rankBonus = st.rank;
+  const total = roll + attrBonus + rankBonus + situational;
+  return {id,def,dc,roll,attrBonus,rankBonus,situational,total,success:total >= dc};
+}
+function formatSkillCheck(result){
+  const parts = [`d20 ${result.roll}`, `${result.def.stat} ${signed(result.attrBonus)}`, `${result.def.name} Rank ${result.rankBonus}`];
+  if(result.situational) parts.push(`circumstance ${signed(result.situational)}`);
+  return `<b>${esc(result.def.name)}</b>: ${parts.join(" · ")} = <b>${result.total}</b> vs DC ${result.dc} · <span class="${result.success ? "good" : "bad"}">${result.success ? "success" : "failure"}</span>`;
+}
+function awardSkillPractice(id, source){
+  if(!S?.skills?.[id]) return {awarded:false,levelled:false};
+  if(!S.skillPracticeSources[source]) S.skillPracticeSources[source] = {};
+  if(S.skillPracticeSources[source][id]) return {awarded:false,levelled:false};
+  S.skillPracticeSources[source][id] = true;
+  const st = S.skills[id];
+  const beforeRank = st.rank;
+  st.xp += 1;
+  while(st.xp >= skillXpNeeded(st.rank)){
+    st.xp -= skillXpNeeded(st.rank);
+    st.rank++;
+  }
+  return {awarded:true,levelled:st.rank > beforeRank,rank:st.rank,xp:st.xp,next:skillXpNeeded(st.rank)};
+}
+function practiceText(id, practice){
+  if(!practice?.awarded) return "";
+  const name = SKILL_DEFS[id].name;
+  return practice.levelled
+    ? `<br><span class="good">${esc(name)} increased to Rank ${practice.rank}.</span>`
+    : `<br><span class="good">${esc(name)} +1 XP · ${practice.xp}/${practice.next}</span>`;
+}
+
+function newDelver(profile){
+  const chosen = profile || {name:"Leofrun Fenwick",folk:"Orc",trade:"Smith's Apprentice",origin:"Market Town"};
+  const starting = startingStatsForProfile(chosen);
+  const startingFolkMods = folkModifiers(chosen.folk, chosen);
   S = {
-    name:"Leofrun Fenwick", level:1, xp:0, statPoints:0,
-    STR:10, CON:10, DEX:10, INT:10, WIS:10, CHA:10,
+    name:chosen.name, folk:chosen.folk, trade:chosen.trade, origin:chosen.origin,
+    folkChoices:chosen.folk === "Human" ? {plus2:chosen.humanPlus2,plus1:chosen.humanPlus1,minus2:chosen.humanMinus2} : null,
+    folkMods:{...startingFolkMods},
+    level:1, xp:0, statPoints:0, kills:0,
+    STR:starting.STR, CON:starting.CON, DEX:starting.DEX,
+    INT:starting.INT, WIS:starting.WIS, CHA:starting.CHA,
     hpMax:0, hp:0,
     staminaMax:10, stamina:10,
-    heavyCharge:0, // 0 = none, 1 = 2.7× prepared, 2 = 4.7× fully drawn
-    strikeChain:0, // 0 = Strike, 1 = Double Strike, 2 = Perfect Strike
-    defenceChain:0, // 0 = normal defence, 1 = next defended attack becomes Perfect
-    loadout:"shield", // prototype toggle: "shield" = Guard, "sword" = Parry
+    heavyCharge:0,
+    strikeChain:0,
+    defenceChain:0,
+    loadout:"shield",
     depth:0, encounter:0, seenFoes:{},
-    travelMode:"stopped",      // "stopped" | "descend" | "explore"
-    travelSinceEvent:0,         // distance-equivalent used by interruption pressure
-    travelLog:[],               // persistent descent/exploration messages for this run
+    seenTravelEvents:{},
+    travelEvent:null,
+    exploreActivity:0,
+    exploreElapsedMs:0,
+    exploreDepth:0,
+    skills:Object.fromEntries(SKILL_ORDER.map(id => [id,{rank:0,xp:0}])),
+    skillPracticeSources:{},
+    travelMode:"stopped",
+    travelSinceEvent:0,
+    travelLog:[],
     restRecovery:REST_RECOVERY_REQUIRED,
     inventory:{campSupplies:STARTING_CAMP_SUPPLIES},
-    hollowStates:{},            // "found" | "used" | "passed", keyed by stratum + kind
-    activeHollow:null,          // current one-use recovery landmark, if paused at one
-    boon:null,                  // {id, expiresAt, remainingMs, frozen}
+    hollowStates:{},
+    activeHollow:null,
+    boon:null,
     pendingBoonChoice:false,
-    pendingRestSkillChoice:false,
-    skillQuickUsed:false,
+    pendingRestAbilityChoice:false,
+    abilityQuickUsed:false,
     className:"Votary",
-    skills: Object.fromEntries(SKILL_ORDER.map(id => [id,{cur:SKILL_DEFS[id].max,max:SKILL_DEFS[id].max,degree:SKILL_DEFS[id].degree}])),
+    abilities:Object.fromEntries(ABILITY_ORDER.map(id => [id,{cur:ABILITY_DEFS[id].max,max:ABILITY_DEFS[id].max,degree:ABILITY_DEFS[id].degree}])),
     turn:1, foe:null
   };
   S.hpMax = maxHp();
@@ -1350,17 +1689,110 @@ function newDelver(){
   armed = null;
   over = false;
   clearHollowTimer();
+  document.querySelectorAll(".dead").forEach(n => n.remove());
+  $("creator").hidden = true;
   $("readout").innerHTML = "";
   $("travelLog").innerHTML = "";
   $("packSheet").hidden = true;
   $("sheet").hidden = true;
-  $("restSkillPick").hidden = true;
+  $("restAbilityPick").hidden = true;
   $("charSheet").hidden = true;
   travelLogAdd(`The way down waits. Choose how you want to move.`, "note");
   say(`<p class="note">The way down waits. Choose how you want to move.</p>`);
   render();
 }
 
+function creatorComplete(){
+  const basics = creatorDraft.name.trim().length > 0 && !!creatorDraft.folk && !!creatorDraft.trade && !!creatorDraft.origin;
+  if(!basics) return false;
+  return creatorDraft.folk !== "Human" || humanTraitsComplete();
+}
+function renderCreatorChoices(id, options, key){
+  const root = $(id);
+  root.innerHTML = options.map(value => {
+    const selected = creatorDraft[key] === value;
+    if(key === "folk"){
+      const trait = folkTraitText(value);
+      const lines = trait.split(" · ").map(line => {
+        const decorated = line.replace(/([A-Z]{3} \+\d)/g,'<span class="pos">$1</span>').replace(/([A-Z]{3} [−-]\d)/g,'<span class="neg">$1</span>');
+        return `<span class="folk-meta-line">${decorated}</span>`;
+      }).join("");
+      return `<button class="creator-choice folk-card ${selected ? "selected" : ""}" data-creator-key="${key}" data-creator-value="${esc(value)}"><b>${esc(value)}</b><span class="folk-meta">${lines}</span></button>`;
+    }
+    return `<button class="creator-choice ${selected ? "selected" : ""}" data-creator-key="${key}" data-creator-value="${esc(value)}"><b>${esc(value)}</b></button>`;
+  }).join("");
+}
+function renderHumanTraitRow(id, key){
+  const root = $(id);
+  if(!root) return;
+  const usedElsewhere = new Set([creatorDraft.humanPlus2,creatorDraft.humanPlus1,creatorDraft.humanMinus2].filter(Boolean));
+  const own = creatorDraft[key];
+  root.innerHTML = STAT_KEYS.map(stat => {
+    const unavailable = usedElsewhere.has(stat) && stat !== own;
+    return `<button class="creator-human-stat ${own === stat ? "selected" : ""}" data-human-trait="${key}" data-human-stat="${stat}" ${unavailable ? "disabled" : ""}>${stat}</button>`;
+  }).join("");
+}
+function creatorStatsAndMods(){
+  const mods = creatorDraft.folk ? folkModifiers(creatorDraft.folk) : Object.fromEntries(STAT_KEYS.map(k=>[k,0]));
+  const stats = Object.fromEntries(STAT_KEYS.map(stat => [stat, STARTING_STATS[stat] + (mods[stat] || 0)]));
+  return {stats,mods};
+}
+function renderCreator(){
+  if(!$("creator")) return;
+  $("creatorName").value = creatorDraft.name;
+  renderCreatorChoices("folkChoices", FOLK_OPTIONS, "folk");
+  renderCreatorChoices("tradeChoices", TRADE_OPTIONS, "trade");
+  renderCreatorChoices("originChoices", ORIGIN_OPTIONS, "origin");
+  const human = creatorDraft.folk === "Human";
+  const flavor = folkFlavorText(creatorDraft.folk);
+  $("folkFlavor").hidden = !flavor;
+  $("folkFlavor").textContent = flavor;
+  $("humanTraits").hidden = !human;
+  if(human){
+    renderHumanTraitRow("humanPlus2","humanPlus2");
+    renderHumanTraitRow("humanPlus1","humanPlus1");
+    renderHumanTraitRow("humanMinus2","humanMinus2");
+  }
+  const {stats,mods} = creatorStatsAndMods();
+  $("creatorStats").innerHTML = STAT_KEYS.map(stat => {
+    const mod = mods[stat] || 0;
+    const cls = mod > 0 ? "pos" : mod < 0 ? "neg" : "";
+    const delta = mod ? `${mod > 0 ? "+" : ""}${mod} Folk` : "";
+    return `<div class="creator-stat"><span>${stat}</span><b>${stats[stat]}</b><small class="${cls}">${delta}</small></div>`;
+  }).join("");
+  $("creatorHp").textContent = `${stats.CON * 6} HP`;
+  const complete = creatorComplete();
+  $("btnSignFate").disabled = !complete;
+  if(!creatorDraft.name.trim() || !creatorDraft.folk || !creatorDraft.trade || !creatorDraft.origin){
+    $("creatorReadyText").textContent = "name, folk, trade and origin required";
+  } else if(human && !humanTraitsComplete()){
+    $("creatorReadyText").textContent = "choose Human +2, +1 and −2 attributes";
+  } else {
+    $("creatorReadyText").textContent = `${creatorDraft.folk} · ${creatorDraft.trade} · ${creatorDraft.origin}`;
+  }
+}
+function openCreator({keepChoices=true}={}){
+  pauseBoonClock?.();
+  if(!keepChoices) creatorDraft = {name:"",folk:null,trade:null,origin:null,humanPlus2:null,humanPlus1:null,humanMinus2:null};
+  else creatorDraft.name = "";
+  document.querySelectorAll(".dead").forEach(n => n.remove());
+  $("creator").hidden = false;
+  renderCreator();
+  setTimeout(() => $("creatorName")?.focus(), 0);
+}
+function signFate(){
+  if(!creatorComplete()) return;
+  const profile = {
+    name:creatorDraft.name.trim(),
+    folk:creatorDraft.folk,
+    trade:creatorDraft.trade,
+    origin:creatorDraft.origin,
+    humanPlus2:creatorDraft.humanPlus2,
+    humanPlus1:creatorDraft.humanPlus1,
+    humanMinus2:creatorDraft.humanMinus2
+  };
+  newDelver(profile);
+}
 function boonDef(id=S?.boon?.id){
   return id ? BOONS[id] || null : null;
 }
@@ -1507,72 +1939,72 @@ function triggerSmiteFx(){
   }, 760);
 }
 
-function restoreAllSkills(){
-  for(const id of SKILL_ORDER){
-    const sk = skillState(id);
+function restoreAllAbilities(){
+  for(const id of ABILITY_ORDER){
+    const sk = abilityState(id);
     if(sk) sk.cur = sk.max;
   }
 }
-function recoverOneSkillUse(id){
-  const sk = skillState(id);
+function recoverOneAbilityUse(id){
+  const sk = abilityState(id);
   if(!sk || sk.cur >= sk.max) return false;
   sk.cur++;
   return true;
 }
-function skillDisplayName(id){
-  const def = SKILL_DEFS[id];
-  const sk = skillState(id);
+function abilityDisplayName(id){
+  const def = ABILITY_DEFS[id];
+  const sk = abilityState(id);
   return `${def.name} ${sk?.degree || def.degree}`;
 }
-function closeSkillSheet(){ $("sheet").hidden = true; }
-function closeRestSkillPick(){
+function closeAbilitySheet(){ $("sheet").hidden = true; }
+function closeRestAbilityPick(){
   if(!S) return;
-  S.pendingRestSkillChoice = false;
-  $("restSkillPick").hidden = true;
+  S.pendingRestAbilityChoice = false;
+  $("restAbilityPick").hidden = true;
 }
-function renderRestSkillPick(){
-  const picker = $("restSkillPick");
+function renderRestAbilityPick(){
+  const picker = $("restAbilityPick");
   if(!picker) return;
-  const show = !!S?.pendingRestSkillChoice && !over;
+  const show = !!S?.pendingRestAbilityChoice && !over;
   picker.hidden = !show;
   if(!show) return;
-  $("restSkillOptions").innerHTML = SKILL_ORDER.filter(id => {
-    const sk = skillState(id);
+  $("restAbilityOptions").innerHTML = ABILITY_ORDER.filter(id => {
+    const sk = abilityState(id);
     return sk && sk.cur < sk.max;
   }).map(id => {
-    const sk = skillState(id), def = SKILL_DEFS[id];
-    return `<button class="restskill-opt" data-skill="${id}"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses ready → ${Math.min(sk.max, sk.cur+1)}/${sk.max} after Rest</span></button>`;
+    const sk = abilityState(id), def = ABILITY_DEFS[id];
+    return `<button class="restskill-opt" data-recover-ability="${id}"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses ready → ${Math.min(sk.max, sk.cur+1)}/${sk.max} after Rest</span></button>`;
   }).join("");
 }
-function skillDetailHtml(def){
+function abilityDetailHtml(def){
   return `<p><b>Mechanics</b><span>${esc(def.mechanics)}</span></p><p><b>Scaling</b><span>${esc(def.scaling)}</span></p>`;
 }
-function renderSkillSheet(){
-  const list = $("skillsList");
+function renderAbilitySheet(){
+  const list = $("abilitiesList");
   if(!list || !S) return;
-  $("sheetSlots").textContent = `${skillUsesReady()} / ${skillUsesMax()} uses ready`;
-  $("skillSummary").textContent = `${skillUsesReady()} / ${skillUsesMax()} uses ready`;
-  list.innerHTML = SKILL_ORDER.map(id => {
-    const def = SKILL_DEFS[id], sk = skillState(id);
+  $("sheetSlots").textContent = `${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
+  $("abilitySummary").textContent = `${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
+  list.innerHTML = ABILITY_ORDER.map(id => {
+    const def = ABILITY_DEFS[id], sk = abilityState(id);
     const noAttack = id === "holdfast" && (!S.foe || INTENTS[S.foe.intent].kind !== "attack");
-    const unusable = over || !S.foe || sk.cur <= 0 || (id === "layonhands" && (S.skillQuickUsed || S.hp >= S.hpMax)) || noAttack;
+    const unusable = over || !S.foe || sk.cur <= 0 || (id === "layonhands" && (S.abilityQuickUsed || S.hp >= S.hpMax)) || noAttack;
     let meta = `${sk.cur}/${sk.max} uses ready`;
     if(id === "layonhands" && S.hp >= S.hpMax) meta = `${sk.cur}/${sk.max} uses ready · already at full HP`;
-    if(id === "layonhands" && S.skillQuickUsed) meta = `${sk.cur}/${sk.max} uses ready · once per turn`;
+    if(id === "layonhands" && S.abilityQuickUsed) meta = `${sk.cur}/${sk.max} uses ready · once per turn`;
     if(noAttack && S.foe) meta = `${sk.cur}/${sk.max} uses ready · no attack to hold against`;
     if(sk.cur <= 0) meta = `${sk.cur}/${sk.max} uses ready · spent`;
-    const open = combatExpandedSkill === id;
+    const open = combatExpandedAbility === id;
     return `<div class="skill-wrap">
-      <button class="skill ${sk.cur <= 0 ? "spent" : ""}" data-skill="${id}" ${unusable ? "disabled" : ""}>
+      <button class="skill ${sk.cur <= 0 ? "spent" : ""}" data-ability="${id}" ${unusable ? "disabled" : ""}>
         <span class="meta">${esc(meta)}</span><b>${esc(def.name)} ${esc(sk.degree)}</b><p>${esc(def.desc)}</p>
       </button>
-      <button class="skill-more" data-skill-more="${id}">${open ? "Hide details" : "See more"}</button>
-      <div class="skill-detail" ${open ? "" : "hidden"}>${skillDetailHtml(def)}</div>
+      <button class="skill-more" data-ability-more="${id}">${open ? "Hide details" : "See more"}</button>
+      <div class="skill-detail" ${open ? "" : "hidden"}>${abilityDetailHtml(def)}</div>
     </div>`;
   }).join("");
 }
 function openCharacterSheet(){
-  if(!S || over || S.foe) return;
+  if(!S || over || S.foe || S.travelEvent) return;
   renderCharacterSheet();
   $("charSheet").hidden = false;
 }
@@ -1583,17 +2015,27 @@ function renderCharacterSheet(){
   if(!S || !$("charSheet")) return;
   $("charName").textContent = S.name;
   $("charClassLevel").textContent = `${S.className || "Votary"} · Level ${S.level}`;
+  $("charBackground").textContent = `${S.folk} · ${S.trade} · ${S.origin}`;
   $("charHp").textContent = `${Math.max(0,S.hp)} / ${S.hpMax}`;
   $("charStamina").textContent = `${S.stamina} / ${S.staminaMax}`;
   $("charStats").innerHTML = ["STR","CON","DEX","INT","WIS","CHA"].map(stat => `<div class="char-stat"><span>${stat}</span><b>${S[stat]}</b></div>`).join("");
-  $("charSkillSummary").textContent = `${skillUsesReady()} / ${skillUsesMax()} uses ready`;
+  $("charFolkTrait").innerHTML = `<b>${esc(S.folk)} Folk trait</b> · ${formatFolkMods(S.folkMods)}`;
   $("charSkills").innerHTML = SKILL_ORDER.map(id => {
-    const def = SKILL_DEFS[id], sk = skillState(id), open = charExpandedSkill === id;
+    const def = SKILL_DEFS[id], st = skillState(id);
+    const check = skillCheckBonus(id);
+    return `<div class="char-field-skill">
+      <div><b>${esc(def.name)}</b><p><strong>${def.stat}</strong> · ${esc(def.desc)}</p></div>
+      <div class="char-field-progress"><strong>Rank ${st.rank} · check ${signed(check)}</strong><span>${st.xp}/${skillXpNeeded(st.rank)} XP</span></div>
+    </div>`;
+  }).join("");
+  $("charAbilitySummary").textContent = `${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
+  $("charAbilities").innerHTML = ABILITY_ORDER.map(id => {
+    const def = ABILITY_DEFS[id], sk = abilityState(id), open = charExpandedAbility === id;
     return `<div class="char-skill">
       <div class="char-skill-top"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses</span></div>
       <p>${esc(def.desc)}</p>
-      <button class="skill-more" data-char-skill-more="${id}">${open ? "Hide details" : "See more"}</button>
-      <div class="skill-detail" ${open ? "" : "hidden"}>${skillDetailHtml(def)}</div>
+      <button class="skill-more" data-char-ability-more="${id}">${open ? "Hide details" : "See more"}</button>
+      <div class="skill-detail" ${open ? "" : "hidden"}>${abilityDetailHtml(def)}</div>
     </div>`;
   }).join("");
 }
@@ -1605,23 +2047,23 @@ function restHealAmount(){
 function restReady(){
   return !!S && S.restRecovery >= REST_RECOVERY_REQUIRED - 0.001;
 }
-function skillState(id){
-  return S?.skills?.[id] || null;
+function abilityState(id){
+  return S?.abilities?.[id] || null;
 }
-function skillUsesReady(){
-  return SKILL_ORDER.reduce((n,id) => n + (skillState(id)?.cur || 0), 0);
+function abilityUsesReady(){
+  return ABILITY_ORDER.reduce((n,id) => n + (abilityState(id)?.cur || 0), 0);
 }
-function skillUsesMax(){
-  return SKILL_ORDER.reduce((n,id) => n + (skillState(id)?.max || 0), 0);
+function abilityUsesMax(){
+  return ABILITY_ORDER.reduce((n,id) => n + (abilityState(id)?.max || 0), 0);
 }
-function skillsNeedRestoration(){
-  return SKILL_ORDER.some(id => {
-    const sk = skillState(id);
+function abilitiesNeedRestoration(){
+  return ABILITY_ORDER.some(id => {
+    const sk = abilityState(id);
     return sk && sk.cur < sk.max;
   });
 }
 function canRest(){
-  return !!S && !over && !S.foe && S.statPoints <= 0 && !S.pendingRestSkillChoice && restReady() && (S.hp < S.hpMax || skillsNeedRestoration());
+  return !!S && !over && !S.foe && !S.travelEvent && S.statPoints <= 0 && !S.pendingRestAbilityChoice && restReady() && (S.hp < S.hpMax || abilitiesNeedRestoration());
 }
 function hollowKey(stratum, kind){
   return `${stratum}:${kind}`;
@@ -1719,15 +2161,15 @@ function campAtHollow(){
   S.heavyCharge = 0;
   S.strikeChain = 0;
   S.defenceChain = 0;
-  S.skillQuickUsed = false;
-  restoreAllSkills();
+  S.abilityQuickUsed = false;
+  restoreAllAbilities();
   S.restRecovery = REST_RECOVERY_REQUIRED;
   S.hollowStates[h.key] = "used";
   S.activeHollow = null;
   pauseBoonClock();
   S.travelMode = "stopped";
   S.pendingBoonChoice = true;
-  travelLogAdd(`You make camp. <b>HP, Stamina and all skill uses fully restored.</b> Choose a boon for the next stretch.`, "good");
+  travelLogAdd(`You make camp. <b>HP, Stamina and all ability uses fully restored.</b> Choose a boon for the next stretch.`, "good");
   if(healedHp > 0) triggerHealFx(healedHp, ["travel"]);
   render();
 }
@@ -1742,18 +2184,18 @@ function takeRest(){
   const healed = S.hp - before;
   S.restRecovery = 0;
   if(healed > 0) triggerHealFx(healed, ["travel"]);
-  if(skillsNeedRestoration()){
-    S.pendingRestSkillChoice = true;
+  if(abilitiesNeedRestoration()){
+    S.pendingRestAbilityChoice = true;
     travelLogAdd(healed > 0
-      ? `You rest and recover <b>${healed} HP</b>. Choose one spent skill use to restore.`
-      : `You rest and steady yourself. Choose one spent skill use to restore.`, "good");
+      ? `You rest and recover <b>${healed} HP</b>. Choose one spent ability use to restore.`
+      : `You rest and steady yourself. Choose one spent ability use to restore.`, "good");
   } else {
     travelLogAdd(`You rest and recover <b>${healed} HP</b>.`, "good");
   }
   render();
 }
 function openPack(){
-  if(!S || over || S.foe) return;
+  if(!S || over || S.foe || S.travelEvent) return;
   cancelHollowAutoResume();
   renderPack();
   $("packSheet").hidden = false;
@@ -1767,6 +2209,7 @@ function renderPack(){
 }
 
 function nextFoe(){
+  if(S) S.travelEvent = null;
   closePack();
   closeCharacterSheet();
   pauseBoonClock();
@@ -1778,7 +2221,7 @@ function nextFoe(){
   S.heavyCharge = 0;
   S.strikeChain = 0;
   S.defenceChain = 0;
-  S.skillQuickUsed = false;
+  S.abilityQuickUsed = false;
   armed = null;
 
   const base = chooseFoeProfile();
@@ -1810,10 +2253,120 @@ function nextFoe(){
   render();
 }
 
+function renderTravelEvent(){
+  const card = $("travelEventCard");
+  const ev = S?.travelEvent;
+  if(!card) return;
+  card.hidden = !ev;
+  if(!ev) return;
+  $("travelEventKind").textContent = ev.kind || "Exploration";
+  $("travelEventTitle").textContent = ev.title || "A glint in the dark";
+  $("travelEventText").textContent = ev.text || "";
+  const roll = $("travelEventRoll");
+  roll.hidden = !ev.rollHtml;
+  roll.innerHTML = ev.rollHtml || "";
+  const actions = $("travelEventActions");
+  if(ev.stage === "prompt"){
+    actions.innerHTML = `
+      <button class="travel-event-btn skill" data-event-action="perception"><b>Use Perception</b><span>WIS · safer look · DC 12</span></button>
+      <button class="travel-event-btn investigate" data-event-action="investigate"><b>Investigate</b><span>INT · act immediately · DC 13</span></button>
+      <button class="travel-event-btn ignore wide" data-event-action="ignore"><b>Ignore it</b><span>leave the glint behind</span></button>`;
+  } else if(ev.stage === "noticed"){
+    actions.innerHTML = `
+      <button class="travel-event-btn investigate" data-event-action="investigate-informed"><b>Investigate</b><span>INT · Perception gives +2 · DC 13</span></button>
+      <button class="travel-event-btn ignore" data-event-action="leave"><b>Leave it</b><span>you know where the danger is</span></button>`;
+  } else {
+    actions.innerHTML = `<button class="travel-event-btn wide" data-event-action="continue"><b>Continue</b><span>${ev.followupCombat ? "something is coming" : "return to the delve"}</span></button>`;
+  }
+}
+function beginGlintEvent(){
+  if(!S || S.seenTravelEvents.glint || S.foe || S.travelEvent) return false;
+  closePack();
+  closeCharacterSheet();
+  pauseBoonClock();
+  S.seenTravelEvents.glint = true;
+  S.travelMode = "stopped";
+  S.travelSinceEvent = 0;
+  S.exploreActivity = 0;
+  S.travelEvent = {
+    id:"glint",stage:"prompt",kind:"Something caught your eye",title:"A glint in the dark",
+    text:"For an instant your light catches something beyond a tumble of broken stone. When you look straight at it, the glint is gone.",
+    rollHtml:"",followupCombat:false
+  };
+  travelLogAdd(`A brief <b>glint</b> answers your light from the broken masonry.`, "beat");
+  render();
+  return true;
+}
+function setTravelEventResult(title,text,rollHtml="",followupCombat=false){
+  if(!S?.travelEvent) return;
+  Object.assign(S.travelEvent,{stage:"result",title,text,rollHtml,followupCombat});
+  render();
+}
+function attemptGlintInvestigation(informed=false){
+  if(!S?.travelEvent) return;
+  const circumstance = informed ? 2 : 0;
+  const check = runSkillCheck("investigation",13,circumstance);
+  const practice = awardSkillPractice("investigation","glint");
+  const rollHtml = formatSkillCheck(check) + practiceText("investigation",practice);
+  if(check.success){
+    S.inventory.campSupplies++;
+    travelLogAdd(`Investigation paid off: you recovered <b>1 Camp Supply</b> from beneath the rubble.`, "good");
+    setTravelEventResult("Something useful","Wedged beneath the stones is a sealed oilskin bundle. Whatever delver lost it never came back for it. You recover 1 Camp Supply.",rollHtml,false);
+  } else if(informed){
+    travelLogAdd(`You identify the glint, but leave the unstable stones alone.`, "note");
+    setTravelEventResult("Not worth the collapse","You find the metal edge you noticed, but the surrounding stones are carrying one another's weight. You leave it where it is.",rollHtml,false);
+  } else {
+    travelLogAdd(`A loose stone gives way while you investigate. The collapse carries through the tunnels.`, "danger");
+    setTravelEventResult("That was loud","Your hand shifts the wrong stone. Rubble clatters down the passage, and somewhere beyond your light something answers the noise.",rollHtml,true);
+  }
+}
+function handleTravelEventAction(action){
+  const ev = S?.travelEvent;
+  if(!ev) return;
+  if(action === "ignore"){
+    travelLogAdd(`You decide the glint is not worth leaving the route for.`, "note");
+    S.travelEvent = null;
+    render();
+    return;
+  }
+  if(action === "perception" && ev.stage === "prompt"){
+    const check = runSkillCheck("perception",12,0);
+    const practice = awardSkillPractice("perception","glint");
+    const rollHtml = formatSkillCheck(check) + practiceText("perception",practice);
+    if(check.success){
+      ev.stage = "noticed";
+      ev.title = "There — again.";
+      ev.text = "You stop chasing the shine and watch the shadows around it instead. A thin metal corner sits beneath the rubble, and the stones above it are badly settled. You now know where not to put your weight.";
+      ev.rollHtml = rollHtml;
+      travelLogAdd(`Perception reveals both the glint and the unstable rubble around it.`, "good");
+      render();
+    } else {
+      travelLogAdd(`You watch for the glint again, but nothing repeats.`, "note");
+      setTravelEventResult("Perhaps nothing","You hold still and study the dark. Nothing flashes again. You must have imagined it — or whatever caught the light is gone now.",rollHtml,false);
+    }
+    return;
+  }
+  if(action === "investigate" && ev.stage === "prompt") return attemptGlintInvestigation(false);
+  if(action === "investigate-informed" && ev.stage === "noticed") return attemptGlintInvestigation(true);
+  if(action === "leave" && ev.stage === "noticed"){
+    travelLogAdd(`You leave the unstable rubble undisturbed.`, "note");
+    S.travelEvent = null;
+    render();
+    return;
+  }
+  if(action === "continue" && ev.stage === "result"){
+    const combat = !!ev.followupCombat;
+    S.travelEvent = null;
+    render();
+    if(combat) nextFoe();
+  }
+}
+
 function startTravel(mode){
-  if(!S || over || S.foe || S.statPoints > 0 || S.activeHollow || S.pendingBoonChoice) return;
+  if(!S || over || S.foe || S.travelEvent || S.statPoints > 0 || S.activeHollow || S.pendingBoonChoice) return;
   if(mode !== "descend" && mode !== "explore") return;
   if(S.travelMode === mode) return;
+  if(mode === "explore") S.exploreActivity = 0;
   S.travelMode = mode;
   resumeBoonClock();
   armed = null;
@@ -1857,6 +2410,10 @@ function travelTick(){
 
   if(S.travelMode === "descend"){
     S.depth = Math.round((S.depth + TRAVEL_STEP) * 100) / 100;
+    if(Math.abs(S.depth - beforeDepth) > 0.0001){
+      S.exploreElapsedMs = 0;
+      S.exploreDepth = S.depth;
+    }
     const afterStratum = stratumIndex(S.depth);
     if(afterStratum !== beforeStratum){
       travelLogAdd(`You cross into <b>${esc(stratumName(afterStratum))}</b>.`, "beat");
@@ -1871,9 +2428,22 @@ function travelTick(){
     }
   }
 
+  if(S.travelMode === "explore"){
+    if(Math.abs((S.exploreDepth ?? S.depth) - S.depth) > 0.0001){
+      S.exploreElapsedMs = 0;
+      S.exploreDepth = S.depth;
+    }
+    S.exploreElapsedMs = (S.exploreElapsedMs || 0) + TRAVEL_TICK_MS;
+    S.exploreActivity = (S.exploreActivity || 0) + TRAVEL_STEP;
+    if(!S.seenTravelEvents.glint && S.exploreActivity >= GLINT_EVENT_TRIGGER){
+      beginGlintEvent();
+      return;
+    }
+  }
+
   if(rnd() < travelInterruptionChance()){
-    // Combat is still the only random event wired into the generic pool.
-    // Safe hollows are deterministic landmarks rather than random events.
+    // Combat remains the generic random interruption in this slice; the glint is
+    // a one-time Skill event used to prototype exploration checks.
     nextFoe();
     return;
   }
@@ -2044,6 +2614,7 @@ function awardKill(f){
 
 function finishKill(out){
   const f = S.foe;
+  S.kills = (S.kills || 0) + 1;
   const reward = awardKill(f);
   let sustain = "";
   if(boonActive("poultice") && S.hp < S.hpMax){
@@ -2058,7 +2629,7 @@ function finishKill(out){
   S.heavyCharge = 0;
   S.strikeChain = 0;
   S.defenceChain = 0;
-  S.skillQuickUsed = false;
+  S.abilityQuickUsed = false;
   armed = null;
   // The boon remains paused after combat. It resumes only when the player
   // explicitly starts Descending or Exploring again.
@@ -2067,7 +2638,7 @@ function finishKill(out){
 
 /* ============================================================
    ACTIONS
-   Universal actions should create matchups, not replace class skills.
+   Universal actions should create matchups, not replace class abilities.
    ============================================================ */
 const ACTIONS = {
   strike:{
@@ -2119,7 +2690,7 @@ const ACTIONS = {
     cost:0,
     preview(){
       const d = dmgSmite(), back = incoming();
-      let text = `<span class="dmg">~${d.physical} Physical + ${d.radiant} Radiant</span> · <span class="cost">0 stamina</span> · 1 skill use`;
+      let text = `<span class="dmg">~${d.physical} Physical + ${d.radiant} Radiant</span> · <span class="cost">0 stamina</span> · 1 ability use`;
       if(S.foe.intent === "dodge") text += ` · <span class="bad">35% chance the Physical part misses, but Radiant still lands</span>`;
       if(S.foe.intent === "guard") text += ` · guard reduces the Physical part, not Radiant`;
       if(back) text += ` · you take <span class="bad">~${back}</span> if it survives`;
@@ -2127,7 +2698,7 @@ const ACTIONS = {
     },
     run(){
       const f = S.foe;
-      const sk = skillState("smite");
+      const sk = abilityState("smite");
       if(!sk || sk.cur <= 0) return `<p class="note">Smite is spent.</p>`;
       sk.cur--;
       triggerSmiteFx();
@@ -2364,27 +2935,27 @@ const ACTIONS = {
   }};
 
 function applyLayOnHands(){
-  const sk = skillState("layonhands");
-  if(!S.foe || !sk || sk.cur <= 0 || S.skillQuickUsed || S.hp >= S.hpMax) return;
+  const sk = abilityState("layonhands");
+  if(!S.foe || !sk || sk.cur <= 0 || S.abilityQuickUsed || S.hp >= S.hpMax) return;
   const before = S.hp;
   S.hp = Math.min(S.hpMax, S.hp + 15);
   const healed = S.hp - before;
   if(healed <= 0) return;
   sk.cur--;
-  S.skillQuickUsed = true;
-  closeSkillSheet();
+  S.abilityQuickUsed = true;
+  closeAbilitySheet();
   triggerHealFx(healed, ["combat"]);
-  say(`<p class="good"><b>${esc(skillDisplayName("layonhands"))}.</b> Closed a wound for <b>${healed}</b> HP.</p><p class="note">Quick-use skill: it did not end your turn.</p>`);
+  say(`<p class="good"><b>${esc(abilityDisplayName("layonhands"))}.</b> Closed a wound for <b>${healed}</b> HP.</p><p class="note">Quick-use ability: it did not end your turn.</p>`);
   render();
 }
 function useHoldFast(){
-  const sk = skillState("holdfast");
+  const sk = abilityState("holdfast");
   if(!S.foe || !sk || sk.cur <= 0 || INTENTS[S.foe.intent].kind !== "attack") return;
   sk.cur--;
-  closeSkillSheet();
+  closeAbilitySheet();
   armed = null;
   const f = S.foe, I = INTENTS[f.intent];
-  let out = `<p class="good"><b>${esc(skillDisplayName("holdfast"))}.</b> You braced through <b>${esc(I.label)}</b> and gave up no ground.</p>`;
+  let out = `<p class="good"><b>${esc(abilityDisplayName("holdfast"))}.</b> You braced through <b>${esc(I.label)}</b> and gave up no ground.</p>`;
   if(f.blinded){
     out += `<p class="note">It was already blinded. The attempt whistled into empty air, and your commitment remained intact.</p>`;
     f.blinded = false;
@@ -2398,39 +2969,39 @@ function useHoldFast(){
   S.defenceChain = 0;
   S.strikeChain = 0;
   S.turn++;
-  S.skillQuickUsed = false;
+  S.abilityQuickUsed = false;
   rollIntent();
   say(out);
   render();
 }
 function useSmite(){
-  const sk = skillState("smite");
+  const sk = abilityState("smite");
   if(!S.foe || !sk || sk.cur <= 0) return;
-  closeSkillSheet();
+  closeAbilitySheet();
   armed = null;
   takeTurn("smite");
 }
-function useWithdrawSkill(){
-  const sk = skillState("withdraw");
+function useWithdrawAbility(){
+  const sk = abilityState("withdraw");
   if(!S.foe || !sk || sk.cur <= 0) return;
   sk.cur--;
-  closeSkillSheet();
+  closeAbilitySheet();
   armed = null;
   travelLogAdd(`You withdraw and hold at <b>${formatDepth(S.depth)} fathoms</b>.`, "danger");
-  say(`<p class="said"><b>${esc(skillDisplayName("withdraw"))}.</b> Broke contact cleanly.</p><p class="note">No HP cost, but you gain no XP or kill reward.</p>`);
+  say(`<p class="said"><b>${esc(abilityDisplayName("withdraw"))}.</b> Broke contact cleanly.</p><p class="note">No HP cost, but you gain no XP or kill reward.</p>`);
   S.foe = null;
   S.heavyCharge = 0;
   S.strikeChain = 0;
   S.defenceChain = 0;
-  S.skillQuickUsed = false;
+  S.abilityQuickUsed = false;
   render();
 }
-function useSkill(id){
+function useAbility(id){
   if(!S || over) return;
   if(id === "layonhands") return applyLayOnHands();
   if(id === "holdfast") return useHoldFast();
   if(id === "smite") return useSmite();
-  if(id === "withdraw") return useWithdrawSkill();
+  if(id === "withdraw") return useWithdrawAbility();
 }
 
 function actionLabel(key){
@@ -2621,7 +3192,7 @@ function takeTurn(key){
   // Base passive Stamina regeneration is intentionally 0. Guard/Parry is the
   // universal reset; later stat thresholds can earn passive regeneration.
   S.turn++;
-  S.skillQuickUsed = false;
+  S.abilityQuickUsed = false;
   rollIntent();
   say(out);
   render();
@@ -2644,28 +3215,41 @@ function tapRun(){
   S.heavyCharge = 0;
   S.strikeChain = 0;
   S.defenceChain = 0;
-  S.skillQuickUsed = false;
+  S.abilityQuickUsed = false;
   // The boon remains paused after combat. It resumes only when the player
   // explicitly starts Descending or Exploring again.
   render();
 }
 
 function die(out){
+  const killer = S.foe?.name ? cap(S.foe.name) : "the dark";
+  const endedDepth = formatDepth(S.depth);
+  const endedLevel = S.level;
   over = true;
+  pauseBoonClock();
   say(out + `<p class="hurt said">You did not get up.</p>`);
   render();
   setTimeout(() => {
+    if(!over) return;
     const d = document.createElement("div");
     d.className = "dead";
     d.innerHTML =
-      `<h2>${esc(S.name)}, ended at ${formatDepth(S.depth)} fathoms</h2>
-       <p>The chronicle closes here. The next delver starts clean.</p>
-       <button id="btnNew">Sign a new delver</button>`;
+      `<h2>${esc(S.name)}'s chronicle ends here.</h2>
+       <p>The dark keeps the rest.</p>
+       <div class="chronicle">
+         <div><span>Folk</span><b>${esc(S.folk)}</b></div>
+         <div><span>Trade</span><b>${esc(S.trade)}</b></div>
+         <div><span>Origin</span><b>${esc(S.origin)}</b></div>
+         <div><span>Calling</span><b>${esc(S.className)} · Level ${endedLevel}</b></div>
+         <div><span>Foes defeated</span><b>${S.kills || 0}</b></div>
+         <div><span>Depth reached</span><b>${endedDepth} fathoms</b></div>
+         <div><span>Fell to</span><b>${esc(killer)}</b></div>
+       </div>
+       <button id="btnNew">Face the Dark Again</button>`;
     $("arena").appendChild(d);
-    $("btnNew").addEventListener("click", () => { d.remove(); newDelver(); });
+    $("btnNew").addEventListener("click", () => openCreator({keepChoices:true}));
   }, 1200);
 }
-
 
 /* ============================================================
    RENDER — repaints the whole screen from S
@@ -2836,6 +3420,7 @@ function renderTravel(){
 
   renderTrail();
 
+  renderTravelEvent();
   renderSafeHollow();
   renderPack();
   renderActiveBoon();
@@ -2844,39 +3429,46 @@ function renderTravel(){
   const status = $("travelStatus");
   status.classList.toggle("moving", S.travelMode === "descend");
   status.classList.toggle("exploring", S.travelMode === "explore");
-  if(S.activeHollow){
+  if(S.travelEvent){
+    status.innerHTML = `<b>Something caught your attention.</b> The delve waits for your choice.`;
+  } else if(S.activeHollow){
     status.innerHTML = S.activeHollow.kind === "stage"
       ? `<b>Staging hollow.</b> Safe ground before the stratum boundary.`
       : `<b>Safe hollow.</b> Camp here or decide to move on.`;
   } else if(S.travelMode === "descend"){
     status.innerHTML = `<b>Descending.</b> You keep moving deeper until something interrupts you.`;
   } else if(S.travelMode === "explore"){
-    status.innerHTML = `<b>Exploring.</b> Depth is locked at ${formatDepth(S.depth)} fathoms.`;
+    status.innerHTML = `<b>Exploring.</b> Depth is locked at ${formatDepth(S.depth)} fathoms · <b>${formatExploreTime()} explored</b>.`;
   } else {
-    status.innerHTML = `<b>Held.</b> Descend deeper or explore this depth.`;
+    const exploredHere = (S.exploreElapsedMs || 0) > 0 && Math.abs((S.exploreDepth ?? S.depth) - S.depth) <= 0.0001;
+    status.innerHTML = exploredHere
+      ? `<b>Held.</b> Descend deeper or explore this depth · ${formatExploreTime()} explored here.`
+      : `<b>Held.</b> Descend deeper or explore this depth.`;
   }
 
   const atHollow = !!S.activeHollow;
+  const inTravelEvent = !!S.travelEvent;
   const choosingBoon = !!S.pendingBoonChoice;
   $("btnDescend").classList.toggle("active", S.travelMode === "descend");
   $("btnExplore").classList.toggle("active", S.travelMode === "explore");
-  $("btnDescend").disabled = atHollow || choosingBoon;
-  $("btnExplore").disabled = atHollow || choosingBoon;
-  $("btnStopTravel").disabled = atHollow || choosingBoon || S.travelMode === "stopped";
+  $("btnDescend").disabled = atHollow || inTravelEvent || choosingBoon;
+  $("btnExplore").disabled = atHollow || inTravelEvent || choosingBoon;
+  $("btnPack").disabled = inTravelEvent;
+  $("btnStopTravel").disabled = atHollow || inTravelEvent || choosingBoon || S.travelMode === "stopped";
 
   const heal = restHealAmount();
   const ready = restReady();
   const rest = $("btnRest");
   rest.disabled = !canRest();
-  const missingSkills = skillsNeedRestoration();
+  const missingAbilities = abilitiesNeedRestoration();
   if(!ready){
     $("restSub").textContent = `${S.restRecovery.toFixed(1)} / ${REST_RECOVERY_REQUIRED} recovery`;
-  } else if(S.hp >= S.hpMax && missingSkills){
-    $("restSub").textContent = `full HP · recover 1 skill use`;
+  } else if(S.hp >= S.hpMax && missingAbilities){
+    $("restSub").textContent = `full HP · recover 1 ability use`;
   } else if(S.hp >= S.hpMax){
     $("restSub").textContent = `full HP · nothing to restore`;
-  } else if(missingSkills){
-    $("restSub").textContent = `+${heal} HP · recover 1 skill use`;
+  } else if(missingAbilities){
+    $("restSub").textContent = `+${heal} HP · recover 1 ability use`;
   } else {
     $("restSub").textContent = `+${heal} HP · ready`;
   }
@@ -2949,8 +3541,8 @@ function render(){
   }
 
   $("loadoutTxt").textContent = S.loadout === "shield" ? "sword + shield · Guard" : "sword only · Parry";
-  renderSkillSheet();
-  renderRestSkillPick();
+  renderAbilitySheet();
+  renderRestAbilityPick();
   renderCharacterSheet();
 
   $("levelup").hidden = S.statPoints <= 0 || over;
@@ -3044,6 +3636,11 @@ $("btnPack").addEventListener("click", openPack);
 $("btnStopTravel").addEventListener("click", stopTravel);
 $("btnCampHere").addEventListener("click", campAtHollow);
 $("btnLeaveHollow").addEventListener("click", () => leaveHollow(false));
+$("travelEventActions").addEventListener("click", e => {
+  const b = e.target.closest("[data-event-action]");
+  if(!b) return;
+  handleTravelEventAction(b.dataset.eventAction);
+});
 $("btnPackClose").addEventListener("click", closePack);
 $("packScrim").addEventListener("click", closePack);
 $("boonOptions").addEventListener("click", e => {
@@ -3073,22 +3670,22 @@ $("levelup").addEventListener("click", e => {
   render();
 });
 
-$("btnSkills").addEventListener("click", () => {
+$("btnAbilities").addEventListener("click", () => {
   if(over) return;
   $("sheet").hidden = false;
-  renderSkillSheet();
+  renderAbilitySheet();
 });
-$("skillsList").addEventListener("click", e => {
-  const more = e.target.closest(".skill-more[data-skill-more]");
+$("abilitiesList").addEventListener("click", e => {
+  const more = e.target.closest(".skill-more[data-ability-more]");
   if(more){
-    const id = more.dataset.skillMore;
-    combatExpandedSkill = combatExpandedSkill === id ? null : id;
-    renderSkillSheet();
+    const id = more.dataset.abilityMore;
+    combatExpandedAbility = combatExpandedAbility === id ? null : id;
+    renderAbilitySheet();
     return;
   }
-  const b = e.target.closest(".skill[data-skill]");
+  const b = e.target.closest(".skill[data-ability]");
   if(!b || b.disabled) return;
-  useSkill(b.dataset.skill);
+  useAbility(b.dataset.ability);
 });
 $("travelHeroCard").addEventListener("click", openCharacterSheet);
 $("travelHeroCard").addEventListener("keydown", e => {
@@ -3097,21 +3694,21 @@ $("travelHeroCard").addEventListener("keydown", e => {
     openCharacterSheet();
   }
 });
-$("charSkills").addEventListener("click", e => {
-  const more = e.target.closest(".skill-more[data-char-skill-more]");
+$("charAbilities").addEventListener("click", e => {
+  const more = e.target.closest(".skill-more[data-char-ability-more]");
   if(!more) return;
-  const id = more.dataset.charSkillMore;
-  charExpandedSkill = charExpandedSkill === id ? null : id;
+  const id = more.dataset.charAbilityMore;
+  charExpandedAbility = charExpandedAbility === id ? null : id;
   renderCharacterSheet();
 });
 $("btnCharClose").addEventListener("click", closeCharacterSheet);
 $("charScrim").addEventListener("click", closeCharacterSheet);
-$("restSkillOptions").addEventListener("click", e => {
-  const b = e.target.closest(".restskill-opt[data-skill]");
-  if(!b || !S?.pendingRestSkillChoice) return;
-  if(recoverOneSkillUse(b.dataset.skill)){
-    travelLogAdd(`Rest also restored <b>1 use</b> of <b>${esc(skillDisplayName(b.dataset.skill))}</b>.`, "good");
-    closeRestSkillPick();
+$("restAbilityOptions").addEventListener("click", e => {
+  const b = e.target.closest(".restskill-opt[data-recover-ability]");
+  if(!b || !S?.pendingRestAbilityChoice) return;
+  if(recoverOneAbilityUse(b.dataset.recoverAbility)){
+    travelLogAdd(`Rest also restored <b>1 use</b> of <b>${esc(abilityDisplayName(b.dataset.recoverAbility))}</b>.`, "good");
+    closeRestAbilityPick();
     render();
   }
 });
@@ -3125,11 +3722,32 @@ $("btnLoadout").addEventListener("click", () => {
     : `<p class="note">Test loadout: sword only. Defence is now <b>Parry</b>.</p>`);
   render();
 });
-$("btnBack").addEventListener("click", closeSkillSheet);
-$("scrim").addEventListener("click", closeSkillSheet);
+$("btnBack").addEventListener("click", closeAbilitySheet);
+$("scrim").addEventListener("click", closeAbilitySheet);
+
+$("creatorName").addEventListener("input", e => {
+  creatorDraft.name = e.target.value;
+  renderCreator();
+});
+$("creator").addEventListener("click", e => {
+  const stat = e.target.closest(".creator-human-stat[data-human-trait]");
+  if(stat && !stat.disabled){
+    creatorDraft[stat.dataset.humanTrait] = stat.dataset.humanStat;
+    renderCreator();
+    return;
+  }
+  const b = e.target.closest(".creator-choice[data-creator-key]");
+  if(!b) return;
+  creatorDraft[b.dataset.creatorKey] = b.dataset.creatorValue;
+  renderCreator();
+});
+$("btnSignFate").addEventListener("click", signFate);
+$("creatorName").addEventListener("keydown", e => {
+  if(e.key === "Enter" && creatorComplete()) signFate();
+});
 
 setInterval(travelTick, TRAVEL_TICK_MS);
-newDelver();
+renderCreator();
 </script>
 </body>
 </html>
