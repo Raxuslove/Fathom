@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0f1317">
-<title>Lowfathom v0.076 — Explore Timer</title>
+<title>Lowfathom v0.080.10 — Session 7.5 Side Finale Prototypes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.076 Explore timer + v0.075 Smite FX correction
+   LOWFATHOM — v0.080.10 Session 7.5 side finale prototypes + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -40,7 +40,7 @@
    - Session 4: Explore holds depth while using the same interruption engine
    - Session 4: interruption pressure rises after a short quiet stretch
    - Session 4: combat remains the generic random interruption result
-   - Session 5: Rest heals 25% Max HP and recharges through 15 travel activity
+   - Session 5: Rest heals 25% Max HP and recharges through 20 active travel units
    - Session 5: two deterministic one-use safe hollows exist per 60-fathom stratum
    - Session 5: ordinary hollows auto-resume after 15 seconds unless the player interacts
    - Session 5: the pre-boss staging hollow never auto-resumes
@@ -52,6 +52,21 @@
    - v0.075: Perception, Investigation, Stealth, Acrobatics, Athletics and Survival have practice ranks
    - v0.075: Explore can surface a one-time glint event using Perception and Investigation checks
    - v0.076: Explore shows elapsed active exploration time at the current depth
+   - v0.078: active Explore timer digits use a blood-orange accent for clearer feedback
+   - v0.080: Rogue + Wizard class prototypes, class proficiencies and specialization items
+   - v0.080: Sleight of Hand + Translation Skills, traps, bleeding and Bandages
+   - v0.080: one cursed side passage with retreat, unique key, altar language and chest loot
+   - v0.080: Bestiary drop hints at Studied+, visible loot recovery and boss gates at every stratum boundary
+   - v0.080.1: check choices display current bonuses; Rest recharges after 20 active travel units
+   - v0.080.1: Recover action, Heavy-vs-Dodge Feint, collapsible Known Weakness and escalating Run pursuit
+   - v0.080.1: side-passage opportunity resets each stratum and is easier to discover during Descend/Explore
+   - v0.080.2: chance-based Run attempts, Recover heal tuning, easier first passage test and growing side-route visual
+   - v0.080.3: banked descent XP, live randomized side-route traversal, fixed ellipsis and one-shot altar translation
+   - v0.080.5: active side-passage SVG route now renders live during exploration; SVG hidden-state bug fixed
+   - v0.080.6: active side passage uses orange route only; completed/abandoned passage scars are thinner and dimmer
+   - v0.080.7: ordinary combat loot auto-collects into a clickable history; only occasional bonus searches interrupt play
+   - v0.080.8: encounter warnings freeze the delve, remain above browsing sheets, and fade into combat
+   - v0.080.10: 15-second encounter grace plus cache, Mimic and five-seal puzzle side-area finales
 
    Nothing is saved yet — refreshing the page starts you over
    with a fresh delver. That's Session 8's job.
@@ -141,6 +156,7 @@ button{
 .travel-status b{font-family:var(--slab);font-size:12.5px;color:var(--bone);font-weight:500}
 .travel-status.moving{color:#a9987e}
 .travel-status.exploring{color:#82a6a3}
+.travel-status .explore-time{color:#c45b32;font-weight:600}
 
 /* Side-on cave route. The delver settles around 40% across the view, leaving
    real screen-space ahead for later scouting, warnings and discovered landmarks. */
@@ -728,6 +744,76 @@ button{
 .skill-detail b{font-family:var(--cond);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--lamp-dim);font-weight:600}
 .skill-detail span{color:#9aa3aa}
 
+
+/* ---------- v0.080: Session 7.5 QOL ---------- */
+.char-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
+.char-nav-btn{min-height:46px;border:none;background:#12181e;padding:7px 8px;text-align:left}
+.char-nav-btn b{display:block;font-family:var(--slab);font-size:13px;color:var(--bone)}
+.char-nav-btn span{display:block;margin-top:1px;font-family:var(--cond);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.char-nav-btn.active{background:#20272d;box-shadow:inset 0 0 0 1px var(--lamp-dim)}
+.char-nav-btn.active b{color:var(--lamp)}
+.char-page[hidden]{display:none}
+.char-overview-note{padding:9px 13px;background:#101418;border-bottom:1px solid var(--rule);font-size:10.5px;color:var(--dim)}
+.char-overview-note b{color:var(--lamp-dim)}
+.char-status-list{background:#101418;border-bottom:1px solid var(--rule)}
+.char-status{padding:11px 13px;border-bottom:1px solid var(--rule);background:#141a20}
+.char-status:last-child{border-bottom:none}
+.char-status b{display:block;font-family:var(--slab);font-size:15px;color:var(--bone)}
+.char-status span{display:block;margin-top:2px;font-family:var(--cond);font-size:10.5px;line-height:1.35;color:var(--dim)}
+.char-status.bad{border-left:3px solid var(--rust)}.char-status.bad b{color:#d17459}
+.char-status.good{border-left:3px solid var(--verdigris)}.char-status.good b{color:#9fbdba}
+.char-status.empty{border-left:3px solid var(--rule-hi)}
+.char-ability-actions{display:flex;gap:6px;margin-top:8px}
+.char-field-use{border:1px solid var(--verdigris);background:#121a1e;padding:7px 9px;font-family:var(--cond);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#9fbdba}
+.char-field-use:disabled{border-color:var(--rule);color:#46505a;background:#101418}
+.travel-effects{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.travel-effects[hidden]{display:none}
+.travel-effect{border:1px solid var(--rule-hi);padding:2px 6px;background:#101418;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.travel-effect.bad{border-color:#754132;color:#d17459}.travel-effect.good{border-color:#456e6b;color:#9fbdba}
+.travel-hero.damage-flash{animation:travelDamageFlash .55s ease-out}
+@keyframes travelDamageFlash{0%{background:#4a1713;box-shadow:inset 0 0 0 2px #d15c3e,0 0 18px rgba(180,67,45,.55)}35%{background:#321817}100%{background:#12181e;box-shadow:none}}
+.trail-side-corridor{display:none}
+.trail-side-path{fill:none;stroke:#dd764d;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:6 5;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 2.5px rgba(221,118,77,.58));animation:sideTrailMarch 2.4s linear infinite,sideTrailPulse 2.4s ease-in-out infinite}
+.trail-side-corridor[hidden],.trail-side-path[hidden]{display:none}
+.trail-side-history{fill:none;stroke:#765446;stroke-width:1;stroke-linecap:round;stroke-dasharray:3 5;opacity:.34;vector-effect:non-scaling-stroke}
+.trail-side-history.completed{stroke:#766d5d;opacity:.42}
+.trail-side-history.abandoned{stroke:#6a493f;opacity:.28}
+@keyframes sideTrailMarch{from{stroke-dashoffset:0}to{stroke-dashoffset:-22}}
+@keyframes sideTrailPulse{0%,100%{opacity:.78}50%{opacity:1}}
+.passage-dots{display:inline-block;min-width:1.7em;text-align:left}
+.passage-dots::after{content:none!important;animation:none!important}
+.side-time{color:#c45b32;font-weight:600}
+.loot-found-list{display:grid;gap:4px;margin-top:6px}
+.loot-found-item{padding:5px 7px;background:#0f1519;border-left:2px solid var(--lamp-dim);color:var(--bone)}
+
+/* ---------- v0.080.7: low-interruption loot history ---------- */
+.travel-entry.loot p{margin:0}
+.loot-log-btn{
+  display:block;width:100%;border:1px solid rgba(138,117,80,.34);background:#12181e;
+  padding:6px 8px;text-align:left;color:var(--bone);
+}
+.loot-log-btn:active{background:#20272d;border-color:var(--lamp-dim)}
+.loot-log-btn b{font-family:var(--slab);font-size:12.5px;color:var(--lamp);font-weight:600}
+.loot-log-btn span{display:block;margin-top:1px;font-family:var(--cond);font-size:9px;line-height:1.3;color:var(--dim)}
+.loot-log-btn .loot-log-items{color:#a9a397}
+.loot-history-sheet{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;justify-content:flex-end}
+.loot-history-sheet[hidden]{display:none}
+.loot-history-scrim{flex:1;min-height:0;background:rgba(8,11,14,.68)}
+.loot-history-panel{max-height:78%;display:flex;flex-direction:column;background:var(--panel);border-top:1px solid var(--lamp-dim)}
+.loot-history-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 13px;border-bottom:1px solid var(--rule);background:#12181e}
+.loot-history-head h2{margin:0;font-family:var(--slab);font-size:17px;font-weight:600;color:var(--lamp)}
+.loot-history-head span{font-family:var(--cond);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.loot-history-list{overflow-y:auto;min-height:0}
+.loot-history-entry{padding:10px 13px;border-bottom:1px solid var(--rule);background:#141a20}
+.loot-history-entry.selected{box-shadow:inset 3px 0 0 var(--lamp-dim);background:#192129}
+.loot-history-entry-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.loot-history-entry b{font-family:var(--slab);font-size:14px;color:var(--bone)}
+.loot-history-entry em{font-style:normal;font-family:var(--cond);font-size:9px;color:var(--dim);white-space:nowrap}
+.loot-history-entry p{margin:3px 0 0;font-size:11.5px;color:#a8a296}
+.loot-history-entry small{display:block;margin-top:3px;font-family:var(--cond);font-size:9.5px;color:var(--verdigris)}
+.loot-history-note{padding:8px 13px;background:#101418;border-top:1px solid var(--rule);font-size:10px;color:#59636e}
+.loot-history-close{width:100%;min-height:50px;border:none;border-top:1px solid var(--rule);background:#12181e;padding:12px 13px calc(12px + env(safe-area-inset-bottom));font-family:var(--cond);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
 /* ---------- the abilities sheet ---------- */
 .sheet{
   position:absolute;left:0;right:0;top:0;bottom:0;
@@ -881,6 +967,26 @@ button{
 .creator-sign:disabled{border-color:var(--rule);background:#101418;color:#3e4851;cursor:not-allowed}
 .creator-sign span{display:block;margin-top:1px;font-family:var(--cond);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 
+
+/* ---------- Session 7.5: classes, inventory, curses and side areas ---------- */
+.creator-choice.class-card{min-height:76px}
+.creator-choice.class-card span{line-height:1.35}
+.pack-item.compact{padding:10px 13px}
+.pack-item .pack-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.pack-mini-btn{border:1px solid var(--rule-hi);background:#11171c;padding:6px 8px;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone)}
+.pack-mini-btn.good{border-color:var(--verdigris);color:#9fbdba}
+.pack-mini-btn.warn{border-color:var(--warn);color:var(--warn)}
+.pack-mini-btn:disabled{opacity:.35;cursor:not-allowed}
+.pack-tag{display:inline-block;margin-left:6px;font-family:var(--cond);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--verdigris)}
+.pack-tag.equipped{color:var(--lamp)}
+.curse-line{margin-top:6px;padding:6px 8px;border-left:2px solid var(--rust);background:rgba(180,85,60,.08);font-family:var(--cond);font-size:10px;color:#c97962}
+.curse-line b{color:#d88a72}
+.side-progress{color:var(--verdigris);font-weight:600}
+.inscription{display:block;margin-top:5px;padding:7px 8px;border:1px solid var(--rule);background:#0e1418;font-family:var(--slab);font-size:14px;color:var(--lamp)}
+.inscription .known{color:#9fbdba}
+.char-field-skill.bestiary .char-field-progress strong{color:var(--lamp-dim)}
+.char-field-skill.bestiary .drops{display:block;margin-top:3px;color:#a9987e}
+
 /* ---------- the end ---------- */
 .dead{
   position:absolute;inset:0;z-index:10;background:var(--deep);
@@ -907,11 +1013,63 @@ button{
   .arena{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+
+/* ---------- v0.080.8: encounter grace + compact delve log ---------- */
+.travel-log-head{
+  width:100%;border:0;text-align:left;display:flex;align-items:center;gap:8px;cursor:pointer;
+}
+.travel-log-head .travel-log-toggle-text{margin-left:auto;color:#59636e;letter-spacing:.08em}
+.travel-log-head i{font-style:normal;color:var(--lamp-dim);font-size:12px;transition:transform .16s}
+.travel-log-wrap.collapsed{height:auto;flex:0 0 auto}
+.travel-log-wrap.collapsed .travel-log{flex:0 0 auto;height:auto;max-height:none;overflow:hidden;padding:7px 12px 9px}
+.travel-log-wrap.collapsed .travel-entry{display:none}
+.travel-log-wrap.collapsed .travel-entry:last-child{display:grid}
+.travel-log-wrap:not(.collapsed) .travel-log-head i{transform:rotate(180deg)}
+
+.encounter-warning{
+  position:absolute;z-index:80;left:8px;right:8px;top:calc(8px + env(safe-area-inset-top));
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 10px;align-items:center;
+  padding:9px 10px 8px;border:1px solid #8d4a35;background:rgba(27,20,18,.97);
+  box-shadow:0 8px 26px rgba(0,0,0,.42),0 0 0 1px rgba(196,91,50,.10) inset;
+}
+.encounter-warning[hidden]{display:none}
+.encounter-warning-copy{min-width:0}
+.encounter-warning em{display:block;font-style:normal;font-family:var(--cond);font-size:8.5px;letter-spacing:.17em;text-transform:uppercase;color:#c06b4c}
+.encounter-warning b{display:block;margin-top:1px;font-family:var(--slab);font-size:14px;line-height:1.15;color:#d9cec2}
+.encounter-warning-copy>span{display:block;margin-top:2px;font-family:var(--cond);font-size:9.5px;line-height:1.25;color:#887f78}
+.encounter-warning button{border:1px solid #8d4a35;background:#211714;padding:8px 9px;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#d28b68;white-space:nowrap}
+.encounter-warning-track{grid-column:1/-1;height:3px;background:#120d0c;overflow:hidden}
+.encounter-warning-track i{display:block;height:100%;width:100%;background:#c45b32;transform-origin:left center}
+.combat-transition{position:absolute;inset:0;z-index:90;background:#050607;opacity:0;pointer-events:none;transition:opacity .24s ease}
+.combat-transition[hidden]{display:none}
+.combat-transition.fade-in{opacity:1}
+
+/* ---------- v0.080.1: combat/read/check QOL ---------- */
+.travel-event-btn .check-bonus{color:#9fbdba;font-weight:600}
+.tell{cursor:pointer;user-select:none;-webkit-user-select:none}
+.tell.collapsed{padding-top:5px;padding-bottom:5px}
+.tell.collapsed em{margin:0}
+.act.recover b{color:#92b896}
+.act.heavyfeint b{color:#d28b58}
+
 </style>
 </head>
 <body>
 
 <div class="arena" id="arena">
+
+  <aside class="encounter-warning" id="encounterWarning" hidden aria-live="assertive">
+    <div class="encounter-warning-copy">
+      <em id="encounterWarningKicker">You have been noticed</em>
+      <b id="encounterWarningTitle">Something is closing in.</b>
+      <span id="encounterWarningSub">The delve is frozen. You can still browse before combat.</span>
+    </div>
+    <button id="btnFaceEncounter" type="button">Face it now</button>
+    <div class="encounter-warning-track" aria-hidden="true"><i id="encounterWarningBar"></i></div>
+  </aside>
+
+  <div class="combat-transition" id="combatTransition" hidden aria-hidden="true"></div>
 
   <section class="creator" id="creator" aria-label="Create a delver">
     <div class="creator-head">
@@ -951,9 +1109,16 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.076</span></div>
+        <div class="creator-section-head"><b>Class</b><span>calling</span></div>
+        <p>Choose how this delver approaches combat and the dungeon. Every class can attempt every Skill; classes begin with different proficiencies and a specialization item.</p>
+        <div class="creator-grid" id="classChoices"></div>
+        <p class="creator-folk-flavor" id="classFlavor" hidden></p>
+      </section>
+
+      <section class="creator-section">
+        <div class="creator-section-head"><b>Starting character</b><span>v0.080.10</span></div>
         <div class="creator-identity">
-          <div><em>Class</em><b>Votary</b></div>
+          <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
           <div><em>Starting HP</em><b id="creatorHp">60</b></div>
         </div>
@@ -970,6 +1135,8 @@ button{
         <svg class="trail-svg" id="trailSvg" viewBox="0 0 220 154" preserveAspectRatio="none" aria-hidden="true">
           <path class="trail-corridor" id="trailCorridor" d=""></path>
           <path class="trail-path" id="trailPath" d=""></path>
+          <path class="trail-side-corridor" id="trailSideCorridor" d="" hidden></path>
+          <path class="trail-side-path" id="trailSidePath" d="" hidden></path>
           <g id="trailMarks"></g>
         </svg>
         <div class="trail-marker" id="trailMarker"><i></i></div>
@@ -977,7 +1144,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.076</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.080.10</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -1008,8 +1175,8 @@ button{
         <div class="hollow-countdown" id="hollowCountdown"></div>
       </section>
 
-      <section class="travel-log-wrap" aria-label="Delve log">
-        <div class="travel-log-head">Delve log · scroll to review</div>
+      <section class="travel-log-wrap collapsed" id="travelLogWrap" aria-label="Delve log">
+        <button class="travel-log-head" id="btnTravelLogToggle" type="button" aria-expanded="false"><span>Delve log</span><span class="travel-log-toggle-text">latest only</span><i aria-hidden="true">▾</i></button>
         <div class="travel-log" id="travelLog" role="log" aria-live="polite"></div>
       </section>
     </div>
@@ -1022,6 +1189,7 @@ button{
         <span id="travelXp">— XP</span>
       </div>
       <div class="travel-boon" id="travelBoon" hidden><b>Boon</b><span id="travelBoonTxt"></span></div>
+      <div class="travel-effects" id="travelEffects" hidden></div>
     </section>
 
     <div class="travel-actions">
@@ -1037,12 +1205,23 @@ button{
     <div class="pack-scrim" id="packScrim"></div>
     <div class="pack-panel">
       <div class="pack-head"><h2>Backpack</h2><span>your pack · travel continues</span></div>
-      <div class="pack-item">
+      <div class="pack-item" title="Found rarely on scavenger-type foes and in caches.">
         <div class="pack-item-top"><b>Camp Supplies</b><strong id="packCampSupplies">×2</strong></div>
-        <p>Consumed when you make a full camp at a safe hollow.</p>
+        <p>Found rarely on scavenger-type foes and in caches. Consumed when you make a full camp at a safe hollow.</p>
       </div>
-      <div class="pack-note">v0.076 still tracks only Camp Supplies. Books, scrolls, ingredients and other finds plug into this backpack later.</div>
+      <div id="packDynamicItems"></div>
+      <div class="pack-note" id="packNote">Session 7.5 prototype inventory. Tools are reusable; consumables and passage keys are tracked separately.</div>
       <button class="pack-close" id="btnPackClose">Back to the delve</button>
+    </div>
+  </div>
+
+  <div class="loot-history-sheet" id="lootHistorySheet" hidden>
+    <div class="loot-history-scrim" id="lootHistoryScrim"></div>
+    <div class="loot-history-panel">
+      <div class="loot-history-head"><h2>Loot History</h2><span>travel continues</span></div>
+      <div class="loot-history-list" id="lootHistoryList"></div>
+      <div class="loot-history-note">Ordinary loot is collected automatically. This history is only a record; everything shown here is already in your Backpack.</div>
+      <button class="loot-history-close" id="btnLootHistoryClose">Back to the delve</button>
     </div>
   </div>
 
@@ -1057,14 +1236,44 @@ button{
         <div><em>HP</em><b id="charHp">—</b></div>
         <div><em>Stamina</em><b id="charStamina">—</b></div>
       </div>
-      <div class="char-stats" id="charStats"></div>
-      <div class="char-folk-trait" id="charFolkTrait"></div>
-      <div class="char-section-head"><b>Skills</b><span>practice through use</span></div>
-      <div class="char-field-skills" id="charSkills"></div>
-      <div class="char-field-note">Checks currently use d20 + (attribute − 10) + Skill rank + situational bonuses. Meaningful event practice can grant Skill XP; repeating the same event type cannot be farmed for more.</div>
-      <div class="char-section-head"><b>Abilities</b><span id="charAbilitySummary">—</span></div>
-      <div class="char-abilities" id="charAbilities"></div>
-      <div class="char-note">Ability descriptions show what each class ability does. “See more” shows its mechanics and current scaling.</div>
+      <div class="char-nav" id="charNav">
+        <button class="char-nav-btn active" data-char-view="overview"><b>Overview</b><span>stats + folk</span></button>
+        <button class="char-nav-btn" data-char-view="status"><b>Status</b><span id="charStatusNavText">conditions</span></button>
+        <button class="char-nav-btn" data-char-view="skills"><b>Skills</b><span>practice</span></button>
+        <button class="char-nav-btn" data-char-view="bestiary"><b>Bestiary</b><span>knowledge</span></button>
+        <button class="char-nav-btn" data-char-view="abilities"><b>Abilities</b><span id="charAbilitySummary">—</span></button>
+      </div>
+
+      <section class="char-page" data-char-page="overview">
+        <div class="char-stats" id="charStats"></div>
+        <div class="char-folk-trait" id="charFolkTrait"></div>
+        <div class="char-overview-note"><b>Specialization</b> · <span id="charSpecialization">—</span></div>
+      </section>
+
+      <section class="char-page" data-char-page="status" hidden>
+        <div class="char-section-head"><b>Status effects</b><span>active conditions</span></div>
+        <div class="char-status-list" id="charStatuses"></div>
+        <div class="char-field-note">Encounter-based effects count down only when an encounter is completed. Bleeding lasts until treated.</div>
+      </section>
+
+      <section class="char-page" data-char-page="skills" hidden>
+        <div class="char-section-head"><b>Skills</b><span>practice through use</span></div>
+        <div class="char-field-skills" id="charSkills"></div>
+        <div class="char-field-note">Checks use d20 + (attribute − 10) + Skill rank + class proficiency + situational bonuses. Meaningful opportunities resolve after an attempt, so checks cannot be farmed indefinitely.</div>
+      </section>
+
+      <section class="char-page" data-char-page="bestiary" hidden>
+        <div class="char-section-head"><b>Bestiary</b><span>Read / Study knowledge</span></div>
+        <div class="char-field-skills" id="charBestiary"></div>
+        <div class="char-field-note">At Studied, an archetype begins revealing the kinds of items it probably carries. Exact drop percentages stay hidden.</div>
+      </section>
+
+      <section class="char-page" data-char-page="abilities" hidden>
+        <div class="char-section-head"><b>Abilities</b><span>combat + field use</span></div>
+        <div class="char-abilities" id="charAbilities"></div>
+        <div class="char-note">Some abilities can be used outside combat. For now, Lay On Hands and Mending Spark support field use.</div>
+      </section>
+
       <button class="char-close" id="btnCharClose">Back to the delve</button>
     </div>
   </div>
@@ -1126,6 +1335,7 @@ button{
       <span class="xp" id="heroXp">0 / 0 XP</span>
     </div>
     <div class="combat-boon" id="combatBoon" hidden><b>Boon</b><span id="combatBoonTxt"></span></div>
+    <div class="combat-boon" id="combatCurse" hidden><b>Affliction</b><span id="combatCurseTxt"></span></div>
   </section>
 
   <div class="preview idle" id="preview">
@@ -1156,7 +1366,23 @@ button{
         <b>CON +1</b>
         <span id="levelupCon">More maximum HP.</span>
       </button>
-      <div class="levelup-note">Prototype level-up choice only. STR and CON remain the only selectable level-up stats in this slice; DEX, INT, WIS and CHA now have broader system roles that will be expanded separately.</div>
+      <button class="levelup-opt" data-stat="DEX">
+        <b>DEX +1</b>
+        <span id="levelupDex">Finesse weapons, Sleight, Stealth, Acrobatics and Rogue Dodge improve.</span>
+      </button>
+      <button class="levelup-opt" data-stat="INT">
+        <b>INT +1</b>
+        <span id="levelupInt">Arcane weapons/abilities, Investigation and Translation improve.</span>
+      </button>
+      <button class="levelup-opt" data-stat="WIS">
+        <b>WIS +1</b>
+        <span id="levelupWis">Perception and Survival checks improve.</span>
+      </button>
+      <button class="levelup-opt" data-stat="CHA">
+        <b>CHA +1</b>
+        <span id="levelupCha">Social/conviction systems are still light in this slice.</span>
+      </button>
+      <div class="levelup-note">Session 7.5 opens all six attributes so Rogue and Wizard progression can be tested. CHA still has the least implemented payoff and remains a known design gap.</div>
     </div>
   </div>
 
@@ -1177,7 +1403,7 @@ button{
     <div class="sheet-scrim" id="scrim"></div>
     <div class="sheet-panel">
       <div class="sheet-head">
-        <h2>Votary Abilities</h2>
+        <h2>Abilities</h2>
         <span class="slots" id="sheetSlots">7 / 7 uses ready</span>
       </div>
       <div id="abilitiesList"></div>
@@ -1355,7 +1581,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.076";
+const BUILD_VERSION = "v0.080.10";
 
 const TRAVEL_TICK_MS = 500;
 const TRAVEL_STEP = 0.25;          // 0.5 fathom / second while Descending
@@ -1375,7 +1601,7 @@ const STRIKE_MULT = [1.0, 2.4, 3.5];
 
 /* Session 5 recovery pacing. These are deliberately isolated so phone
    playtesting can change them without touching combat balance. */
-const REST_RECOVERY_REQUIRED = 15;      // active travel-equivalent after each Rest
+const REST_RECOVERY_REQUIRED = 20;      // active travel units after each Rest; Descend, Explore and side-passage travel all count
 const REST_HEAL_FRACTION = 0.25;        // always based on Max HP, never current HP
 const HOLLOW_EARLY_OFFSET = 20;         // ordinary one-use safe hollow
 const HOLLOW_STAGE_OFFSET = 52;         // special pre-boss staging hollow
@@ -1507,6 +1733,7 @@ let smiteFxTimer = null;
 let creatorDraft = {name:"", folk:null, trade:null, origin:null, humanPlus2:null, humanPlus1:null, humanMinus2:null};
 let combatExpandedAbility = null;
 let charExpandedAbility = null;
+let charView = "overview";
 
 function xpToNext(level=S.level){
   return Math.round(20 + 10*Math.pow(level,1.5));
@@ -1939,6 +2166,15 @@ function triggerSmiteFx(){
   }, 760);
 }
 
+function flashTravelDamage(){
+  const card=$("travelHeroCard");
+  if(!card) return;
+  card.classList.remove("damage-flash");
+  void card.offsetWidth;
+  card.classList.add("damage-flash");
+  setTimeout(()=>card.classList.remove("damage-flash"),600);
+}
+
 function restoreAllAbilities(){
   for(const id of ABILITY_ORDER){
     const sk = abilityState(id);
@@ -2029,7 +2265,7 @@ function renderCharacterSheet(){
     </div>`;
   }).join("");
   $("charAbilitySummary").textContent = `${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
-  $("charAbilities").innerHTML = ABILITY_ORDER.map(id => {
+  $("charAbilities").innerHTML = (typeof classAbilityOrder === "function" ? classAbilityOrder() : ABILITY_ORDER).map(id => {
     const def = ABILITY_DEFS[id], sk = abilityState(id), open = charExpandedAbility === id;
     return `<div class="char-skill">
       <div class="char-skill-top"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses</span></div>
@@ -3297,6 +3533,30 @@ function trailWave(depth){
   return Math.sin(depth * 0.72) * 6 + Math.sin(depth * 1.61 + 0.8) * 2.5;
 }
 
+function sideAreaRouteProgress(area=S?.sideArea){
+  if(!area) return 0;
+  if(area.completed || area.endReached) return 1;
+  const needed=Math.max(1,area.encountersNeeded||4);
+  const resolved=clamp((area.encountersDefeated||0)/needed,0,1);
+  const between=clamp((area.activity||0)/4,0,1);
+  // A small visible crack appears immediately. Encounter progress carries most
+  // of the length; active exploration grows the next stretch between fights.
+  return clamp(.08 + resolved*.75 + between*.17,.08,.98);
+}
+function sideBranchPath(anchorX,anchorY,progress=1){
+  const offsets=[[0,0],[14,-4],[28,-26],[47,-24],[61,-12],[76,2],[91,-13]];
+  const pts=offsets.map(([x,y])=>[anchorX+x,anchorY+y]);
+  const segs=pts.length-1,scaled=clamp(progress,0,1)*segs;
+  const whole=Math.floor(scaled),frac=scaled-whole;
+  const out=[pts[0]];
+  for(let i=1;i<=Math.min(whole,segs);i++)out.push(pts[i]);
+  if(whole<segs && frac>0){
+    const a=pts[whole],b=pts[whole+1];
+    out.push([a[0]+(b[0]-a[0])*frac,a[1]+(b[1]-a[1])*frac]);
+  }
+  return out.map((pt,i)=>`${i?'L':'M'}${pt[0].toFixed(1)},${pt[1].toFixed(1)}`).join(' ');
+}
+
 function drawTrail(depth){
   const viewStart = Math.max(0, depth - TRAIL_BEHIND);
   const currentOffset = depth - viewStart;
@@ -3329,6 +3589,14 @@ function drawTrail(depth){
     const x = xOf(d);
     marks += `<line class="trail-boundary" x1="${x.toFixed(1)}" y1="7" x2="${x.toFixed(1)}" y2="${TRAIL_H-7}"></line>`;
   }
+  // Completed/abandoned side routes remain as faint map scars while their entrance
+  // is still inside the nearby-route viewport.
+  for(const h of (S.sideAreaHistory||[])){
+    if(h.entryDepth < viewStart-.001 || h.entryDepth > last+.001) continue;
+    const hx=xOf(h.entryDepth),hy=clamp(yOf(h.entryDepth),10,TRAIL_H-10);
+    const hd=sideBranchPath(hx,hy,h.progress??(h.completed?1:.5));
+    marks += `<path class="trail-side-history ${h.completed?'completed':'abandoned'}" d="${hd}"></path>`;
+  }
   $("trailMarks").innerHTML = marks;
 
   // At the mouth of the delve the marker begins on the left. Once enough ground is
@@ -3336,9 +3604,18 @@ function drawTrail(depth){
   const markerX = xOf(depth);
   const markerY = clamp(yOf(depth), 10, TRAIL_H - 10);
   const marker = $("trailMarker");
+  const sideCorridor=$("trailSideCorridor"), sidePath=$("trailSidePath");
+  if(sideCorridor && sidePath){
+    const active=typeof sideAreaActive === "function" && sideAreaActive();
+    sideCorridor.hidden=!active; sidePath.hidden=!active;
+    if(active){
+      const branch=sideBranchPath(markerX,markerY,sideAreaRouteProgress());
+      sideCorridor.setAttribute("d",branch); sidePath.setAttribute("d",branch);
+    }
+  }
   marker.style.left = `${(markerX / TRAIL_W) * 100}%`;
   marker.style.top = `${(markerY / TRAIL_H) * 100}%`;
-  marker.classList.toggle("exploring", S.travelMode === "explore");
+  marker.classList.toggle("exploring", S.travelMode === "explore" || S.travelMode === "side");
   // Keep the label synchronized with the geometry while the route eases between ticks.
 }
 
@@ -3386,6 +3663,10 @@ function renderSafeHollow(){
 
   const camp = $("btnCampHere");
   camp.disabled = S.inventory.campSupplies <= 0;
+  // Encounter-warning browsing temporarily disables hollow actions. Unlike the
+  // other travel controls, Continue had no normal-state assignment, so its
+  // disabled flag could leak into later hollows after the warning ended.
+  $("btnLeaveHollow").disabled = false;
   $("campHereSub").textContent = S.inventory.campSupplies > 0
     ? `1 Camp Supply · ${S.inventory.campSupplies} carried · full recovery`
     : `no Camp Supplies carried`;
@@ -3438,7 +3719,7 @@ function renderTravel(){
   } else if(S.travelMode === "descend"){
     status.innerHTML = `<b>Descending.</b> You keep moving deeper until something interrupts you.`;
   } else if(S.travelMode === "explore"){
-    status.innerHTML = `<b>Exploring.</b> Depth is locked at ${formatDepth(S.depth)} fathoms · <b>${formatExploreTime()} explored</b>.`;
+    status.innerHTML = `<b>Exploring<span class="passage-dots"></span></b> Depth is locked at ${formatDepth(S.depth)} fathoms · <span class="explore-time">${formatExploreTime()}</span> explored.`;
   } else {
     const exploredHere = (S.exploreElapsedMs || 0) > 0 && Math.abs((S.exploreDepth ?? S.depth) - S.depth) <= 0.0001;
     status.innerHTML = exploredHere
@@ -3550,8 +3831,12 @@ function render(){
     $("levelupTitle").textContent = S.statPoints === 1
       ? `Level ${S.level} — choose your stat point`
       : `Level ${S.level} — ${S.statPoints} stat points waiting`;
-    $("levelupStr").textContent = `STR ${S.STR} → ${S.STR+1} · Strike and Heavy damage rise.`;
+    $("levelupStr").textContent = `STR ${S.STR} → ${S.STR+1} · STR weapons and Athletics improve.`;
     $("levelupCon").textContent = `CON ${S.CON} → ${S.CON+1} · maximum HP +6. Current HP also rises by 6.`;
+    $("levelupDex").textContent = `DEX ${S.DEX} → ${S.DEX+1} · finesse weapons, DEX Skills and Rogue Dodge improve.`;
+    $("levelupInt").textContent = `INT ${S.INT} → ${S.INT+1} · Arcane weapons/abilities, Investigation and Translation improve.`;
+    $("levelupWis").textContent = `WIS ${S.WIS} → ${S.WIS+1} · Perception and Survival improve.`;
+    $("levelupCha").textContent = `CHA ${S.CHA} → ${S.CHA+1} · wider social/conviction payoff is still pending.`;
   }
 
   renderPad();
@@ -3619,6 +3904,1955 @@ function renderPreview(){
 }
 
 
+
+/* ============================================================
+   SESSION 7.5 — vertical slice extension (v0.080)
+
+   This layer deliberately sits on top of the proven v0.078 systems. It adds
+   class-defined abilities, two dungeon Skills, a small inventory/loot model,
+   one cursed side passage, one curse, and the first stratum boss without
+   replacing the existing Votary combat rules or protected Smite FX.
+   ============================================================ */
+
+// Two new practiced competencies. The existing array is mutable even though the
+// binding is const, so the original character-sheet and new-delver code can see them.
+Object.assign(SKILL_DEFS, {
+  sleight:{name:"Sleight of Hand", stat:"DEX", desc:"Manipulate locks, traps and delicate mechanisms without setting them off."},
+  translation:{name:"Translation", stat:"INT", desc:"Decipher unfamiliar words, inscriptions and ritual language from context."}
+});
+for(const id of ["sleight","translation"]) if(!SKILL_ORDER.includes(id)) SKILL_ORDER.push(id);
+
+Object.assign(ABILITY_DEFS, {
+  feint:{
+    id:"feint", name:"Feint", degree:"I", max:2,
+    desc:"A deceptive DEX attack that is especially effective into Guard. Costs no Stamina.",
+    mechanics:"Consumes your normal combat action. Deals a DEX-based strike. Guard does not reduce it; a guarding foe takes 50% extra damage.",
+    scaling:"Damage scales with DEX."
+  },
+  slip:{
+    id:"slip", name:"Slip Away", degree:"I", max:2,
+    desc:"Negate a declared attack and recover 2 Stamina. Consumes your turn.",
+    mechanics:"Only usable against an attack intent. The attack is negated, you recover 2 Stamina, and Strike/defence rhythm breaks.",
+    scaling:"No direct damage scaling at Degree I."
+  },
+  dirtytrick:{
+    id:"dirtytrick", name:"Dirty Trick", degree:"I", max:2,
+    desc:"A light DEX strike that leaves the foe Blinded until its next attack attempt.",
+    mechanics:"Consumes your normal combat action. Deals light DEX damage and applies Blinded. Guard still reduces the damage, but not the Blind.",
+    scaling:"Damage scales with DEX."
+  },
+  arcbolt:{
+    id:"arcbolt", name:"Arc Bolt", degree:"I", max:3,
+    desc:"Hurl INT-scaled Arcane damage. Ordinary Guard does not reduce it.",
+    mechanics:"Consumes your normal combat action. Arcane damage ignores ordinary Guard; a Dodging foe still has a small chance to avoid the bolt.",
+    scaling:"Damage scales with INT."
+  },
+  ward:{
+    id:"ward", name:"Ward", degree:"I", max:2,
+    desc:"Negate the foe's declared attack this turn. Consumes your turn.",
+    mechanics:"Only usable against an attack intent. The attack is completely negated. No Stamina is restored and no counterattack is made.",
+    scaling:"No direct scaling at Degree I."
+  },
+  mend:{
+    id:"mend", name:"Mending Spark", degree:"I", max:2,
+    desc:"Heal 12 HP. Quick-use: once per turn, and it does not end your turn.",
+    mechanics:"Restore up to 12 HP. Cannot be used at full HP. Quick-use means you may still take your normal combat action afterward.",
+    scaling:"The heal is flat at Degree I."
+  }
+});
+
+const CLASS_DEFS = {
+  Votary:{
+    name:"Votary", short:"Martial faith", flavor:"A defensive martial calling built around commitment, recovery and Radiant force.",
+    abilities:["layonhands","holdfast","smite","withdraw"], proficiencies:{},
+    specialization:"Votive Reliquary", startingWeapon:"worn_longsword"
+  },
+  Rogue:{
+    name:"Rogue", short:"DEX · traps · locks", flavor:"A finesse delver trained to manipulate mechanisms and survive bad positions.",
+    abilities:["feint","slip","dirtytrick","withdraw"], proficiencies:{sleight:5},
+    specialization:"Rogue Tools", startingWeapon:"worn_shortsword"
+  },
+  Wizard:{
+    name:"Wizard", short:"INT · arcane · language", flavor:"A scholar of hostile places, using Arcane force and practiced translation.",
+    abilities:["arcbolt","ward","mend","withdraw"], proficiencies:{translation:5},
+    specialization:"Scholar's Lexicon", startingWeapon:"worn_wand"
+  }
+};
+const CLASS_ORDER = ["Votary","Rogue","Wizard"];
+
+const GEAR_ITEMS = {
+  worn_longsword:{name:"Worn Longsword",slot:"weapon",stat:"STR",power:0,desc:"Reliable Guild-issue steel."},
+  tempered_longsword:{name:"Tempered Longsword",slot:"weapon",stat:"STR",power:2,desc:"A better-balanced STR weapon."},
+  worn_shortsword:{name:"Worn Shortsword",slot:"weapon",stat:"DEX",power:0,desc:"A light finesse weapon using DEX."},
+  balanced_dagger:{name:"Balanced Dagger",slot:"weapon",stat:"DEX",power:2,desc:"A precise finesse weapon using DEX."},
+  worn_wand:{name:"Worn Wand",slot:"weapon",stat:"INT",power:0,desc:"An arcane focus; basic attacks use INT."},
+  etched_wand:{name:"Etched Wand",slot:"weapon",stat:"INT",power:2,desc:"A stronger arcane focus using INT."},
+  handaxe:{name:"Salvaged Hand-axe",slot:"weapon",stat:"STR",power:1,desc:"An off-class STR weapon."},
+  hunting_bow:{name:"Hunting Bow",slot:"weapon",stat:"DEX",power:1,desc:"An off-class ranged DEX weapon."}
+};
+
+const DROP_HINTS = {
+  cutter:["Bandages","meat scraps","simple weapons"],
+  scrounger:["Rogue Tools","keys","Camp Supplies"],
+  skitter:["meat scraps","light gear","Bandages"],
+  shieldback:["Bandages","shields","heavy gear"],
+  mauler:["heavy weapons","meat scraps","Camp Supplies"],
+  oldhand:["keys","better weapons","unusual trinkets"],
+  warren_boss:["stratum reward","better equipment","unusual trinkets"]
+};
+
+const LANG_DICT = {Cor:"I", amina:"want", mi:"one", mattra:"meat", keth:"open", sava:"blood"};
+const ALTAR_SENTENCE = ["Cor","amina","mi","mattra"];
+
+const BOSS_PROFILE = {
+  id:"warren_boss", name:"prototype warren boss", unlock:0, hp:78, atk:9, xp:32, danger:3,
+  intents:{quick:30,heavy:25,dodge:10,guard:25,recover:10}, recoverAt:0.35,
+  hurtIntents:{quick:20,heavy:50,dodge:5,guard:10,recover:15}, hurtAt:0.50,
+  weakness:{id:"rage_opening",txt:"Its second wind becomes reckless. Heavy commitment is easier to punish once it is bloodied.",eff:{counterBonus:1.40,offBalanceBonus:1.40}}
+};
+
+function classDef(){ return CLASS_DEFS[S?.className] || CLASS_DEFS.Votary; }
+function classAbilityOrder(){ return S ? classDef().abilities : CLASS_DEFS.Votary.abilities; }
+function proficiencyBonus(id){ return S?.proficiencies?.[id] || 0; }
+function equippedWeaponDef(){ return GEAR_ITEMS[S?.equippedWeapon] || GEAR_ITEMS.worn_longsword; }
+function attackStatKey(){ return equippedWeaponDef().stat || "STR"; }
+function attackStatValue(){ const key=attackStatKey(); return (S?.[key] || 10) + (equippedWeaponDef().power || 0); }
+function sideAreaActive(){ return !!S?.sideArea && !S.sideArea.completed && !S.sideArea.abandoned; }
+function curseActive(){ return !!S?.curse && (S.curse.remaining || 0) > 0; }
+function trapDc(base=12){ return base + Math.floor((S?.depth || 0)/30); }
+function sideDiscoveryDc(){ return stratumIndex(S?.depth||0)===0 ? 8 : trapDc(12); }
+function languageLine(){
+  const known = new Set(S?.languageKnown || []);
+  return ALTAR_SENTENCE.map(w => known.has(w) ? `<span class="known">${esc(LANG_DICT[w])}</span>` : esc(w)).join(" ");
+}
+function learnLanguageWord(){
+  if(!S) return null;
+  const known = new Set(S.languageKnown || []);
+  const unknown = ALTAR_SENTENCE.filter(w => !known.has(w));
+  if(!unknown.length) return null;
+  const word = pick(unknown);
+  S.languageKnown.push(word);
+  return {word,meaning:LANG_DICT[word]};
+}
+function addMisc(name, qty=1){
+  if(!S.inventory.misc) S.inventory.misc={};
+  S.inventory.misc[name]=(S.inventory.misc[name]||0)+qty;
+}
+function addWeapon(itemId){
+  if(!S.inventory.weapons) S.inventory.weapons=[];
+  if(!S.inventory.weapons.includes(itemId)) S.inventory.weapons.push(itemId);
+}
+function removePassageKey(){ if(S?.inventory) S.inventory.passageKey=null; }
+
+// ----- creator -----
+creatorDraft.className = creatorDraft.className || null;
+const session75CreatorComplete = creatorComplete;
+creatorComplete = function(){
+  return session75CreatorComplete() && !!creatorDraft.className;
+};
+const session75RenderCreator = renderCreator;
+renderCreator = function(){
+  session75RenderCreator();
+  const root=$("classChoices");
+  if(root){
+    root.innerHTML = CLASS_ORDER.map(name => {
+      const d=CLASS_DEFS[name], selected=creatorDraft.className===name;
+      return `<button class="creator-choice class-card ${selected?"selected":""}" data-class-choice="${name}"><b>${esc(name)}</b><span>${esc(d.short)}<br>Starts with ${esc(d.specialization)}</span></button>`;
+    }).join("");
+  }
+  const d=creatorDraft.className ? CLASS_DEFS[creatorDraft.className] : null;
+  if($("classFlavor")){
+    $("classFlavor").hidden=!d;
+    $("classFlavor").textContent=d ? `${d.flavor} Specialization: ${d.specialization}.` : "";
+  }
+  if($("creatorClass")) $("creatorClass").textContent=d?.name || "—";
+  const complete=creatorComplete();
+  $("btnSignFate").disabled=!complete;
+  if(!creatorDraft.name.trim() || !creatorDraft.folk || !creatorDraft.trade || !creatorDraft.origin){
+    $("creatorReadyText").textContent="name, folk, trade and origin required";
+  } else if(creatorDraft.folk==="Human" && !humanTraitsComplete()){
+    $("creatorReadyText").textContent="choose Human +2, +1 and −2 attributes";
+  } else if(!creatorDraft.className){
+    $("creatorReadyText").textContent="choose a class";
+  } else {
+    $("creatorReadyText").textContent=`${creatorDraft.className} · ${creatorDraft.folk} · ${creatorDraft.trade}`;
+  }
+};
+
+const session75NewDelver = newDelver;
+newDelver = function(profile){
+  const cls = profile?.className || creatorDraft.className || "Votary";
+  session75NewDelver(profile);
+  const d=CLASS_DEFS[cls] || CLASS_DEFS.Votary;
+  S.className=d.name;
+  S.proficiencies={...d.proficiencies};
+  S.specialization=d.specialization;
+  S.equippedWeapon=d.startingWeapon;
+  S.inventory={
+    campSupplies:S.inventory?.campSupplies ?? STARTING_CAMP_SUPPLIES,
+    bandages:1,
+    meat:0,
+    rope:0,
+    water:1,
+    rogueTools:cls==="Rogue" ? 1 : 0,
+    lexicon:cls==="Wizard" ? 1 : 0,
+    reliquary:cls==="Votary" ? 1 : 0,
+    misc:{}, weapons:[d.startingWeapon], passageKey:null
+  };
+  S.abilities=Object.fromEntries(d.abilities.map(id=>[id,{cur:ABILITY_DEFS[id].max,max:ABILITY_DEFS[id].max,degree:ABILITY_DEFS[id].degree}]));
+  S.languageKnown=cls==="Wizard" ? ["Cor"] : [];
+  S.sideArea=null;
+  S.sideDiscoveryStratum=0;
+  S.sideDiscoveryAt=ri(15,30);
+  S.sideDiscoveryAttempted=false;
+  S.sideAreaResolved=false;
+  S.curse=null;
+  S.bleeding=false;
+  S.bleedTravel=0;
+  S.bossDefeated={};
+  S.packMode=null;
+  S.loadout=cls==="Votary" ? "shield" : cls==="Rogue" ? "rogue" : "staff";
+  travelLogAdd(`<b>${esc(d.name)}</b> specialization: ${esc(d.specialization)}.`,"good");
+  if(cls==="Rogue") travelLogAdd(`Rogue proficiency: <b>+5 Sleight of Hand</b>. Rogue Tools are packed and ready.`,"note");
+  if(cls==="Wizard") travelLogAdd(`Wizard proficiency: <b>+5 Translation</b>. Your lexicon already identifies one word of the old tongue.`,"note");
+  render();
+};
+
+signFate = function(){
+  if(!creatorComplete()) return;
+  const profile={
+    name:creatorDraft.name.trim(), folk:creatorDraft.folk, trade:creatorDraft.trade, origin:creatorDraft.origin,
+    className:creatorDraft.className,
+    humanPlus2:creatorDraft.humanPlus2,humanPlus1:creatorDraft.humanPlus1,humanMinus2:creatorDraft.humanMinus2
+  };
+  newDelver(profile);
+};
+
+// ----- Skill checks + meaningful-use XP -----
+runSkillCheck = function(id, dc, situational=0){
+  const def=SKILL_DEFS[id], st=skillState(id);
+  const roll=ri(1,20), attrBonus=S[def.stat]-10, rankBonus=st.rank, prof=proficiencyBonus(id);
+  const total=roll+attrBonus+rankBonus+prof+situational;
+  return {id,def,dc,roll,attrBonus,rankBonus,proficiency:prof,situational,total,success:total>=dc};
+};
+skillCheckBonus = function(id){
+  const def=SKILL_DEFS[id], st=skillState(id);
+  if(!def||!st||!S) return 0;
+  return (S[def.stat]-10)+st.rank+proficiencyBonus(id);
+};
+formatSkillCheck = function(result){
+  const parts=[`d20 ${result.roll}`,`${result.def.stat} ${signed(result.attrBonus)}`,`${result.def.name} Rank ${result.rankBonus}`];
+  if(result.proficiency) parts.push(`class proficiency ${signed(result.proficiency)}`);
+  if(result.situational) parts.push(`circumstance ${signed(result.situational)}`);
+  return `<b>${esc(result.def.name)}</b>: ${parts.join(" · ")} = <b>${result.total}</b> vs DC ${result.dc} · <span class="${result.success?"good":"bad"}">${result.success?"success":"failure"}</span>`;
+};
+awardSkillPractice = function(id, source, amount=1){
+  if(!S?.skills?.[id]) return {awarded:false,levelled:false};
+  if(!S.skillPracticeSources[source]) S.skillPracticeSources[source]={};
+  if(S.skillPracticeSources[source][id]) return {awarded:false,levelled:false};
+  S.skillPracticeSources[source][id]=true;
+  const st=S.skills[id], beforeRank=st.rank;
+  st.xp+=Math.max(1,amount);
+  while(st.xp>=skillXpNeeded(st.rank)){
+    st.xp-=skillXpNeeded(st.rank);
+    st.rank++;
+  }
+  return {awarded:true,amount:Math.max(1,amount),levelled:st.rank>beforeRank,rank:st.rank,xp:st.xp,next:skillXpNeeded(st.rank)};
+};
+practiceText = function(id, practice){
+  if(!practice?.awarded) return "";
+  const name=SKILL_DEFS[id].name;
+  return practice.levelled
+    ? `<br><span class="good">${esc(name)} increased to Rank ${practice.rank}.</span>`
+    : `<br><span class="good">${esc(name)} +${practice.amount||1} XP · ${practice.xp}/${practice.next}</span>`;
+};
+
+// ----- dynamic class abilities -----
+restoreAllAbilities = function(){ for(const id of classAbilityOrder()){ const sk=abilityState(id); if(sk) sk.cur=sk.max; } };
+abilityUsesReady = function(){ return classAbilityOrder().reduce((n,id)=>n+(abilityState(id)?.cur||0),0); };
+abilityUsesMax = function(){ return classAbilityOrder().reduce((n,id)=>n+(abilityState(id)?.max||0),0); };
+abilitiesNeedRestoration = function(){ return classAbilityOrder().some(id=>{const sk=abilityState(id);return sk&&sk.cur<sk.max;}); };
+renderRestAbilityPick = function(){
+  const picker=$("restAbilityPick"); if(!picker) return;
+  const show=!!S?.pendingRestAbilityChoice&&!over; picker.hidden=!show; if(!show) return;
+  $("restAbilityOptions").innerHTML=classAbilityOrder().filter(id=>{const sk=abilityState(id);return sk&&sk.cur<sk.max;}).map(id=>{
+    const sk=abilityState(id),def=ABILITY_DEFS[id];
+    return `<button class="restskill-opt" data-recover-ability="${id}"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses ready → ${Math.min(sk.max,sk.cur+1)}/${sk.max} after Rest</span></button>`;
+  }).join("");
+};
+function classAbilityDisabled(id){
+  const sk=abilityState(id); if(!sk||sk.cur<=0||!S.foe||over) return true;
+  if(["layonhands","mend"].includes(id) && (S.abilityQuickUsed||S.hp>=S.hpMax)) return true;
+  if(["holdfast","slip","ward"].includes(id) && INTENTS[S.foe.intent].kind!=="attack") return true;
+  return false;
+}
+renderAbilitySheet = function(){
+  const list=$("abilitiesList"); if(!list||!S) return;
+  const head=document.querySelector("#sheet .sheet-head h2"); if(head) head.textContent=`${S.className} Abilities`;
+  $("sheetSlots").textContent=`${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
+  $("abilitySummary").textContent=`${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
+  list.innerHTML=classAbilityOrder().map(id=>{
+    const def=ABILITY_DEFS[id],sk=abilityState(id),unusable=classAbilityDisabled(id),open=combatExpandedAbility===id;
+    let meta=`${sk.cur}/${sk.max} uses ready`;
+    if(["layonhands","mend"].includes(id)&&S.hp>=S.hpMax) meta+=` · full HP`;
+    if(["layonhands","mend"].includes(id)&&S.abilityQuickUsed) meta+=` · once per turn`;
+    if(["holdfast","slip","ward"].includes(id)&&S.foe&&INTENTS[S.foe.intent].kind!=="attack") meta+=` · no attack to answer`;
+    if(sk.cur<=0) meta=`0/${sk.max} uses ready · spent`;
+    return `<div class="skill-wrap"><button class="skill ${sk.cur<=0?"spent":""}" data-ability="${id}" ${unusable?"disabled":""}><span class="meta">${esc(meta)}</span><b>${esc(def.name)} ${esc(sk.degree)}</b><p>${esc(def.desc)}</p></button><button class="skill-more" data-ability-more="${id}">${open?"Hide details":"See more"}</button><div class="skill-detail" ${open?"":"hidden"}>${abilityDetailHtml(def)}</div></div>`;
+  }).join("");
+};
+
+function useQuickHeal(id, amount){
+  const sk=abilityState(id); if(!S.foe||!sk||sk.cur<=0||S.abilityQuickUsed||S.hp>=S.hpMax) return;
+  const before=S.hp; S.hp=Math.min(S.hpMax,S.hp+amount); const healed=S.hp-before; if(healed<=0)return;
+  sk.cur--; S.abilityQuickUsed=true; closeAbilitySheet(); triggerHealFx(healed,["combat"]);
+  say(`<p class="good"><b>${esc(abilityDisplayName(id))}.</b> Recovered <b>${healed}</b> HP.</p><p class="note">Quick-use ability: your normal combat action remains.</p>`); render();
+}
+function useNegateAbility(id, extraStamina=0){
+  const sk=abilityState(id); if(!S.foe||!sk||sk.cur<=0||INTENTS[S.foe.intent].kind!=="attack")return;
+  sk.cur--; closeAbilitySheet(); armed=null;
+  if(extraStamina) S.stamina=Math.min(S.staminaMax,S.stamina+extraStamina);
+  const label=INTENTS[S.foe.intent].label;
+  say(`<p class="good"><b>${esc(abilityDisplayName(id))}.</b> ${esc(label)} was completely negated.</p>${extraStamina?`<p class="note">Recovered <b>${extraStamina} Stamina</b> while slipping clear.</p>`:`<p class="note">No Stamina was restored and no counterattack was made.</p>`}`);
+  S.strikeChain=0;S.defenceChain=0;S.heavyCharge=0;S.turn++;S.abilityQuickUsed=false;rollIntent();render();
+}
+ACTIONS.feint={
+  label:"Feint I",sub:"0 stamina · DEX ability",cost:0,
+  preview(){const d=Math.max(1,Math.round((S.DEX*1.35+2)*(S.foe.intent==="guard"?1.5:1)*openingBonus()));const back=incoming();return `<span class="dmg">~${d} damage</span> · DEX · Guard cannot soak it${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;},
+  run(){const sk=abilityState("feint");if(!sk||sk.cur<=0)return `<p class="note">Feint is spent.</p>`;sk.cur--;let d=Math.max(1,Math.round((S.DEX*1.35+ri(0,4))*(S.foe.intent==="guard"?1.5:1)*openingBonus()));if(S.foe.intent==="dodge"&&rnd()<0.20)return `<p>The feint drew a reaction, but the follow-up still missed.</p>`;S.foe.hp-=d;return `<p>Sold the wrong line and cut through the opening for <b>${d}</b>.</p>${S.foe.intent==="guard"?`<p class="good">Its Guard became the opening instead of the answer.</p>`:""}`;}
+};
+ACTIONS.dirtytrick={
+  label:"Dirty Trick I",sub:"0 stamina · light DEX + Blind",cost:0,
+  preview(){const d=Math.max(1,Math.round(S.DEX*.8));const back=incoming();return `<span class="dmg">~${d} damage + Blinded</span> · DEX${back?` · Blind can spoil the declared attack`:""}`;},
+  run(){const sk=abilityState("dirtytrick");if(!sk||sk.cur<=0)return `<p class="note">Dirty Trick is spent.</p>`;sk.cur--;let d=Math.max(1,Math.round((S.DEX*.8+ri(0,3))*openingBonus()));if(S.foe.intent==="guard")d=Math.max(1,Math.round(d*(1-INTENTS.guard.armour)));S.foe.hp-=d;S.foe.blinded=true;return `<p>Clipped the ${esc(S.foe.name)} for <b>${d}</b> and left it <b>Blinded</b>.</p>`;}
+};
+ACTIONS.arcbolt={
+  label:"Arc Bolt I",sub:"0 stamina · INT Arcane",cost:0,
+  preview(){const d=Math.max(1,Math.round(S.INT*1.25+4));const back=incoming();return `<span class="dmg">~${d} Arcane</span> · INT · ignores ordinary Guard${S.foe.intent==="dodge"?` · <span class="bad">20% miss chance</span>`:""}${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;},
+  run(){const sk=abilityState("arcbolt");if(!sk||sk.cur<=0)return `<p class="note">Arc Bolt is spent.</p>`;sk.cur--;if(S.foe.intent==="dodge"&&rnd()<0.20)return `<p>The bolt tore through empty air as the ${esc(S.foe.name)} slipped aside.</p>`;const d=Math.max(1,Math.round((S.INT*1.25+ri(2,6))*openingBonus()));S.foe.hp-=d;return `<p>Arcane force struck the ${esc(S.foe.name)} for <b>${d}</b>.</p>${S.foe.intent==="guard"?`<p class="good">Its ordinary Guard did nothing against the spell.</p>`:""}`;}
+};
+const session75UseAbility = useAbility;
+useAbility = function(id){
+  if(!S||over)return;
+  if(id==="mend") return useQuickHeal("mend",12);
+  if(id==="slip") return useNegateAbility("slip",2);
+  if(id==="ward") return useNegateAbility("ward",0);
+  if(["feint","dirtytrick","arcbolt"].includes(id)){closeAbilitySheet();armed=null;return takeTurn(id);}
+  return session75UseAbility(id);
+};
+
+// ----- class weapon scaling and defensive identity -----
+const session75DmgStrike = dmgStrike;
+dmgStrike = function(stage=strikeStage()){
+  if(S.className==="Votary") return session75DmgStrike(stage);
+  const f=S.foe,eff=weaknessEff(),mult=strikeMultiplier(stage),swing=stage===0?ri(0,4):stage===1?ri(0,5):ri(0,6);
+  let d=(attackStatValue()*mult+swing)*openingBonus();
+  if(eff.strikeBonus)d*=eff.strikeBonus;if(eff.recoverStrikeBonus&&f.intent==="recover")d*=eff.recoverStrikeBonus;if(f.intent==="guard")d*=(1-INTENTS.guard.armour);
+  return Math.max(1,Math.round(d));
+};
+const session75DmgHeavy = dmgHeavy;
+dmgHeavy = function(charge=S.heavyCharge){
+  if(S.className==="Votary") return session75DmgHeavy(charge);
+  const f=S.foe,eff=weaknessEff(),useCharge=charge||1,mult=heavyMultiplier(useCharge);let d=(attackStatValue()*mult+ri(0,6))*openingBonus();
+  if(eff.heavyBonus)d*=eff.heavyBonus;if(eff.fullHeavyBonus&&useCharge>=2)d*=eff.fullHeavyBonus;if(eff.guardHeavyBonus&&f.intent==="guard")d*=eff.guardHeavyBonus;if(f.intent==="guard")d*=.85;
+  return Math.max(1,Math.round(d));
+};
+const session75CounterDamage = counterDamage;
+counterDamage = function(style,perfect=false){
+  if(S.className==="Votary") return session75CounterDamage(style,perfect);
+  const base=S.className==="Rogue"?S.DEX:S.STR;let d=base*(perfect?1.05:.55);const eff=weaknessEff();if(eff.counterBonus)d*=eff.counterBonus;return Math.max(1,Math.round(d));
+};
+const session75DefenceName = defenceName;
+defenceName = function(){ if(S?.className==="Rogue")return "Dodge";if(S?.className==="Wizard")return "Brace";return session75DefenceName(); };
+const session75DefenceReduction = defenceReduction;
+defenceReduction = function(){
+  if(S?.className==="Rogue") return clamp(.55-(S.DEX-10)*.025,.25,.55); // DEX is a secondary improvement, not total immunity.
+  if(S?.className==="Wizard") return .50;
+  return session75DefenceReduction();
+};
+const session75StrikePreview=ACTIONS.strike.preview;
+ACTIONS.strike.preview=function(){
+  if(S.className==="Votary")return session75StrikePreview();
+  const f=S.foe,stage=strikeStage(),d=dmgStrike(stage),back=incoming(),c=actionCost("strike"),mult=strikeMultiplier(stage),stat=attackStatKey();
+  let t=`<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${stat}</span> · <span class="cost">${c} stamina</span>`;
+  if(stage<2)t+=` · hit to build <span class="dmg">${strikeName(stage+1)}</span>`;else t+=` · hit completes the chain, then resets`;
+  if(f.intent==="dodge")t+=` · <span class="bad">35% miss chance</span>`;if(f.intent==="guard")t+=` · its guard soaks most of it`;if(back)t+=` · take <span class="bad">~${back}</span> if it survives`;return t;
+};
+const session75HeavyLabel=ACTIONS.heavy.label, session75DrawLabel=ACTIONS.draw.label, session75DrawSub=ACTIONS.draw.sub;
+ACTIONS.heavy.label=function(){
+  if(S.className==="Votary")return session75HeavyLabel();
+  if(S.className==="Rogue")return S.heavyCharge>0?"Release committed":"Commit strike";
+  return S.heavyCharge>0?"Release focus":"Focus arcane";
+};
+ACTIONS.draw.label=function(){if(S.className==="Votary")return session75DrawLabel();return S.heavyCharge>=2?"Fully committed":S.className==="Rogue"?"Commit further":"Focus further";};
+ACTIONS.draw.sub=function(){if(S.className==="Votary")return session75DrawSub();return S.heavyCharge>=2?"can't commit any further":"2 stamina · raises to 4.7×";};
+const session75HeavySub=ACTIONS.heavy.sub, session75HeavyPreview=ACTIONS.heavy.preview;
+ACTIONS.heavy.sub=function(){
+  if(S.className==="Votary")return session75HeavySub();const stat=attackStatKey();if(S.heavyCharge>=2)return `fully committed · 4.7× ${stat}`;if(S.heavyCharge===1)return `ready · 2.7× ${stat}`;return `6 stamina · prepares 2.7× ${stat}`;
+};
+ACTIONS.heavy.preview=function(){
+  if(S.className==="Votary")return session75HeavyPreview();const stat=attackStatKey();
+  if(S.heavyCharge===0){const back=incoming();return `Prepare a <span class="dmg">2.7× ${stat}</span> committed blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>${back?` · take <span class="bad">~${back}</span> while preparing`:""}`;}
+  const d=dmgHeavy(),back=incoming(),mult=heavyMultiplier();return `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${stat}</span> · releases before it acts${S.foe.intent==="dodge"?` · <span class="bad">70% miss chance</span>`:""}${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;
+};
+const session75GuardRun=ACTIONS.guard.run;
+ACTIONS.guard.run=function(){
+  if(S.className==="Votary")return session75GuardRun();const abandoned=S.heavyCharge>0;S.heavyCharge=0;S.stamina=Math.min(S.staminaMax,S.stamina+guardRestoreAmount());
+  if(S.className==="Rogue")return `<p class="good">${abandoned?"Abandoned the prepared attack and ":""}shifted clear, recovering your footing.</p>`;
+  return `<p class="good">${abandoned?"Abandoned the prepared attack and ":""}braced behind the staff and caught your breath.</p>`;
+};
+
+// Frailty modifies incoming damage after all existing Bestiary reductions.
+const session75Incoming=incoming;
+incoming=function(openMult=1){let d=session75Incoming(openMult);if(curseActive()&&S.curse.id==="frailty")d=Math.max(0,Math.round(d*1.05));return d;};
+
+// ----- inventory -----
+const session75OpenPack=openPack;
+openPack=function(mode=null){
+  if(!S||over||S.foe)return;
+  if(S.travelEvent && mode!=="offering")return;
+  cancelHollowAutoResume();S.packMode=mode;renderPack();$("packSheet").hidden=false;
+};
+const session75ClosePack=closePack;
+closePack=function(){ if(S)S.packMode=null;session75ClosePack(); };
+renderPack=function(){
+  if(!S)return;$("packCampSupplies").textContent=`×${S.inventory.campSupplies}`;
+  const root=$("packDynamicItems");if(!root)return;
+  const offer=S.packMode==="offering";
+  const itemRow=(name,count,desc,actions="")=>`<div class="pack-item compact"><div class="pack-item-top"><b>${esc(name)}</b><strong>×${count}</strong></div><p>${esc(desc)}</p>${actions?`<div class="pack-actions">${actions}</div>`:""}</div>`;
+  let html="";
+  html+=itemRow("Specialization",1,S.specialization||"—");
+  if(curseActive()) html+=`<div class="pack-item compact"><div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain · ${esc(S.curse.desc)}</div></div>`;
+  if(S.bleeding) html+=`<div class="pack-item compact"><div class="curse-line"><b>Bleeding</b> · lose small amounts of HP during active travel.</div></div>`;
+  const offerBtn=(kind,label,count)=>offer&&count>0?`<button class="pack-mini-btn warn" data-offer-item="${kind}">Offer 1 ${esc(label)}</button>`:"";
+  html+=itemRow("Bandages",S.inventory.bandages,"Stops Bleeding. Commonly found as creature salvage or extra searched loot.",`${S.inventory.bandages>0&&S.bleeding?`<button class="pack-mini-btn good" data-use-bandage>Use Bandage</button>`:""}${offerBtn("bandage","Bandage",S.inventory.bandages)}`);
+  html+=itemRow("Meat",S.inventory.meat,"A rough ration. Often found as creature salvage or searched loot; some old places may value it.",offerBtn("meat","Meat",S.inventory.meat));
+  html+=itemRow("Rope",S.inventory.rope,"General delving tool; can turn up in searched loot and caches. No dedicated use in this slice yet.",offerBtn("rope","Rope",S.inventory.rope));
+  html+=itemRow("Water",S.inventory.water,"A carried jug/flask; can turn up in searched loot and caches. No dedicated use in this slice yet.",offerBtn("water","Water",S.inventory.water));
+  html+=itemRow("Rogue Tools",S.inventory.rogueTools,"Reusable lockpick and trap tools. Any class can use them. Goblin Scroungers are a known possible source.");
+  if(S.inventory.passageKey) html+=itemRow(S.inventory.passageKey.name,1,"A unique key tied to the current side passage. It disappears when that passage ends.");
+  if(S.inventory.weapons?.length){
+    html+=S.inventory.weapons.map(id=>{const g=GEAR_ITEMS[id];if(!g)return"";const eq=S.equippedWeapon===id;return `<div class="pack-item compact"><div class="pack-item-top"><b>${esc(g.name)}<span class="pack-tag ${eq?"equipped":""}">${eq?"equipped":g.stat}</span></b><strong>${g.power?`+${g.power}`:"base"}</strong></div><p>${esc(g.desc)}</p><div class="pack-actions"><button class="pack-mini-btn ${eq?"":"good"}" data-equip-weapon="${id}" ${eq?"disabled":""}>${eq?"Equipped":"Equip"}</button></div></div>`;}).join("");
+  }
+  for(const [name,count] of Object.entries(S.inventory.misc||{})) if(count>0) html+=itemRow(name,count,"Prototype loot / secondary item.",offerBtn(`misc:${name}`,name,count));
+  root.innerHTML=html;
+  $("packNote").textContent=offer?"Choose one carried item to place on the altar. This proof-of-concept offers exactly one item.":"Tools are reusable. Passage keys are unique to their generated side area.";
+  const head=document.querySelector("#packSheet .pack-head span");if(head)head.textContent=offer?"choose one offering":"your pack · travel continues";
+};
+function useBandage(){if(!S||!S.bleeding||S.inventory.bandages<=0)return;S.inventory.bandages--;S.bleeding=false;S.bleedTravel=0;travelLogAdd(`Used a <b>Bandage</b>. Bleeding stopped.`,"good");renderPack();render();}
+function equipWeapon(id){if(!GEAR_ITEMS[id]||!S.inventory.weapons?.includes(id))return;S.equippedWeapon=id;travelLogAdd(`Equipped <b>${esc(GEAR_ITEMS[id].name)}</b>. Basic attacks now use ${GEAR_ITEMS[id].stat}.`,"good");renderPack();render();}
+
+// Rest and Camp clear Bleeding because both are deliberate recovery actions.
+const session75TakeRest=takeRest;
+takeRest=function(){const was=!!S?.bleeding, allowed=!!S&&canRest();session75TakeRest();if(S&&was&&allowed){S.bleeding=false;S.bleedTravel=0;travelLogAdd(`Rest also stopped the <b>Bleeding</b>.`,"good");render();}};
+const session75CampAtHollow=campAtHollow;
+campAtHollow=function(){const can=!!S?.activeHollow&&S.inventory.campSupplies>0,was=!!S?.bleeding;session75CampAtHollow();if(S&&can&&was){S.bleeding=false;S.bleedTravel=0;render();}};
+
+// ----- Bestiary + class sheet -----
+const session75RenderCharacterSheet=renderCharacterSheet;
+renderCharacterSheet=function(){
+  session75RenderCharacterSheet();if(!S)return;
+  $("charClassLevel").textContent=`${S.className} · Level ${S.level}`;
+  $("charSkills").innerHTML=SKILL_ORDER.map(id=>{const def=SKILL_DEFS[id],st=skillState(id),check=skillCheckBonus(id),prof=proficiencyBonus(id);return `<div class="char-field-skill"><div><b>${esc(def.name)}</b><p><strong>${def.stat}</strong> · ${esc(def.desc)}${prof?` · class proficiency ${signed(prof)}`:""}</p></div><div class="char-field-progress"><strong>Rank ${st.rank} · check ${signed(check)}</strong><span>${st.xp}/${skillXpNeeded(st.rank)} XP</span></div></div>`;}).join("");
+  $("charAbilitySummary").textContent=`${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
+  $("charAbilities").innerHTML=classAbilityOrder().map(id=>{const def=ABILITY_DEFS[id],sk=abilityState(id),open=charExpandedAbility===id;return `<div class="char-skill"><div class="char-skill-top"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses</span></div><p>${esc(def.desc)}</p><button class="skill-more" data-char-ability-more="${id}">${open?"Hide details":"See more"}</button><div class="skill-detail" ${open?"":"hidden"}>${abilityDetailHtml(def)}</div></div>`;}).join("");
+  const seen=[...FOES,BOSS_PROFILE].filter(f=>S.seenFoes?.[f.id]||knowledgeReads(f.id)>0);
+  $("charBestiary").innerHTML=seen.length?seen.map(f=>{const reads=knowledgeReads(f.id),tier=knowledgeTier(f.id),drops=DROP_HINTS[f.id]||[];const dropText=reads>=3?`<span class="drops">Probably carries: ${esc(drops.join(" · ")||"unknown")}</span>`:"";return `<div class="char-field-skill bestiary"><div><b>${esc(cap(f.name))}</b><p>${reads?`${cap(tier)} · ${reads}/6 knowledge`:"Encountered · not yet Read"}${dropText}</p></div><div class="char-field-progress"><strong>${reads>=6?"Mastered":reads>=3?"Studied":reads?"Known":"Unknown"}</strong><span>${reads>=3?"drop habits known":"study to learn drops"}</span></div></div>`;}).join(""):`<div class="char-field-note">No archetypes recorded yet.</div>`;
+};
+
+// ----- side passage event engine -----
+function beginSideDiscovery(){
+  if(!S||S.sideDiscoveryAttempted||S.sideAreaResolved)return false;closePack();closeCharacterSheet();pauseBoonClock();S.sideDiscoveryAttempted=true;S.travelMode="stopped";S.travelSinceEvent=0;
+  S.travelEvent={id:"side-discovery",stage:"prompt",kind:"Something in the wall",title:"Did you notice anything?",text:"The downward route continues, but for a moment the lamplight seems to fall somewhere it should not.",rollHtml:""};travelLogAdd(`Something about the wall at <b>${formatDepth(S.depth)} fathoms</b> does not sit right.`,"beat");render();return true;
+}
+function createSideArea(){
+  const sid=`side-${stratumIndex()}-${Math.floor(S.depth*10)}`;
+  return {id:sid,name:"Cursed Side Passage",theme:"Cursed",entryDepth:S.depth,encountersNeeded:4,encountersDefeated:0,activity:0,elapsedMs:0,inscriptionSeen:false,trapSeen:false,endReached:false,keyDropped:false,keyId:`${sid}-key`,keyName:"Old Passage Key",completed:false,abandoned:false,wardCleared:false,lockAttempted:false,chestOpened:false};
+}
+function enterSideArea(){
+  S.sideArea=createSideArea();S.travelEvent=null;S.travelMode="side";S.travelSinceEvent=0;S.exploreActivity=0;resumeBoonClock();travelLogAdd(`You leave the main descent and enter a <b>Cursed Side Passage</b>. Your fathom depth stays at ${formatDepth(S.depth)}.`,"beat");render();
+}
+function exitSideArea(completed=false){
+  const a=S.sideArea;if(!a)return;
+  const entrance=a.entryDepth;
+  const routeProgress=completed?1:sideAreaRouteProgress(a);
+  removePassageKey();a.completed=completed;a.abandoned=!completed;
+  if(!S.sideAreaHistory)S.sideAreaHistory=[];
+  S.sideAreaHistory.push({id:a.id,entryDepth:entrance,progress:routeProgress,completed,abandoned:!completed});
+  // Side areas are lateral excursions. No matter how long they took, returning
+  // places the delver back on the exact fathom where the branch was entered.
+  S.depth=entrance;S.exploreDepth=entrance;S.exploreElapsedMs=0;
+  S.sideAreaResolved=true;S.travelEvent=null;S.travelMode="stopped";pauseBoonClock();
+  travelLogAdd(completed?`You return from the side passage to <b>${formatDepth(entrance)} fathoms</b>, carrying whatever you managed to claim.`:`You turn back to <b>${formatDepth(entrance)} fathoms</b> and abandon the side passage. Whatever remained deeper inside is lost.`,completed?"good":"note");
+  S.sideArea=null;render();
+}
+function promptSideRetreat(){
+  if(!sideAreaActive()||S.foe||S.travelEvent)return;pauseBoonClock();S.travelMode="stopped";S.travelEvent={id:"side-retreat",stage:"prompt",kind:S.sideArea.name,title:"Turn back?",text:"Leave the side passage and return to the main descent. Anything left deeper inside will be abandoned.",rollHtml:""};render();
+}
+function beginSideInscription(){
+  const a=S.sideArea;if(!a||a.inscriptionSeen)return;a.inscriptionSeen=true;pauseBoonClock();S.travelMode="stopped";S.travelEvent={id:"side-inscription",stage:"prompt",kind:"Old inscription",title:"Words cut into the stone",text:"The same short phrase has been cut into several stones, as if someone expected it to matter later.",rollHtml:`<span class="inscription">${languageLine()}</span>`};render();
+}
+function beginSideTrap(){
+  const a=S.sideArea;if(!a||a.trapSeen)return;a.trapSeen=true;pauseBoonClock();S.travelMode="stopped";S.travelEvent={id:"side-trap",stage:"sense",kind:"Uneasy footing",title:"Did you notice anything?",text:"The passage narrows. Dust lies strangely across the floor ahead.",rollHtml:""};render();
+}
+function triggerTrap(reason="The mechanism fires before you can stop it."){
+  const dmg=Math.max(2,Math.round(3+S.depth/35+ri(0,3)));S.hp-=dmg;S.bleeding=true;S.bleedTravel=0;flashTravelDamage();travelLogAdd(`A trap catches you for <b>${dmg} HP</b>. You are <b>Bleeding</b>.`,"danger");
+  if(S.hp<=0){S.travelEvent=null;return die(`<p class="hurt">${esc(reason)} It tore through you for <b>${dmg}</b>.</p>`);}
+  S.travelEvent={id:"side-trap",stage:"result",kind:"Trap triggered",title:"The mechanism is spent",text:`${reason} The trap is now broken or discharged; there is nothing left to farm or retry.`,rollHtml:`<span class="bad">Lost ${dmg} HP · Bleeding</span>`};render();
+}
+function beginSideAltar(){
+  const a=S.sideArea;if(!a||S.travelEvent)return;pauseBoonClock();S.travelMode="stopped";S.travelEvent={id:"side-altar",stage:"altar",kind:"End chamber",title:"A chest and an altar",text:"A chest sits beneath an old altar. The same words you saw deeper in the passage are carved above it.",rollHtml:`<span class="inscription">${languageLine()}</span>`};render();
+}
+function applyFrailty(){
+  S.curse={id:"frailty",name:"Frailty",remaining:5,desc:"Take 5% more damage. Running or Withdrawing does not reduce the duration."};travelLogAdd(`<b>Frailty.</b> For the next 5 completed encounters, you take 5% more damage.`,"danger");
+}
+function resolveOffering(kind){
+  if(!S?.travelEvent||S.travelEvent.id!=="side-altar")return;
+  let label=kind;
+  if(kind==="meat"&&S.inventory.meat>0){S.inventory.meat--;S.sideArea.wardCleared=true;label="Meat";travelLogAdd(`The altar accepts <b>1 Meat</b>. The pressure around the chest lifts.`,"good");}
+  else {
+    if(kind==="bandage"&&S.inventory.bandages>0){S.inventory.bandages--;label="Bandage";}
+    else if(kind==="rope"&&S.inventory.rope>0){S.inventory.rope--;label="Rope";}
+    else if(kind==="water"&&S.inventory.water>0){S.inventory.water--;label="Water";}
+    else if(kind.startsWith("misc:")){const n=kind.slice(5);if((S.inventory.misc[n]||0)>0){S.inventory.misc[n]--;label=n;}}
+    else return;
+    applyFrailty();travelLogAdd(`The altar rejects <b>${esc(label)}</b>. The ward settles onto you instead.`,"danger");
+  }
+  closePack();S.travelEvent={id:"side-altar",stage:"chest",kind:"End chamber",title:S.sideArea.wardCleared?"The ward is quiet":"The curse has already taken hold",text:"The chest remains locked. The altar is no longer the immediate problem.",rollHtml:""};render();
+}
+function openWardedChestDirect(){ if(!S.sideArea.wardCleared&&!curseActive())applyFrailty();S.travelEvent={id:"side-altar",stage:"chest",kind:"End chamber",title:"The chest remains",text:"Whatever guarded the altar has made its claim. Now only the lock stands between you and the contents.",rollHtml:""};render(); }
+function grantChestReward(){
+  const roll=ri(1,100),cls=S.className;let text="";
+  if(roll<=30){const id=cls==="Votary"?"tempered_longsword":cls==="Rogue"?"balanced_dagger":"etched_wand";addWeapon(id);text=`${GEAR_ITEMS[id].name} (class primary weapon)`;}
+  else if(roll<=50){const n=cls==="Votary"?"Reinforced Buckler":cls==="Rogue"?"Throwing Knife Set":"Annotated Spellbook";addMisc(n,1);text=`${n} (class secondary)`;}
+  else if(roll<=60){const n=cls==="Votary"?"Riveted Mail":cls==="Rogue"?"Supple Leather":"Runed Cloth";addMisc(n,1);text=`${n} (preferred armour)`;}
+  else if(roll<=70){const n=pick(["Old Silver Ring","Bone Pendant","Verdigris Chain"]);addMisc(n,1);text=`${n} (jewelry)`;}
+  else {const choices=["bandage","meat","rope","water","offweapon","dust"],c=pick(choices);if(c==="bandage"){S.inventory.bandages+=2;text="2 Bandages";}else if(c==="meat"){S.inventory.meat+=2;text="2 Meat";}else if(c==="rope"){S.inventory.rope++;text="Rope";}else if(c==="water"){S.inventory.water++;text="Jug of Water";}else if(c==="offweapon"){const id=pick(["handaxe","hunting_bow"]);addWeapon(id);text=GEAR_ITEMS[id].name;}else{addMisc("Scroll Dust",1);text="a scroll that crumbled into dust";}}
+  S.sideArea.chestOpened=true;travelLogAdd(`The chest yields <b>${esc(text)}</b>.`,"good");S.travelEvent={id:"side-altar",stage:"reward",kind:"Side passage complete",title:"The chest opens",text:`You recover ${text}. The route behind you is the only way back to the main descent.`,rollHtml:""};render();
+}
+function attemptChestLock(){
+  const a=S.sideArea;if(!a||a.lockAttempted)return;a.lockAttempted=true;const tool=S.inventory.rogueTools>0?2:0,check=runSkillCheck("sleight",trapDc(13),tool),practice=awardSkillPractice("sleight",`side-lock:${a.id}`,check.success?2:1);const html=formatSkillCheck(check)+practiceText("sleight",practice);
+  if(check.success){S.travelEvent.rollHtml=html;grantChestReward();}else{S.travelEvent={id:"side-altar",stage:"jammed",kind:"Lock jammed",title:"The lock will not take another delicate attempt",text:"The pick slips and the old lock deforms. The mechanism is changed; you cannot repeat the same check.",rollHtml:html};render();}
+}
+function forceChest(){
+  const a=S.sideArea,check=runSkillCheck("athletics",trapDc(14),0),practice=awardSkillPractice("athletics",`side-force:${a.id}`,check.success?2:1),html=formatSkillCheck(check)+practiceText("athletics",practice);
+  if(check.success){S.travelEvent.rollHtml=html;grantChestReward();}else{const dmg=Math.max(1,ri(1,4));S.hp-=dmg;flashTravelDamage();travelLogAdd(`Forcing the chest costs <b>${dmg} HP</b> and gets you nowhere.`,"danger");S.travelEvent={id:"side-altar",stage:"failed-force",kind:"End chamber",title:"The chest holds",text:"The frame buckles but the lock remains. You can leave it behind.",rollHtml:html+`<br><span class="bad">Lost ${dmg} HP</span>`};render();}
+}
+
+const session75RenderTravelEvent=renderTravelEvent;
+renderTravelEvent=function(){
+  const ev=S?.travelEvent;if(!ev||!["side-discovery","side-retreat","side-inscription","side-trap","side-altar"].includes(ev.id))return session75RenderTravelEvent();
+  const card=$("travelEventCard");card.hidden=false;$("travelEventKind").textContent=ev.kind||"Exploration";$("travelEventTitle").textContent=ev.title||"";$("travelEventText").textContent=ev.text||"";$("travelEventRoll").hidden=!ev.rollHtml;$("travelEventRoll").innerHTML=ev.rollHtml||"";const a=$("travelEventActions");
+  if(ev.id==="side-discovery"){
+    if(ev.stage==="prompt")a.innerHTML=`<button class="travel-event-btn skill" data-event-action="side-perception"><b>Use Perception</b><span>WIS · DC ${sideDiscoveryDc()}</span></button><button class="travel-event-btn ignore" data-event-action="side-ignore"><b>Keep descending</b><span>leave whatever it was behind</span></button>`;
+    else if(ev.stage==="found")a.innerHTML=`<button class="travel-event-btn investigate" data-event-action="side-enter"><b>Enter side passage</b><span>optional danger · depth stops here</span></button><button class="travel-event-btn ignore" data-event-action="side-leave-found"><b>Leave it alone</b><span>continue the main descent</span></button>`;
+    else a.innerHTML=`<button class="travel-event-btn wide" data-event-action="side-continue"><b>Continue</b><span>return to the main descent</span></button>`;
+  } else if(ev.id==="side-retreat") a.innerHTML=`<button class="travel-event-btn skill" data-event-action="side-keep"><b>Keep exploring</b><span>stay in the passage</span></button><button class="travel-event-btn ignore" data-event-action="side-abandon"><b>Turn back</b><span>abandon the passage and its remaining reward</span></button>`;
+  else if(ev.id==="side-inscription") a.innerHTML=ev.stage==="prompt"?`<button class="travel-event-btn skill" data-event-action="translate-wall"><b>Translate</b><span>INT · Translation · DC ${trapDc(12)}</span></button><button class="travel-event-btn ignore" data-event-action="side-event-resume"><b>Leave it</b><span>continue deeper</span></button>`:`<button class="travel-event-btn wide" data-event-action="side-event-resume"><b>Continue</b><span>the word stays with you</span></button>`;
+  else if(ev.id==="side-trap"){
+    if(ev.stage==="sense")a.innerHTML=`<button class="travel-event-btn skill" data-event-action="trap-perception"><b>Use Perception</b><span>WIS · DC ${trapDc(12)}</span></button><button class="travel-event-btn ignore" data-event-action="trap-cross"><b>Keep moving</b><span>risk whatever is ahead</span></button>`;
+    else if(ev.stage==="found")a.innerHTML=`<button class="travel-event-btn skill" data-event-action="trap-dismantle"><b>Dismantle</b><span>DEX · Sleight + Rogue Tools · DC ${trapDc(13)}</span></button><button class="travel-event-btn investigate" data-event-action="trap-destroy"><b>Destroy mechanism</b><span>STR · Athletics · DC ${trapDc(12)}</span></button>`;
+    else a.innerHTML=`<button class="travel-event-btn wide" data-event-action="side-event-resume"><b>Continue</b><span>the mechanism cannot be attempted again</span></button>`;
+  } else if(ev.id==="side-altar"){
+    if(ev.stage==="altar")a.innerHTML=`<button class="travel-event-btn skill" data-event-action="translate-altar"><b>Translate inscription</b><span>INT · Translation · DC ${trapDc(13)}</span></button><button class="travel-event-btn investigate" data-event-action="choose-offering"><b>Make an offering</b><span>choose 1 item from Backpack</span></button><button class="travel-event-btn ignore wide" data-event-action="open-warded"><b>Ignore altar</b><span>approach the chest anyway</span></button>`;
+    else if(ev.stage==="chest"){
+      const key=S.inventory.passageKey?.id===S.sideArea.keyId;const tools=S.inventory.rogueTools>0;
+      a.innerHTML=`${key?`<button class="travel-event-btn skill" data-event-action="use-side-key"><b>Use passage key</b><span>guaranteed · consumes key</span></button>`:""}${tools?`<button class="travel-event-btn investigate" data-event-action="pick-side-lock"><b>Pick lock</b><span>DEX · Sleight + Rogue Tools · DC ${trapDc(13)}</span></button>`:""}<button class="travel-event-btn investigate" data-event-action="force-side-chest"><b>Force it</b><span>STR · Athletics · DC ${trapDc(14)}</span></button><button class="travel-event-btn ignore wide" data-event-action="leave-side-end"><b>Leave it</b><span>abandon the chest and return</span></button>`;
+    } else if(ev.stage==="jammed")a.innerHTML=`<button class="travel-event-btn investigate" data-event-action="force-side-chest"><b>Force it</b><span>the delicate attempt is gone</span></button><button class="travel-event-btn ignore" data-event-action="leave-side-end"><b>Leave it</b><span>return empty-handed</span></button>`;
+    else if(ev.stage==="failed-force")a.innerHTML=`<button class="travel-event-btn wide ignore" data-event-action="leave-side-end"><b>Leave it</b><span>return to the main descent</span></button>`;
+    else if(ev.stage==="reward")a.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="finish-side"><b>Return to the descent</b><span>side passage complete</span></button>`;
+  }
+};
+
+const session75HandleTravelEventAction=handleTravelEventAction;
+handleTravelEventAction=function(action){
+  const ev=S?.travelEvent;if(!ev||!["side-discovery","side-retreat","side-inscription","side-trap","side-altar"].includes(ev.id))return session75HandleTravelEventAction(action);
+  if(action==="side-perception"){
+    const c=runSkillCheck("perception",sideDiscoveryDc()),source=`side-discovery:${S.sideDiscoveryStratum??stratumIndex()}`,p=awardSkillPractice("perception",source,c.success?2:1),html=formatSkillCheck(c)+practiceText("perception",p);
+    if(c.success){ev.stage="found";ev.title="A passage behind the stone";ev.text="A narrow route turns away from the main descent. Something about the air beyond it feels wrong.";ev.rollHtml=html;travelLogAdd(`Perception reveals a <b>side passage</b>.`,"good");render();}
+    else{ev.stage="result";ev.title="Nothing you can prove";ev.text="You study the wall, find no safe opening, and move on. Whatever opportunity was here is gone.";ev.rollHtml=html;S.sideAreaResolved=true;render();}return;
+  }
+  if(action==="side-ignore"){S.sideAreaResolved=true;S.travelEvent=null;render();return;}
+  if(action==="side-enter")return enterSideArea();
+  if(action==="side-leave-found"||action==="side-continue"){S.sideAreaResolved=true;S.travelEvent=null;render();return;}
+  if(action==="side-keep"){S.travelEvent=null;S.travelMode="side";resumeBoonClock();render();return;}
+  if(action==="side-abandon")return exitSideArea(false);
+  if(action==="translate-wall"||action==="translate-altar"){
+    const source=action==="translate-wall"?`side-language:${S.sideArea.id}`:`side-altar-language:${S.sideArea.id}`,dc=trapDc(action==="translate-wall"?12:13),c=runSkillCheck("translation",dc),p=awardSkillPractice("translation",source,c.success?2:1);let html=formatSkillCheck(c)+practiceText("translation",p);
+    if(c.success){const learned=learnLanguageWord();html+=learned?`<br><span class="good">You identify <b>${esc(learned.word)}</b> as <b>${esc(learned.meaning)}</b>.</span>`:`<br><span class="good">You already know every word in this short phrase.</span>`;travelLogAdd(learned?`Translation learned: <b>${esc(learned.word)} = ${esc(learned.meaning)}</b>.`:`The inscription contains no unknown words.`,"good");}else html+=`<br><span class="bad">The context does not give you enough to trust a translation.</span>`;
+    ev.rollHtml=`<span class="inscription">${languageLine()}</span><br>${html}`;if(action==="translate-wall")ev.stage="result";render();return;
+  }
+  if(action==="side-event-resume"){S.travelEvent=null;S.travelMode="side";S.travelSinceEvent=0;resumeBoonClock();render();return;}
+  if(action==="trap-perception"){
+    const c=runSkillCheck("perception",trapDc(12)),p=awardSkillPractice("perception",`side-trap-sense:${S.sideArea.id}`,c.success?2:1),html=formatSkillCheck(c)+practiceText("perception",p);
+    if(c.success){ev.stage="found";ev.title="A loaded mechanism";ev.text="A line disappears into a crude spring assembly under the stone. The passage is too tight to simply walk around it.";ev.rollHtml=html;travelLogAdd(`Perception catches a <b>trap</b> before it catches you.`,"good");render();}else{triggerTrap("You miss the loaded line until your boot finds it.");}return;
+  }
+  if(action==="trap-cross")return triggerTrap("You choose to cross without resolving the mechanism.");
+  if(action==="trap-dismantle"){
+    if(S.inventory.rogueTools<=0){ev.rollHtml=`<span class="bad">You do not have Rogue Tools. The mechanism is too fine to dismantle safely.</span>`;render();return;}
+    const c=runSkillCheck("sleight",trapDc(13),2),p=awardSkillPractice("sleight",`side-trap:${S.sideArea.id}`,c.success?2:1),html=formatSkillCheck(c)+practiceText("sleight",p);
+    if(c.success){ev.stage="result";ev.title="Mechanism dismantled";ev.text="The loaded pieces come apart in your hands. The trap is permanently safe.";ev.rollHtml=html;travelLogAdd(`Sleight of Hand dismantles the trap cleanly.`,"good");render();}else triggerTrap("A pick slips. The mechanism fires and breaks itself in the same motion.");return;
+  }
+  if(action==="trap-destroy"){
+    const c=runSkillCheck("athletics",trapDc(12)),p=awardSkillPractice("athletics",`side-trap-force:${S.sideArea.id}`,c.success?2:1),html=formatSkillCheck(c)+practiceText("athletics",p);
+    if(c.success){ev.stage="result";ev.title="Mechanism smashed";ev.text="You break the loaded assembly before it can release. Nothing delicate remains, but the way is safe.";ev.rollHtml=html;travelLogAdd(`You destroy the trap mechanism.`,"good");render();}else triggerTrap("The blow lands on the wrong piece and releases the trap.");return;
+  }
+  if(action==="choose-offering")return openPack("offering");
+  if(action==="open-warded")return openWardedChestDirect();
+  if(action==="use-side-key"){if(S.inventory.passageKey?.id!==S.sideArea.keyId)return;removePassageKey();return grantChestReward();}
+  if(action==="pick-side-lock")return attemptChestLock();
+  if(action==="force-side-chest")return forceChest();
+  if(action==="leave-side-end")return exitSideArea(false);
+  if(action==="finish-side")return exitSideArea(true);
+};
+
+// ----- travel, trap attrition and boss gate -----
+const session75StartTravel=startTravel;
+startTravel=function(mode){
+  if(sideAreaActive()&&mode==="explore"){
+    if(S.foe||S.travelEvent||S.statPoints>0)return;
+    if(S.travelMode==="side")return promptSideRetreat();
+    S.travelMode="side";S.travelSinceEvent=0;resumeBoonClock();travelLogAdd(`You continue into the <b>${esc(S.sideArea.name)}</b>.`,"note");render();return;
+  }
+  return session75StartTravel(mode);
+};
+function tickBleeding(){
+  if(!S?.bleeding||S.foe||S.travelEvent||S.travelMode==="stopped")return true;S.bleedTravel=(S.bleedTravel||0)+TRAVEL_STEP;if(S.bleedTravel<4)return true;S.bleedTravel=0;S.hp-=1;flashTravelDamage();travelLogAdd(`Bleeding costs <b>1 HP</b> while you move.`,"danger");if(S.hp<=0){die(`<p class="hurt">The wound kept opening as you moved.</p>`);return false;}return true;
+}
+function sideTravelTick(){
+  if(!S||over||!sideAreaActive()||S.travelMode!=="side"||S.foe||S.travelEvent||S.statPoints>0)return;
+  checkBoonExpiry();S.travelSinceEvent+=TRAVEL_STEP;S.restRecovery=Math.min(REST_RECOVERY_REQUIRED,S.restRecovery+TRAVEL_STEP);S.sideArea.activity+=TRAVEL_STEP;S.sideArea.elapsedMs=(S.sideArea.elapsedMs||0)+TRAVEL_TICK_MS;
+  if(!S.sideArea.inscriptionSeen&&S.sideArea.activity>=.75)return beginSideInscription();
+  if(!S.sideArea.trapSeen&&S.sideArea.activity>=2.0)return beginSideTrap();
+  if(S.sideArea.encountersDefeated>=S.sideArea.encountersNeeded){S.sideArea.endReached=true;return beginSideAltar();}
+  if(S.travelSinceEvent>=2 && rnd()<travelInterruptionChance())return nextFoe({side:true});
+  renderTravel();renderCombatHeader();
+}
+const session75TravelTick=travelTick;
+travelTick=function(){
+  if(!S||over)return;
+  if(!tickBleeding())return;
+  if(S.travelMode==="side")return sideTravelTick();
+  if(S.travelMode==="descend"&&!S.foe&&!S.travelEvent&&!S.sideDiscoveryAttempted&&!S.sideAreaResolved&&S.depth<S.sideDiscoveryAt&&S.depth+TRAVEL_STEP>=S.sideDiscoveryAt){
+    S.depth=S.sideDiscoveryAt;S.exploreElapsedMs=0;S.exploreDepth=S.depth;S.restRecovery=Math.min(REST_RECOVERY_REQUIRED,S.restRecovery+TRAVEL_STEP);return beginSideDiscovery();
+  }
+  if(S.travelMode==="descend"&&!S.foe&&!S.travelEvent){
+    const current=Math.max(0,Math.floor(S.depth/FATHOMS_PER_STRATUM));
+    const boundary=(current+1)*FATHOMS_PER_STRATUM;
+    if(!S.bossDefeated?.[current]&&S.depth<boundary&&S.depth+TRAVEL_STEP>=boundary){
+      S.depth=boundary-0.1;S.travelMode="stopped";pauseBoonClock();
+      travelLogAdd(`<b>Something bars the stratum boundary.</b> The way into ${esc(stratumName(current+1))} is not open yet.`,"danger");
+      return nextFoe({boss:true,bossStratum:current});
+    }
+  }
+  return session75TravelTick();
+};
+
+// ----- foe variants, loot, side progress, curse duration and boss resolution -----
+let session75PendingFoeProfile=null;
+const session75ChooseFoeProfile=chooseFoeProfile;
+chooseFoeProfile=function(){if(session75PendingFoeProfile){const p=session75PendingFoeProfile;session75PendingFoeProfile=null;return p;}return session75ChooseFoeProfile();};
+const session75NextFoe=nextFoe;
+nextFoe=function(options={}){
+  if(options.boss)session75PendingFoeProfile=BOSS_PROFILE;session75NextFoe();if(!S.foe)return;
+  if(options.side){S.foe.side=true;S.foe.name=`cursed ${S.foe.name}`;S.foe.cursed=true;travelLogAdd(`<b>${esc(cap(S.foe.name))}</b> carries the same wrongness as the passage.`,"danger");}
+  if(options.boss){S.foe.boss=true;S.foe.name=BOSS_PROFILE.name;S.foe.key=BOSS_PROFILE.id;S.seenFoes[BOSS_PROFILE.id]=true;travelLogAdd(`<b>Prototype boss encounter.</b> Its intent weighting becomes much more Heavy-focused below half HP.`,"beat");}
+  render();
+};
+function maybeMonsterLoot(f){
+  const drops=[];
+  if(f.key==="scrounger"&&S.inventory.rogueTools<=0&&rnd()<.12){S.inventory.rogueTools=1;drops.push("Rogue Tools");}
+  if(rnd()<.10){S.inventory.bandages++;drops.push("Bandage");}
+  if(rnd()<.12){S.inventory.meat++;drops.push("Meat");}
+  if(rnd()<.04){S.inventory.rope++;drops.push("Rope");}
+  if(rnd()<.025){S.inventory.campSupplies++;drops.push("Camp Supply");}
+  if(drops.length)travelLogAdd(`Looted: <b>${esc(drops.join(" · "))}</b>.`,"good");
+}
+function maybeSideKey(f){
+  const a=S.sideArea;if(!f.side||!a||a.keyDropped||S.inventory.passageKey)return;
+  if(rnd()<.12){a.keyDropped=true;S.inventory.passageKey={id:a.keyId,name:a.keyName};travelLogAdd(`Found a <b>${esc(a.keyName)}</b>. It feels specific to this passage.`,"good");}
+}
+const session75FinishKill=finishKill;
+finishKill=function(out){
+  const f=S.foe;if(!f)return session75FinishKill(out);const wasSide=!!f.side,wasBoss=!!f.boss;session75FinishKill(out);
+  maybeMonsterLoot(f);if(wasSide)maybeSideKey(f);
+  if(curseActive()){S.curse.remaining--;if(S.curse.remaining<=0){travelLogAdd(`<b>${esc(S.curse.name)}</b> finally lifts after the completed encounter.`,"good");S.curse=null;}else travelLogAdd(`${esc(S.curse.name)}: <b>${S.curse.remaining}</b> completed encounters remain.`,"note");}
+  if(wasSide&&sideAreaActive()){S.sideArea.encountersDefeated++;S.sideArea.activity=0;S.travelSinceEvent=0;travelLogAdd(`Side passage progress: <b>${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</b>.`,"beat");if(S.sideArea.encountersDefeated>=S.sideArea.encountersNeeded)S.sideArea.endReached=true;}
+  if(wasBoss){S.bossDefeated[0]=true;S.depth=60;S.exploreElapsedMs=0;S.exploreDepth=60;addMisc("Prototype Boss Trophy",1);travelLogAdd(`The boundary opens. You cross into <b>${esc(stratumName(1))}</b>. A <b>Prototype Boss Trophy</b> is added to your pack for this playtest.`,"beat");}
+  render();
+};
+
+// ----- travel + combat render overlays -----
+const session75RenderTravel=renderTravel;
+renderTravel=function(){
+  session75RenderTravel();if(!S||S.foe||over)return;
+  if(sideAreaActive()){
+    $("travelBand").textContent=`Side passage · Stratum ${stratumIndex(S.sideArea.entryDepth)+1}`;$("travelStratum").textContent=S.sideArea.name;$("travelDepth").textContent=formatDepth(S.sideArea.entryDepth);
+    const status=$("travelStatus");status.classList.toggle("moving",false);status.classList.toggle("exploring",S.travelMode==="side");
+    if(!S.travelEvent) status.innerHTML=S.travelMode==="side"
+      ? `<b>Exploring passage<span class="passage-dots"></span></b> · <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> inside · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · until treated</div>`:""}`
+      : `<b>Held inside passage.</b> <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> explored · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · until treated</div>`:""}`;
+    $("btnDescend").disabled=true;$("btnDescend").classList.remove("active");$("btnExplore").disabled=!!S.travelEvent;$("btnExplore").classList.toggle("active",S.travelMode==="side");$("btnExplore").querySelector("b").textContent=S.travelMode==="side"?"Exploring Passage":"Explore Passage";$("btnExplore").querySelector("span").textContent=S.travelMode==="side"?"tap to consider turning back":"continue into the side area";$("btnStopTravel").disabled=!!S.travelEvent||S.travelMode==="stopped";
+  } else {
+    $("btnExplore").querySelector("b").textContent="Explore";$("btnExplore").querySelector("span").textContent="hold this depth";
+    if(curseActive()&&!S.travelEvent) $("travelStatus").innerHTML+=`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain · ${esc(S.curse.desc)}</div>`;
+    if(S.bleeding&&!S.travelEvent) $("travelStatus").innerHTML+=`<div class="curse-line"><b>Bleeding</b> · active travel slowly costs HP.</div>`;
+  }
+  $("packSub").textContent=`${S.inventory.campSupplies} Camp Supplies · ${S.inventory.bandages} Bandage${S.inventory.bandages===1?"":"s"}`;
+};
+const session75Render=render;
+render=function(){
+  session75Render();if(!S)return;
+  const w=equippedWeaponDef();$("heroStats").textContent=`STR ${S.STR} · CON ${S.CON} · DEX ${S.DEX} · ${w.stat} weapon`;
+  if(S.className==="Votary"){$("btnLoadout").disabled=false;$("loadoutTxt").textContent=S.loadout==="shield"?`${w.name} + shield · Guard`:`${w.name} · Parry`;}
+  else if(S.className==="Rogue"){$("btnLoadout").disabled=true;$("loadoutTxt").textContent=`${w.name} · DEX · Dodge`;}
+  else{$("btnLoadout").disabled=true;$("loadoutTxt").textContent=`${w.name} · INT focus`;}
+  const aff=$("combatCurse"),affTxt=$("combatCurseTxt");
+  if(aff&&affTxt){
+    const bits=[];if(curseActive())bits.push(`${S.curse.name} · ${S.curse.remaining} completed encounters`);if(S.bleeding)bits.push("Bleeding");
+    aff.hidden=bits.length===0;affTxt.textContent=bits.join(" · ");
+  }
+  renderPack();
+};
+
+
+
+/* ============================================================
+   v0.080 — Session 7.5 QOL + feedback pass
+   ============================================================ */
+
+function canFieldUseAbility(id){
+  const sk=abilityState(id);
+  return !over && !S?.foe && !!sk && sk.cur>0 && S.hp<S.hpMax && ["layonhands","mend"].includes(id);
+}
+function useFieldAbility(id){
+  if(!canFieldUseAbility(id)) return;
+  const sk=abilityState(id), amount=id==="layonhands"?15:12, before=S.hp;
+  S.hp=Math.min(S.hpMax,S.hp+amount); const healed=S.hp-before;
+  if(healed<=0) return;
+  sk.cur--; triggerHealFx(healed,["travel"]);
+  travelLogAdd(`<b>${esc(abilityDisplayName(id))}</b> restores <b>${healed} HP</b> outside combat.`,"good");
+  render(); renderCharacterSheet();
+}
+function renderCharacterView(){
+  document.querySelectorAll("[data-char-page]").forEach(page=>page.hidden=page.dataset.charPage!==charView);
+  document.querySelectorAll("[data-char-view]").forEach(btn=>btn.classList.toggle("active",btn.dataset.charView===charView));
+}
+function renderStatusEffects(){
+  const root=$("charStatuses"); if(!root||!S) return;
+  const rows=[];
+  if(S.bleeding) rows.push(`<div class="char-status bad"><b>Bleeding</b><span>Until treated · loses 1 HP about every 8 seconds of active travel · Bandage, Rest or Camp removes it.</span></div>`);
+  if(curseActive()) rows.push(`<div class="char-status bad"><b>${esc(S.curse.name)}</b><span>${S.curse.remaining} completed encounters remaining · ${esc(S.curse.desc)}</span></div>`);
+  if(S.hollowRespite?.remaining>0) rows.push(`<div class="char-status good"><b>Sheltered</b><span>${S.hollowRespite.remaining} completed encounters remaining · +1 Max Stamina.</span></div>`);
+  const boon=boonDef(); if(boon) rows.push(`<div class="char-status good"><b>${esc(boon.name)}</b><span>${formatBoonTime(boonRemainingMs())}${S.boon?.frozen?" · paused":""} · ${esc(boon.desc)}</span></div>`);
+  root.innerHTML=rows.length?rows.join(""):`<div class="char-status empty"><b>No active conditions</b><span>No wounds, curses or temporary effects are currently affecting this delver.</span></div>`;
+  const count=(S.bleeding?1:0)+(curseActive()?1:0)+(S.hollowRespite?.remaining>0?1:0)+(boon?1:0);
+  if($("charStatusNavText")) $("charStatusNavText").textContent=count?`${count} active`:"none active";
+}
+
+const session80RenderCharacterSheet=renderCharacterSheet;
+renderCharacterSheet=function(){
+  session80RenderCharacterSheet(); if(!S) return;
+  if($("charSpecialization")) $("charSpecialization").textContent=S.specialization||"—";
+  renderStatusEffects();
+  $("charAbilities").innerHTML=classAbilityOrder().map(id=>{
+    const def=ABILITY_DEFS[id],sk=abilityState(id),open=charExpandedAbility===id,usable=canFieldUseAbility(id);
+    const field=["layonhands","mend"].includes(id);
+    return `<div class="char-skill"><div class="char-skill-top"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses</span></div><p>${esc(def.desc)}</p>${field?`<div class="char-ability-actions"><button class="char-field-use" data-field-ability="${id}" ${usable?"":"disabled"}>${S.hp>=S.hpMax?"Full HP":sk.cur<=0?"Spent":"Use now"}</button></div>`:""}<button class="skill-more" data-char-ability-more="${id}">${open?"Hide details":"See more"}</button><div class="skill-detail" ${open?"":"hidden"}>${abilityDetailHtml(def)}</div></div>`;
+  }).join("");
+  renderCharacterView();
+};
+
+function renderTravelEffects(){
+  const root=$("travelEffects"); if(!root||!S) return;
+  const bits=[];
+  if(S.bleeding) bits.push(`<span class="travel-effect bad">Bleeding</span>`);
+  if(curseActive()) bits.push(`<span class="travel-effect bad">${esc(S.curse.name)} ${S.curse.remaining}</span>`);
+  if(S.hollowRespite?.remaining>0) bits.push(`<span class="travel-effect good">Sheltered ${S.hollowRespite.remaining}</span>`);
+  root.hidden=bits.length===0; root.innerHTML=bits.join("");
+}
+const session80RenderTravel=renderTravel;
+renderTravel=function(){
+  session80RenderTravel();
+  if(S&&!S.foe&&!over){
+    document.querySelectorAll(".passage-dots").forEach(el=>el.textContent=liveExploreDots());
+    renderTravelEffects();
+  }
+};
+
+// Defensible ground is still useful without Camp Supplies: it becomes a one-use Rest
+// plus a deliberately modest, encounter-counted shelter effect.
+function clearHollowRespite(){
+  if(!S?.hollowRespite) return;
+  S.staminaMax=Math.max(1,S.staminaMax-1); S.stamina=Math.min(S.stamina,S.staminaMax); S.hollowRespite=null;
+}
+function grantHollowRespite(){
+  clearHollowRespite(); S.hollowRespite={remaining:3}; S.staminaMax+=1; S.stamina=Math.min(S.stamina+1,S.staminaMax);
+  travelLogAdd(`<b>Sheltered.</b> +1 Max Stamina for the next 3 completed encounters.`,"good");
+}
+function restAtEmptyHollow(){
+  const h=S?.activeHollow; if(!h||S.inventory.campSupplies>0) return;
+  cancelHollowAutoResume(); clearHollowTimer(); pauseBoonClock();
+  const before=S.hp; S.hp=Math.min(S.hpMax,S.hp+restHealAmount()); const healed=S.hp-before;
+  S.restRecovery=0; S.bleeding=false; S.bleedTravel=0; S.hollowStates[h.key]="used"; S.activeHollow=null; S.travelMode="stopped";
+  grantHollowRespite();
+  if(healed>0) triggerHealFx(healed,["travel"]);
+  if(abilitiesNeedRestoration()) S.pendingRestAbilityChoice=true;
+  travelLogAdd(`You use the defensible ground as a short shelter. <b>${healed} HP</b> recovered${abilitiesNeedRestoration()?" · choose one spent ability use to restore":""}.`,"good");
+  render();
+}
+const session80CampAtHollow=campAtHollow;
+campAtHollow=function(){
+  if(S?.activeHollow && S.inventory.campSupplies<=0) return restAtEmptyHollow();
+  clearHollowRespite(); return session80CampAtHollow();
+};
+const session80RenderSafeHollow=renderSafeHollow;
+renderSafeHollow=function(){
+  session80RenderSafeHollow(); if(!S?.activeHollow) return;
+  if(S.inventory.campSupplies<=0){
+    const b=$("btnCampHere"); b.disabled=false; b.querySelector("b").textContent="Take shelter";
+    $("campHereSub").textContent="Rest recovery · Sheltered for 3 encounters";
+    $("safeHollowText").textContent=S.activeHollow.kind==="stage"?"You have no Camp Supplies, but this protected ground can still serve as a short Rest before the boundary.":"You have no Camp Supplies, but the hollow is still good enough for a short Rest before you move on.";
+  }else{
+    $("btnCampHere").querySelector("b").textContent="Make camp";
+  }
+};
+
+// Loot popup. No base loot means no popup; when loot exists, one optional search
+// check can look for a second find, but even a successful check does not guarantee it.
+function addRolledLoot(kind){
+  if(kind==="bandage"){S.inventory.bandages++;return "Bandage";}
+  if(kind==="meat"){S.inventory.meat++;return "Meat";}
+  if(kind==="rope"){S.inventory.rope++;return "Rope";}
+  if(kind==="water"){S.inventory.water++;return "Jug of Water";}
+  if(kind==="camp"){S.inventory.campSupplies++;return "Camp Supply";}
+  if(kind==="dust"){addMisc("Scroll Dust",1);return "Scroll Dust";}
+  return "";
+}
+function rollExtraLoot(){
+  const r=rnd();
+  if(r<.24)return addRolledLoot("bandage");
+  if(r<.47)return addRolledLoot("meat");
+  if(r<.60)return addRolledLoot("water");
+  if(r<.72)return addRolledLoot("rope");
+  if(r<.82)return addRolledLoot("camp");
+  return addRolledLoot("dust");
+}
+maybeMonsterLoot=function(f){
+  const drops=[];
+  if(f.key==="scrounger"&&S.inventory.rogueTools<=0&&rnd()<.12){S.inventory.rogueTools=1;drops.push("Rogue Tools");}
+  if(rnd()<.34){
+    const r=rnd();
+    if(r<.38){S.inventory.meat++;drops.push("Meat");}
+    else if(r<.67){S.inventory.bandages++;drops.push("Bandage");}
+    else if(r<.78){S.inventory.water++;drops.push("Jug of Water");}
+    else if(r<.88){S.inventory.rope++;drops.push("Rope");}
+    else if(r<.96){S.inventory.campSupplies++;drops.push("Camp Supply");}
+    else {addMisc("Scroll Dust",1);drops.push("Scroll Dust");}
+  }
+  if(rnd()<.035){S.inventory.campSupplies++;drops.push("Camp Supply");}
+  if(drops.length){S._lootFoundCurrent.push(...drops);travelLogAdd(`Looted: <b>${esc(drops.join(" · "))}</b>.`,"good");}
+  return drops;
+};
+maybeSideKey=function(f){
+  const a=S.sideArea;if(!f.side||!a||a.keyDropped||S.inventory.passageKey)return null;
+  if(rnd()<.12){a.keyDropped=true;S.inventory.passageKey={id:a.keyId,name:a.keyName};S._lootFoundCurrent.push(a.keyName);travelLogAdd(`Found a <b>${esc(a.keyName)}</b>. It feels specific to this passage.`,"good");return a.keyName;}
+  return null;
+};
+function openLootFound(drops,f){
+  if(!drops?.length)return;
+  S.pendingLoot={encounter:S.encounter,foeName:f?.name||"foe",drops:[...drops],searched:false};
+  S.travelEvent={id:"loot-found",stage:"found",kind:"Loot found",title:"Something worth taking",text:`The ${S.pendingLoot.foeName} left something useful behind.`,rollHtml:`<div class="loot-found-list">${drops.map(x=>`<div class="loot-found-item">${esc(x)}</div>`).join("")}</div>`};
+}
+function resolveLootSearch(skill){
+  const loot=S.pendingLoot;if(!loot||loot.searched)return;loot.searched=true;
+  const dc=11+Math.floor(S.depth/60),c=runSkillCheck(skill,dc),p=awardSkillPractice(skill,`loot-search:${loot.encounter}`,c.success?1:1);
+  let html=formatSkillCheck(c)+practiceText(skill,p),found=null;
+  if(c.success&&rnd()<.55){found=rollExtraLoot();loot.drops.push(found);html+=`<br><span class="good">You turn up an additional <b>${esc(found)}</b>.</span>`;travelLogAdd(`${SKILL_DEFS[skill].name} finds extra loot: <b>${esc(found)}</b>.`,"good");}
+  else html+=`<br><span class="note">You do not find anything else worth carrying.</span>`;
+  S.travelEvent.stage="searched";S.travelEvent.rollHtml=html;render();
+}
+function closeLootFound(){S.pendingLoot=null;S.travelEvent=null;render();}
+
+// Replace the v0.079 kill extension so bosses are gated at every stratum boundary.
+finishKill=function(out){
+  const f=S.foe;if(!f)return session75FinishKill(out);
+  const wasSide=!!f.side,wasBoss=!!f.boss,bossStratum=f.bossStratum??Math.max(0,Math.floor(S.depth/FATHOMS_PER_STRATUM));
+  S._lootFoundCurrent=[];
+  session75FinishKill(out);
+  maybeMonsterLoot(f);if(wasSide)maybeSideKey(f);
+  if(curseActive()){S.curse.remaining--;if(S.curse.remaining<=0){travelLogAdd(`<b>${esc(S.curse.name)}</b> finally lifts after the completed encounter.`,"good");S.curse=null;}else travelLogAdd(`${esc(S.curse.name)}: <b>${S.curse.remaining}</b> completed encounters remain.`,"note");}
+  if(S.hollowRespite?.remaining>0){S.hollowRespite.remaining--;if(S.hollowRespite.remaining<=0){clearHollowRespite();travelLogAdd(`<b>Sheltered</b> fades after the completed encounter.`,"note");}}
+  if(wasSide&&sideAreaActive()){S.sideArea.encountersDefeated++;S.sideArea.activity=0;S.travelSinceEvent=0;travelLogAdd(`Side passage progress: <b>${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</b>.`,"beat");if(S.sideArea.encountersDefeated>=S.sideArea.encountersNeeded)S.sideArea.endReached=true;}
+  if(wasBoss){
+    S.bossDefeated[bossStratum]=true;const boundary=(bossStratum+1)*FATHOMS_PER_STRATUM;S.depth=boundary;S.exploreElapsedMs=0;S.exploreDepth=boundary;
+    const trophy=`Prototype Stratum ${bossStratum+1} Trophy`;addMisc(trophy,1);S._lootFoundCurrent.push(trophy);
+    travelLogAdd(`The boundary opens. You cross into <b>${esc(stratumName(bossStratum+1))}</b>.`,"beat");
+  }
+  const drops=[...S._lootFoundCurrent];delete S._lootFoundCurrent;
+  if(drops.length)openLootFound(drops,f);
+  render();
+};
+
+const session80NextFoe=nextFoe;
+nextFoe=function(options={}){
+  session80NextFoe(options);
+  if(options.boss&&S.foe?.boss){
+    const idx=options.bossStratum??Math.max(0,Math.floor(S.depth/FATHOMS_PER_STRATUM));
+    S.foe.bossStratum=idx;
+    if(idx>0) S.foe.name=`prototype ${stratumName(idx).replace(/^The /,"").toLowerCase()} boss`;
+  }
+};
+
+// Chance-based discovery can happen during normal descent OR deliberate Explore.
+// The existing per-run depth trigger remains as a fallback so this slice is still testable.
+const session80TravelTick=travelTick;
+travelTick=function(){
+  if(S&&!over&&!S.foe&&!S.travelEvent&&!S.sideDiscoveryAttempted&&!S.sideAreaResolved&&!sideAreaActive()&&(S.travelMode==="descend"||S.travelMode==="explore")&&S.depth>=4){
+    const chance=S.travelMode==="descend"?.012:.025;
+    if(rnd()<chance)return beginSideDiscovery();
+  }
+  return session80TravelTick();
+};
+
+const session80RenderTravelEvent=renderTravelEvent;
+renderTravelEvent=function(){
+  const ev=S?.travelEvent;
+  if(!ev||ev.id!=="loot-found")return session80RenderTravelEvent();
+  const card=$("travelEventCard");card.hidden=false;$("travelEventKind").textContent=ev.kind;$("travelEventTitle").textContent=ev.title;$("travelEventText").textContent=ev.text;$("travelEventRoll").hidden=!ev.rollHtml;$("travelEventRoll").innerHTML=ev.rollHtml||"";
+  $("travelEventActions").innerHTML=ev.stage==="found"?`<button class="travel-event-btn skill" data-event-action="loot-perception"><b>Use Perception</b><span>look for something overlooked · DC ${11+Math.floor(S.depth/60)}</span></button><button class="travel-event-btn investigate" data-event-action="loot-investigation"><b>Use Investigation</b><span>search the remains carefully · DC ${11+Math.floor(S.depth/60)}</span></button><button class="travel-event-btn ignore wide" data-event-action="loot-continue"><b>Take loot</b><span>continue without another search</span></button>`:`<button class="travel-event-btn wide skill" data-event-action="loot-continue"><b>Take loot</b><span>return to the delve</span></button>`;
+};
+const session80HandleTravelEventAction=handleTravelEventAction;
+handleTravelEventAction=function(action){
+  if(S?.travelEvent?.id!=="loot-found")return session80HandleTravelEventAction(action);
+  if(action==="loot-perception")return resolveLootSearch("perception");
+  if(action==="loot-investigation")return resolveLootSearch("investigation");
+  if(action==="loot-continue")return closeLootFound();
+};
+
+
+/* ============================================================
+   v0.080.1 — Session 7.5 combat + information QOL
+   ============================================================ */
+
+// Check-choice literacy: show the actual current modifier before the player commits.
+function displayedCheckBonus(skillId, situational=0){
+  return skillCheckBonus(skillId) + situational;
+}
+function annotateCheckChoice(action, skillId, situational=0){
+  const b=document.querySelector(`[data-event-action="${action}"]`);
+  if(!b) return;
+  const span=b.querySelector("span");
+  if(!span) return;
+  span.innerHTML=`<strong class="check-bonus">Current bonus ${signed(displayedCheckBonus(skillId,situational))}</strong> · ${span.innerHTML}`;
+}
+const session801RenderTravelEvent=renderTravelEvent;
+renderTravelEvent=function(){
+  session801RenderTravelEvent();
+  if(!S?.travelEvent) return;
+  annotateCheckChoice("perception","perception");
+  annotateCheckChoice("investigate","investigation");
+  annotateCheckChoice("investigate-informed","investigation",2);
+  annotateCheckChoice("side-perception","perception");
+  annotateCheckChoice("translate-wall","translation");
+  annotateCheckChoice("trap-perception","perception");
+  annotateCheckChoice("trap-dismantle","sleight",S.inventory?.rogueTools>0?2:0);
+  annotateCheckChoice("trap-destroy","athletics");
+  annotateCheckChoice("translate-altar","translation");
+  annotateCheckChoice("pick-side-lock","sleight",S.inventory?.rogueTools>0?2:0);
+  annotateCheckChoice("force-side-chest","athletics");
+  annotateCheckChoice("loot-perception","perception");
+  annotateCheckChoice("loot-investigation","investigation");
+};
+
+// Known Weakness gets one full decision-turn of prominence after the first Read,
+// then collapses to a one-line toggle. Future encounters default collapsed.
+function weaknessCollapsed(f=S?.foe){
+  if(!f?.revealed) return false;
+  if(f.weaknessManualOpen===true) return false;
+  if(f.weaknessManualOpen===false) return true;
+  return S.turn >= (f.weaknessAutoOpenUntil ?? S.turn);
+}
+const session801ReadRun=ACTIONS.read.run;
+ACTIONS.read.run=function(){
+  const f=S.foe, before=f?knowledgeReads(f.key):0;
+  const out=session801ReadRun();
+  if(f?.revealed && before===0){
+    f.weaknessManualOpen=null;
+    // takeTurn increments S.turn after this action; +2 leaves the description open
+    // during the next player decision, then collapses after that turn resolves.
+    f.weaknessAutoOpenUntil=S.turn+2;
+  }
+  return out;
+};
+const session801NextFoe=nextFoe;
+nextFoe=function(options={}){
+  session801NextFoe(options);
+  if(S?.foe?.revealed){
+    S.foe.weaknessManualOpen=null;
+    S.foe.weaknessAutoOpenUntil=S.turn; // already-known archetypes start compact
+    render();
+  }
+};
+
+// Recover is a neutral tempo action: useful when the foe cedes initiative, risky
+// when it is actually attacking. It intentionally does not stack its heal yet.
+ACTIONS.recover={
+  label:"Recover",
+  sub(){return "+3 stamina · +2 HP";},
+  cost:0,
+  preview(){
+    const stam=Math.min(3,Math.max(0,S.staminaMax-S.stamina));
+    const heal=Math.min(2,Math.max(0,S.hpMax-S.hp));
+    const back=incoming();
+    let t=`Recover <span class="cost">${stam} stamina</span> and <span class="dmg">${heal} HP</span> · consumes your turn`;
+    if(back)t+=` · <span class="bad">you still take ~${back} if it attacks</span>`;
+    else t+=` · <span class="dmg">safe breathing room: it is not attacking</span>`;
+    return t;
+  },
+  run(){
+    const beforeHp=S.hp,beforeSt=S.stamina;
+    S.stamina=Math.min(S.staminaMax,S.stamina+3);
+    S.hp=Math.min(S.hpMax,S.hp+2);
+    const healed=S.hp-beforeHp,restored=S.stamina-beforeSt;
+    if(healed>0)triggerHealFx(healed,["combat"]);
+    return `<p class="good">Caught your breath. Recovered <b>${restored} Stamina</b>${healed?` and <b>${healed} HP</b>`:""}.</p>`;
+  }
+};
+
+// A prepared Heavy can answer Dodge with tempo rather than another RNG check.
+// The current Dodge still spends the foe's turn; its NEXT declared intent is forced
+// to be something other than Dodge, while the Heavy remains prepared.
+ACTIONS.heavyfeint={
+  label:"Feint",
+  sub:"0 stamina · preserve Heavy",
+  cost:0,
+  preview(){return `Show the committed blow without releasing it · <span class="cost">0 stamina</span> · preserve the Heavy · force the foe's next intent to be <span class="dmg">non-Dodge</span>`;},
+  run(){
+    if(!S.foe||S.foe.intent!=="dodge"||S.heavyCharge<=0)return `<p class="note">There is nothing useful to draw out.</p>`;
+    S.foe.forceNonDodge=true;
+    return `<p class="good">Feinted the release. It committed to the Dodge, but your Heavy stayed ready.</p>`;
+  }
+};
+const session801RollIntent=rollIntent;
+rollIntent=function(){
+  const f=S?.foe, force=!!f?.forceNonDodge;
+  session801RollIntent();
+  if(!f||!force) return;
+  let guard=0;
+  while(f.intent==="dodge" && guard++<20) session801RollIntent();
+  if(f.intent==="dodge") f.intent="guard"; // deterministic safety fallback
+  f.forceNonDodge=false;
+};
+
+const session801ActionCounters=actionCounters;
+actionCounters=function(key){
+  if(key==="heavyfeint")return !!S.foe&&S.heavyCharge>0&&S.foe.intent==="dodge";
+  return session801ActionCounters(key);
+};
+
+// Six normal choices fit cleanly in the 2x3 pad. Heavy commitment remains focused;
+// Feint appears only when Dodge is specifically frustrating the prepared blow.
+renderPad=function(){
+  const heavyDodge=S.heavyCharge>0&&S.foe?.intent==="dodge";
+  const order=S.heavyCharge>0
+    ? (heavyDodge?["heavy","draw","guard","heavyfeint"]:["heavy","draw","guard"])
+    : ["strike","heavy","guard","recover","sand","read"];
+  $("pad").innerHTML=order.map(k=>{
+    const cost=actionCost(k);
+    const fullyDrawn=k==="draw"&&S.heavyCharge>=2;
+    const readLocked=k==="read"&&S.foe&&(S.foe.readUsed||knowledgeReads(S.foe.key)>=6);
+    const recoverEmpty=k==="recover"&&S.hp>=S.hpMax&&S.stamina>=S.staminaMax;
+    const feintInvalid=k==="heavyfeint"&&(!S.foe||S.foe.intent!=="dodge"||S.heavyCharge<=0);
+    const off=!S.foe||over||fullyDrawn||readLocked||recoverEmpty||feintInvalid||cost>S.stamina;
+    const counters=S.foe&&actionCounters(k),isArmed=armed===k,baseSub=actionSub(k);
+    const sub=isArmed?"tap again to commit":(S.foe&&cost>S.stamina)?`${baseSub} — short`:baseSub;
+    const wide=S.heavyCharge>0&&order.length===3&&k==="guard"?"wide":"";
+    return `<button class="act ${k} ${wide} ${counters?"counter":""} ${isArmed?"armed":""}" data-k="${k}" ${off?"disabled":""}><b>${actionLabel(k)}</b><span>${sub}</span></button>`;
+  }).join("");
+};
+
+// Run pressure is now uncertainty rather than an HP surcharge. Each attempt in a
+// stratum worsens the next escape chance: 100% -> 75% -> 50% -> 30% (floor).
+// A failed attempt costs no Run HP, but consumes the player's entire turn and lets
+// the foe resolve its already-declared intent normally.
+const session801RunCost=runCost;
+function syncRunAttempts(){
+  if(!S)return 0;
+  const idx=stratumIndex(S.depth);
+  if(S.runAttemptStratum!==idx){S.runAttemptStratum=idx;S.runAttempts=0;}
+  return S.runAttempts||0;
+}
+function runSuccessChance(){
+  const attempts=syncRunAttempts();
+  return attempts<=0?1:attempts===1?.75:attempts===2?.50:.30;
+}
+ACTIONS.runattempt={
+  label:"Run",sub:"failed escape",cost:0,
+  preview(){return "Attempt to break contact.";},
+  run(){return `<p class="hurt"><b>Escape failed.</b> You lose the turn trying to break contact.</p>`;}
+};
+tapRun=function(){
+  if(over||!S.foe||S.heavyCharge>0)return;
+  if(armed!=="run"){armed="run";render();return;}
+  armed=null;
+  const chance=runSuccessChance();
+  S.runAttempts=(syncRunAttempts()||0)+1;
+  if(rnd()>=chance){
+    travelLogAdd(`You fail to break contact. The foe keeps the initiative.`,"danger");
+    takeTurn("runattempt");
+    return;
+  }
+  const c=session801RunCost();
+  S.hp-=c;
+  if(S.hp<=0)return die(`<p class="hurt">Turned to run. Did not get far.</p>`);
+  travelLogAdd(`You break contact and hold at <b>${formatDepth(S.depth)} fathoms</b>.`,"danger");
+  say(`<p class="said">Broke contact and did not look back.</p>`+(c?`<p class="hurt">It cost <b>${c}</b> on the way out.</p>`:`<p class="note">It let you go.</p>`));
+  S.foe=null;S.heavyCharge=0;S.strikeChain=0;S.defenceChain=0;S.abilityQuickUsed=false;
+  render();
+};
+
+// One side-passage opportunity per stratum. Failing, declining or completing it
+// resolves that stratum's opportunity; the next stratum gets a fresh one.
+function syncSidePassageStratum(){
+  if(!S||sideAreaActive())return;
+  const idx=stratumIndex(S.depth);
+  if(S.sideDiscoveryStratum===idx)return;
+  S.sideDiscoveryStratum=idx;
+  S.sideDiscoveryAttempted=false;
+  S.sideAreaResolved=false;
+  S.sideDiscoveryAt=idx*FATHOMS_PER_STRATUM+ri(15,30);
+}
+const session801TravelTick=travelTick;
+travelTick=function(){
+  syncSidePassageStratum();
+  return session801TravelTick();
+};
+
+// New delvers need the small Session 7.5 tracking fields explicitly initialized.
+const session801NewDelver=newDelver;
+newDelver=function(profile){
+  session801NewDelver(profile);
+  S.runAttemptStratum=0;S.runAttempts=0;
+  S.sideAreaHistory=[];
+  S.sideDiscoveryStratum=0;
+  S.sideDiscoveryAt=ri(15,30);
+  render();
+};
+
+// Final render polish for Read collapse and explicit Run pursuit information.
+const session801Render=render;
+render=function(){
+  session801Render();
+  if(!S)return;
+  const f=S.foe;
+  if(f?.revealed){
+    const collapsed=weaknessCollapsed(f),tell=$("tell"),em=tell?.querySelector("em");
+    if(tell)tell.classList.toggle("collapsed",collapsed);
+    if(em)em.textContent=collapsed?"Known weakness ▸":"Known weakness ▾";
+    $("tellTxt").hidden=collapsed;$("knowledgeTxt").hidden=collapsed;
+    tell?.setAttribute("aria-expanded",String(!collapsed));
+  }
+  if(f&&!over&&S.heavyCharge===0){
+    const c=session801RunCost(),chance=Math.round(runSuccessChance()*100),btn=$("btnRun"),fatal=c>=S.hp;
+    if(btn&&armed!=="run")btn.querySelector("span").textContent=fatal
+      ? `${chance}% escape · ${c} HP on success · that success would kill you`
+      : `${chance}% escape · ${c} HP on success · failure loses your turn`;
+  }
+};
+
+
+/* ============================================================
+   v0.080.3 — Session 7.5 exploration reward + side-route QOL
+   v0.080.4 — stronger lateral branch + live dot rendering fix
+   ============================================================ */
+
+// Descent XP is earned only for NEW main-shaft depth. Quarter-fathom movement is
+// retained internally so repeated interruptions still total exactly 1 XP/fathom.
+function recordDescentXpProgress(){
+  if(!S) return;
+  const maxSeen=Number(S.descentXpMaxDepth ?? 0);
+  if(S.depth <= maxSeen + 0.0001) return;
+  S.descentXpPending=(S.descentXpPending||0)+(S.depth-maxSeen);
+  S.descentXpMaxDepth=S.depth;
+}
+function bankDescentXp(){
+  if(!S) return 0;
+  const gain=Math.floor((S.descentXpPending||0)+1e-6);
+  if(gain<=0) return 0;
+  S.descentXpPending-=gain;
+  S.xp+=gain;
+  let levels=0;
+  while(S.xp>=xpToNext(S.level)){
+    S.xp-=xpToNext(S.level);
+    S.level++;
+    S.statPoints++;
+    levels++;
+  }
+  travelLogAdd(`Descent explored: <b>+${gain} XP</b>.`,"good");
+  if(levels) travelLogAdd(`<b>Level ${S.level}.</b> ${levels===1?"A stat point is waiting.":`${levels} stat points are waiting.`}`,"good");
+  return gain;
+}
+function pendingDescentXp(){ return Math.max(0,Math.floor((S?.descentXpPending||0)+1e-6)); }
+
+// Side passages are generated once per passage and then remain stable. Only these
+// lateral branches are randomized; the main fathom route above remains untouched.
+function generateSideRouteOffsets(){
+  const pts=[[0,0]];
+  const bias=rnd()<.5?-1:1;
+  // Side passages must LOOK lateral. The first two segments deliberately peel
+  // away from the shaft before they begin wandering sideways.
+  let x=ri(5,8);
+  let y=bias*ri(20,27);
+  pts.push([x,y]);
+  x+=ri(7,11);
+  y=bias*ri(34,43);
+  pts.push([x,y]);
+  for(let i=3;i<=6;i++){
+    x+=ri(11,17);
+    const outward=bias*ri(-5,9);
+    y=clamp(y+outward,-52,52);
+    // Keep the branch comfortably away from the main route after its initial fork.
+    if(Math.abs(y)<26) y=bias*ri(28,40);
+    pts.push([x,y]);
+  }
+  return pts;
+}
+const session803CreateSideArea=createSideArea;
+createSideArea=function(){
+  const area=session803CreateSideArea();
+  area.routeOffsets=generateSideRouteOffsets();
+  area.altarTranslationAttempted=false;
+  area.altarTranslationResult=null;
+  return area;
+};
+
+function sideBranchGeometry(anchorX,anchorY,progress=1,routeOffsets=null){
+  const offsets=routeOffsets?.length?routeOffsets:[[0,0],[15,-7],[31,-21],[48,-17],[66,-4],[83,7],[99,-9]];
+  const pts=offsets.map(([x,y])=>[anchorX+x,clamp(anchorY+y,9,TRAIL_H-9)]);
+  const segs=Math.max(1,pts.length-1),scaled=clamp(progress,0,1)*segs;
+  const whole=Math.floor(scaled),frac=scaled-whole;
+  const out=[pts[0]];
+  for(let i=1;i<=Math.min(whole,segs);i++) out.push(pts[i]);
+  if(whole<segs && frac>0){
+    const a=pts[whole],b=pts[whole+1];
+    out.push([a[0]+(b[0]-a[0])*frac,a[1]+(b[1]-a[1])*frac]);
+  }
+  const end=out[out.length-1]||pts[0];
+  return {
+    d:out.map((pt,i)=>`${i?"L":"M"}${pt[0].toFixed(1)},${pt[1].toFixed(1)}`).join(" "),
+    end
+  };
+}
+sideBranchPath=function(anchorX,anchorY,progress=1,routeOffsets=null){
+  return sideBranchGeometry(anchorX,anchorY,progress,routeOffsets).d;
+};
+
+// Preserve the generated geometry in the nearby-route history after returning to
+// the exact entrance fathom.
+const session803ExitSideArea=exitSideArea;
+exitSideArea=function(completed=false){
+  const a=S?.sideArea;
+  const id=a?.id;
+  const routeOffsets=a?.routeOffsets ? a.routeOffsets.map(p=>[...p]) : null;
+  session803ExitSideArea(completed);
+  if(id && routeOffsets){
+    const h=[...(S?.sideAreaHistory||[])].reverse().find(x=>x.id===id);
+    if(h) h.routeOffsets=routeOffsets;
+    render();
+  }
+};
+
+// Draw the unchanged main route, then reveal the active lateral branch behind the
+// moving delver marker. Combat/events pause the marker exactly where travel stopped.
+drawTrail=function(depth){
+  const viewStart=Math.max(0,depth-TRAIL_BEHIND);
+  const currentWave=trailWave(depth);
+  const xOf=d=>((d-viewStart)/TRAIL_SPAN)*TRAIL_W;
+  const yOf=d=>TRAIL_MARKER_Y+(d-depth)*2.25+(trailWave(d)-currentWave);
+
+  const pts=[];
+  const from=Math.max(0,viewStart-.5),to=viewStart+TRAIL_SPAN+.5;
+  for(let d=from;d<=to+.001;d+=.5) pts.push([xOf(d),clamp(yOf(d),10,TRAIL_H-10)]);
+  const path=pts.map((p,i)=>`${i?"L":"M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  $("trailCorridor").setAttribute("d",path);
+  $("trailPath").setAttribute("d",path);
+
+  let marks="";
+  const firstTick=Math.ceil(viewStart/TRAIL_TICK)*TRAIL_TICK,last=viewStart+TRAIL_SPAN;
+  for(let d=firstTick;d<=last+.001;d+=TRAIL_TICK){
+    const x=xOf(d),y=clamp(yOf(d),12,TRAIL_H-12),major=Math.abs(d%FATHOMS_PER_STRATUM)<.001;
+    marks+=`<line class="trail-tick" x1="${x.toFixed(1)}" y1="${(y-5).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(y+5).toFixed(1)}"></line>`;
+    marks+=`<text class="trail-label ${major?"major":""}" x="${(x+3).toFixed(1)}" y="${(y-7).toFixed(1)}">${formatDepth(d).replace('.0','')}</text>`;
+  }
+  const firstBoundary=Math.ceil(viewStart/FATHOMS_PER_STRATUM)*FATHOMS_PER_STRATUM;
+  for(let d=firstBoundary;d<=last+.001;d+=FATHOMS_PER_STRATUM){
+    if(d<=0)continue;
+    const x=xOf(d);
+    marks+=`<line class="trail-boundary" x1="${x.toFixed(1)}" y1="7" x2="${x.toFixed(1)}" y2="${TRAIL_H-7}"></line>`;
+  }
+  for(const h of (S.sideAreaHistory||[])){
+    if(h.entryDepth<viewStart-.001||h.entryDepth>last+.001)continue;
+    const hx=xOf(h.entryDepth),hy=clamp(yOf(h.entryDepth),10,TRAIL_H-10);
+    const hd=sideBranchPath(hx,hy,h.progress??(h.completed?1:.5),h.routeOffsets);
+    marks+=`<path class="trail-side-history ${h.completed?"completed":"abandoned"}" d="${hd}"></path>`;
+  }
+  $("trailMarks").innerHTML=marks;
+
+  const anchorX=xOf(depth),anchorY=clamp(yOf(depth),10,TRAIL_H-10);
+  let markerX=anchorX,markerY=anchorY;
+  const marker=$("trailMarker"),sideCorridor=$("trailSideCorridor"),sidePath=$("trailSidePath");
+  if(sideCorridor&&sidePath){
+    const active=sideAreaActive();
+    // SVG elements do not reliably reflect the HTML `.hidden` property.
+    // Toggle the actual attribute so the active branch is visible DURING travel,
+    // rather than only appearing later as a completed history path.
+    if(active){
+      sideCorridor.removeAttribute("hidden");
+      sidePath.removeAttribute("hidden");
+    } else {
+      sideCorridor.setAttribute("hidden","");
+      sidePath.setAttribute("hidden","");
+    }
+    if(active){
+      const g=sideBranchGeometry(anchorX,anchorY,sideAreaRouteProgress(),S.sideArea.routeOffsets);
+      sideCorridor.setAttribute("d",g.d);
+      sidePath.setAttribute("d",g.d);
+      markerX=g.end[0];
+      markerY=g.end[1];
+    }
+  }
+  marker.style.left=`${(markerX/TRAIL_W)*100}%`;
+  marker.style.top=`${(markerY/TRAIL_H)*100}%`;
+  marker.classList.toggle("exploring",S.travelMode==="explore"||S.travelMode==="side");
+};
+
+function liveExploreDots(){
+  const phase=Math.floor(Date.now()/800)%3;
+  return [".","..","..."][phase];
+}
+
+// Track new main-shaft depth after every finalized travel tick. Side travel leaves
+// S.depth unchanged, so it cannot create descent XP.
+const session803TravelTick=travelTick;
+travelTick=function(){
+  const out=session803TravelTick();
+  recordDescentXpProgress();
+  return out;
+};
+
+// Winning any encounter banks the pending main-shaft exploration reward. A boss
+// can advance S.depth to the exact boundary, so record that final fraction first.
+const session803FinishKill=finishKill;
+finishKill=function(out){
+  const result=session803FinishKill(out);
+  recordDescentXpProgress();
+  const gained=bankDescentXp();
+  if(gained) render();
+  return result;
+};
+
+// Altar translation is a one-shot check. The result remains visible and the button
+// becomes disabled rather than implying the same inscription can be rerolled.
+const session803HandleTravelEventAction=handleTravelEventAction;
+handleTravelEventAction=function(action){
+  if(action==="translate-altar"&&S?.sideArea){
+    if(S.sideArea.altarTranslationAttempted)return;
+    S.sideArea.altarTranslationAttempted=true;
+    const result=session803HandleTravelEventAction(action);
+    const html=S?.travelEvent?.rollHtml||"";
+    S.sideArea.altarTranslationResult=html.includes('class="good">success')?"success":"failure";
+    render();
+    return result;
+  }
+  return session803HandleTravelEventAction(action);
+};
+
+const session803RenderTravelEvent=renderTravelEvent;
+renderTravelEvent=function(){
+  session803RenderTravelEvent();
+  if(S?.travelEvent?.id==="side-altar"&&S.travelEvent.stage==="altar"&&S.sideArea?.altarTranslationAttempted){
+    const b=document.querySelector('[data-event-action="translate-altar"]');
+    if(b){
+      b.disabled=true;
+      b.querySelector("b").textContent="Translation attempted";
+      const result=S.sideArea.altarTranslationResult;
+      b.querySelector("span").textContent=result==="success"?"you have taken what you can from these words":"the inscription will not yield more to this attempt";
+    }
+  }
+};
+
+const session803Render=render;
+render=function(){
+  session803Render();
+  if(!S)return;
+  document.querySelectorAll(".passage-dots").forEach(el=>el.textContent=liveExploreDots());
+  const pending=pendingDescentXp();
+  const suffix=pending?` · +${pending} descent pending`:"";
+  if($("travelXp")) $("travelXp").textContent=`${S.xp} / ${xpToNext(S.level)} XP${suffix}`;
+  if($("heroXp")) $("heroXp").textContent=`${S.xp} / ${xpToNext(S.level)} XP${suffix}`;
+};
+
+const session803NewDelver=newDelver;
+newDelver=function(profile){
+  session803NewDelver(profile);
+  S.descentXpMaxDepth=S.depth||0;
+  S.descentXpPending=0;
+  render();
+};
+
+/* ============================================================
+   v0.080.7 — Session 7.5 loot pacing / history
+   Ordinary creature loot is automatic. A clickable Delve Log entry opens a
+   soft history sheet while travel continues. Only ~35% of loot-bearing kills
+   offer an optional Perception / Investigation bonus search.
+   ============================================================ */
+let selectedLootHistoryId=null;
+
+function ensureLootHistory(){
+  if(!Array.isArray(S?.lootHistory)) S.lootHistory=[];
+  return S?.lootHistory || [];
+}
+function lootRecordById(id){
+  return ensureLootHistory().find(x=>String(x.id)===String(id)) || null;
+}
+function lootItemsText(items=[]){ return items.length ? items.join(" · ") : "Nothing recorded"; }
+function makeLootRecord(drops,f){
+  const history=ensureLootHistory();
+  const rec={
+    id:`loot-${Date.now()}-${S.encounter}-${Math.floor(rnd()*100000)}`,
+    depth:S.depth,
+    encounter:S.encounter,
+    foeName:f?.name || "foe",
+    items:[...drops],
+    bonusItems:[]
+  };
+  history.push(rec);
+  if(history.length>40) history.shift();
+  addLootLogEntry(rec);
+  return rec;
+}
+function addLootLogEntry(rec){
+  if(!S) return;
+  const entry={depth:rec.depth,html:"",cls:"loot",lootId:rec.id};
+  S.travelLog.push(entry);
+  if(S.travelLog.length>120) S.travelLog.shift();
+  const r=$("travelLog"); if(!r)return;
+  const nearBottom=r.scrollHeight-r.scrollTop-r.clientHeight<44;
+  const row=document.createElement("div");
+  row.className="travel-entry loot";
+  row.dataset.lootHistory=rec.id;
+  row.innerHTML=`<span class="depth">${formatDepth(rec.depth)}f</span><p><button class="loot-log-btn" data-loot-history="${esc(rec.id)}"><b>Loot · ${esc(cap(rec.foeName))}</b><span class="loot-log-items">${esc(lootItemsText(rec.items))}</span><span>already collected · tap to review</span></button></p>`;
+  r.appendChild(row);
+  while(r.children.length>120)r.removeChild(r.firstChild);
+  if(nearBottom)r.scrollTop=r.scrollHeight;
+}
+function refreshLootLogEntries(id){
+  const rec=lootRecordById(id); if(!rec)return;
+  document.querySelectorAll(`[data-loot-history="${CSS.escape(String(id))}"]`).forEach(el=>{
+    if(el.classList.contains("loot-log-btn")){
+      const items=el.querySelector(".loot-log-items");
+      if(items)items.textContent=lootItemsText(rec.items);
+    }
+  });
+}
+function renderLootHistory(){
+  const sheet=$("lootHistorySheet"),list=$("lootHistoryList");
+  if(!sheet||!list||!S)return;
+  // Soft sheets should never hide a hard interruption.
+  if((S.foe||S.travelEvent)&&!sheet.hidden){sheet.hidden=true;selectedLootHistoryId=null;return;}
+  const history=ensureLootHistory();
+  if(!history.length){list.innerHTML=`<div class="loot-history-entry"><p>No creature loot has been recorded yet.</p></div>`;return;}
+  list.innerHTML=[...history].reverse().map(rec=>`<div class="loot-history-entry ${String(rec.id)===String(selectedLootHistoryId)?"selected":""}"><div class="loot-history-entry-top"><b>${esc(cap(rec.foeName))}</b><em>${formatDepth(rec.depth)}f · encounter ${rec.encounter}</em></div><p>${esc(lootItemsText(rec.items))}</p>${rec.bonusItems?.length?`<small>Bonus search: ${esc(rec.bonusItems.join(" · "))}</small>`:""}</div>`).join("");
+}
+function openLootHistory(id){
+  if(!S||S.foe||S.travelEvent)return;
+  selectedLootHistoryId=id;
+  renderLootHistory();
+  $("lootHistorySheet").hidden=false;
+}
+function closeLootHistory(){
+  selectedLootHistoryId=null;
+  if($("lootHistorySheet"))$("lootHistorySheet").hidden=true;
+}
+
+// Re-declare loot rolls without their old mandatory log lines. The items are
+// already inserted into the Backpack here; makeLootRecord supplies the history.
+maybeMonsterLoot=function(f){
+  const drops=[];
+  if(f.key==="scrounger"&&S.inventory.rogueTools<=0&&rnd()<.12){S.inventory.rogueTools=1;drops.push("Rogue Tools");}
+  if(rnd()<.34){
+    const r=rnd();
+    if(r<.38){S.inventory.meat++;drops.push("Meat");}
+    else if(r<.67){S.inventory.bandages++;drops.push("Bandage");}
+    else if(r<.78){S.inventory.water++;drops.push("Jug of Water");}
+    else if(r<.88){S.inventory.rope++;drops.push("Rope");}
+    else if(r<.96){S.inventory.campSupplies++;drops.push("Camp Supply");}
+    else {addMisc("Scroll Dust",1);drops.push("Scroll Dust");}
+  }
+  if(rnd()<.035){S.inventory.campSupplies++;drops.push("Camp Supply");}
+  if(drops.length)S._lootFoundCurrent.push(...drops);
+  return drops;
+};
+maybeSideKey=function(f){
+  const a=S.sideArea;if(!f.side||!a||a.keyDropped||S.inventory.passageKey)return null;
+  if(rnd()<.12){a.keyDropped=true;S.inventory.passageKey={id:a.keyId,name:a.keyName};S._lootFoundCurrent.push(a.keyName);return a.keyName;}
+  return null;
+};
+
+// Called by the existing kill pipeline after loot has already entered inventory.
+// Most of the time this only creates the clickable history line. About 35% of
+// loot-bearing kills offer a deliberate bonus-search decision.
+openLootFound=function(drops,f){
+  if(!drops?.length)return;
+  const rec=makeLootRecord(drops,f);
+  if(rnd()>=.35){S.pendingLoot=null;return;}
+  S.pendingLoot={encounter:S.encounter,foeName:f?.name||"foe",drops:[...drops],searched:false,historyId:rec.id};
+  S.travelEvent={
+    id:"loot-found",stage:"bonus",kind:"Optional bonus search",title:"Something may have been overlooked",
+    text:`You already collected ${lootItemsText(drops)} from the ${S.pendingLoot.foeName}. Search the remains for a possible bonus find?`,rollHtml:""
+  };
+};
+
+resolveLootSearch=function(skill){
+  const loot=S.pendingLoot;if(!loot||loot.searched)return;
+  loot.searched=true;
+  const dc=11+Math.floor(S.depth/60),c=runSkillCheck(skill,dc),p=awardSkillPractice(skill,`loot-search:${loot.encounter}`);
+  const rec=lootRecordById(loot.historyId);
+  let found=null;
+  if(c.success&&rnd()<.55){
+    found=rollExtraLoot();
+    loot.drops.push(found);
+    if(rec){rec.items.push(found);rec.bonusItems.push(found);refreshLootLogEntries(rec.id);}
+  }
+  const practice=practiceText(skill,p);
+  const outcome=found
+    ? `<span class="good">Bonus search: ${esc(SKILL_DEFS[skill].name)} ${c.total} vs DC ${dc} · found <b>${esc(found)}</b>.</span>`
+    : c.success
+      ? `<span class="note">Bonus search: ${esc(SKILL_DEFS[skill].name)} ${c.total} vs DC ${dc} · success, but nothing else worth carrying.</span>`
+      : `<span class="note">Bonus search: ${esc(SKILL_DEFS[skill].name)} ${c.total} vs DC ${dc} · no additional find.</span>`;
+  travelLogAdd(`${outcome}${practice}`,found?"good":"note");
+  S.pendingLoot=null;
+  S.travelEvent=null;
+  render();
+};
+closeLootFound=function(){S.pendingLoot=null;S.travelEvent=null;render();};
+
+const session807RenderTravelEvent=renderTravelEvent;
+renderTravelEvent=function(){
+  const ev=S?.travelEvent;
+  if(!ev||ev.id!=="loot-found")return session807RenderTravelEvent();
+  const card=$("travelEventCard");card.hidden=false;
+  $("travelEventKind").textContent=ev.kind;
+  $("travelEventTitle").textContent=ev.title;
+  $("travelEventText").textContent=ev.text;
+  $("travelEventRoll").hidden=true;$("travelEventRoll").innerHTML="";
+  const dc=11+Math.floor(S.depth/60);
+  $("travelEventActions").innerHTML=`<button class="travel-event-btn skill" data-event-action="loot-perception"><b>Use Perception</b><span><strong class="check-bonus">Current bonus ${signed(displayedCheckBonus("perception"))}</strong> · look for signs · DC ${dc}</span></button><button class="travel-event-btn investigate" data-event-action="loot-investigation"><b>Use Investigation</b><span><strong class="check-bonus">Current bonus ${signed(displayedCheckBonus("investigation"))}</strong> · search carefully · DC ${dc}</span></button><button class="travel-event-btn ignore wide" data-event-action="loot-continue"><b>Move on</b><span>your normal loot is already collected</span></button>`;
+};
+const session807HandleTravelEventAction=handleTravelEventAction;
+handleTravelEventAction=function(action){
+  if(S?.travelEvent?.id!=="loot-found")return session807HandleTravelEventAction(action);
+  if(action==="loot-perception")return resolveLootSearch("perception");
+  if(action==="loot-investigation")return resolveLootSearch("investigation");
+  if(action==="loot-continue")return closeLootFound();
+};
+
+const session807Render=render;
+render=function(){session807Render();renderLootHistory();};
+const session807NewDelver=newDelver;
+newDelver=function(profile){
+  session807NewDelver(profile);
+  S.lootHistory=[];S.pendingLoot=null;selectedLootHistoryId=null;
+  closeLootHistory();
+  render();
+};
+
+$("travelLog").addEventListener("click",e=>{
+  const b=e.target.closest("[data-loot-history]");if(!b)return;
+  openLootHistory(b.dataset.lootHistory);
+});
+$("btnLootHistoryClose").addEventListener("click",closeLootHistory);
+$("lootHistoryScrim").addEventListener("click",closeLootHistory);
+
+
+/* ============================================================
+   v0.080.8 — Session 7.5 encounter warning / transition
+   A generated encounter freezes all world progression immediately. The warning
+   remains above soft sheets so the player can browse information, but recovery,
+   consumables, equipment changes and travel preparation are locked. Combat then
+   enters through a short fade-to-black transition.
+   ============================================================ */
+const ENCOUNTER_WARNING_MS=15000;
+let encounterWarningState=null;
+let encounterWarningFrame=null;
+let encounterTransitionTimer=null;
+let travelLogExpanded=false;
+
+function encounterWarningActive(){ return !!encounterWarningState; }
+function encounterWarningLabel(state=encounterWarningState){
+  if(!state) return {kicker:"You have been noticed",title:"Something is closing in."};
+  if(state.options?.boss) return {kicker:"The way is barred",title:"Something waits at the sill."};
+  const raw=state.profile?.name || "foe";
+  const name=state.options?.side ? `cursed ${raw}` : raw;
+  const variants=[
+    ["You have been noticed",`${cap(article(name))} is closing in.`],
+    ["Movement nearby",`${cap(article(name))} is approaching.`],
+    ["Something heard you",`${cap(article(name))} has found your trail.`]
+  ];
+  const chosen=variants[state.variantIndex%variants.length];
+  return {kicker:chosen[0],title:chosen[1]};
+}
+function updateEncounterWarningUi(){
+  const box=$("encounterWarning");
+  if(!box) return;
+  const state=encounterWarningState;
+  box.hidden=!state;
+  if(!state) return;
+  const now=performance.now();
+  const remaining=Math.max(0,state.deadline-now);
+  const frac=clamp(remaining/ENCOUNTER_WARNING_MS,0,1);
+  const copy=encounterWarningLabel(state);
+  $("encounterWarningKicker").textContent=copy.kicker;
+  $("encounterWarningTitle").textContent=copy.title;
+  $("encounterWarningSub").textContent=`Delve frozen · combat in ${(remaining/1000).toFixed(1)}s · browsing remains available`;
+  $("encounterWarningBar").style.transform=`scaleX(${frac})`;
+}
+function stopEncounterWarningFrame(){
+  if(encounterWarningFrame!==null){cancelAnimationFrame(encounterWarningFrame);encounterWarningFrame=null;}
+}
+function encounterWarningLoop(){
+  if(!encounterWarningState){stopEncounterWarningFrame();updateEncounterWarningUi();return;}
+  updateEncounterWarningUi();
+  if(performance.now()>=encounterWarningState.deadline){beginEncounterTransition();return;}
+  encounterWarningFrame=requestAnimationFrame(encounterWarningLoop);
+}
+function renderEncounterWarningLocks(){
+  const active=encounterWarningActive();
+  updateEncounterWarningUi();
+  if(!active) return;
+  // The player can browse Character, Backpack, Loot History and the Delve Log,
+  // but cannot alter resources/state during the grace period.
+  for(const id of ["btnDescend","btnExplore","btnRest","btnStopTravel","btnCampHere","btnLeaveHollow"]){
+    const el=$(id);if(el)el.disabled=true;
+  }
+  document.querySelectorAll("[data-field-ability],[data-use-bandage],[data-equip-weapon],[data-offer-item]").forEach(el=>el.disabled=true);
+  const packNote=$("packNote");
+  if(packNote&&!$("packSheet").hidden)packNote.textContent="Encounter approaching · browsing only. Recovery, item use and equipment changes are locked.";
+}
+function queueEncounterWarning(options={}){
+  if(!S||over||S.foe||encounterWarningActive())return false;
+  // If an actual travel event is still unresolved, its own decision flow takes
+  // precedence. Calls made after an event clears it can queue normally.
+  if(S.travelEvent)return false;
+  pauseBoonClock();
+  const priorMode=S.travelMode;
+  S.travelMode="stopped";
+  const profile=options.boss?BOSS_PROFILE:chooseFoeProfile();
+  encounterWarningState={
+    options:{...options},profile,priorMode,
+    startedAt:performance.now(),deadline:performance.now()+ENCOUNTER_WARNING_MS,
+    variantIndex:ri(0,2)
+  };
+  armed=null;
+  travelLogAdd(options.boss
+    ? `<b>Something is waiting at the boundary.</b> Combat is imminent.`
+    : `<b>${esc(cap(article(options.side?`cursed ${profile.name}`:profile.name)))}</b> is closing in.`,"danger");
+  render();
+  stopEncounterWarningFrame();
+  encounterWarningFrame=requestAnimationFrame(encounterWarningLoop);
+  return true;
+}
+function clearCombatTransitionTimers(){
+  if(encounterTransitionTimer!==null){clearTimeout(encounterTransitionTimer);encounterTransitionTimer=null;}
+}
+function beginEncounterTransition(){
+  const state=encounterWarningState;
+  if(!state)return;
+  stopEncounterWarningFrame();
+  const fade=$("combatTransition");
+  const warning=$("encounterWarning");
+  if(warning)warning.hidden=true;
+  if(fade){
+    fade.hidden=false;
+    fade.classList.remove("fade-in");
+    void fade.offsetWidth;
+    fade.classList.add("fade-in");
+  }
+  clearCombatTransitionTimers();
+  encounterTransitionTimer=setTimeout(()=>{
+    encounterTransitionTimer=null;
+    // Regular/side encounters were selected for the warning already. Feed that
+    // exact profile into the existing encounter machinery so the notification
+    // cannot announce one creature and spawn another.
+    if(!state.options?.boss&&state.profile)session75PendingFoeProfile=state.profile;
+    encounterWarningState=null;
+    updateEncounterWarningUi();
+    session808ImmediateNextFoe(state.options||{});
+    if(state.options?.mimic && S?.foe){
+      S.foe.mimic=true;
+      S.foe.name=MIMIC_PROFILE.name;
+      S.foe.key=MIMIC_PROFILE.id;
+      S.seenFoes[MIMIC_PROFILE.id]=true;
+      travelLogAdd(`<b>${esc(cap(MIMIC_PROFILE.name))}</b> unfolds from the shape of the chest.`,"danger");
+      render();
+    }
+    setTimeout(()=>{
+      if(!fade)return;
+      fade.classList.remove("fade-in");
+      setTimeout(()=>{fade.hidden=true;},260);
+    },80);
+  },240);
+}
+
+// Wrap the final encounter function after all Session 7.5 foe/boss wrappers.
+const session808ImmediateNextFoe=nextFoe;
+nextFoe=function(options={}){ return queueEncounterWarning(options); };
+
+// Hard state guards back up the disabled UI. This prevents fast taps during the
+// warning from becoming a hidden preparation phase.
+const session808CanRest=canRest;
+canRest=function(){return !encounterWarningActive()&&session808CanRest();};
+const session808TakeRest=takeRest;
+takeRest=function(){if(encounterWarningActive())return;return session808TakeRest();};
+const session808CampAtHollow=campAtHollow;
+campAtHollow=function(){if(encounterWarningActive())return;return session808CampAtHollow();};
+const session808CanFieldUseAbility=canFieldUseAbility;
+canFieldUseAbility=function(id){return !encounterWarningActive()&&session808CanFieldUseAbility(id);};
+const session808UseFieldAbility=useFieldAbility;
+useFieldAbility=function(id){if(encounterWarningActive())return;return session808UseFieldAbility(id);};
+const session808UseBandage=useBandage;
+useBandage=function(){if(encounterWarningActive())return;return session808UseBandage();};
+const session808EquipWeapon=equipWeapon;
+equipWeapon=function(id){if(encounterWarningActive())return;return session808EquipWeapon(id);};
+const session808RenderPack=renderPack;
+renderPack=function(){const out=session808RenderPack();if(encounterWarningActive())document.querySelectorAll("[data-use-bandage],[data-equip-weapon],[data-offer-item]").forEach(el=>el.disabled=true);return out;};
+const session808StartTravel=startTravel;
+startTravel=function(mode){if(encounterWarningActive())return;return session808StartTravel(mode);};
+
+const session808Render=render;
+render=function(){session808Render();renderEncounterWarningLocks();};
+const session808NewDelver=newDelver;
+newDelver=function(profile){
+  stopEncounterWarningFrame();clearCombatTransitionTimers();encounterWarningState=null;travelLogExpanded=false;
+  const fade=$("combatTransition");if(fade){fade.hidden=true;fade.classList.remove("fade-in");}
+  session808NewDelver(profile);
+  renderTravelLogCollapse();
+  render();
+};
+
+function renderTravelLogCollapse(){
+  const wrap=$("travelLogWrap"),btn=$("btnTravelLogToggle");
+  if(!wrap||!btn)return;
+  wrap.classList.toggle("collapsed",!travelLogExpanded);
+  btn.setAttribute("aria-expanded",travelLogExpanded?"true":"false");
+  const text=btn.querySelector(".travel-log-toggle-text");if(text)text.textContent=travelLogExpanded?"full history":"latest only";
+  if(travelLogExpanded){const log=$("travelLog");if(log)requestAnimationFrame(()=>{log.scrollTop=log.scrollHeight;});}
+}
+$("btnTravelLogToggle").addEventListener("click",()=>{travelLogExpanded=!travelLogExpanded;renderTravelLogCollapse();});
+$("btnFaceEncounter").addEventListener("click",beginEncounterTransition);
+renderTravelLogCollapse();
+
+
+/* ============================================================
+   v0.080.10 — Session 7.5 side-area finale prototypes
+   Optional side areas now end in one of three testable finales:
+   - Cache: key / lockpick / force, with damaged salvage after final failure.
+   - Mimic: a boss-ish combat finale with guaranteed creature-specific loot.
+   - Arcane puzzle: five one-shot seals, three successes required; failure causes
+     warned backlash and still leaves one damaged salvage item.
+   ============================================================ */
+const SIDE_FINALE_TYPES=["cache","mimic","puzzle"];
+const MIMIC_PROFILE={
+  id:"mimic",name:"hungry mimic",unlock:0,hp:58,atk:8,xp:22,danger:2,
+  intents:{quick:30,heavy:25,dodge:5,guard:25,recover:15},recoverAt:.30,
+  hurtIntents:{quick:20,heavy:45,dodge:5,guard:15,recover:15},hurtAt:.45,
+  weakness:{id:"false_hinge",txt:"Its false hinges gape after committed attacks. Counters deal +45% damage.",eff:{counterBonus:1.45}}
+};
+
+const session809CreateSideArea=createSideArea;
+createSideArea=function(){
+  const area=session809CreateSideArea();
+  area.finaleType=pick(SIDE_FINALE_TYPES);
+  area.puzzle=null;
+  area.mimicStarted=false;
+  area.mimicDefeated=false;
+  area.damagedSalvageClaimed=false;
+  return area;
+};
+
+function sideFinaleType(){ return S?.sideArea?.finaleType || "cache"; }
+function damagedSalvageItem(){
+  const r=ri(1,7);let text="";
+  if(r===1){S.inventory.bandages++;text="Bandage";}
+  else if(r===2){S.inventory.meat++;text="Meat";}
+  else if(r===3){S.inventory.rope++;text="Rope";}
+  else if(r===4){S.inventory.water++;text="Jug of Water";}
+  else if(r===5){addMisc("Scroll Dust",1);text="Scroll Dust";}
+  else if(r===6){const id=pick(["handaxe","hunting_bow"]);addWeapon(id);text=GEAR_ITEMS[id].name;}
+  else {addMisc("Cracked Silver Ring",1);text="Cracked Silver Ring";}
+  return text;
+}
+function grantDamagedSalvage(reason="The chest is ruined before you can claim its better contents."){
+  const a=S?.sideArea;if(!a||a.damagedSalvageClaimed)return;
+  a.damagedSalvageClaimed=true;
+  const item=damagedSalvageItem();
+  travelLogAdd(`${reason} You salvage <b>${esc(item)}</b> from what remains.`,"note");
+  S.travelEvent={id:"side-altar",stage:"salvage",kind:"Damaged cache",title:"Something survives",text:`The premium contents are lost, but you recover ${item} from the wreckage.`,rollHtml:""};
+  render();
+}
+function grantMimicReward(){
+  const choices=[
+    ()=>{addMisc("Swallowed Silver Ring",1);return "Swallowed Silver Ring";},
+    ()=>{S.inventory.bandages+=2;return "2 Bandages";},
+    ()=>{S.inventory.campSupplies++;return "Camp Supply";},
+    ()=>{addMisc("Gnawed Coin Chain",1);return "Gnawed Coin Chain";},
+    ()=>{const id=pick(["handaxe","hunting_bow"]);addWeapon(id);return GEAR_ITEMS[id].name;}
+  ];
+  const item=pick(choices)();
+  S.sideArea.mimicDefeated=true;S.sideArea.chestOpened=true;
+  travelLogAdd(`Inside the Mimic you recover <b>${esc(item)}</b>.`,"good");
+  S.travelEvent={id:"side-altar",stage:"mimic-reward",kind:"Side passage complete",title:"The false chest is dead",text:`The creature carried ${item} inside it. It is not the premium cache you hoped for, but the passage did not leave you empty-handed.`,rollHtml:""};
+  render();
+}
+
+const session809BeginSideAltar=beginSideAltar;
+beginSideAltar=function(){
+  const a=S?.sideArea;if(!a||S.travelEvent)return;
+  const type=sideFinaleType();
+  if(type==="cache")return session809BeginSideAltar();
+  pauseBoonClock();S.travelMode="stopped";
+  if(type==="mimic"){
+    S.travelEvent={id:"side-altar",stage:"mimic",kind:"End chamber",title:"A chest with no keyway",text:"A squat chest waits alone in the chamber. Its lid sits a little too neatly on the stone, and there is no visible lock.",rollHtml:""};
+  }else{
+    S.travelEvent={id:"side-altar",stage:"puzzle-warning",kind:"Arcane cache",title:"Five rotating seals",text:"The chest has no keyway. Five arcane seals turn around its lid. You need at least 3 successes to stabilize the ward. Failure triggers a magical backlash for 30% of Max HP, but this prototype will not let the backlash reduce you below 1 HP.",rollHtml:"<span class=\"bad\">Dangerous attempt · five one-shot decisions · 3 successes required</span>"};
+  }
+  render();
+};
+
+function startMimicFinale(){
+  const a=S?.sideArea;if(!a||a.mimicStarted)return;
+  a.mimicStarted=true;S.travelEvent=null;
+  session75PendingFoeProfile=MIMIC_PROFILE;
+  travelLogAdd(`The chest moves before you touch it. <b>It was waiting for you.</b>`,"danger");
+  nextFoe({mimic:true});
+}
+
+function puzzleState(){
+  const a=S?.sideArea;if(!a)return null;
+  if(!a.puzzle)a.puzzle={step:0,successes:0,attempts:0,lastHtml:"",lastSuccess:false};
+  return a.puzzle;
+}
+const PUZZLE_STEPS=[
+  {name:"First seal · Words",skill:"translation",dc:11,text:"The outer ring is covered in the same language found elsewhere in the passage."},
+  {name:"Second seal · Mechanism",skill:"investigation",dc:12,text:"Tiny channels beneath the second ring shift when the first settles."},
+  {name:"Third seal · Pulse",skill:"perception",dc:12,text:"The third seal brightens in a repeating rhythm. Acting on the wrong beat may destabilize it."},
+  {name:"Fourth seal · Delicate catch",skill:"sleight",dc:12,text:"A physical catch turns beneath the magic. Fine control may hold it in place."},
+  {name:"Fifth seal · Grounding",skill:null,dc:13,text:"Heat gathers in the final ring. Something must draw the charge away before it releases."}
+];
+function puzzleCurrent(){const p=puzzleState();return p?PUZZLE_STEPS[p.step]||null:null;}
+function beginPuzzleFinale(){
+  const p=puzzleState();p.step=0;p.successes=0;p.attempts=0;p.lastHtml="";
+  S.travelEvent={id:"side-altar",stage:"puzzle-step",kind:"Arcane cache",title:PUZZLE_STEPS[0].name,text:PUZZLE_STEPS[0].text,rollHtml:""};render();
+}
+function attemptPuzzleSkill(skill,baseDc,situational=0){
+  const p=puzzleState(),step=puzzleCurrent();if(!p||!step||S.travelEvent.stage!=="puzzle-step")return;
+  const dc=trapDc(baseDc),c=runSkillCheck(skill,dc,situational),practice=awardSkillPractice(skill,`side-puzzle:${S.sideArea.id}:${p.step}`,c.success?2:1);
+  p.attempts++;if(c.success)p.successes++;
+  p.lastSuccess=c.success;p.lastHtml=formatSkillCheck(c)+practiceText(skill,practice);
+  S.travelEvent.stage="puzzle-result";S.travelEvent.rollHtml=p.lastHtml;S.travelEvent.title=c.success?"The seal settles":"The seal slips";
+  S.travelEvent.text=`${p.successes} success${p.successes===1?"":"es"} from ${p.attempts} attempted seal${p.attempts===1?"":"s"}.`;
+  render();
+}
+function attemptPuzzleWater(){
+  const p=puzzleState();if(!p||p.step!==4||S.inventory.water<=0)return;
+  S.inventory.water--;p.attempts++;p.successes++;p.lastSuccess=true;
+  p.lastHtml=`<span class="good">You pour water through the hot channels. Steam tears away the excess charge and the final seal settles.</span>`;
+  S.travelEvent.stage="puzzle-result";S.travelEvent.title="The final seal cools";S.travelEvent.text=`${p.successes} successes from ${p.attempts} attempted seals.`;S.travelEvent.rollHtml=p.lastHtml;render();
+}
+function nextPuzzleSeal(){
+  const p=puzzleState();if(!p||S.travelEvent.stage!=="puzzle-result")return;
+  p.step++;
+  if(p.step>=PUZZLE_STEPS.length)return finishPuzzleFinale();
+  const step=PUZZLE_STEPS[p.step];S.travelEvent={id:"side-altar",stage:"puzzle-step",kind:"Arcane cache",title:step.name,text:step.text,rollHtml:""};render();
+}
+function finishPuzzleFinale(){
+  const p=puzzleState();if(!p)return;
+  if(p.successes>=3){
+    travelLogAdd(`The arcane cache stabilizes with <b>${p.successes}/5 seals</b> resolved.`,"good");
+    return grantChestReward();
+  }
+  const dmg=Math.max(1,Math.round(S.hpMax*.30));
+  const actual=Math.min(Math.max(0,S.hp-1),dmg);
+  S.hp-=actual;flashTravelDamage();
+  travelLogAdd(`The ward collapses after only <b>${p.successes}/5</b> seals. Magical backlash costs <b>${actual} HP</b>.` ,"danger");
+  grantDamagedSalvage("The backlash burns through most of the cache.");
+}
+
+// A failed final force now damages the premium contents instead of making the
+// entire side excursion retroactively worth nothing.
+forceChest=function(){
+  const a=S.sideArea,check=runSkillCheck("athletics",trapDc(14),0),practice=awardSkillPractice("athletics",`side-force:${a.id}`,check.success?2:1),html=formatSkillCheck(check)+practiceText("athletics",practice);
+  if(check.success){S.travelEvent.rollHtml=html;return grantChestReward();}
+  const dmg=Math.max(1,ri(1,4));S.hp-=dmg;flashTravelDamage();
+  travelLogAdd(`Forcing the chest costs <b>${dmg} HP</b>. The frame gives way badly and ruins the better contents.`,"danger");
+  if(S.hp<=0){S.travelEvent=null;return die(`<p class="hurt">The ruined chest took the last of your strength.</p>`);}
+  grantDamagedSalvage("The failed force attempt wrecks the lock and much of what was inside.");
+};
+
+const session809RenderTravelEvent=renderTravelEvent;
+renderTravelEvent=function(){
+  const ev=S?.travelEvent,a=S?.sideArea;
+  if(!ev||ev.id!=="side-altar"||!a)return session809RenderTravelEvent();
+  if(ev.stage==="salvage"){
+    const card=$("travelEventCard");card.hidden=false;$("travelEventKind").textContent=ev.kind||"Damaged cache";$("travelEventTitle").textContent=ev.title||"Something survives";$("travelEventText").textContent=ev.text||"";$("travelEventRoll").hidden=!ev.rollHtml;$("travelEventRoll").innerHTML=ev.rollHtml||"";$("travelEventActions").innerHTML=`<button class="travel-event-btn wide skill" data-event-action="finish-side"><b>Return to the descent</b><span>side passage complete</span></button>`;return;
+  }
+  if(sideFinaleType()==="cache")return session809RenderTravelEvent();
+  const card=$("travelEventCard");card.hidden=false;$("travelEventKind").textContent=ev.kind||"End chamber";$("travelEventTitle").textContent=ev.title||"";$("travelEventText").textContent=ev.text||"";$("travelEventRoll").hidden=!ev.rollHtml;$("travelEventRoll").innerHTML=ev.rollHtml||"";
+  const root=$("travelEventActions");
+  if(ev.stage==="mimic")root.innerHTML=`<button class="travel-event-btn investigate" data-event-action="mimic-approach"><b>Approach the chest</b><span>something about it is wrong</span></button><button class="travel-event-btn ignore" data-event-action="leave-side-end"><b>Turn back</b><span>leave the chamber untouched</span></button>`;
+  else if(ev.stage==="mimic-reward"||ev.stage==="salvage"||ev.stage==="reward")root.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="finish-side"><b>Return to the descent</b><span>side passage complete</span></button>`;
+  else if(ev.stage==="puzzle-warning")root.innerHTML=`<button class="travel-event-btn skill" data-event-action="puzzle-begin"><b>Attempt the five seals</b><span>need 3 successes · failure: 30% Max HP backlash</span></button><button class="travel-event-btn ignore" data-event-action="leave-side-end"><b>Leave it alone</b><span>return without risking the ward</span></button>`;
+  else if(ev.stage==="puzzle-step"){
+    const p=puzzleState(),step=puzzleCurrent();
+    if(p.step===4){
+      root.innerHTML=`${S.inventory.water>0?`<button class="travel-event-btn skill" data-event-action="puzzle-water"><b>Use Water</b><span>consume 1 Jug of Water · guaranteed grounding success</span></button>`:""}<button class="travel-event-btn investigate" data-event-action="puzzle-athletics"><b>Ground it by force</b><span><strong class="check-bonus">Current bonus ${signed(displayedCheckBonus("athletics"))}</strong> · STR · Athletics · DC ${trapDc(step.dc)}</span></button>`;
+    }else{
+      const situational=step.skill==="sleight"&&S.inventory.rogueTools>0?2:0;
+      const label=SKILL_DEFS[step.skill].name;
+      root.innerHTML=`<button class="travel-event-btn skill wide" data-event-action="puzzle-skill"><b>Use ${esc(label)}</b><span><strong class="check-bonus">Current bonus ${signed(displayedCheckBonus(step.skill,situational))}</strong> · DC ${trapDc(step.dc)}${situational?" · Rogue Tools +2":""}</span></button>`;
+    }
+  }else if(ev.stage==="puzzle-result")root.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="puzzle-next"><b>${puzzleState().step>=4?"Resolve the ward":"Next seal"}</b><span>${puzzleState().successes}/3 successes needed · ${puzzleState().attempts}/5 attempted</span></button>`;
+};
+
+const session809HandleTravelEventAction=handleTravelEventAction;
+handleTravelEventAction=function(action){
+  const ev=S?.travelEvent,a=S?.sideArea;
+  if(!ev||ev.id!=="side-altar"||!a||sideFinaleType()==="cache")return session809HandleTravelEventAction(action);
+  if(action==="mimic-approach")return startMimicFinale();
+  if(action==="puzzle-begin")return beginPuzzleFinale();
+  if(action==="puzzle-skill"){
+    const step=puzzleCurrent();if(!step?.skill)return;
+    const situational=step.skill==="sleight"&&S.inventory.rogueTools>0?2:0;
+    return attemptPuzzleSkill(step.skill,step.dc,situational);
+  }
+  if(action==="puzzle-water")return attemptPuzzleWater();
+  if(action==="puzzle-athletics")return attemptPuzzleSkill("athletics",puzzleCurrent()?.dc||13,0);
+  if(action==="puzzle-next")return nextPuzzleSeal();
+  if(action==="leave-side-end")return exitSideArea(false);
+  if(action==="finish-side")return exitSideArea(true);
+};
+
+// The Mimic uses the normal encounter-warning / combat machinery but is not a
+// normal passage encounter. Killing it resolves the finale and guarantees loot.
+const session809FinishKill=finishKill;
+finishKill=function(out){
+  const wasMimic=!!S?.foe?.mimic;
+  const result=session809FinishKill(out);
+  if(wasMimic&&S?.sideArea){S.pendingLoot=null;grantMimicReward();}
+  return result;
+};
+
 /* ============================================================
    WIRING — connecting the buttons to the functions above
    ============================================================ */
@@ -3629,6 +5863,12 @@ $("pad").addEventListener("click", e => {
 });
 
 $("btnRun").addEventListener("click", tapRun);
+$("tell").addEventListener("click", () => {
+  const f=S?.foe;
+  if(!f?.revealed) return;
+  f.weaknessManualOpen=weaknessCollapsed(f);
+  render();
+});
 $("btnDescend").addEventListener("click", () => startTravel("descend"));
 $("btnExplore").addEventListener("click", () => startTravel("explore"));
 $("btnRest").addEventListener("click", takeRest);
@@ -3643,6 +5883,11 @@ $("travelEventActions").addEventListener("click", e => {
 });
 $("btnPackClose").addEventListener("click", closePack);
 $("packScrim").addEventListener("click", closePack);
+$("packDynamicItems").addEventListener("click", e => {
+  const bandage=e.target.closest("[data-use-bandage]"); if(bandage){useBandage();return;}
+  const weapon=e.target.closest("[data-equip-weapon]"); if(weapon){equipWeapon(weapon.dataset.equipWeapon);return;}
+  const offer=e.target.closest("[data-offer-item]"); if(offer){resolveOffering(offer.dataset.offerItem);return;}
+});
 $("boonOptions").addEventListener("click", e => {
   const b = e.target.closest(".boon-opt");
   if(!b || !S?.pendingBoonChoice) return;
@@ -3657,16 +5902,22 @@ $("levelup").addEventListener("click", e => {
   if(!b || S.statPoints <= 0) return;
 
   const stat = b.dataset.stat;
+  if(!STAT_KEYS.includes(stat)) return;
   const oldMax = S.hpMax;
-  if(stat === "STR") S.STR++;
-  if(stat === "CON") S.CON++;
+  S[stat]++;
   S.statPoints--;
   S.hpMax = maxHp();
   S.hp += S.hpMax - oldMax;
 
-  say(stat === "STR"
-    ? `<p class="good">Put the point into <b>STR ${S.STR}</b>. Physical attacks hit harder.</p>`
-    : `<p class="good">Put the point into <b>CON ${S.CON}</b>. Maximum HP rose to <b>${S.hpMax}</b>.</p>`);
+  const notes = {
+    STR:"Physical STR weapons and Athletics improve.",
+    CON:`Maximum HP rose to ${S.hpMax}.`,
+    DEX:"Finesse weapons and DEX Skills improve; Rogue Dodge also gets a small secondary benefit.",
+    INT:"Arcane weapons/abilities, Investigation and Translation improve.",
+    WIS:"Perception and Survival improve.",
+    CHA:"CHA is invested, though its wider social/conviction systems are still pending."
+  };
+  say(`<p class="good">Put the point into <b>${stat} ${S[stat]}</b>. ${esc(notes[stat])}</p>`);
   render();
 });
 
@@ -3701,6 +5952,12 @@ $("charAbilities").addEventListener("click", e => {
   charExpandedAbility = charExpandedAbility === id ? null : id;
   renderCharacterSheet();
 });
+$("charNav").addEventListener("click", e => {
+  const b=e.target.closest("[data-char-view]"); if(!b)return; charView=b.dataset.charView; renderCharacterSheet();
+});
+$("charAbilities").addEventListener("click", e => {
+  const b=e.target.closest("[data-field-ability]"); if(!b||b.disabled)return; useFieldAbility(b.dataset.fieldAbility);
+});
 $("btnCharClose").addEventListener("click", closeCharacterSheet);
 $("charScrim").addEventListener("click", closeCharacterSheet);
 $("restAbilityOptions").addEventListener("click", e => {
@@ -3713,7 +5970,7 @@ $("restAbilityOptions").addEventListener("click", e => {
   }
 });
 $("btnLoadout").addEventListener("click", () => {
-  if(S.heavyCharge > 0) return;
+  if(S.className !== "Votary" || S.heavyCharge > 0) return;
   S.loadout = S.loadout === "shield" ? "sword" : "shield";
   S.defenceChain = 0;
   armed = null;
@@ -3730,6 +5987,8 @@ $("creatorName").addEventListener("input", e => {
   renderCreator();
 });
 $("creator").addEventListener("click", e => {
+  const cls = e.target.closest("[data-class-choice]");
+  if(cls){ creatorDraft.className = cls.dataset.classChoice; renderCreator(); return; }
   const stat = e.target.closest(".creator-human-stat[data-human-trait]");
   if(stat && !stat.disabled){
     creatorDraft[stat.dataset.humanTrait] = stat.dataset.humanStat;
