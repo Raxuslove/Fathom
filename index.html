@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.082.0 — Session 9A Equipment Interface</title>
+<title>Lowfathom v0.082.1 — Session 9A Equipment Interface</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.082.0 Session 9A equipment interface + protected v0.075 Smite FX
+   LOWFATHOM — v0.082.1 Session 9A equipment interface + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -87,6 +87,7 @@
    - v0.081.5: fixed native mobile button styling making the Delve Log header appear bright gray
    - v0.081.6: save schema migrations, corruption quarantine, dead-run invariants and PWA update hardening
    - v0.082.0: Session 9A equipment UI prototype — 17-slot spatial loadout, quick inspect and expandable compact list
+   - v0.082.1: Session 9A refinement — anatomical slot layout, Main/Off Hand labels, inline grid inspection and two-handed Off Hand state
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9A is UI-only: representative equipment is display-only until the real item model is attached.
@@ -814,7 +815,7 @@ button{
 
 
 
-/* ---------- v0.082.0: Session 9A equipment interface prototype ---------- */
+/* ---------- v0.082.1: Session 9A equipment interface prototype + compact-grid refinement ---------- */
 .equipment-page{background:#101418}
 .equipment-summary{
   display:grid;grid-template-columns:minmax(0,1fr) auto 42px;gap:8px;align-items:center;
@@ -852,15 +853,23 @@ button{
 .equipment-slot .slot-level{display:block;margin-top:6px;font-family:var(--slab);font-size:12px;line-height:1;color:var(--lamp)}
 .equipment-slot.empty{background:#0f1418;border-color:#28323b}
 .equipment-slot.empty .slot-level{color:#3f4954}
-.equipment-slot.hand .slot-name{color:#c96d56}
 .equipment-slot.light .slot-name{color:var(--lamp)}
+.equipment-slot.blocked{background:#0b0f12;border-color:#222a31;opacity:.58}
+.equipment-slot.blocked .slot-name{color:#6a737b}
+.equipment-slot.blocked .slot-level{margin-top:5px;color:#59636e;font-family:var(--cond);font-size:8px;letter-spacing:.07em;text-transform:uppercase}
 .equipment-slot.ring .slot-name{font-size:8.5px}
 .equipment-body-grid .slot-boots{grid-column:2;grid-row:5}
 .equipment-info{
-  min-width:0;display:flex;flex-direction:column;padding:8px 7px;border:1px solid var(--rule-hi);background:#12181e;
+  min-width:0;display:flex;flex-direction:column;padding:8px 7px;border:1px solid var(--rule-hi);background:#12181e;overflow:hidden;
 }
 .equipment-info em{font-style:normal;font-family:var(--cond);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--lamp-dim)}
 .equipment-info b{display:block;margin-top:2px;font-family:var(--slab);font-size:13px;line-height:1.15;color:var(--bone)}
+.equipment-info-slot{display:block;margin-top:4px;font-family:var(--cond);font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;color:#7f8992}
+.equipment-info-meta{display:block;margin-top:4px;font-family:var(--cond);font-size:8.5px;line-height:1.25;color:var(--lamp-dim)}
+.equipment-info-stats{margin-top:6px;padding-top:5px;border-top:1px solid var(--rule)}
+.equipment-info-stat{display:flex;justify-content:space-between;gap:4px;padding:1px 0;font-family:var(--cond);font-size:7.8px;line-height:1.2;color:var(--dim)}
+.equipment-info-stat strong{color:#b0aba0;font-weight:600;text-align:right}
+.equipment-info .info-note{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
 .equipment-info p{margin:6px 0 0;font-family:var(--cond);font-size:9px;line-height:1.35;color:var(--dim)}
 .equipment-info dl{margin:auto 0 0;padding-top:7px;border-top:1px solid var(--rule)}
 .equipment-info dl div{display:flex;justify-content:space-between;gap:5px;padding:2px 0;font-family:var(--cond);font-size:8.5px;color:var(--dim)}
@@ -1357,7 +1366,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.082.0</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.082.1</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1385,7 +1394,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.082.0</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.082.1</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -1525,7 +1534,7 @@ button{
           <div class="equipment-gear"><em>Gear level</em><b id="equipmentGearLevel">6.4</b></div>
           <button class="equipment-expand" id="btnEquipmentExpand" type="button" aria-expanded="false" aria-label="Expand equipment list" title="Expand equipment list">⌄</button>
         </div>
-        <div class="equipment-prototype-note">Session 9A layout prototype · representative non-weapon gear below is display-only until the real equipment model is attached.</div>
+        <div class="equipment-prototype-note">Session 9A layout prototype · grid taps inspect in the side panel; representative non-weapon gear and Item Levels remain display-only until the real item model is attached.</div>
         <div class="equipment-stage">
           <div class="equipment-ring-rail" id="equipmentRingRail"></div>
           <div class="equipment-body-grid" id="equipmentBodyGrid"></div>
@@ -1880,7 +1889,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.082.0";
+const BUILD_VERSION = "v0.082.1";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -2793,63 +2802,92 @@ function closeCharacterSheet(){
 }
 
 const EQUIPMENT_SLOT_ORDER = [
-  "rightHand","leftHand","light","hat","top","gloves","cape","belt","bottoms","boots",
-  "necklace","earLeft","earRight","ring1","ring2","ring3","ring4"
+  "rightHand","leftHand","light","hat","cape","earLeft","necklace","earRight","top","gloves","bottoms","belt","boots",
+  "ring1","ring2","ring3","ring4"
 ];
 const EQUIPMENT_SLOT_LABELS = {
-  rightHand:"Right Hand",leftHand:"Left Hand",light:"Light",hat:"Hat",top:"Top / Shirt",gloves:"Gloves",
+  rightHand:"Main Hand",leftHand:"Off Hand",light:"Light",hat:"Hat",top:"Top / Shirt",gloves:"Gloves",
   cape:"Cape",belt:"Belt",bottoms:"Bottoms",boots:"Boots",necklace:"Pendant / Neck",
   earLeft:"Earring L",earRight:"Earring R",ring1:"Ring I",ring2:"Ring II",ring3:"Ring III",ring4:"Ring IV"
 };
 const EQUIPMENT_BODY_LAYOUT = [
   ["light",1,1],["hat",1,2],["cape",1,3],
-  ["necklace",2,1],["top",2,2],["earLeft",2,3],
-  ["rightHand",3,1],["belt",3,2],["leftHand",3,3],
-  ["earRight",4,1],["bottoms",4,2],["gloves",4,3],
+  ["earLeft",2,1],["necklace",2,2],["earRight",2,3],
+  ["rightHand",3,1],["top",3,2],["leftHand",3,3],
+  ["gloves",4,1],["bottoms",4,2],["belt",4,3],
   ["boots",5,2]
 ];
 function equipmentDemoItems(){
   const weapon=typeof equippedWeaponDef === "function" ? equippedWeaponDef() : null;
   const leftByClass={Votary:"Worn Buckler",Rogue:"Parrying Knife",Wizard:"Chalkbound Grimoire"};
   return {
-    rightHand:{name:weapon?.name||"Worn Longsword",ilvl:9,req:Math.max(1,(S?.level||1)-1),rarity:"Uncommon",stats:[`${weapon?.stat||"STR"} scaling`,`Weapon power +${weapon?.power||0}`],special:"This is your real currently equipped prototype weapon; Item Level shown here is only for the Session 9A layout test.",detail:weapon?.desc||"Reliable Guild-issue steel."},
-    leftHand:{name:leftByClass[S?.className]||"Worn Buckler",ilvl:6,req:1,rarity:"Common",stats:["Offhand · prototype","Defence identity · preview"],special:"Offhand behavior is not attached to the new equipment model yet.",detail:"Reserved for shields, secondary weapons, focuses and other hand-held gear."},
-    light:{name:"Hooded Lantern",ilvl:5,req:1,rarity:"Common",stats:["Steady light","Hands remain free"],special:"Light Source is a Fathom-specific equipment slot. Its exploration mechanics are not active yet.",detail:"A shuttered lantern suited to long descents and controlled illumination."},
-    hat:{name:"Leather Coif",ilvl:6,req:1,rarity:"Common",stats:["Armor +3","Perception +1"],special:"Representative UI-only stat line.",detail:"Simple head protection that leaves hearing mostly unobstructed."},
-    top:{name:"Padded Delver's Jack",ilvl:8,req:1,rarity:"Uncommon",stats:["Armor +6","CON +1"],special:"Representative UI-only stat line.",detail:"Layered cloth reinforced for scraping stone, claws and hurried retreats."},
-    gloves:{name:"Locksmith's Gloves",ilvl:7,req:1,rarity:"Rare",stats:["Armor +3","DEX +1","Rogue Tools +2"],special:"Failed delicate traps would deal 20% less hand damage. Prototype effect only.",detail:"Thin protected fingertips preserve touch while giving the palm and knuckles some protection."},
-    cape:{name:"Grey Delver's Cape",ilvl:4,req:1,rarity:"Common",stats:["Stealth +1","Cold ward +1"],special:"Representative UI-only stat line.",detail:"A short cape cut not to snag easily on ladders or rough tunnels."},
-    belt:{name:"Tool Belt",ilvl:5,req:1,rarity:"Common",stats:["Utility +1","Quick access"],special:"Representative UI-only stat line.",detail:"Loops, ties and little pockets for the practical objects a descent keeps demanding."},
-    bottoms:{name:"Reinforced Trousers",ilvl:6,req:1,rarity:"Common",stats:["Armor +4","Athletics +1"],special:"Representative UI-only stat line.",detail:"Heavy cloth with reinforced knees and seat for crawling through bad stone."},
-    boots:{name:"Hobnailed Boots",ilvl:7,req:1,rarity:"Uncommon",stats:["Armor +3","Sure footing +2"],special:"Representative UI-only stat line.",detail:"Hard soles and iron nails bite into timber, packed earth and old stairways."},
-    necklace:{name:"Saint's Pendant",ilvl:8,req:1,rarity:"Rare",stats:["WIS +1","Resolve +2"],special:"Representative UI-only stat line.",detail:"A small devotional token worn close enough to grip in the dark."},
+    rightHand:{name:weapon?.name||"Worn Longsword",ilvl:9,rarity:"Uncommon",twoHanded:weapon?.twoHanded===true||weapon?.hands===2,stats:[`${weapon?.stat||"STR"} scaling`,`Weapon power +${weapon?.power||0}`],special:"This is your real currently equipped prototype weapon; Item Level shown here is only for the Session 9A layout test.",detail:weapon?.desc||"Reliable Guild-issue steel."},
+    leftHand:{name:leftByClass[S?.className]||"Worn Buckler",ilvl:6,rarity:"Common",stats:["Offhand · prototype","Defence identity · preview"],special:"Offhand behavior is not attached to the new equipment model yet.",detail:"Reserved for shields, secondary weapons, focuses and other hand-held gear."},
+    light:{name:"Hooded Lantern",ilvl:5,rarity:"Common",stats:["Steady light","Hands remain free"],special:"Light Source is a Fathom-specific equipment slot. Its exploration mechanics are not active yet.",detail:"A shuttered lantern suited to long descents and controlled illumination."},
+    hat:{name:"Leather Coif",ilvl:6,rarity:"Common",stats:["Armor +3","Perception +1"],special:"Representative UI-only stat line.",detail:"Simple head protection that leaves hearing mostly unobstructed."},
+    top:{name:"Padded Delver's Jack",ilvl:8,rarity:"Uncommon",stats:["Armor +6","CON +1"],special:"Representative UI-only stat line.",detail:"Layered cloth reinforced for scraping stone, claws and hurried retreats."},
+    gloves:{name:"Locksmith's Gloves",ilvl:7,rarity:"Rare",stats:["Armor +3","DEX +1","Rogue Tools +2"],special:"Failed delicate traps would deal 20% less hand damage. Prototype effect only.",detail:"Thin protected fingertips preserve touch while giving the palm and knuckles some protection."},
+    cape:{name:"Grey Delver's Cape",ilvl:4,rarity:"Common",stats:["Stealth +1","Cold ward +1"],special:"Representative UI-only stat line.",detail:"A short cape cut not to snag easily on ladders or rough tunnels."},
+    belt:{name:"Tool Belt",ilvl:5,rarity:"Common",stats:["Utility +1","Quick access"],special:"Representative UI-only stat line.",detail:"Loops, ties and little pockets for the practical objects a descent keeps demanding."},
+    bottoms:{name:"Reinforced Trousers",ilvl:6,rarity:"Common",stats:["Armor +4","Athletics +1"],special:"Representative UI-only stat line.",detail:"Heavy cloth with reinforced knees and seat for crawling through bad stone."},
+    boots:{name:"Hobnailed Boots",ilvl:7,rarity:"Uncommon",stats:["Armor +3","Sure footing +2"],special:"Representative UI-only stat line.",detail:"Hard soles and iron nails bite into timber, packed earth and old stairways."},
+    necklace:{name:"Saint's Pendant",ilvl:8,rarity:"Rare",stats:["WIS +1","Resolve +2"],special:"Representative UI-only stat line.",detail:"A small devotional token worn close enough to grip in the dark."},
     earLeft:null,
     earRight:null,
-    ring1:{name:"Iron Signet",ilvl:7,req:1,rarity:"Uncommon",stats:["CON +1","Guard +1"],special:"Representative UI-only stat line.",detail:"A heavy stamped ring whose original mark has been filed away."},
+    ring1:{name:"Iron Signet",ilvl:7,rarity:"Uncommon",stats:["CON +1","Guard +1"],special:"Representative UI-only stat line.",detail:"A heavy stamped ring whose original mark has been filed away."},
     ring2:null,
-    ring3:{name:"Bone Ring",ilvl:5,req:1,rarity:"Uncommon",stats:["WIS +1","Read +1"],special:"Representative UI-only stat line.",detail:"Polished pale bone, warm even when the surrounding stone is cold."},
+    ring3:{name:"Bone Ring",ilvl:5,rarity:"Uncommon",stats:["WIS +1","Read +1"],special:"Representative UI-only stat line.",detail:"Polished pale bone, warm even when the surrounding stone is cold."},
     ring4:null
   };
 }
+function equipmentUsesBothHands(items=equipmentDemoItems()){
+  return !!items?.rightHand?.twoHanded;
+}
+function equipmentSlotBlocked(slot,items=equipmentDemoItems()){
+  return slot==="leftHand" && equipmentUsesBothHands(items);
+}
 function equipmentEquippedCount(items=equipmentDemoItems()){
-  return EQUIPMENT_SLOT_ORDER.filter(slot=>!!items[slot]).length;
+  return EQUIPMENT_SLOT_ORDER.filter(slot=>!equipmentSlotBlocked(slot,items) && !!items[slot]).length;
 }
 function equipmentGearLevel(items=equipmentDemoItems()){
-  const levels=EQUIPMENT_SLOT_ORDER.map(slot=>items[slot]?.ilvl).filter(Number.isFinite);
+  const levels=EQUIPMENT_SLOT_ORDER.filter(slot=>!equipmentSlotBlocked(slot,items)).map(slot=>items[slot]?.ilvl).filter(Number.isFinite);
   return levels.length ? (levels.reduce((a,b)=>a+b,0)/levels.length).toFixed(1) : "0.0";
 }
 function equipmentSlotClass(slot){
   return `${["rightHand","leftHand"].includes(slot)?" hand":""}${slot==="light"?" light":""}${slot.startsWith("ring")?" ring":""}`;
 }
-function equipmentSlotButton(slot,item,style=""){
+function equipmentSlotButton(slot,item,style="",items=equipmentDemoItems()){
   const selected=equipmentInspectSlot===slot;
+  const blocked=equipmentSlotBlocked(slot,items);
   const label=EQUIPMENT_SLOT_LABELS[slot]||slot;
-  return `<button class="equipment-slot${equipmentSlotClass(slot)}${item?"":" empty"}${selected?" selected":""}${slot==="boots"?" slot-boots":""}" type="button" data-equipment-slot="${slot}" ${style?`style="${style}"`:""} aria-label="${esc(label)}${item?`: ${esc(item.name)}`:": empty"}"><span class="slot-name">${esc(label)}</span><span class="slot-level">${item?`iLv ${item.ilvl}`:"—"}</span></button>`;
+  const shownItem=blocked?null:item;
+  const aria=blocked?`${label}: unavailable while ${items.rightHand?.name||"the Main Hand item"} uses both hands`:shownItem?`${label}: ${shownItem.name}`:`${label}: empty`;
+  return `<button class="equipment-slot${equipmentSlotClass(slot)}${shownItem?"":" empty"}${blocked?" blocked":""}${selected?" selected":""}${slot==="boots"?" slot-boots":""}" type="button" data-equipment-slot="${slot}" ${blocked?'aria-disabled="true"':''} ${style?`style="${style}"`:""} aria-label="${esc(aria)}"><span class="slot-name">${esc(label)}</span><span class="slot-level">${blocked?"2-hand":shownItem?`iLv ${shownItem.ilvl}`:"—"}</span></button>`;
 }
 function renderEquipmentInfo(items){
   const root=$("equipmentInfo"); if(!root) return;
   const equipped=equipmentEquippedCount(items),gear=equipmentGearLevel(items);
-  root.innerHTML=`<em>Equipment info</em><b>Tap a slot</b><p>Inspect an item without leaving the grid. Use the arrow above when you want the full compact list.</p><dl><div><dt>Equipped</dt><dd>${equipped}/17</dd></div><div><dt>Gear</dt><dd>${gear}</dd></div><div><dt>Hands</dt><dd>R / L</dd></div><div><dt>Light</dt><dd>${items.light?"ready":"empty"}</dd></div></dl>`;
+  const slot=equipmentInspectSlot;
+  if(!slot){
+    root.innerHTML=`<em>Equipment info</em><b>Tap a slot</b><p>Inspect the equipped item here without leaving the grid. Expand the list when you want the deeper item view.</p><dl><div><dt>Equipped</dt><dd>${equipped}/17</dd></div><div><dt>Gear</dt><dd>${gear}</dd></div><div><dt>Hands</dt><dd>${equipmentUsesBothHands(items)?"2H":"free"}</dd></div><div><dt>Light</dt><dd>${items.light?"ready":"empty"}</dd></div></dl>`;
+    return;
+  }
+  const label=EQUIPMENT_SLOT_LABELS[slot]||slot;
+  if(equipmentSlotBlocked(slot,items)){
+    const main=items.rightHand;
+    root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b>Unavailable</b><span class="equipment-info-meta">Two-handed</span><p class="info-note"><strong>${esc(main?.name||"Main Hand")}</strong> uses both hands. Equip a one-handed Main Hand item to free the Off Hand slot.</p><dl><div><dt>Main</dt><dd>${main?`iLv ${main.ilvl}`:"—"}</dd></div><div><dt>Off Hand</dt><dd>blocked</dd></div></dl>`;
+    return;
+  }
+  const item=items[slot];
+  if(!item){
+    root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b>Empty</b><p>Nothing is equipped in this slot yet.</p><dl><div><dt>Equipped</dt><dd>${equipped}/17</dd></div><div><dt>Gear</dt><dd>${gear}</dd></div></dl>`;
+    return;
+  }
+  const stats=(item.stats||[]).slice(0,3).map(stat=>{
+    const m=String(stat).match(/^(.*?)([+−-]\d+.*)$/);
+    return m?`<div class="equipment-info-stat"><span>${esc(m[1].trim())}</span><strong>${esc(m[2])}</strong></div>`:`<div class="equipment-info-stat"><span>${esc(stat)}</span><strong>•</strong></div>`;
+  }).join("");
+  root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b>${esc(item.name)}</b><span class="equipment-info-meta">${esc(item.rarity)} · iLv ${item.ilvl}${item.twoHanded?" · two-handed":""}</span><div class="equipment-info-stats">${stats}</div><p class="info-note">${esc(item.special)}</p>`;
 }
 function renderEquipmentUI(){
   if(!S) return;
@@ -2859,9 +2897,9 @@ function renderEquipmentUI(){
   if($("equipmentGearLevel")) $("equipmentGearLevel").textContent=gear;
   if($("charEquipmentSummary")) $("charEquipmentSummary").textContent=`gear ${gear}`;
   const ringRoot=$("equipmentRingRail");
-  if(ringRoot) ringRoot.innerHTML=["ring1","ring2","ring3","ring4"].map(slot=>equipmentSlotButton(slot,items[slot])).join("");
+  if(ringRoot) ringRoot.innerHTML=["ring1","ring2","ring3","ring4"].map(slot=>equipmentSlotButton(slot,items[slot],"",items)).join("");
   const bodyRoot=$("equipmentBodyGrid");
-  if(bodyRoot) bodyRoot.innerHTML=EQUIPMENT_BODY_LAYOUT.map(([slot,row,col])=>equipmentSlotButton(slot,items[slot],`grid-row:${row};grid-column:${col}`)).join("");
+  if(bodyRoot) bodyRoot.innerHTML=EQUIPMENT_BODY_LAYOUT.map(([slot,row,col])=>equipmentSlotButton(slot,items[slot],`grid-row:${row};grid-column:${col}`,items)).join("");
   renderEquipmentInfo(items);
   const list=$("equipmentCompactList");
   if(list) list.hidden=!equipmentListExpanded;
@@ -2869,9 +2907,15 @@ function renderEquipmentUI(){
   if(expand){expand.classList.toggle("open",equipmentListExpanded);expand.setAttribute("aria-expanded",equipmentListExpanded?"true":"false");expand.textContent=equipmentListExpanded?"⌃":"⌄";expand.title=equipmentListExpanded?"Collapse equipment list":"Expand equipment list";}
   const compact=$("equipmentCompactGrid");
   if(compact) compact.innerHTML=EQUIPMENT_SLOT_ORDER.map(slot=>{
-    const item=items[slot],label=EQUIPMENT_SLOT_LABELS[slot];
-    return `<button class="equipment-compact-item${item?"":" empty"}" type="button" data-equipment-slot="${slot}"><small>${esc(label)}</small><b>${item?esc(item.name):"Empty"}</b><span>${item?`iLv ${item.ilvl} · ${esc(item.rarity)}`:"—"}</span></button>`;
+    const blocked=equipmentSlotBlocked(slot,items),item=blocked?null:items[slot],label=EQUIPMENT_SLOT_LABELS[slot];
+    return `<button class="equipment-compact-item${item?"":" empty"}" type="button" data-equipment-slot="${slot}"><small>${esc(label)}</small><b>${blocked?"Used by Main Hand":item?esc(item.name):"Empty"}</b><span>${blocked?"Two-handed":item?`iLv ${item.ilvl} · ${esc(item.rarity)}`:"—"}</span></button>`;
   }).join("");
+}
+function selectEquipmentSlot(slot){
+  if(!EQUIPMENT_SLOT_ORDER.includes(slot)) return;
+  equipmentInspectSlot=slot;
+  equipmentInspectExpanded=false;
+  renderEquipmentUI();
 }
 function openEquipmentInspect(slot){
   if(!EQUIPMENT_SLOT_ORDER.includes(slot)) return;
@@ -2882,14 +2926,19 @@ function openEquipmentInspect(slot){
   renderEquipmentUI();
 }
 function closeEquipmentInspect(){
-  equipmentInspectSlot=null;
   equipmentInspectExpanded=false;
   const box=$("equipmentInspect"); if(box) box.hidden=true;
   if(S) renderEquipmentUI();
 }
 function renderEquipmentInspect(){
   const root=$("equipmentInspectContent"); if(!root||!equipmentInspectSlot) return;
-  const items=equipmentDemoItems(),item=items[equipmentInspectSlot],label=EQUIPMENT_SLOT_LABELS[equipmentInspectSlot];
+  const items=equipmentDemoItems(),slot=equipmentInspectSlot,label=EQUIPMENT_SLOT_LABELS[slot];
+  if(equipmentSlotBlocked(slot,items)){
+    const main=items.rightHand;
+    root.innerHTML=`<div class="equipment-inspect-head"><div><em>${esc(label)}</em><h3 id="equipmentInspectName">Off Hand unavailable</h3></div><span class="equipment-inspect-rarity">Two-handed</span></div><div class="equipment-inspect-empty">${esc(main?.name||"The Main Hand item")} uses both hands. Equip a one-handed Main Hand item to free this slot.</div><div class="equipment-inspect-actions"><button class="primary" type="button" data-equipment-close style="grid-column:1/-1">Close</button></div>`;
+    return;
+  }
+  const item=items[slot];
   if(!item){
     root.innerHTML=`<div class="equipment-inspect-head"><div><em>${esc(label)}</em><h3 id="equipmentInspectName">Empty slot</h3></div><span class="equipment-inspect-rarity">Unequipped</span></div><div class="equipment-inspect-empty">Nothing is equipped here yet. The real Session 9 item model will later let compatible Backpack items fill this slot.</div><div class="equipment-inspect-actions"><button class="primary" type="button" data-equipment-close style="grid-column:1/-1">Close</button></div>`;
     return;
@@ -2898,7 +2947,7 @@ function renderEquipmentInspect(){
     const m=String(stat).match(/^(.*?)([+−-]\d+.*)$/);
     return m?`<div class="equipment-inspect-stat"><span>${esc(m[1].trim())}</span><b>${esc(m[2])}</b></div>`:`<div class="equipment-inspect-stat"><span>${esc(stat)}</span><b>•</b></div>`;
   }).join("");
-  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${esc(label)}</em><h3 id="equipmentInspectName">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity">${esc(item.rarity)}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.ilvl}</b></div><div><span>Requires level</span><b>${item.req}</b></div></div><div class="equipment-inspect-stats">${stats}</div><div class="equipment-inspect-special"><b>Prototype effect</b><br>${esc(item.special)}</div><div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.detail)}</p><p><b>Session 9A</b><br>This inspection layout is functional, but non-weapon gear, Item Level, requirements and listed bonuses do not modify gameplay yet.</p></div><div class="equipment-inspect-actions"><button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button><button type="button" data-equipment-close>Close</button></div>`;
+  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${esc(label)}</em><h3 id="equipmentInspectName">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity">${esc(item.rarity)}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.ilvl}</b></div><div><span>Slot</span><b>${esc(label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div><div class="equipment-inspect-special"><b>Prototype effect</b><br>${esc(item.special)}</div><div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.detail)}</p><p><b>Session 9A</b><br>This inspection layout is functional, but non-weapon gear, Item Level and listed bonuses do not modify gameplay yet.</p></div><div class="equipment-inspect-actions"><button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button><button type="button" data-equipment-close>Close</button></div>`;
 }
 function toggleEquipmentList(){
   equipmentListExpanded=!equipmentListExpanded;
@@ -6695,8 +6744,8 @@ $("charNav").addEventListener("click", e => {
   const b=e.target.closest("[data-char-view]"); if(!b)return; charView=b.dataset.charView; if(charView!=="skills") clearCharacterNotice(charView); renderCharacterSheet();
 });
 $("btnEquipmentExpand").addEventListener("click", toggleEquipmentList);
-$("equipmentRingRail").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)openEquipmentInspect(b.dataset.equipmentSlot);});
-$("equipmentBodyGrid").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)openEquipmentInspect(b.dataset.equipmentSlot);});
+$("equipmentRingRail").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)selectEquipmentSlot(b.dataset.equipmentSlot);});
+$("equipmentBodyGrid").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)selectEquipmentSlot(b.dataset.equipmentSlot);});
 $("equipmentCompactGrid").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)openEquipmentInspect(b.dataset.equipmentSlot);});
 $("equipmentInspectContent").addEventListener("click", e => {
   if(e.target.closest("[data-equipment-close]")){closeEquipmentInspect();return;}
