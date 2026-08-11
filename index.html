@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.081.4 — Session 8 Mobile Combat Density QOL</title>
+<title>Lowfathom v0.081.5 — Session 8 Mobile Combat Density QOL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.081.4 Session 8 mobile combat density QOL + protected v0.075 Smite FX
+   LOWFATHOM — v0.081.5 Session 8 mobile combat density QOL + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -83,6 +83,7 @@
    - v0.081.0: Session 8 persistence foundation — localStorage run saves, reload restore, permadeath save integrity and hidden-tab freeze
    - v0.081.1: Session 8 settings foundation — device-persistent preferences, character indicator toggle and encounter-grace duration
    - v0.081.3: moved Settings to a consistent bottom-right cog utility slot across travel, combat and common soft sheets
+   - v0.081.5: fixed native mobile button styling making the Delve Log header appear bright gray
    - v0.081.4: compacted short-phone combat vertically while preserving touch-target action sizing
 
    Session 8 has begun. Run state is now persisted locally and restored on reload.
@@ -1144,6 +1145,7 @@ button{
 /* ---------- v0.080.8: encounter grace + compact delve log ---------- */
 .travel-log-head{
   width:100%;border:0;text-align:left;display:flex;align-items:center;gap:8px;cursor:pointer;
+  background:var(--panel);color:var(--dim);-webkit-appearance:none;appearance:none;border-radius:0;
 }
 .travel-log-head .travel-log-toggle-text{margin-left:auto;color:#59636e;letter-spacing:.08em}
 .travel-log-head i{font-style:normal;color:var(--lamp-dim);font-size:12px;transition:transform .16s}
@@ -1242,7 +1244,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.081.4</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.081.5</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1270,7 +1272,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.4</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.5</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -1740,7 +1742,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.081.4";
+const BUILD_VERSION = "v0.081.5";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
