@@ -1,10 +1,10 @@
 {
-  "id": "./",
+  "id": "/Fathom/",
   "name": "Fathom",
   "short_name": "Fathom",
   "description": "A mobile-first permadeath descent RPG.",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/Fathom/",
+  "scope": "/Fathom/",
   "display": "standalone",
   "background_color": "#0f1317",
   "theme_color": "#0f1317",
@@ -12,13 +12,13 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "./icons/icon-192.png",
+      "src": "/Fathom/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icons/icon-512.png",
+      "src": "/Fathom/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
