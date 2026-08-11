@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.081.5 — Session 8 Mobile Combat Density QOL</title>
+<title>Lowfathom v0.081.6 — Session 8 Save Integrity + Update Hardening</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.081.5 Session 8 mobile combat density QOL + protected v0.075 Smite FX
+   LOWFATHOM — v0.081.6 Session 8 save integrity + update hardening + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -83,8 +83,9 @@
    - v0.081.0: Session 8 persistence foundation — localStorage run saves, reload restore, permadeath save integrity and hidden-tab freeze
    - v0.081.1: Session 8 settings foundation — device-persistent preferences, character indicator toggle and encounter-grace duration
    - v0.081.3: moved Settings to a consistent bottom-right cog utility slot across travel, combat and common soft sheets
-   - v0.081.5: fixed native mobile button styling making the Delve Log header appear bright gray
    - v0.081.4: compacted short-phone combat vertically while preserving touch-target action sizing
+   - v0.081.5: fixed native mobile button styling making the Delve Log header appear bright gray
+   - v0.081.6: save schema migrations, corruption quarantine, dead-run invariants and PWA update hardening
 
    Session 8 has begun. Run state is now persisted locally and restored on reload.
    Settings, manifest/service worker and install/offline support follow in later Session 8 slices.
@@ -1244,7 +1245,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.081.5</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.081.6</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1272,7 +1273,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.5</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.6</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -1742,7 +1743,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.081.5";
+const BUILD_VERSION = "v0.081.6";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -1910,8 +1911,10 @@ let combatVictoryPending = null;
 let combatVictoryTimer = null;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 1;
-const SAVE_KEY = "lowfathom:run:v1";
+const SAVE_SCHEMA = 2;
+const SAVE_KEY = "lowfathom:run";
+const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
+const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
 const SAVE_THROTTLE_MS = 750;
 let saveTimer = null;
 let lastSaveAt = 0;
@@ -1920,6 +1923,8 @@ let appSuspended = false;
 let suspendedEncounterWarningMs = null;
 let suspendedLevelUpNoticeMs = null;
 let suspendedHollowResumeMs = null;
+let runSaveWritesBlocked = false;
+let runSaveLoadIssue = null;
 
 function xpToNext(level=S.level){
   return Math.round(20 + 10*Math.pow(level,1.5));
@@ -5801,24 +5806,94 @@ function levelUpNoticeForSave(){
 }
 function buildRunSnapshot(){
   if(!S) return null;
+  const state=normalizedStateForSave();
+  const dead=!!over || Number(state?.hp)<=0;
+  // Permadeath invariant: once a run is dead, every subsequent save remains dead.
+  if(dead && state && Number(state.hp)>0) state.hp=0;
   return {
     schema:SAVE_SCHEMA,
     build:BUILD_VERSION,
     savedAt:Date.now(),
-    state:normalizedStateForSave(),
+    state,
     knowledge:cloneForSave(knowledge||{}),
-    over:!!over,
-    pendingEncounter:pendingEncounterForSave(),
-    levelUpNotice:levelUpNoticeForSave(),
+    over:dead,
+    pendingEncounter:dead?null:pendingEncounterForSave(),
+    levelUpNotice:dead?null:levelUpNoticeForSave(),
     ui:{travelLogExpanded:!!travelLogExpanded}
   };
+}
+function isSaveRecord(value){
+  return !!value && typeof value==="object" && !Array.isArray(value);
+}
+function migrateSave1To2(snapshot){
+  const next=cloneForSave(snapshot);
+  next.schema=2;
+  if(!isSaveRecord(next.knowledge)) next.knowledge={};
+  if(!isSaveRecord(next.ui)) next.ui={};
+  // Schema 2 makes death authoritative from either the explicit flag or HP.
+  next.over=!!next.over || Number(next.state?.hp)<=0;
+  if(next.over && next.state && Number(next.state.hp)>0) next.state.hp=0;
+  return next;
+}
+const SAVE_MIGRATIONS={
+  1:migrateSave1To2
+};
+function migrateRunSnapshot(snapshot){
+  if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
+  if(snapshot.schema>SAVE_SCHEMA) return {future:true,snapshot};
+  if(snapshot.schema<1) throw new Error(`Unsupported save schema ${snapshot.schema}.`);
+  let migrated=cloneForSave(snapshot);
+  while(migrated.schema<SAVE_SCHEMA){
+    const from=migrated.schema;
+    const migrate=SAVE_MIGRATIONS[from];
+    if(typeof migrate!=="function") throw new Error(`No migration exists for save schema ${from}.`);
+    migrated=migrate(migrated);
+    if(!isSaveRecord(migrated) || migrated.schema!==from+1) throw new Error(`Save migration ${from} -> ${from+1} failed.`);
+  }
+  return {future:false,snapshot:migrated};
+}
+function validateRunSnapshot(snapshot){
+  if(!isSaveRecord(snapshot) || snapshot.schema!==SAVE_SCHEMA || !isSaveRecord(snapshot.state)) return false;
+  const state=snapshot.state;
+  if(typeof state.name!=="string" || !state.name.trim()) return false;
+  if(typeof state.className!=="string" || !state.className.trim()) return false;
+  if(!Number.isFinite(state.hp) || !Number.isFinite(state.hpMax) || state.hpMax<=0) return false;
+  if(!Number.isFinite(state.depth) || state.depth<0) return false;
+  if(!Number.isInteger(state.level) || state.level<1) return false;
+  if(snapshot.knowledge!=null && !isSaveRecord(snapshot.knowledge)) return false;
+  if(snapshot.ui!=null && !isSaveRecord(snapshot.ui)) return false;
+  if(snapshot.pendingEncounter!=null && !isSaveRecord(snapshot.pendingEncounter)) return false;
+  if(snapshot.levelUpNotice!=null && !isSaveRecord(snapshot.levelUpNotice)) return false;
+  return true;
+}
+function quarantineRunSave(sourceKey,raw,reason){
+  try{
+    // Keep the untouched bytes. Only remove the active copy after preservation succeeds.
+    localStorage.setItem(SAVE_QUARANTINE_KEY,raw);
+    localStorage.removeItem(sourceKey);
+    console.error(`Lowfathom quarantined unreadable save from ${sourceKey}: ${reason}`);
+    return true;
+  }catch(err){
+    console.error("Lowfathom could not quarantine an unreadable save",err);
+    return false;
+  }
+}
+function persistCanonicalSnapshot(snapshot,sourceKey){
+  try{
+    localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot));
+    if(sourceKey!==SAVE_KEY) localStorage.removeItem(sourceKey);
+    return true;
+  }catch(err){
+    console.error("Lowfathom could not rewrite the migrated save",err);
+    return false;
+  }
 }
 function clearScheduledSave(){
   if(saveTimer!==null){clearTimeout(saveTimer);saveTimer=null;}
 }
 function saveRunNow(){
   clearScheduledSave();
-  if(restoringRun || !S) return false;
+  if(restoringRun || !S || runSaveWritesBlocked) return false;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify(buildRunSnapshot()));
     lastSaveAt=Date.now();
@@ -5829,25 +5904,112 @@ function saveRunNow(){
   }
 }
 function requestRunSave(){
-  if(restoringRun || !S) return;
+  if(restoringRun || !S || runSaveWritesBlocked) return;
   const wait=Math.max(0,SAVE_THROTTLE_MS-(Date.now()-lastSaveAt));
   if(wait===0){saveRunNow();return;}
   if(saveTimer===null) saveTimer=setTimeout(()=>{saveTimer=null;saveRunNow();},wait);
 }
 function clearRunSave(){
   clearScheduledSave();
-  try{localStorage.removeItem(SAVE_KEY);}catch(err){console.error("Lowfathom save clear failed",err);}
+  if(runSaveWritesBlocked) return false;
+  try{
+    localStorage.removeItem(SAVE_KEY);
+    for(const key of LEGACY_SAVE_KEYS) localStorage.removeItem(key);
+    return true;
+  }catch(err){
+    console.error("Lowfathom save clear failed",err);
+    return false;
+  }
 }
 function loadRunSnapshot(){
-  try{
-    const raw=localStorage.getItem(SAVE_KEY);
-    if(!raw) return null;
-    const data=JSON.parse(raw);
-    if(!data || data.schema!==SAVE_SCHEMA || !data.state || typeof data.state!=="object") return null;
-    return data;
-  }catch(err){
-    console.error("Lowfathom save restore failed",err);
-    return null;
+  runSaveWritesBlocked=false;
+  runSaveLoadIssue=null;
+  let quarantinedSomething=false;
+  const keys=[SAVE_KEY,...LEGACY_SAVE_KEYS];
+
+  for(const sourceKey of keys){
+    let raw=null;
+    try{raw=localStorage.getItem(sourceKey);}catch(err){
+      console.error("Lowfathom save storage read failed",err);
+      continue;
+    }
+    if(!raw) continue;
+
+    let parsed;
+    try{parsed=JSON.parse(raw);}catch(err){
+      if(!quarantineRunSave(sourceKey,raw,"malformed JSON")){
+        runSaveWritesBlocked=true;
+        runSaveLoadIssue={kind:"corrupt",quarantined:false};
+        return null;
+      }
+      quarantinedSomething=true;
+      continue;
+    }
+
+    let result;
+    try{result=migrateRunSnapshot(parsed);}catch(err){
+      if(!quarantineRunSave(sourceKey,raw,err.message||"migration failed")){
+        runSaveWritesBlocked=true;
+        runSaveLoadIssue={kind:"corrupt",quarantined:false};
+        return null;
+      }
+      quarantinedSomething=true;
+      continue;
+    }
+
+    if(result.future){
+      runSaveWritesBlocked=true;
+      runSaveLoadIssue={kind:"future",schema:result.snapshot.schema};
+      return null;
+    }
+
+    const snapshot=result.snapshot;
+    if(!validateRunSnapshot(snapshot)){
+      if(!quarantineRunSave(sourceKey,raw,"required save fields were invalid")){
+        runSaveWritesBlocked=true;
+        runSaveLoadIssue={kind:"corrupt",quarantined:false};
+        return null;
+      }
+      quarantinedSomething=true;
+      continue;
+    }
+
+    if(sourceKey!==SAVE_KEY || parsed.schema!==SAVE_SCHEMA) persistCanonicalSnapshot(snapshot,sourceKey);
+    if(quarantinedSomething) console.warn("Lowfathom recovered a valid older chronicle after quarantining a bad save.");
+    return snapshot;
+  }
+
+  if(quarantinedSomething) runSaveLoadIssue={kind:"corrupt",quarantined:true};
+  return null;
+}
+function showSaveLoadIssueScreen(issue){
+  if(!issue) return;
+  document.querySelectorAll(".save-integrity").forEach(n=>n.remove());
+  const d=document.createElement("div");
+  d.className="dead save-integrity";
+  if(issue.kind==="future"){
+    d.innerHTML=`<h2>This chronicle needs a newer Fathom build.</h2>
+      <p>The save uses schema ${Number(issue.schema)||"?"}, but this app only understands schema ${SAVE_SCHEMA}. It has not been changed or overwritten.</p>
+      <p>Reconnect if needed, then reload Fathom so the installed app can update.</p>
+      <button id="btnRetrySaveLoad" type="button">Reload Fathom</button>`;
+    $("arena").appendChild(d);
+    $("btnRetrySaveLoad").addEventListener("click",()=>location.reload());
+    return;
+  }
+  const preserved=issue.quarantined
+    ? "The unreadable save was preserved in a recovery slot on this device before the active slot was cleared."
+    : "The unreadable save could not be copied safely, so Fathom has blocked save writes to avoid destroying it.";
+  d.innerHTML=`<h2>The chronicle save could not be read.</h2>
+    <p>${preserved}</p>
+    ${issue.quarantined?`<p>You can start a new delver without overwriting that recovery copy.</p><button id="btnContinueAfterCorruptSave" type="button">Continue to Character Creation</button>`:`<p>Do not start a new run in this build. Reload after updating Fathom.</p><button id="btnRetrySaveLoad" type="button">Reload Fathom</button>`}`;
+  $("arena").appendChild(d);
+  if(issue.quarantined){
+    $("btnContinueAfterCorruptSave").addEventListener("click",()=>{
+      d.remove();
+      $("creatorName")?.focus();
+    });
+  }else{
+    $("btnRetrySaveLoad").addEventListener("click",()=>location.reload());
   }
 }
 function rebuildTravelLogFromState(){
@@ -5937,7 +6099,8 @@ function restoreRun(snapshot){
     document.querySelectorAll(".dead").forEach(n=>n.remove());
     S=cloneForSave(snapshot.state);
     knowledge=cloneForSave(snapshot.knowledge||{});
-    over=!!snapshot.over;
+    over=!!snapshot.over || Number(S.hp)<=0;
+    if(over && Number(S.hp)>0) S.hp=0;
     armed=null;
     combatVictoryPending=null;
     selectedLootHistoryId=null;
@@ -6349,15 +6512,19 @@ $("arena").addEventListener("click",()=>{setTimeout(saveRunNow,0);});
 
 function bootGame(){
   loadSettings();
-  const restored=restoreRun(loadRunSnapshot());
-  if(!restored) renderCreator();
+  const snapshot=loadRunSnapshot();
+  const restored=restoreRun(snapshot);
+  if(!restored){
+    renderCreator();
+    if(runSaveLoadIssue) showSaveLoadIssueScreen(runSaveLoadIssue);
+  }
   setInterval(travelTick,TRAVEL_TICK_MS);
 }
 bootGame();
-/* ---------- Session 8C: PWA service worker ---------- */
+/* ---------- Session 8D: PWA service worker update hardening ---------- */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js")
+    navigator.serviceWorker.register("./service-worker.js", {updateViaCache:"none"})
       .then(registration => {
         // Ask the browser to check for a newer worker whenever Lowfathom opens.
         registration.update().catch(() => {});

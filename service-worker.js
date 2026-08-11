@@ -1,10 +1,10 @@
 "use strict";
 
 /*
-  LOWFATHOM — Session 8C PWA shell
+  LOWFATHOM — Session 8D PWA update hardening
   Bump CACHE_NAME whenever the shipped app shell changes.
 */
-const CACHE_NAME = "lowfathom-v0.081.5";
+const CACHE_NAME = "lowfathom-v0.081.6";
 
 const APP_SHELL = [
   "./",
@@ -17,7 +17,14 @@ const APP_SHELL = [
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
+      .then(cache => {
+        // Bypass the browser HTTP cache while installing a new app shell so a
+        // newly-versioned worker cannot seed itself with an older index.html.
+        const requests = APP_SHELL.map(path =>
+          new Request(new URL(path, self.location).href, {cache:"reload"})
+        );
+        return cache.addAll(requests);
+      })
       .then(() => self.skipWaiting())
   );
 });
@@ -36,6 +43,13 @@ self.addEventListener("activate", event => {
   );
 });
 
+function fetchFresh(request) {
+  const url = new URL(request.url);
+  return url.origin === self.location.origin
+    ? fetch(request, {cache:"no-store"})
+    : fetch(request);
+}
+
 self.addEventListener("fetch", event => {
   const request = event.request;
 
@@ -45,7 +59,7 @@ self.addEventListener("fetch", event => {
   // the cached app shell when the network is unavailable.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
+      fetchFresh(request)
         .then(response => {
           if (response && response.ok) {
             const copy = response.clone();
@@ -64,7 +78,7 @@ self.addEventListener("fetch", event => {
   // For ordinary assets use network-first while developing so updates appear
   // promptly, with cache fallback for offline use.
   event.respondWith(
-    fetch(request)
+    fetchFresh(request)
       .then(response => {
         if (response && (response.ok || response.type === "opaque")) {
           const copy = response.clone();
