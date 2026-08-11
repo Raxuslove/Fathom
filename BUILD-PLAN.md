@@ -126,9 +126,9 @@ hollows + supplies. The whole session's shape depends on which one.
 ### Session 8 · Saving and installing
 - [x] Save state to localStorage, restore on open
 - [x] Save on every meaningful action — a permadeath game must never lose progress to a closed tab
-- [ ] `manifest.json` + icons
-- [ ] Service worker so it opens offline
-- [ ] Install to your phone's home screen and play it as an app
+- [x] `manifest.json` + icons
+- [x] Service worker so it opens offline
+- [x] Install to your phone's home screen and play it as an app
 
 **Done when:** it's an icon on your phone that works with the wifi off.
 
