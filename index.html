@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0f1317">
-<title>Lowfathom v0.081.0 — Session 8 Persistence Foundation</title>
+<title>Lowfathom v0.081.1 — Session 8 Settings Foundation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.081.0 Session 8 persistence foundation + protected v0.075 Smite FX
+   LOWFATHOM — v0.081.1 Session 8 settings foundation + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -77,6 +77,7 @@
    - v0.080.18: flattened exploration/event, travel UI, character/inventory, Rest/Camp and loot wrapper chains with no intended gameplay change
    - v0.080.19: final wrapper consolidation for creator, Skills, Abilities, combat pad/Run, side-route rendering and finale helpers
    - v0.081.0: Session 8 persistence foundation — localStorage run saves, reload restore, permadeath save integrity and hidden-tab freeze
+   - v0.081.1: Session 8 settings foundation — device-persistent preferences, character indicator toggle and encounter-grace duration
 
    Session 8 has begun. Run state is now persisted locally and restored on reload.
    Settings, manifest/service worker and install/offline support follow in later Session 8 slices.
@@ -932,6 +933,33 @@ button{
 .char-field-skill.has-rank-notice{box-shadow:inset 3px 0 0 #9d4939}
 .skill-rank-new{display:inline-flex!important;align-items:center;margin-left:6px;padding:1px 5px;border:1px solid #7d3d31;background:#261512;color:#d5745b!important;font-family:var(--cond)!important;font-size:8px!important;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;vertical-align:1px}
 
+/* ---------- v0.081.1: persistent Settings foundation ---------- */
+.char-head-buttons{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
+.char-settings-btn{border:1px solid var(--rule-hi);background:#12181e;padding:5px 7px;font-family:var(--cond);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#9aa3aa;white-space:nowrap}
+.char-settings-btn:active{background:#20272d;color:var(--bone)}
+.settings-sheet{position:absolute;inset:0;z-index:12;display:flex;flex-direction:column;justify-content:flex-end}
+.settings-sheet[hidden]{display:none}
+.settings-scrim{flex:1;min-height:0;background:rgba(8,11,14,.76)}
+.settings-panel{max-height:88%;overflow-y:auto;background:var(--panel);border-top:1px solid var(--lamp-dim)}
+.settings-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 13px;background:#12181e;border-bottom:1px solid var(--rule)}
+.settings-head h2{margin:0;font-family:var(--slab);font-size:18px;font-weight:600;color:var(--lamp)}
+.settings-head span{font-family:var(--cond);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.settings-section{border-bottom:1px solid var(--rule)}
+.settings-section-title{padding:8px 13px;background:#101418;font-family:var(--cond);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--lamp-dim)}
+.settings-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 13px;background:#141a20;border-top:1px solid var(--rule)}
+.settings-row:first-of-type{border-top:none}
+.settings-copy b{display:block;font-family:var(--slab);font-size:14px;color:var(--bone);font-weight:600}
+.settings-copy span{display:block;margin-top:2px;font-family:var(--cond);font-size:10px;line-height:1.35;color:var(--dim)}
+.settings-toggle{min-width:58px;border:1px solid var(--rule-hi);background:#101418;padding:7px 9px;font-family:var(--cond);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.settings-toggle.on{border-color:var(--verdigris);background:#121a1e;color:#9fbdba}
+.settings-row.stack{display:block}
+.settings-choice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:9px}
+.settings-choice{border:1px solid var(--rule-hi);background:#11171c;padding:8px 6px;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.settings-choice.selected{border-color:var(--lamp-dim);background:#20272d;color:var(--lamp);box-shadow:inset 0 0 0 1px rgba(230,194,136,.10)}
+.settings-note{padding:9px 13px;background:#101418;color:#59636e;font-size:10.5px;line-height:1.4;border-bottom:1px solid var(--rule)}
+.settings-reset{width:100%;min-height:44px;border:none;border-bottom:1px solid var(--rule);background:#141a20;padding:10px 13px;text-align:left;font-family:var(--cond);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#a87569}
+.settings-close{width:100%;min-height:52px;border:none;background:#12181e;padding:13px calc(13px + env(safe-area-inset-bottom));font-family:var(--cond);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
 /* ---------- Session 7: character creation ---------- */
 .creator{
   position:absolute;inset:0;z-index:30;background:var(--deep);
@@ -1168,7 +1196,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.081.0</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.081.1</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1196,7 +1224,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.0</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.1</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -1282,7 +1310,7 @@ button{
     <div class="char-panel">
       <div class="char-head">
         <div><em>Character</em><h2 id="charName">—</h2><span id="charClassLevel">Votary · Level —</span><span id="charBackground">—</span></div>
-        <div class="char-head-actions"><span class="char-live">travel continues</span><button class="char-clear-new" id="btnClearCharNotices" type="button" hidden>Clear new</button></div>
+        <div class="char-head-actions"><span class="char-live">travel continues</span><div class="char-head-buttons"><button class="char-settings-btn" id="btnSettings" type="button">Settings</button><button class="char-clear-new" id="btnClearCharNotices" type="button" hidden>Clear new</button></div></div>
       </div>
       <div class="char-vitals">
         <div><em>HP</em><b id="charHp">—</b><span class="char-hp-track" id="charHpBar"><i id="charHpFill"></i></span></div>
@@ -1333,6 +1361,34 @@ button{
       </section>
 
       <button class="char-close" id="btnCharClose">Back to the delve</button>
+    </div>
+  </div>
+
+  <div class="settings-sheet" id="settingsSheet" hidden>
+    <div class="settings-scrim" id="settingsScrim"></div>
+    <div class="settings-panel">
+      <div class="settings-head"><h2>Settings</h2><span>saved on this device</span></div>
+      <section class="settings-section">
+        <div class="settings-section-title">Interface</div>
+        <div class="settings-row">
+          <div class="settings-copy"><b>Character activity indicators</b><span>Show • New, tab dots and NEW RANK markers when something needs attention. Level-up and encounter countdowns are unaffected.</span></div>
+          <button class="settings-toggle" id="btnSettingNotices" type="button" aria-pressed="true">On</button>
+        </div>
+      </section>
+      <section class="settings-section">
+        <div class="settings-section-title">Encounter flow</div>
+        <div class="settings-row stack">
+          <div class="settings-copy"><b>Encounter grace period</b><span>How long the frozen warning lasts before combat begins. Face it now always skips the wait. Changes apply to future encounter warnings.</span></div>
+          <div class="settings-choice-grid" id="encounterGraceChoices">
+            <button class="settings-choice" type="button" data-encounter-grace="5">5 sec</button>
+            <button class="settings-choice" type="button" data-encounter-grace="15">15 sec</button>
+            <button class="settings-choice" type="button" data-encounter-grace="30">30 sec</button>
+          </div>
+        </div>
+      </section>
+      <div class="settings-note">Settings are stored separately from the current chronicle. They survive permadeath and starting a new delver.</div>
+      <button class="settings-reset" id="btnResetSettings" type="button">Reset settings to defaults</button>
+      <button class="settings-close" id="btnSettingsClose" type="button">Back to character</button>
     </div>
   </div>
 
@@ -1620,7 +1676,13 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.081.0";
+const BUILD_VERSION = "v0.081.1";
+const SETTINGS_KEY = "lowfathom:settings";
+const SETTINGS_SCHEMA = 1;
+const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
+const ENCOUNTER_GRACE_OPTIONS = [5,15,30];
+let settings = {...DEFAULT_SETTINGS};
+let settingsReturnToCharacter = false;
 
 const TRAVEL_TICK_MS = 500;
 const TRAVEL_STEP = 0.25;          // 0.5 fathom / second while Descending
@@ -2401,6 +2463,7 @@ function ensureCharacterNotices(){
   return S.charNotices;
 }
 function markCharacterNotice(view){
+  if(!settings.characterIndicators) return;
   const notices=ensureCharacterNotices();
   if(notices && Object.prototype.hasOwnProperty.call(notices,view)) notices[view]=true;
 }
@@ -2410,13 +2473,14 @@ function ensureSkillRankNotices(){
   return S.skillRankNotices;
 }
 function markSkillRankNotice(id){
+  if(!settings.characterIndicators) return;
   const notices=ensureSkillRankNotices();
   if(!notices || !SKILL_DEFS[id]) return;
   notices[id]=true;
   markCharacterNotice("skills");
 }
 function skillHasRankNotice(id){
-  return !!ensureSkillRankNotices()?.[id];
+  return settings.characterIndicators && !!ensureSkillRankNotices()?.[id];
 }
 function clearCharacterNotice(view){
   const notices=ensureCharacterNotices();
@@ -2434,6 +2498,7 @@ function clearAllCharacterNotices(){
   requestRunSave();
 }
 function characterHasUnread(){
+  if(!settings.characterIndicators) return false;
   const notices=ensureCharacterNotices();
   const skillNotices=ensureSkillRankNotices();
   return (!!notices && Object.values(notices).some(Boolean)) || (!!skillNotices && Object.values(skillNotices).some(Boolean));
@@ -2764,6 +2829,7 @@ function spawnEncounter(options={}){
   if(S) S.travelEvent = null;
   closePack();
   closeCharacterSheet();
+  closeSettingsSheet(false);
   pauseBoonClock();
   S.travelMode = "stopped";
   S.travelSinceEvent = 0;
@@ -4540,6 +4606,7 @@ function render(){
     if($("btnLoadout")) $("btnLoadout").disabled = true;
     if($("btnRun")) $("btnRun").disabled = true;
   }
+  renderSettingsSheet();
   saveRunNow();
 }
 
@@ -5401,7 +5468,10 @@ $("lootHistoryScrim").addEventListener("click",closeLootHistory);
    consumables, equipment changes and travel preparation are locked. Combat then
    enters through a short fade-to-black transition.
    ============================================================ */
-const ENCOUNTER_WARNING_MS=15000;
+function encounterWarningDurationMs(){
+  const seconds=Number(settings?.encounterGraceSeconds)||DEFAULT_SETTINGS.encounterGraceSeconds;
+  return Math.max(1000,seconds*1000);
+}
 let encounterWarningState=null;
 let encounterWarningFrame=null;
 let encounterTransitionTimer=null;
@@ -5429,7 +5499,7 @@ function updateEncounterWarningUi(){
   if(!state) return;
   const now=performance.now();
   const remaining=Math.max(0,state.deadline-now);
-  const frac=clamp(remaining/ENCOUNTER_WARNING_MS,0,1);
+  const frac=clamp(remaining/Math.max(1,state.durationMs||encounterWarningDurationMs()),0,1);
   const copy=encounterWarningLabel(state);
   $("encounterWarningKicker").textContent=copy.kicker;
   $("encounterWarningTitle").textContent=copy.title;
@@ -5471,9 +5541,10 @@ function queueEncounterWarning(options={}){
   const priorMode=S.travelMode;
   S.travelMode="stopped";
   const profile=options.profile || (options.boss ? BOSS_PROFILE : chooseFoeProfile());
+  const durationMs=encounterWarningDurationMs();
   encounterWarningState={
-    options:{...options},profile,priorMode,
-    startedAt:performance.now(),deadline:performance.now()+ENCOUNTER_WARNING_MS,
+    options:{...options},profile,priorMode,durationMs,
+    startedAt:performance.now(),deadline:performance.now()+durationMs,
     variantIndex:ri(0,2)
   };
   armed=null;
@@ -5520,6 +5591,104 @@ function beginEncounterTransition(){
 // Encounter warnings now call the canonical spawnEncounter() directly after the fade.
 
 /* ============================================================
+   v0.081.1 — SESSION 8 SETTINGS FOUNDATION
+   Preferences live outside the permadeath run save so interface choices survive
+   death and a new chronicle. Keep this intentionally small until playtesting tells
+   us which additional preferences are genuinely useful.
+   ============================================================ */
+function normalizeSettings(value){
+  const next={...DEFAULT_SETTINGS};
+  if(value && typeof value==="object"){
+    if(typeof value.characterIndicators==="boolean") next.characterIndicators=value.characterIndicators;
+    const grace=Number(value.encounterGraceSeconds);
+    if(ENCOUNTER_GRACE_OPTIONS.includes(grace)) next.encounterGraceSeconds=grace;
+  }
+  return next;
+}
+function loadSettings(){
+  try{
+    const raw=localStorage.getItem(SETTINGS_KEY);
+    if(!raw){settings={...DEFAULT_SETTINGS};return settings;}
+    const data=JSON.parse(raw);
+    settings=normalizeSettings(data?.schema===SETTINGS_SCHEMA?data.settings:data);
+  }catch(err){
+    console.error("Lowfathom settings restore failed",err);
+    settings={...DEFAULT_SETTINGS};
+  }
+  return settings;
+}
+function saveSettingsNow(){
+  try{
+    localStorage.setItem(SETTINGS_KEY,JSON.stringify({schema:SETTINGS_SCHEMA,settings:{...settings}}));
+    return true;
+  }catch(err){
+    console.error("Lowfathom settings save failed",err);
+    return false;
+  }
+}
+function clearCurrentCharacterIndicators(){
+  if(!S) return;
+  const notices=ensureCharacterNotices();
+  if(notices) for(const key of Object.keys(notices)) notices[key]=false;
+  const skillNotices=ensureSkillRankNotices();
+  if(skillNotices) for(const key of Object.keys(skillNotices)) skillNotices[key]=false;
+}
+function setCharacterIndicators(enabled){
+  settings.characterIndicators=!!enabled;
+  if(!settings.characterIndicators) clearCurrentCharacterIndicators();
+  saveSettingsNow();
+  renderSettingsSheet();
+  if(S){renderCharacterSheet();renderCharacterNotices();requestRunSave();}
+}
+function setEncounterGrace(seconds){
+  const value=Number(seconds);
+  if(!ENCOUNTER_GRACE_OPTIONS.includes(value)) return;
+  settings.encounterGraceSeconds=value;
+  saveSettingsNow();
+  renderSettingsSheet();
+}
+function resetSettings(){
+  settings={...DEFAULT_SETTINGS};
+  clearCurrentCharacterIndicators();
+  saveSettingsNow();
+  renderSettingsSheet();
+  if(S){renderCharacterSheet();renderCharacterNotices();requestRunSave();}
+}
+function renderSettingsSheet(){
+  const sheet=$("settingsSheet");
+  if(!sheet) return;
+  if(!sheet.hidden && (over || S?.foe || S?.travelEvent)){
+    sheet.hidden=true;
+    settingsReturnToCharacter=false;
+    return;
+  }
+  const noticeBtn=$("btnSettingNotices");
+  if(noticeBtn){
+    const on=!!settings.characterIndicators;
+    noticeBtn.textContent=on?"On":"Off";
+    noticeBtn.classList.toggle("on",on);
+    noticeBtn.setAttribute("aria-pressed",String(on));
+  }
+  document.querySelectorAll("[data-encounter-grace]").forEach(btn=>{
+    btn.classList.toggle("selected",Number(btn.dataset.encounterGrace)===settings.encounterGraceSeconds);
+  });
+}
+function openSettingsSheet(){
+  if(over || S?.foe || S?.travelEvent) return;
+  settingsReturnToCharacter=!$("charSheet").hidden;
+  $("charSheet").hidden=true;
+  $("settingsSheet").hidden=false;
+  renderSettingsSheet();
+}
+function closeSettingsSheet(returnToCharacter=true){
+  const sheet=$("settingsSheet");
+  if(sheet) sheet.hidden=true;
+  const shouldReturn=returnToCharacter && settingsReturnToCharacter && S && !over && !S.foe && !S.travelEvent;
+  settingsReturnToCharacter=false;
+  if(shouldReturn){renderCharacterSheet();$("charSheet").hidden=false;}
+}
+
+/* ============================================================
    v0.081.0 — SESSION 8 PERSISTENCE FOUNDATION
    ============================================================ */
 function profileById(id){
@@ -5560,6 +5729,7 @@ function pendingEncounterForSave(){
     profileId:encounterWarningState.profile?.id||null,
     priorMode:encounterWarningState.priorMode||"stopped",
     remainingMs:remaining,
+    durationMs:encounterWarningState.durationMs||encounterWarningDurationMs(),
     variantIndex:encounterWarningState.variantIndex||0
   };
 }
@@ -5647,6 +5817,7 @@ function normalizeRestoredRun(){
   S.inventory=S.inventory||{};
   S.inventory.misc=S.inventory.misc||{};
   S.inventory.weapons=Array.isArray(S.inventory.weapons)?S.inventory.weapons:[];
+  if(!settings.characterIndicators) clearCurrentCharacterIndicators();
   if(S.foe){
     const base=profileById(S.foe.profile?.id||S.foe.key);
     if(base){S.foe.profile=base;S.foe.weakness=base.weakness;}
@@ -5693,6 +5864,7 @@ function beginNewChronicle(){
   clearCombatTransitionTimers();
   clearCombatVictoryTimer();
   clearHollowTimer();
+  closeSettingsSheet(false);
   openCreator({keepChoices:true});
 }
 function restoreRun(snapshot){
@@ -5723,6 +5895,8 @@ function restoreRun(snapshot){
     $("sheet").hidden=true;
     $("restAbilityPick").hidden=true;
     $("charSheet").hidden=true;
+    $("settingsSheet").hidden=true;
+    settingsReturnToCharacter=false;
     $("lootHistorySheet").hidden=true;
     rebuildTravelLogFromState();
     renderTravelLogCollapse();
@@ -5735,6 +5909,7 @@ function restoreRun(snapshot){
       if(profile){
         encounterWarningState={
           options:{...(pe.options||{})},profile,priorMode:pe.priorMode||"stopped",
+          durationMs:Math.max(1000,pe.durationMs||encounterWarningDurationMs()),
           startedAt:performance.now(),deadline:performance.now()+Math.max(0,pe.remainingMs||0),
           variantIndex:pe.variantIndex||0
         };
@@ -6049,6 +6224,15 @@ $("charAbilities").addEventListener("click", e => {
 });
 $("btnCharClose").addEventListener("click", closeCharacterSheet);
 $("charScrim").addEventListener("click", closeCharacterSheet);
+$("btnSettings").addEventListener("click", openSettingsSheet);
+$("btnSettingsClose").addEventListener("click", () => closeSettingsSheet(true));
+$("settingsScrim").addEventListener("click", () => closeSettingsSheet(true));
+$("btnSettingNotices").addEventListener("click", () => setCharacterIndicators(!settings.characterIndicators));
+$("encounterGraceChoices").addEventListener("click", e => {
+  const b=e.target.closest("[data-encounter-grace]");
+  if(b) setEncounterGrace(b.dataset.encounterGrace);
+});
+$("btnResetSettings").addEventListener("click", resetSettings);
 $("restAbilityOptions").addEventListener("click", e => {
   const b = e.target.closest(".restskill-opt[data-recover-ability]");
   if(!b || !S?.pendingRestAbilityChoice) return;
@@ -6103,6 +6287,7 @@ window.addEventListener("pageshow",()=>{if(!document.hidden) resumeRuntime();});
 $("arena").addEventListener("click",()=>{setTimeout(saveRunNow,0);});
 
 function bootGame(){
+  loadSettings();
   const restored=restoreRun(loadRunSnapshot());
   if(!restored) renderCreator();
   setInterval(travelTick,TRAVEL_TICK_MS);

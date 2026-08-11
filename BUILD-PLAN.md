@@ -112,9 +112,9 @@ hollows + supplies. The whole session's shape depends on which one.
 ---
 
 ### Session 7 · Permadeath and character creation
-- [ ] Character creation screen — name, folk, trade, origin, starting stats
-- [ ] Death screen: the chronicle, depth reached, what killed you
-- [ ] Starting a new delver is clean and quick
+- [x] Character creation screen — name, folk, trade, origin, starting stats
+- [x] Death screen: the chronicle, depth reached, what killed you
+- [x] Starting a new delver is clean and quick
 
 **Done when:** you can die and immediately want to sign another one.
 **Your input needed:** the folk/trade/origin lists, and the death screen's wording.

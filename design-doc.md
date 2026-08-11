@@ -289,3 +289,7 @@ Possible future event categories:
 Session 4 should build the generic traversal/interruption structure, but initially **combat can remain the only implemented event result**.
 
 The purpose is to avoid building a combat-specific random encounter system that later has to be replaced when exploration content is added.
+
+
+Character selection screen, so you can choose to either make a new character + game mode, It would say name of character, race, class, current depth.
+3x character slots to begin with.
