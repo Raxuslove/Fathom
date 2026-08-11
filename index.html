@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0f1317">
-<title>Lowfathom v0.080.19 — Session 7.5 Refactor Pass 4</title>
+<title>Lowfathom v0.081.0 — Session 8 Persistence Foundation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.080.19 Session 7.5 refactor pass 4 + protected v0.075 Smite FX
+   LOWFATHOM — v0.081.0 Session 8 persistence foundation + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -76,9 +76,10 @@
    - v0.080.17: fixed Character HP heal-FX containment and added contextual Use Bandage action to Bleeding status
    - v0.080.18: flattened exploration/event, travel UI, character/inventory, Rest/Camp and loot wrapper chains with no intended gameplay change
    - v0.080.19: final wrapper consolidation for creator, Skills, Abilities, combat pad/Run, side-route rendering and finale helpers
+   - v0.081.0: Session 8 persistence foundation — localStorage run saves, reload restore, permadeath save integrity and hidden-tab freeze
 
-   Nothing is saved yet — refreshing the page starts you over
-   with a fresh delver. That's Session 8's job.
+   Session 8 has begun. Run state is now persisted locally and restored on reload.
+   Settings, manifest/service worker and install/offline support follow in later Session 8 slices.
    ============================================================ */
 
 :root{
@@ -1167,7 +1168,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.080.19</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.081.0</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1195,7 +1196,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.080.19</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.0</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -1619,7 +1620,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.080.19";
+const BUILD_VERSION = "v0.081.0";
 
 const TRAVEL_TICK_MS = 500;
 const TRAVEL_STEP = 0.25;          // 0.5 fathom / second while Descending
@@ -1780,6 +1781,18 @@ let levelUpNoticeDeadline = 0;
 let levelUpNoticeFrame = null;
 let combatVictoryPending = null;
 let combatVictoryTimer = null;
+
+/* Session 8 persistence runtime. */
+const SAVE_SCHEMA = 1;
+const SAVE_KEY = "lowfathom:run:v1";
+const SAVE_THROTTLE_MS = 750;
+let saveTimer = null;
+let lastSaveAt = 0;
+let restoringRun = false;
+let appSuspended = false;
+let suspendedEncounterWarningMs = null;
+let suspendedLevelUpNoticeMs = null;
+let suspendedHollowResumeMs = null;
 
 function xpToNext(level=S.level){
   return Math.round(20 + 10*Math.pow(level,1.5));
@@ -2104,6 +2117,7 @@ function signFate(){
     humanPlus2:creatorDraft.humanPlus2, humanPlus1:creatorDraft.humanPlus1, humanMinus2:creatorDraft.humanMinus2
   };
   newDelver(profile);
+  saveRunNow();
 }
 function boonDef(id=S?.boon?.id){
   return id ? BOONS[id] || null : null;
@@ -2407,6 +2421,7 @@ function skillHasRankNotice(id){
 function clearCharacterNotice(view){
   const notices=ensureCharacterNotices();
   if(notices && Object.prototype.hasOwnProperty.call(notices,view)) notices[view]=false;
+  requestRunSave();
 }
 function clearAllCharacterNotices(){
   const notices=ensureCharacterNotices();
@@ -2416,6 +2431,7 @@ function clearAllCharacterNotices(){
   if(skillNotices) for(const key of Object.keys(skillNotices)) skillNotices[key]=false;
   renderCharacterSheet();
   renderCharacterNotices();
+  requestRunSave();
 }
 function characterHasUnread(){
   const notices=ensureCharacterNotices();
@@ -2443,6 +2459,7 @@ function dismissLevelUpNotice(){
   levelUpNoticeDeadline=0;
   stopLevelUpNoticeFrame();
   renderLevelUpNotice();
+  requestRunSave();
 }
 function showLevelUpNotice(){
   if(!S || (S.statPoints||0)<=0 || over) return;
@@ -3169,8 +3186,10 @@ function runTravelTickCore(){
 }
 
 function travelTick(){
+  if(appSuspended || document.hidden) return;
   const result=runTravelTickCore();
   recordDescentXpProgress();
+  requestRunSave();
   return result;
 }
 
@@ -4105,33 +4124,12 @@ function tapRun(){
 }
 
 function die(out){
-  const killer = S.foe?.name ? cap(S.foe.name) : "the dark";
-  const endedDepth = formatDepth(S.depth);
-  const endedLevel = S.level;
-  over = true;
+  over=true;
   pauseBoonClock();
   say(out + `<p class="hurt said">You did not get up.</p>`);
+  saveRunNow();
   render();
-  setTimeout(() => {
-    if(!over) return;
-    const d = document.createElement("div");
-    d.className = "dead";
-    d.innerHTML =
-      `<h2>${esc(S.name)}'s chronicle ends here.</h2>
-       <p>The dark keeps the rest.</p>
-       <div class="chronicle">
-         <div><span>Folk</span><b>${esc(S.folk)}</b></div>
-         <div><span>Trade</span><b>${esc(S.trade)}</b></div>
-         <div><span>Origin</span><b>${esc(S.origin)}</b></div>
-         <div><span>Calling</span><b>${esc(S.className)} · Level ${endedLevel}</b></div>
-         <div><span>Foes defeated</span><b>${S.kills || 0}</b></div>
-         <div><span>Depth reached</span><b>${endedDepth} fathoms</b></div>
-         <div><span>Fell to</span><b>${esc(killer)}</b></div>
-       </div>
-       <button id="btnNew">Face the Dark Again</button>`;
-    $("arena").appendChild(d);
-    $("btnNew").addEventListener("click", () => openCreator({keepChoices:true}));
-  }, 1200);
+  setTimeout(()=>{ if(over) showDeathScreen(); },1200);
 }
 
 /* ============================================================
@@ -4542,6 +4540,7 @@ function render(){
     if($("btnLoadout")) $("btnLoadout").disabled = true;
     if($("btnRun")) $("btnRun").disabled = true;
   }
+  saveRunNow();
 }
 
 function renderPad(){
@@ -5520,6 +5519,295 @@ function beginEncounterTransition(){
 
 // Encounter warnings now call the canonical spawnEncounter() directly after the fade.
 
+/* ============================================================
+   v0.081.0 — SESSION 8 PERSISTENCE FOUNDATION
+   ============================================================ */
+function profileById(id){
+  if(!id) return null;
+  if(id===BOSS_PROFILE.id) return BOSS_PROFILE;
+  if(id===MIMIC_PROFILE.id) return MIMIC_PROFILE;
+  return FOES.find(f=>f.id===id) || null;
+}
+function cloneForSave(value){
+  return value==null ? value : JSON.parse(JSON.stringify(value));
+}
+function normalizedStateForSave(){
+  if(!S) return null;
+  const copy=cloneForSave(S);
+  if(copy.boon){
+    copy.boon.remainingMs=boonRemainingMs();
+    copy.boon.expiresAt=null;
+    copy.boon.frozen=true;
+  }
+  if(copy.activeHollow && copy.activeHollow.kind!=="stage" && !copy.activeHollow.autoResumeCancelled){
+    const remaining=suspendedHollowResumeMs!=null
+      ? suspendedHollowResumeMs
+      : Math.max(0,(S.activeHollow.autoResumeAt||Date.now())-Date.now());
+    copy.activeHollow.autoResumeRemainingMs=remaining;
+    copy.activeHollow.autoResumeAt=null;
+  }
+  return copy;
+}
+function pendingEncounterForSave(){
+  if(!encounterWarningState) return null;
+  const remaining=suspendedEncounterWarningMs!=null
+    ? suspendedEncounterWarningMs
+    : Math.max(0,encounterWarningState.deadline-performance.now());
+  const options={...(encounterWarningState.options||{})};
+  delete options.profile;
+  return {
+    options,
+    profileId:encounterWarningState.profile?.id||null,
+    priorMode:encounterWarningState.priorMode||"stopped",
+    remainingMs:remaining,
+    variantIndex:encounterWarningState.variantIndex||0
+  };
+}
+function levelUpNoticeForSave(){
+  if(levelUpNoticeDismissed || !S?.statPoints) return null;
+  const remaining=suspendedLevelUpNoticeMs!=null
+    ? suspendedLevelUpNoticeMs
+    : levelUpNoticeDeadline ? Math.max(0,levelUpNoticeDeadline-performance.now()) : LEVELUP_NOTICE_MS;
+  return {remainingMs:remaining};
+}
+function buildRunSnapshot(){
+  if(!S) return null;
+  return {
+    schema:SAVE_SCHEMA,
+    build:BUILD_VERSION,
+    savedAt:Date.now(),
+    state:normalizedStateForSave(),
+    knowledge:cloneForSave(knowledge||{}),
+    over:!!over,
+    pendingEncounter:pendingEncounterForSave(),
+    levelUpNotice:levelUpNoticeForSave(),
+    ui:{travelLogExpanded:!!travelLogExpanded}
+  };
+}
+function clearScheduledSave(){
+  if(saveTimer!==null){clearTimeout(saveTimer);saveTimer=null;}
+}
+function saveRunNow(){
+  clearScheduledSave();
+  if(restoringRun || !S) return false;
+  try{
+    localStorage.setItem(SAVE_KEY,JSON.stringify(buildRunSnapshot()));
+    lastSaveAt=Date.now();
+    return true;
+  }catch(err){
+    console.error("Lowfathom save failed",err);
+    return false;
+  }
+}
+function requestRunSave(){
+  if(restoringRun || !S) return;
+  const wait=Math.max(0,SAVE_THROTTLE_MS-(Date.now()-lastSaveAt));
+  if(wait===0){saveRunNow();return;}
+  if(saveTimer===null) saveTimer=setTimeout(()=>{saveTimer=null;saveRunNow();},wait);
+}
+function clearRunSave(){
+  clearScheduledSave();
+  try{localStorage.removeItem(SAVE_KEY);}catch(err){console.error("Lowfathom save clear failed",err);}
+}
+function loadRunSnapshot(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return null;
+    const data=JSON.parse(raw);
+    if(!data || data.schema!==SAVE_SCHEMA || !data.state || typeof data.state!=="object") return null;
+    return data;
+  }catch(err){
+    console.error("Lowfathom save restore failed",err);
+    return null;
+  }
+}
+function rebuildTravelLogFromState(){
+  const root=$("travelLog");
+  if(!root) return;
+  root.innerHTML="";
+  for(const entry of S?.travelLog||[]){
+    const row=document.createElement("div");
+    row.className=`travel-entry ${entry.cls||""}`;
+    row.innerHTML=`<span class="depth">${formatDepth(entry.depth)}f</span><p>${entry.html||""}</p>`;
+    root.appendChild(row);
+  }
+  root.scrollTop=root.scrollHeight;
+}
+function normalizeRestoredRun(){
+  if(!S) return;
+  S.travelLog=Array.isArray(S.travelLog)?S.travelLog:[];
+  S.charNotices=S.charNotices||{overview:false,status:false,skills:false,bestiary:false,abilities:false};
+  S.skillRankNotices=S.skillRankNotices||{};
+  S.hollowStates=S.hollowStates||{};
+  S.bossDefeated=S.bossDefeated||{};
+  S.seenFoes=S.seenFoes||{};
+  S.seenTravelEvents=S.seenTravelEvents||{};
+  S.skillPracticeSources=S.skillPracticeSources||{};
+  S.lootHistory=Array.isArray(S.lootHistory)?S.lootHistory:[];
+  S.inventory=S.inventory||{};
+  S.inventory.misc=S.inventory.misc||{};
+  S.inventory.weapons=Array.isArray(S.inventory.weapons)?S.inventory.weapons:[];
+  if(S.foe){
+    const base=profileById(S.foe.profile?.id||S.foe.key);
+    if(base){S.foe.profile=base;S.foe.weakness=base.weakness;}
+  }
+  if(S.boon){
+    S.boon.remainingMs=Math.max(0,S.boon.remainingMs||0);
+    S.boon.expiresAt=null;
+    S.boon.frozen=true;
+  }
+  if(S.activeHollow && S.activeHollow.kind!=="stage" && !S.activeHollow.autoResumeCancelled){
+    const remaining=Math.max(0,S.activeHollow.autoResumeRemainingMs??HOLLOW_AUTO_RESUME_MS);
+    delete S.activeHollow.autoResumeRemainingMs;
+    S.activeHollow.autoResumeAt=Date.now()+remaining;
+  }
+}
+function showDeathScreen(){
+  if(!S) return;
+  document.querySelectorAll(".dead").forEach(n=>n.remove());
+  const killer=S.foe?.name?cap(S.foe.name):"the dark";
+  const d=document.createElement("div");
+  d.className="dead";
+  d.innerHTML=`<h2>${esc(S.name)}'s chronicle ends here.</h2>
+    <p>The dark keeps the rest.</p>
+    <div class="chronicle">
+      <div><span>Folk</span><b>${esc(S.folk)}</b></div>
+      <div><span>Trade</span><b>${esc(S.trade)}</b></div>
+      <div><span>Origin</span><b>${esc(S.origin)}</b></div>
+      <div><span>Calling</span><b>${esc(S.className)} · Level ${S.level}</b></div>
+      <div><span>Foes defeated</span><b>${S.kills||0}</b></div>
+      <div><span>Depth reached</span><b>${formatDepth(S.depth)} fathoms</b></div>
+      <div><span>Fell to</span><b>${esc(killer)}</b></div>
+    </div>
+    <button id="btnNew">Face the Dark Again</button>`;
+  $("arena").appendChild(d);
+  $("btnNew").addEventListener("click",beginNewChronicle);
+}
+function beginNewChronicle(){
+  clearRunSave();
+  S=null;
+  knowledge={};
+  over=false;
+  encounterWarningState=null;
+  stopEncounterWarningFrame();
+  clearCombatTransitionTimers();
+  clearCombatVictoryTimer();
+  clearHollowTimer();
+  openCreator({keepChoices:true});
+}
+function restoreRun(snapshot){
+  if(!snapshot) return false;
+  restoringRun=true;
+  try{
+    stopEncounterWarningFrame();
+    clearCombatTransitionTimers();
+    clearCombatVictoryTimer();
+    clearHollowTimer();
+    document.querySelectorAll(".dead").forEach(n=>n.remove());
+    S=cloneForSave(snapshot.state);
+    knowledge=cloneForSave(snapshot.knowledge||{});
+    over=!!snapshot.over;
+    armed=null;
+    combatVictoryPending=null;
+    selectedLootHistoryId=null;
+    statPointDraft=Object.fromEntries(STAT_KEYS.map(stat=>[stat,0]));
+    travelLogExpanded=!!snapshot.ui?.travelLogExpanded;
+    normalizeRestoredRun();
+    creatorDraft={
+      name:"",folk:S.folk||null,trade:S.trade||null,origin:S.origin||null,className:S.className||null,
+      humanPlus2:S.folkChoices?.plus2||null,humanPlus1:S.folkChoices?.plus1||null,humanMinus2:S.folkChoices?.minus2||null
+    };
+
+    $("creator").hidden=true;
+    $("packSheet").hidden=true;
+    $("sheet").hidden=true;
+    $("restAbilityPick").hidden=true;
+    $("charSheet").hidden=true;
+    $("lootHistorySheet").hidden=true;
+    rebuildTravelLogFromState();
+    renderTravelLogCollapse();
+
+    encounterWarningState=null;
+    suspendedEncounterWarningMs=null;
+    if(snapshot.pendingEncounter && !over && !S.foe){
+      const pe=snapshot.pendingEncounter;
+      const profile=profileById(pe.profileId)||(pe.options?.boss?BOSS_PROFILE:null);
+      if(profile){
+        encounterWarningState={
+          options:{...(pe.options||{})},profile,priorMode:pe.priorMode||"stopped",
+          startedAt:performance.now(),deadline:performance.now()+Math.max(0,pe.remainingMs||0),
+          variantIndex:pe.variantIndex||0
+        };
+      }
+    }
+
+    levelUpNoticeDismissed=true;
+    levelUpNoticeDeadline=0;
+    if(snapshot.levelUpNotice && S.statPoints>0 && !over && !encounterWarningState){
+      levelUpNoticeDismissed=false;
+      levelUpNoticeDeadline=performance.now()+Math.max(0,snapshot.levelUpNotice.remainingMs||0);
+    }
+
+    if(S.boon && (S.travelMode==="descend"||S.travelMode==="explore"||S.travelMode==="side") && !S.foe && !S.travelEvent && !S.activeHollow && !encounterWarningState && !over) resumeBoonClock();
+
+    say(`<p class="note">Chronicle restored at <b>${formatDepth(S.depth)} fathoms</b>.</p>`);
+    render();
+
+    if(over) showDeathScreen();
+    else if(S.foe?.defeated){combatVictoryPending=S.foe;setTimeout(()=>finalizeCombatVictory(S.foe),0);}
+    else if(encounterWarningState){
+      if(encounterWarningState.deadline<=performance.now()) setTimeout(beginEncounterTransition,0);
+      else encounterWarningFrame=requestAnimationFrame(encounterWarningLoop);
+    }
+    if(S.activeHollow) startHollowTimer();
+    return true;
+  }finally{
+    restoringRun=false;
+    lastSaveAt=Date.now();
+  }
+}
+function suspendRuntime(){
+  if(appSuspended) return;
+  appSuspended=true;
+  if(encounterWarningState){
+    suspendedEncounterWarningMs=Math.max(0,encounterWarningState.deadline-performance.now());
+    stopEncounterWarningFrame();
+  }
+  if(!levelUpNoticeDismissed && levelUpNoticeDeadline){
+    suspendedLevelUpNoticeMs=Math.max(0,levelUpNoticeDeadline-performance.now());
+    stopLevelUpNoticeFrame();
+  }
+  if(S?.activeHollow && S.activeHollow.kind!=="stage" && !S.activeHollow.autoResumeCancelled){
+    suspendedHollowResumeMs=Math.max(0,(S.activeHollow.autoResumeAt||Date.now())-Date.now());
+    clearHollowTimer();
+  }
+  pauseBoonClock();
+  saveRunNow();
+}
+function resumeRuntime(){
+  if(!appSuspended) return;
+  appSuspended=false;
+  if(encounterWarningState && suspendedEncounterWarningMs!=null){
+    encounterWarningState.deadline=performance.now()+suspendedEncounterWarningMs;
+    encounterWarningState.startedAt=performance.now();
+    suspendedEncounterWarningMs=null;
+    encounterWarningFrame=requestAnimationFrame(encounterWarningLoop);
+  }
+  if(!levelUpNoticeDismissed && suspendedLevelUpNoticeMs!=null){
+    levelUpNoticeDeadline=performance.now()+suspendedLevelUpNoticeMs;
+    suspendedLevelUpNoticeMs=null;
+    levelUpNoticeFrame=requestAnimationFrame(levelUpNoticeLoop);
+  }
+  if(S?.activeHollow && suspendedHollowResumeMs!=null){
+    S.activeHollow.autoResumeAt=Date.now()+suspendedHollowResumeMs;
+    suspendedHollowResumeMs=null;
+    startHollowTimer();
+  }
+  if(S?.boon && (S.travelMode==="descend"||S.travelMode==="explore"||S.travelMode==="side") && !S.foe && !S.travelEvent && !S.activeHollow && !encounterWarningState && !over) resumeBoonClock();
+  render();
+  requestRunSave();
+}
+
 // Hard state guards are consolidated into the canonical field-use functions above.
 
 function renderTravelLogCollapse(){
@@ -5806,8 +6094,20 @@ $("creatorName").addEventListener("keydown", e => {
   if(e.key === "Enter" && creatorComplete()) signFate();
 });
 
-setInterval(travelTick, TRAVEL_TICK_MS);
-renderCreator();
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden) suspendRuntime();
+  else resumeRuntime();
+});
+window.addEventListener("pagehide",()=>{suspendRuntime();saveRunNow();});
+window.addEventListener("pageshow",()=>{if(!document.hidden) resumeRuntime();});
+$("arena").addEventListener("click",()=>{setTimeout(saveRunNow,0);});
+
+function bootGame(){
+  const restored=restoreRun(loadRunSnapshot());
+  if(!restored) renderCreator();
+  setInterval(travelTick,TRAVEL_TICK_MS);
+}
+bootGame();
 </script>
 </body>
 </html>
