@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.083.1 — Session 9B.1 Character Slots + Equipment QOL</title>
+<title>Lowfathom v0.083.3 — Session 9B.1 Equipment Filter QOL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.083.1 Session 9B.1 character slots + equipment QOL + protected v0.075 Smite FX
+   LOWFATHOM — v0.083.3 Session 9B.1 equipment filter QOL + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -90,6 +90,8 @@
    - v0.082.1: Session 9A refinement — anatomical slot layout, Main/Off Hand labels, inline grid inspection and two-handed Off Hand state
    - v0.083.0: Session 9B real equipment state, Backpack swapping, automatic iLv/Gear comparison and two-handed Great Weapon handling
    - v0.083.1: Session 9B.1 three chronicle slots, equipment filters/sorting, empty Main Hand, dual-wield compatibility and equip QOL
+   - v0.083.2: character-slot delete controls and Settings access from character creation
+   - v0.083.3: equipment filter rows preserve horizontal scroll position while filtering and rerendering
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9B attaches real equip/swap state and comparisons; detailed item stat effects remain provisional until Session 9C.
@@ -959,9 +961,12 @@ button{
 .settings-slot-copy em{display:block;font-style:normal;font-family:var(--cond);font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--lamp-dim)}
 .settings-slot-copy b{display:block;margin-top:1px;font-family:var(--slab);font-size:14px;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .settings-slot-copy span{display:block;margin-top:2px;font-family:var(--cond);font-size:9.5px;line-height:1.3;color:var(--dim)}
+.settings-slot-actions{display:flex;gap:5px;align-items:center}
 .settings-slot-btn{min-width:64px;border:1px solid var(--rule-hi);background:#11171c;padding:7px 8px;font-family:var(--cond);font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:var(--bone)}
 .settings-slot-btn.active{border-color:var(--lamp-dim);color:var(--lamp);cursor:default}
 .settings-slot-btn:disabled{border-color:var(--rule);background:#101418;color:#3f4954;cursor:not-allowed}
+.settings-slot-delete{min-width:54px;border:1px solid #754132;background:#181313;padding:7px 8px;font-family:var(--cond);font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#c96d56}
+.settings-slot-delete:disabled{border-color:var(--rule);background:#101418;color:#3f4954;cursor:not-allowed}
 
 @media (max-width:390px){
   .equipment-stage{grid-template-columns:40px minmax(0,1fr) 94px;gap:4px;padding:6px}
@@ -1123,7 +1128,7 @@ button{
 
 /* ---------- v0.081.1: persistent Settings foundation ---------- */
 .char-head-buttons{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
-.settings-sheet{position:absolute;inset:0;z-index:12;display:flex;flex-direction:column;justify-content:flex-end}
+.settings-sheet{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-end}
 .settings-sheet[hidden]{display:none}
 .settings-scrim{flex:1;min-height:0;background:rgba(8,11,14,.76)}
 .settings-panel{max-height:88%;overflow-y:auto;background:var(--panel);border-top:1px solid var(--lamp-dim)}
@@ -1154,8 +1159,14 @@ button{
 }
 .creator[hidden]{display:none}
 .creator-head{
-  padding:calc(18px + env(safe-area-inset-top)) 15px 13px;
+  position:relative;
+  padding:calc(18px + env(safe-area-inset-top)) 66px 13px 15px;
   background:#12181e;border-bottom:1px solid var(--rule);
+}
+.creator-settings-cog{
+  position:absolute;right:12px;top:calc(12px + env(safe-area-inset-top));
+  width:44px;min-width:44px;height:44px;min-height:44px;border:1px solid var(--rule-hi);
+  background:#10161b;z-index:1;
 }
 .creator-head em{
   display:block;font-style:normal;font-family:var(--cond);font-size:9.5px;
@@ -1367,6 +1378,7 @@ button{
 
   <section class="creator" id="creator" aria-label="Create a delver">
     <div class="creator-head">
+      <button class="settings-cog creator-settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
       <em>Lowfathom · Character creation</em>
       <h1>Before the descent</h1>
       <p>Give the dark a name to remember.</p>
@@ -1410,7 +1422,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.083.0</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.083.3</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1438,7 +1450,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.083.0</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.083.3</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -1938,7 +1950,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.083.1";
+const BUILD_VERSION = "v0.083.3";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -2893,13 +2905,30 @@ const EQUIPMENT_FILTERS = [
 ];
 const DUAL_WIELD_FAMILIES = new Set(["dagger"]);
 function equipmentFilterDef(id=equipmentFilter){ return EQUIPMENT_FILTERS.find(f=>f.id===id)||EQUIPMENT_FILTERS[0]; }
+const equipmentFilterScrollLeft = {equipment:0,pack:0};
+function rememberEquipmentFilterScroll(){
+  document.querySelectorAll(".equipment-filter-row[data-equipment-filter-context]").forEach(row=>{
+    equipmentFilterScrollLeft[row.dataset.equipmentFilterContext]=row.scrollLeft;
+  });
+}
+function restoreEquipmentFilterScroll(){
+  document.querySelectorAll(".equipment-filter-row[data-equipment-filter-context]").forEach(row=>{
+    row.scrollLeft=equipmentFilterScrollLeft[row.dataset.equipmentFilterContext]||0;
+  });
+}
 function equipmentFilterButtonsHtml(){
   return EQUIPMENT_FILTERS.map(f=>`<button class="equipment-filter${equipmentFilter===f.id?" selected":""}" type="button" data-equipment-filter="${f.id}">${esc(f.label)}</button>`).join("");
 }
 function setEquipmentFilter(id){
   if(!EQUIPMENT_FILTERS.some(f=>f.id===id)) return;
+  rememberEquipmentFilterScroll();
   equipmentFilter=id;
-  if(S){renderEquipmentUI();renderPack();}
+  if(S){
+    renderEquipmentUI();
+    renderPack();
+    restoreEquipmentFilterScroll();
+    if(typeof requestAnimationFrame==="function") requestAnimationFrame(restoreEquipmentFilterScroll);
+  }
 }
 function ensureEquipmentState(){
   if(!S) return;
@@ -3133,6 +3162,7 @@ function renderEquipmentInfo(items){
 }
 function renderEquipmentUI(){
   if(!S) return;
+  rememberEquipmentFilterScroll();
   ensureEquipmentState();
   const items=equipmentItems();
   const count=equipmentEquippedCount(items),gear=equipmentGearLevel();
@@ -3158,8 +3188,9 @@ function renderEquipmentUI(){
       const d=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentCompareHtml(id,target);
       return `<button class="equipment-compact-item equipment-backpack-item" type="button" data-equipment-item="${id}" data-equipment-target="${target||""}"><small>Backpack · ${esc(EQUIPMENT_SLOT_LABELS[target]||d.slot)}</small><b>${esc(d.name)}</b><span>iLv ${d.itemLevel} · ${esc(d.rarity)}</span><span class="equipment-compare">${cmp}</span></button>`;
     }).join(""):`<div class="equipment-filter-empty">No carried equipment matches this filter.</div>`;
-    compact.innerHTML=`${equippedHtml}<div class="equipment-list-subhead">Backpack equipment · automatic comparison</div><div class="equipment-filter-row">${equipmentFilterButtonsHtml()}</div>${bagHtml}`;
+    compact.innerHTML=`${equippedHtml}<div class="equipment-list-subhead">Backpack equipment · automatic comparison</div><div class="equipment-filter-row" data-equipment-filter-context="equipment">${equipmentFilterButtonsHtml()}</div>${bagHtml}`;
   }
+  restoreEquipmentFilterScroll();
 }
 function selectEquipmentSlot(slot){
   if(!EQUIPMENT_SLOT_ORDER.includes(slot)) return;
@@ -3426,6 +3457,7 @@ function closePack(){
 }
 function renderPack(){
   if(!S) return;
+  rememberEquipmentFilterScroll();
   $("packCampSupplies").textContent=`×${S.inventory.campSupplies}`;
   const root=$("packDynamicItems");
   if(!root) return;
@@ -3445,7 +3477,7 @@ function renderPack(){
   ensureEquipmentState();
   if(S.inventory.equipment.length){
     const filteredEquipment=sortedBackpackEquipment(equipmentFilter);
-    html+=`<div class="pack-equipment-head"><div class="pack-equipment-headline"><b>Equipment</b><span>${S.inventory.equipment.length} carried · automatic comparison</span></div><div class="equipment-filter-row">${equipmentFilterButtonsHtml()}</div></div>`;
+    html+=`<div class="pack-equipment-head"><div class="pack-equipment-headline"><b>Equipment</b><span>${S.inventory.equipment.length} carried · automatic comparison</span></div><div class="equipment-filter-row" data-equipment-filter-context="pack">${equipmentFilterButtonsHtml()}</div></div>`;
     html+=filteredEquipment.length?filteredEquipment.map(id=>{
       const g=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentComparison(id,target,equipmentFilter);
       return `<div class="pack-item compact equipment-pack"><div class="pack-item-top"><b>${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span></b><strong>iLv ${g.itemLevel}</strong></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta ${deltaClass(cmp.itemDelta)}">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta ${deltaClass(cmp.gearDelta)}">Gear ${deltaText(cmp.gearDelta,1)}</span></div><div class="pack-actions"><button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button></div></div>`;
@@ -3457,6 +3489,7 @@ function renderPack(){
   const head=document.querySelector("#packSheet .pack-head span");
   if(head) head.textContent=offer?"choose one offering":"your pack · travel continues";
   if(encounterWarningActive()) document.querySelectorAll("[data-use-bandage],[data-equip-weapon],[data-equip-equipment],[data-offer-item]").forEach(el=>el.disabled=true);
+  restoreEquipmentFilterScroll();
 }
 
 function spawnEncounter(options={}){
@@ -6356,7 +6389,7 @@ function slotSnapshotSummary(slot){
   }
   return {kind:"empty"};
 }
-function canSwitchCharacterSlot(){ return !!S && !S.foe && !encounterWarningActive(); }
+function canSwitchCharacterSlot(){ return (!S && !$("creator")?.hidden) || (!!S && !S.foe && !encounterWarningActive()); }
 function renderCharacterSlots(){
   const root=$("characterSlotList"); if(!root) return;
   const safe=canSwitchCharacterSlot();
@@ -6370,9 +6403,36 @@ function renderCharacterSlots(){
     }else if(summary.kind==="future"){title="Newer save format";meta=`Schema ${summary.schema} needs a newer Fathom build.`;button="Unavailable";}
     else if(summary.kind==="invalid"||summary.kind==="error"){title="Unreadable Chronicle";meta="This slot cannot be previewed safely.";button="Unavailable";}
     const disabled=active || summary.kind==="future" || summary.kind==="invalid" || summary.kind==="error" || (!safe && !active);
-    return `<div class="settings-slot${active?" active":""}"><div class="settings-slot-copy"><em>Slot ${slot}${active?" · active":""}</em><b>${esc(title)}</b><span>${esc(meta)}</span></div><button class="settings-slot-btn${active?" active":""}" type="button" data-character-slot="${slot}" ${disabled?"disabled":""}>${esc(button)}</button></div>`;
+    const canDelete=summary.kind!=="empty";
+    const deleteDisabled=canDelete && active && !safe;
+    return `<div class="settings-slot${active?" active":""}"><div class="settings-slot-copy"><em>Slot ${slot}${active?" · active":""}</em><b>${esc(title)}</b><span>${esc(meta)}</span></div><div class="settings-slot-actions"><button class="settings-slot-btn${active?" active":""}" type="button" data-character-slot="${slot}" ${disabled?"disabled":""}>${esc(button)}</button>${canDelete?`<button class="settings-slot-delete" type="button" data-delete-character-slot="${slot}" ${deleteDisabled?"disabled":""}>Delete</button>`:""}</div></div>`;
   }).join("");
 }
+function deleteCharacterSlot(slot){
+  slot=Number(slot);
+  if(![1,2,3].includes(slot)) return false;
+  const summary=slotSnapshotSummary(slot);
+  if(summary.kind==="empty") return false;
+  const active=slot===currentRunSlot;
+  if(active && !canSwitchCharacterSlot()) return false;
+  const label=summary.kind==="run" ? summary.name : `Slot ${slot}`;
+  if(!window.confirm(`Delete ${label}?\n\nThis permanently erases this chronicle from Slot ${slot}. This cannot be undone.`)) return false;
+  clearScheduledSave();
+  try{
+    localStorage.removeItem(runSlotKey(slot));
+    if(slot===1) for(const key of LEGACY_SAVE_KEYS) localStorage.removeItem(key);
+  }catch(err){
+    console.error("Lowfathom character slot delete failed",err);
+    return false;
+  }
+  if(!active){renderCharacterSlots();return true;}
+  resetRuntimeForSlotChange();
+  S=null;knowledge={};over=false;runSaveWritesBlocked=false;runSaveLoadIssue=null;
+  creatorDraft={name:"",folk:null,trade:null,origin:null,className:null,humanPlus2:null,humanPlus1:null,humanMinus2:null};
+  openCreator({keepChoices:true});
+  return true;
+}
+
 function resetRuntimeForSlotChange(){
   stopEncounterWarningFrame();clearCombatTransitionTimers();clearCombatVictoryTimer();clearHollowTimer();stopLevelUpNoticeFrame();pauseBoonClock();
   closePack();closeCharacterSheet();closeSettingsSheet();closeLootHistory();closeEquipmentInspect();
@@ -6398,7 +6458,8 @@ function switchCharacterSlot(slot){
 function renderSettingsSheet(){
   const sheet=$("settingsSheet");
   if(!sheet) return;
-  if(!sheet.hidden && (over || !S)){
+  const creatorVisible=!$("creator")?.hidden;
+  if(!sheet.hidden && over && !creatorVisible){
     sheet.hidden=true;
     return;
   }
@@ -6415,7 +6476,8 @@ function renderSettingsSheet(){
   renderCharacterSlots();
 }
 function openSettingsSheet(){
-  if(over || !S) return;
+  const creatorVisible=!$("creator")?.hidden;
+  if((over || !S) && !creatorVisible) return;
   $("settingsSheet").hidden=false;
   renderSettingsSheet();
 }
@@ -7155,6 +7217,8 @@ $("encounterGraceChoices").addEventListener("click", e => {
 });
 $("btnResetSettings").addEventListener("click", resetSettings);
 $("characterSlotList").addEventListener("click", e => {
+  const del=e.target.closest("[data-delete-character-slot]");
+  if(del && !del.disabled){deleteCharacterSlot(del.dataset.deleteCharacterSlot);return;}
   const b=e.target.closest("[data-character-slot]");
   if(b && !b.disabled) switchCharacterSlot(b.dataset.characterSlot);
 });
