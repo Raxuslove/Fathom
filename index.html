@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.083.7 — Equipment Filter Flicker Fix</title>
+<title>Lowfathom v0.084.0 — Session 9C Item Power Foundation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.083.7 equipment filter render fix + protected v0.075 Smite FX
+   LOWFATHOM — v0.084.0 Session 9C item power foundation + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -40,12 +40,12 @@
    - player HP and Stamina sit on the player side above the action controls
    - six goblin archetypes use distinct intent weights and fixed weaknesses
    - the delver starts at Level 1 and 0 fathoms; XP and depth now progress
-   - Session 4: Descend moves continuously through 60-fathom strata
+   - Session 4: Descend moves continuously through strata (expanded to 500 fathoms in v0.084.0)
    - Session 4: Explore holds depth while using the same interruption engine
    - Session 4: interruption pressure rises after a short quiet stretch
    - Session 4: combat remains the generic random interruption result
    - Session 5: Rest heals 25% Max HP and recharges through 20 active travel units
-   - Session 5: two deterministic one-use safe hollows exist per 60-fathom stratum
+   - Session 5: safe hollows use a short independent cadence; staging hollows sit before each major stratum boss
    - Session 5: ordinary hollows auto-resume after 15 seconds unless the player interacts
    - Session 5: the pre-boss staging hollow never auto-resumes
    - Session 5: Camp costs 1 Camp Supply and fully restores HP + Stamina
@@ -96,9 +96,10 @@
    - v0.083.5: fixed inventory sheet height, clear descent backdrop and origin-aware return to Character Equipment
    - v0.083.6: persistent shaft visibility for browsing sheets plus compact Descend / Stop controls
    - v0.083.7: stop travel ticks rebuilding open inventory/equipment filters, preventing horizontal filter flicker
+   - v0.084.0: Session 9C foundation — 500-fathom strata, decoupled hollow/side/run cadence, unified weapon contribution, real Armor mitigation, rarity language and balance reference
 
    Session 8 is complete. Session 9 returns to gameplay systems.
-   Session 9B attaches real equip/swap state and comparisons; detailed item stat effects remain provisional until Session 9C.
+   Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
    ============================================================ */
 
 :root{
@@ -108,6 +109,10 @@
   --lamp:#e6c288; --lamp-dim:#8a7550;
   --rust:#b4553c; --verdigris:#5f9490;
   --stamina:#c89b4b; --warn:#d99a4e;
+  --rarity-salvage:#59636e; --rarity-poor:#8b7d70; --rarity-uncommon:#6f9e79;
+  --rarity-rare:#6a9bc4; --rarity-epic:#a87fc0; --rarity-wondrous:#c6b06f;
+  --rarity-legendary:#d99a4e; --rarity-mythical:#c97fa5; --rarity-ancient:#bd7655;
+  --rarity-sunless:#8275a2; --rarity-unfathomable:#ddd6c8;
   --mono:'IBM Plex Mono',ui-monospace,monospace;
   --slab:'Zilla Slab',Georgia,serif;
   --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
@@ -937,6 +942,11 @@ button{
 .equipment-delta.good{color:#92b896}
 .equipment-delta.bad{color:#d17459}
 .equipment-delta.same{color:#687580}
+.equipment-delta.power{color:var(--bone)}
+.rarity-salvage{color:var(--rarity-salvage)!important}.rarity-poor{color:var(--rarity-poor)!important}.rarity-common{color:var(--bone)!important}
+.rarity-uncommon{color:var(--rarity-uncommon)!important}.rarity-rare{color:var(--rarity-rare)!important}.rarity-epic{color:var(--rarity-epic)!important}
+.rarity-wondrous{color:var(--rarity-wondrous)!important}.rarity-legendary{color:var(--rarity-legendary)!important}.rarity-mythical{color:var(--rarity-mythical)!important}
+.rarity-ancient{color:var(--rarity-ancient)!important}.rarity-sunless{color:var(--rarity-sunless)!important}.rarity-unfathomable{color:var(--rarity-unfathomable)!important;text-shadow:0 0 8px rgba(221,214,200,.18)}
 .pack-compare{margin-top:5px;font-family:var(--cond);font-size:9.5px;color:var(--dim)}
 .pack-compare .equipment-delta{margin-right:7px}
 .pack-item.equipment-pack{border-left:2px solid #35424d}
@@ -1470,7 +1480,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.083.7</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.084.0</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1498,7 +1508,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.083.7</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.0</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -1644,7 +1654,7 @@ button{
           <div class="equipment-gear"><em>Gear level</em><b id="equipmentGearLevel">6.4</b></div>
           <button class="equipment-expand" id="btnEquipmentExpand" type="button" aria-expanded="false" aria-label="Expand equipment list" title="Expand equipment list">⌄</button>
         </div>
-        <div class="equipment-prototype-note">Session 9B.1 · inventory tabs, filtered Backpack categories, automatic equipment comparison and hand-slot QOL are active. Item stat effects remain provisional until Session 9C.</div>
+        <div class="equipment-prototype-note">Session 9C · weapon contribution and Armor mitigation are live. Attribute/utility item properties remain provisional until their own scaling curves are locked.</div>
         <div class="equipment-stage">
           <div class="equipment-ring-rail" id="equipmentRingRail"></div>
           <div class="equipment-body-grid" id="equipmentBodyGrid"></div>
@@ -1990,11 +2000,11 @@ const FOES = [
 const HIT_VERBS = ["Struck","Cut into","Caught","Opened up","Got through on","Landed on"];
 
 /* ============================================================
-   SESSION 4 — STRATA + TRAVEL
+   SESSION 4 / 9C — STRATA + TRAVEL
 
-   These are traversal pacing knobs, not combat balance.
-   Strata now use the intended 60-fathom prototype length. Session 5 also
-   defines deterministic recovery landmarks inside each stratum.
+   Major biome strata are 500 fathoms. Recovery, Run pressure and side-passage
+   opportunities deliberately keep their own shorter cadence so changing biome
+   length does not make the minute-to-minute delve sparse or punitive.
    ============================================================ */
 const STRATA_NAMED = [
   "The Goblin Warren",
@@ -2005,8 +2015,8 @@ const STRATA_NAMED = [
 ];
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
-const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.083.7";
+const FATHOMS_PER_STRATUM = 500;
+const BUILD_VERSION = "v0.084.0";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -2029,12 +2039,68 @@ const TRAIL_MARKER_Y = 77;             // visually centered while the route slop
    below the first 2.7× Heavy; Perfect Strike sits above it but below 4.7× Heavy. */
 const STRIKE_MULT = [1.0, 2.4, 3.5];
 
+/* Session 9C balance spine. Depth power is sublinear; Item Level remains a
+   fixed-rate rating of normalized slot budget. Enemy benchmarks always use
+   expected progression at depth, never the player's live stats. */
+const BALANCE_DEPTH_EXPONENT = 0.60;
+const ITEM_BUDGET_PER_ILVL = 0.195; // iLv 100 = 19.5 normalized 1.0-slot budget
+const ARMOR_BUDGET_COST = 1.5;
+const WEAPON_BUDGET_COST = 3;
+const ARMOR_CURVE_CONSTANT = 2.5;
+const SLOT_BUDGET_COEFFICIENTS = Object.freeze({
+  rightHand:1.00,leftHand:1.00,top:1.00,bottoms:0.80,hat:0.60,gloves:0.60,boots:0.60,
+  cape:0.45,belt:0.45,light:0.45,necklace:0.50,earLeft:0.30,earRight:0.30,
+  ring1:0.35,ring2:0.35,ring3:0.35,ring4:0.35
+});
+function depthGrowth(depth=S?.depth||0){ return Math.pow(Math.max(0,Number(depth)||0),BALANCE_DEPTH_EXPONENT); }
+function expectedPrimaryAtDepth(depth=S?.depth||0){ return 13 + 0.60*depthGrowth(depth); }
+function expectedConAtDepth(depth=S?.depth||0){ return 12 + 0.30*depthGrowth(depth); }
+function expectedMaxHpAtDepth(depth=S?.depth||0){ return expectedConAtDepth(depth)*6; }
+function expectedStrikeAtDepth(depth=S?.depth||0){ return expectedPrimaryAtDepth(depth); }
+function expectedEnemyHitAtDepth(depth=S?.depth||0){ return expectedMaxHpAtDepth(depth)/9; }
+function expectedMediumArmorAtDepth(depth=S?.depth||0){ return 3*expectedPrimaryAtDepth(depth); }
+function expectedItemBudgetAtDepth(depth=S?.depth||0){ return 19.5 + 0.90*depthGrowth(depth); }
+function itemBudgetFromLevel(ilvl){ return Math.max(0,Number(ilvl)||0)*ITEM_BUDGET_PER_ILVL; }
+function itemLevelFromBudget(budget){ return Math.max(0,Math.round((Number(budget)||0)/ITEM_BUDGET_PER_ILVL)); }
+function expectedItemLevelAtDepth(depth=S?.depth||0){ return itemLevelFromBudget(expectedItemBudgetAtDepth(depth)); }
+
+const RARITY_ORDER = Object.freeze(["Salvage","Poor","Common","Uncommon","Rare","Epic","Wondrous","Legendary","Mythical","Ancient","Sunless","Unfathomable"]);
+const RARITY_DEFS = Object.freeze({
+  Salvage:{unlockDepth:0,baseChance:0.08,budgetMult:0.75},
+  Poor:{unlockDepth:0,baseChance:0.18,budgetMult:0.88},
+  Common:{unlockDepth:0,baseChance:null,budgetMult:1.00},
+  Uncommon:{unlockDepth:0,baseChance:0.20,budgetMult:1.08},
+  Rare:{unlockDepth:0,baseChance:0.10,budgetMult:1.18},
+  Epic:{unlockDepth:250,baseChance:0.05,budgetMult:1.32},
+  Wondrous:{unlockDepth:500,baseChance:0.04,budgetMult:null},
+  Legendary:{unlockDepth:1000,baseChance:0.03,budgetMult:null},
+  Mythical:{unlockDepth:2000,baseChance:0.025,budgetMult:null},
+  Ancient:{unlockDepth:3000,baseChance:0.02,budgetMult:null},
+  Sunless:{unlockDepth:4000,baseChance:0.0175,budgetMult:null},
+  Unfathomable:{unlockDepth:5000,baseChance:0.005,budgetMult:null}
+});
+function rarityDef(name){ return RARITY_DEFS[name]||RARITY_DEFS.Common; }
+function rarityClass(name){ return `rarity-${String(name||"Common").toLowerCase().replace(/[^a-z]+/g,"")}`; }
+function unfathomableDropChance(depth=S?.depth||0){
+  const d=Math.max(0,Number(depth)||0);
+  if(d<5000) return 0;
+  return Math.min(0.015,0.005 + Math.floor((d-5000)/1000)*0.001);
+}
+function equipmentRarityChanceAtDepth(name,depth=S?.depth||0){
+  const def=rarityDef(name),d=Math.max(0,Number(depth)||0);
+  if(d<def.unlockDepth) return 0;
+  return name==="Unfathomable"?unfathomableDropChance(d):(def.baseChance??0);
+}
+
 /* Session 5 recovery pacing. These are deliberately isolated so phone
    playtesting can change them without touching combat balance. */
 const REST_RECOVERY_REQUIRED = 20;      // active travel units after each Rest; Descend, Explore and side-passage travel all count
 const REST_HEAL_FRACTION = 0.25;        // always based on Max HP, never current HP
-const HOLLOW_EARLY_OFFSET = 20;         // ordinary one-use safe hollow
-const HOLLOW_STAGE_OFFSET = 52;         // special pre-boss staging hollow
+const HOLLOW_FIRST_OFFSET = 20;         // first ordinary hollow inside each major stratum
+const HOLLOW_SPACING = 30;              // preserve the old ~30-fathom recovery rhythm
+const HOLLOW_STAGE_MARGIN = 8;           // special pre-boss staging hollow sits this far above the boundary
+const RUN_PRESSURE_RESET_FATHOMS = 60;  // Run pressure is encounter pacing, not biome pacing
+const SIDE_PASSAGE_CADENCE_FATHOMS = 60;// side opportunities remain frequent inside a 500-fathom biome
 const HOLLOW_AUTO_RESUME_MS = 15000;    // ordinary hollow only
 const LEVELUP_NOTICE_MS = 15000;         // informational only; does not pause the delve
 const COMBAT_RESULT_LINGER_MS = 1500;    // keep the lethal hit / 0 HP result readable before returning to travel
@@ -2185,7 +2251,7 @@ let combatVictoryPending = null;
 let combatVictoryTimer = null;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 2;
+const SAVE_SCHEMA = 3;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -3155,9 +3221,12 @@ function simulateEquipmentEquipDirect(itemId,target){
 function equipmentComparisonForTarget(itemId,target){
   const currentId=target?S?.equipment?.[target]:null;
   const itemDelta=equipmentItemLevel(itemId)-equipmentItemLevel(currentId);
-  const before=equipmentGearLevelFor();
-  const after=equipmentGearLevelFor(simulateEquipmentEquipDirect(itemId,target));
-  return {target,currentId,itemDelta,gearDelta:after-before,before,after};
+  const beforeState=S?.equipment||{}, afterState=simulateEquipmentEquipDirect(itemId,target);
+  const before=equipmentGearLevelFor(beforeState), after=equipmentGearLevelFor(afterState);
+  const armorBefore=equipmentArmorFor(beforeState),armorAfter=equipmentArmorFor(afterState);
+  const mitigationBefore=armorMitigationFor(beforeState),mitigationAfter=armorMitigationFor(afterState);
+  const strikeBefore=weaponAttackBaseForEquipment(beforeState),strikeAfter=weaponAttackBaseForEquipment(afterState);
+  return {target,currentId,itemDelta,gearDelta:after-before,before,after,armorBefore,armorAfter,mitigationBefore,mitigationAfter,strikeBefore,strikeAfter};
 }
 function recommendedEquipmentSlot(itemId,preferred=null,filterId="all"){
   const slots=equipmentFilterCompatibleSlots(itemId,filterId);
@@ -3196,8 +3265,12 @@ function deltaText(v,digits=0){
   return `${n>0?"+":""}${n.toFixed? n.toFixed(digits):n}`;
 }
 function equipmentCompareHtml(itemId,targetSlot=null){
-  const c=equipmentComparison(itemId,targetSlot), targetLabel=EQUIPMENT_SLOT_LABELS[c.target]||"slot";
-  return `<span class="equipment-delta ${deltaClass(c.itemDelta)}">iLv ${deltaText(c.itemDelta)}</span><span class="equipment-delta ${deltaClass(c.gearDelta)}">Gear ${deltaText(c.gearDelta,1)}</span><span>${esc(targetLabel)}</span>`;
+  const c=equipmentComparison(itemId,targetSlot), targetLabel=EQUIPMENT_SLOT_LABELS[c.target]||"slot",bits=[];
+  bits.push(`<span class="equipment-delta power">iLv ${deltaText(c.itemDelta)}</span>`,`<span class="equipment-delta power">Gear ${deltaText(c.gearDelta,1)}</span>`);
+  const armorDelta=(c.armorAfter??0)-(c.armorBefore??0); if(Math.abs(armorDelta)>.001) bits.push(`<span class="equipment-delta ${deltaClass(armorDelta)}">Armor ${deltaText(armorDelta)}</span>`);
+  const strikeDelta=(c.strikeAfter??0)-(c.strikeBefore??0); if(Math.abs(strikeDelta)>.05) bits.push(`<span class="equipment-delta ${deltaClass(strikeDelta)}">Strike ${deltaText(strikeDelta,1)}</span>`);
+  bits.push(`<span>${esc(targetLabel)}</span>`);
+  return bits.join("");
 }
 function removeEquipmentFromBag(itemId){
   const i=S.inventory.equipment.indexOf(itemId);
@@ -3279,7 +3352,7 @@ function renderEquipmentInfo(items){
   const equipped=equipmentEquippedCount(items),gear=equipmentGearLevel();
   const slot=equipmentInspectSlot;
   if(!slot){
-    root.innerHTML=`<em>Equipment info</em><b>Tap a slot</b><p>Inspect equipped gear here. Expand the list to compare Backpack items automatically against the slot they would replace.</p><dl><div><dt>Equipped</dt><dd>${equipped}/17</dd></div><div><dt>Gear</dt><dd>${gear}</dd></div><div><dt>Hands</dt><dd>${equipmentUsesBothHands(items)?"2H":"R / L"}</dd></div><div><dt>Light</dt><dd>${items.light?"ready":"empty"}</dd></div></dl>`;
+    root.innerHTML=`<em>Equipment info</em><b>Tap a slot</b><p>Inspect equipped gear here. Expand the list to compare Backpack items automatically against the slot they would replace.</p><dl><div><dt>Equipped</dt><dd>${equipped}/17</dd></div><div><dt>Gear</dt><dd>${gear}</dd></div><div><dt>Armor</dt><dd>${equipmentArmorFor()} · ${Math.round(armorMitigation()*100)}%</dd></div><div><dt>Hands</dt><dd>${equipmentUsesBothHands(items)?"2H":"R / L"}</dd></div><div><dt>Light</dt><dd>${items.light?"ready":"empty"}</dd></div></dl>`;
     return;
   }
   const label=EQUIPMENT_SLOT_LABELS[slot]||slot;
@@ -3294,12 +3367,12 @@ function renderEquipmentInfo(items){
     root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b>Empty</b><p>${count?`${count} compatible ${count===1?"item":"items"} in your Backpack. Expand the list to compare them.`:"Nothing compatible is currently carried."}</p><dl><div><dt>Equipped</dt><dd>${equipped}/17</dd></div><div><dt>Gear</dt><dd>${gear}</dd></div></dl>`;
     return;
   }
-  const stats=(item.stats||[`${item.stat||"Weapon"} scaling`,item.power?`Weapon power +${item.power}`:"Base weapon power"]).slice(0,3).map(stat=>{
+  const stats=(item.stats||[`${item.stat||"Weapon"} scaling`,`Weapon contribution +${weaponContribution(item).toFixed(1)}`]).slice(0,3).map(stat=>{
     const m=String(stat).match(/^(.*?)([+−-]\d+.*)$/);
     return m?`<div class="equipment-info-stat"><span>${esc(m[1].trim())}</span><strong>${esc(m[2])}</strong></div>`:`<div class="equipment-info-stat"><span>${esc(stat)}</span><strong>•</strong></div>`;
   }).join("");
   const compatible=S.inventory.equipment.filter(id=>compatibleEquipmentSlots(id).includes(slot)).length;
-  root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b>${esc(item.name)}</b><span class="equipment-info-meta">${esc(item.rarity)} · iLv ${item.ilvl}${item.twoHanded?" · two-handed":""}${equipmentItemDualWieldable(item.id)?" · dual-wieldable":""}</span><div class="equipment-info-stats">${stats}</div><p class="info-note">${esc(item.desc||"")}</p><dl><div><dt>Backpack</dt><dd>${compatible} match${compatible===1?"":"es"}</dd></div></dl><button class="equipment-info-action" type="button" data-equipment-inline-unequip="${slot}">Remove</button>`;
+  root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b class="${rarityClass(item.rarity)}">${esc(item.name)}</b><span class="equipment-info-meta"><span class="${rarityClass(item.rarity)}">${esc(item.rarity)}</span> · iLv ${item.ilvl}${item.twoHanded?" · two-handed":""}${equipmentItemDualWieldable(item.id)?" · dual-wieldable":""}</span><div class="equipment-info-stats">${stats}</div><p class="info-note">${esc(item.desc||"")}</p><dl><div><dt>Backpack</dt><dd>${compatible} match${compatible===1?"":"es"}</dd></div></dl><button class="equipment-info-action" type="button" data-equipment-inline-unequip="${slot}">Remove</button>`;
 }
 function renderEquipmentUI(){
   if(!S) return;
@@ -3327,7 +3400,7 @@ function renderEquipmentUI(){
     const bag=sortedBackpackEquipment(equipmentFilter);
     const bagHtml=bag.length?bag.map(id=>{
       const d=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentCompareHtml(id,target);
-      return `<button class="equipment-compact-item equipment-backpack-item" type="button" data-equipment-item="${id}" data-equipment-target="${target||""}"><small>Backpack · ${esc(EQUIPMENT_SLOT_LABELS[target]||d.slot)}</small><b>${esc(d.name)}</b><span>iLv ${d.itemLevel} · ${esc(d.rarity)}</span><span class="equipment-compare">${cmp}</span></button>`;
+      return `<button class="equipment-compact-item equipment-backpack-item" type="button" data-equipment-item="${id}" data-equipment-target="${target||""}"><small>Backpack · ${esc(EQUIPMENT_SLOT_LABELS[target]||d.slot)}</small><b class="${rarityClass(d.rarity)}">${esc(d.name)}</b><span>iLv ${d.itemLevel} · <span class="${rarityClass(d.rarity)}">${esc(d.rarity)}</span></span><span class="equipment-compare">${cmp}</span></button>`;
     }).join(""):`<div class="equipment-filter-empty">No carried equipment matches this filter.</div>`;
     compact.innerHTML=`${equippedHtml}<div class="equipment-list-subhead">Backpack equipment · automatic comparison</div><div class="equipment-filter-row" data-equipment-filter-context="equipment">${equipmentFilterButtonsHtml()}</div>${bagHtml}`;
   }
@@ -3368,15 +3441,21 @@ function renderEquipmentInspect(){
     root.innerHTML=`<div class="equipment-inspect-head"><div><em>${esc(label)}</em><h3 id="equipmentInspectName">Empty slot</h3></div><span class="equipment-inspect-rarity">Unequipped</span></div><div class="equipment-inspect-empty">Nothing is equipped here. Expand the equipment list to inspect compatible Backpack items.</div><div class="equipment-inspect-actions"><button class="primary" type="button" data-equipment-close style="grid-column:1/-1">Close</button></div>`;
     return;
   }
-  const stats=(item.stats||[`${item.stat||"Weapon"} scaling`,item.power?`Weapon power +${item.power}`:"Base weapon power"]).map(stat=>{
+  const stats=(item.stats||[`${item.stat||"Weapon"} scaling`,`Weapon contribution +${weaponContribution(item).toFixed(1)}`]).map(stat=>{
     const m=String(stat).match(/^(.*?)([+−-]\d+.*)$/);
     return m?`<div class="equipment-inspect-stat"><span>${esc(m[1].trim())}</span><b>${esc(m[2])}</b></div>`:`<div class="equipment-inspect-stat"><span>${esc(stat)}</span><b>•</b></div>`;
   }).join("");
   const candidate=!!candidateId;
   const comp=candidate?equipmentComparison(itemId,slot):null;
-  const compare=candidate?`<div class="equipment-inspect-special"><b>Compared with ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}</b><br><span class="equipment-delta ${deltaClass(comp.itemDelta)}">Item Level ${deltaText(comp.itemDelta)}</span> · <span class="equipment-delta ${deltaClass(comp.gearDelta)}">Gear Level ${deltaText(comp.gearDelta,1)}</span>${equipmentItemUsesBothHands(itemId)?`<br>Equipping this two-handed item returns the current Off Hand item to the Backpack.`:""}</div>`:"";
+  const compare=candidate?(()=>{
+    const lines=[`<span class="equipment-delta power">Item Level ${deltaText(comp.itemDelta)}</span> · <span class="equipment-delta power">Gear Level ${deltaText(comp.gearDelta,1)}</span>`];
+    if(Math.abs(comp.armorAfter-comp.armorBefore)>.001) lines.push(`Armor <span class="equipment-delta ${deltaClass(comp.armorAfter-comp.armorBefore)}">${comp.armorBefore} → ${comp.armorAfter}</span> · mitigation ${Math.round(comp.mitigationBefore*100)}% → ${Math.round(comp.mitigationAfter*100)}%`);
+    if(Math.abs(comp.strikeAfter-comp.strikeBefore)>.05) lines.push(`Basic attack <span class="equipment-delta ${deltaClass(comp.strikeAfter-comp.strikeBefore)}">${comp.strikeBefore.toFixed(1)} → ${comp.strikeAfter.toFixed(1)}</span>`);
+    if(equipmentItemUsesBothHands(itemId)) lines.push(`Equipping this two-handed item returns the current Off Hand item to the Backpack.`);
+    return `<div class="equipment-inspect-special"><b>Compared with ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}</b><br>${lines.join("<br>")}</div>`;
+  })():"";
   const canUnequip=!candidate;
-  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9B.1</b><br>Equip state, filters, Item Level, Gear Level, two-handed handling and dual-wield slot compatibility are active. Listed armor/utility stats remain informational until Session 9C.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
+  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName" class="${rarityClass(item.rarity)}">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity ${rarityClass(item.rarity)}">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9C</b><br>Weapon contribution and Armor are mechanical. Item Level is a fixed-rate budget rating; attribute/utility properties remain informational until their scaling curves are locked.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
 }
 function toggleEquipmentList(){
   equipmentListExpanded=false;
@@ -3440,25 +3519,25 @@ function canRest(){
     !encounterWarningActive() && restReady() &&
     (S.hp < S.hpMax || S.stamina < S.staminaMax || abilitiesNeedRestoration());
 }
-function hollowKey(stratum, kind){
-  return `${stratum}:${kind}`;
+function hollowKey(stratum, kind, ordinal=null){
+  return ordinal===null ? `${stratum}:${kind}` : `${stratum}:${kind}:${ordinal}`;
 }
-function hollowInfo(stratum, kind){
-  const offset = kind === "stage" ? HOLLOW_STAGE_OFFSET : HOLLOW_EARLY_OFFSET;
-  return {
-    stratum,
-    kind,
-    key:hollowKey(stratum,kind),
-    depth:stratum * FATHOMS_PER_STRATUM + offset
-  };
+function stageHollowInfo(stratum){
+  return {stratum,kind:"stage",key:hollowKey(stratum,"stage"),depth:(stratum+1)*FATHOMS_PER_STRATUM-HOLLOW_STAGE_MARGIN};
+}
+function ordinaryHollowsForStratum(stratum){
+  const base=stratum*FATHOMS_PER_STRATUM, stageDepth=stageHollowInfo(stratum).depth;
+  const out=[];
+  for(let depth=base+HOLLOW_FIRST_OFFSET,ordinal=0;depth<stageDepth-10;depth+=HOLLOW_SPACING,ordinal++){
+    out.push({stratum,kind:"ordinary",key:hollowKey(stratum,"ordinary",ordinal),depth});
+  }
+  return out;
 }
 function findCrossedHollow(beforeDepth, afterDepth){
   const first = Math.max(0, Math.floor(beforeDepth / FATHOMS_PER_STRATUM));
   const last = Math.max(first, Math.floor(afterDepth / FATHOMS_PER_STRATUM));
   const candidates = [];
-  for(let i = first; i <= last; i++){
-    candidates.push(hollowInfo(i,"early"), hollowInfo(i,"stage"));
-  }
+  for(let i = first; i <= last; i++) candidates.push(...ordinaryHollowsForStratum(i),stageHollowInfo(i));
   return candidates
     .filter(h => h.depth > beforeDepth + 0.0001 && h.depth <= afterDepth + 0.0001)
     .filter(h => !S.hollowStates[h.key])
@@ -3648,7 +3727,9 @@ function renderPack(rememberView=true){
     const filteredEquipment=sortedBackpackEquipment(equipmentFilter);
     root.innerHTML=filteredEquipment.length?filteredEquipment.map(id=>{
       const g=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentComparison(id,target,equipmentFilter);
-      return `<div class="pack-item compact equipment-pack"><div class="pack-item-top"><b>${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span></b><strong>iLv ${g.itemLevel}</strong></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta ${deltaClass(cmp.itemDelta)}">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta ${deltaClass(cmp.gearDelta)}">Gear ${deltaText(cmp.gearDelta,1)}</span></div><div class="pack-actions"><button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button></div></div>`;
+      const armorDelta=(cmp.armorAfter??0)-(cmp.armorBefore??0),strikeDelta=(cmp.strikeAfter??0)-(cmp.strikeBefore??0);
+      const consequences=`${Math.abs(armorDelta)>.001?`<span class="equipment-delta ${deltaClass(armorDelta)}">Armor ${deltaText(armorDelta)}</span>`:""}${Math.abs(strikeDelta)>.05?`<span class="equipment-delta ${deltaClass(strikeDelta)}">Strike ${deltaText(strikeDelta,1)}</span>`:""}`;
+      return `<div class="pack-item compact equipment-pack"><div class="pack-item-top"><b class="${rarityClass(g.rarity)}">${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span></b><strong>iLv ${g.itemLevel}</strong></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta power">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta power">Gear ${deltaText(cmp.gearDelta,1)}</span>${consequences}</div><div class="pack-actions"><button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button></div></div>`;
     }).join(""):`<div class="pack-note">No carried equipment matches this filter.</div>`;
     $("packNote").textContent="Equipment is filtered by compatible slot and sorted by current iLv upgrade potential.";
   }else{
@@ -3701,16 +3782,16 @@ function spawnEncounter(options={}){
 
   const base = options.profile || (options.boss ? BOSS_PROFILE : chooseFoeProfile());
   travelLogAdd(`Something moves in the dark. <b>${cap(article(base.name))}</b> closes on you.`,"danger");
-  const hpScale = 1 + S.depth/90;
-  const atkScale = 1 + S.depth/120;
   const hpRoll = 0.94 + rnd()*0.12;
-  const hpMax = Math.round(base.hp*hpScale*hpRoll);
+  const hpProfile = base.hp/34;
+  const atkProfile = base.atk/7;
+  const hpMax = Math.max(1,Math.round(expectedStrikeAtDepth(S.depth)*4.5*hpProfile*hpRoll));
   const firstSeen = !S.seenFoes[base.id];
 
   S.foe = {
     key:base.id,name:base.name,profile:base,
-    lv:Math.max(1,1+Math.floor(S.depth/12)+base.danger),
-    hp:hpMax,hpMax,atk:Math.max(1,Math.round(base.atk*atkScale)),
+    lv:Math.max(1,1+Math.floor(depthGrowth(S.depth)/5)+base.danger),
+    hp:hpMax,hpMax,atk:Math.max(1,Math.round(expectedEnemyHitAtDepth(S.depth)*atkProfile)),
     weakness:base.weakness,revealed:knowledgeReads(base.id)>=1,
     readUsed:false,whetstoneUsed:false,intent:null,
     blinded:false,offBalance:false,offBalanceStruck:false
@@ -4200,9 +4281,10 @@ function dmgStrike(stage=strikeStage()){
   const eff = weaknessEff();
   const mult = strikeMultiplier(stage);
   const swing = stage === 0 ? ri(0,4) : stage === 1 ? ri(0,5) : ri(0,6);
-  // Preserve the original Votary formula exactly. Rogue/Wizard basic attacks use
-  // the equipped weapon's scaling stat and power, formerly supplied by a wrapper.
-  const attack = S.className === "Votary" ? S.STR : attackStatValue();
+  // Session 9C: every class now uses the same split between its weapon's scaling
+  // attribute and the equipped weapon contribution. The weapon remains relevant
+  // without replacing level-up stat investment.
+  const attack = weaponAttackBase();
   let d = (attack * mult + swing) * openingBonus();
   if(eff.strikeBonus) d *= eff.strikeBonus;
   if(eff.recoverStrikeBonus && f.intent === "recover") d *= eff.recoverStrikeBonus;
@@ -4214,7 +4296,7 @@ function damageTypeMultiplier(type, foe=S.foe){
 }
 function dmgSmite(){
   const f = S.foe;
-  let physical = (S.STR + ri(0,4)) * openingBonus();
+  let physical = (weaponAttackBase() + ri(0,4)) * openingBonus();
   if(f.intent === "guard") physical *= (1 - INTENTS.guard.armour);
   physical = Math.max(1, Math.round(physical));
   const radiant = Math.max(0, Math.round(6 * damageTypeMultiplier("radiant", f)));
@@ -4229,7 +4311,7 @@ function dmgHeavy(charge=S.heavyCharge){
   const eff = weaknessEff();
   const useCharge = charge || 1;
   const mult = heavyMultiplier(useCharge);
-  const attack = S.className === "Votary" ? S.STR : attackStatValue();
+  const attack = weaponAttackBase();
   let d = (attack*mult + ri(0,6)) * openingBonus();
   if(eff.heavyBonus) d *= eff.heavyBonus;
   if(eff.fullHeavyBonus && useCharge >= 2) d *= eff.fullHeavyBonus;
@@ -4265,11 +4347,13 @@ function incoming(openMult=1){
   const I = INTENTS[f.intent];
   if(I.kind !== "attack") return 0;
   const learnedDefence = knowledgeDamageTakenMult(f.key);
-  let d = Math.max(0, Math.round(f.atk * I.mult * openMult * learnedDefence));
-  // Frailty is applied after the existing Bestiary damage reduction. This was
-  // previously a later wrapper around incoming().
-  if(curseActive() && S.curse.id === "frailty") d = Math.max(0, Math.round(d * 1.05));
-  return d;
+  let d = Math.max(0, f.atk * I.mult * openMult * learnedDefence);
+  // Frailty is applied after the existing Bestiary damage reduction.
+  if(curseActive() && S.curse.id === "frailty") d *= 1.05;
+  // Armor is a persistent equipment layer. Intent counters remain a separate
+  // tactical layer and are applied later by the chosen defence action.
+  d *= (1-armorMitigation());
+  return Math.max(0,Math.round(d));
 }
 function runCost(){
   const f = S.foe;
@@ -4427,8 +4511,7 @@ const ACTIONS = {
       const mult = strikeMultiplier(stage);
 
       if(S.className !== "Votary"){
-        const stat = attackStatKey();
-        let t = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${stat}</span> · <span class="cost">${c} stamina</span>`;
+        let t = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span> · <span class="cost">${c} stamina</span>`;
         if(stage < 2) t += ` · hit to build <span class="dmg">${strikeName(stage+1)}</span>`;
         else t += ` · hit completes the chain, then resets`;
         if(f.intent === "dodge") t += ` · <span class="bad">35% miss chance</span>`;
@@ -4437,7 +4520,7 @@ const ACTIONS = {
         return t;
       }
 
-      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× STR</span> · <span class="cost">${c} stamina</span>`;
+      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span> · <span class="cost">${c} stamina</span>`;
       if(c === 0) s += ` · <span class="dmg">Whetstone Work</span>`;
       if(stage < 2) s += ` · hit to build <span class="dmg">${strikeName(stage+1)}</span>`;
       else s += ` · hit completes the chain, then resets`;
@@ -4469,7 +4552,7 @@ const ACTIONS = {
 
   smite:{
     label:"Smite I",
-    sub:"0 stamina · 1.0× STR + 6 Radiant",
+    sub:"0 stamina · weapon attack + 6 Radiant",
     cost:0,
     preview(){
       const d = dmgSmite(), back = incoming();
@@ -4508,31 +4591,29 @@ const ACTIONS = {
     },
     sub(){
       if(S.className !== "Votary"){
-        const stat = attackStatKey();
-        if(S.heavyCharge >= 2) return `fully committed · 4.7× ${stat}`;
-        if(S.heavyCharge === 1) return `ready · 2.7× ${stat}`;
-        return `6 stamina · prepares 2.7× ${stat}`;
+        if(S.heavyCharge >= 2) return `fully committed · 4.7× attack`;
+        if(S.heavyCharge === 1) return `ready · 2.7× attack`;
+        return `6 stamina · prepares 2.7× attack`;
       }
-      if(S.heavyCharge >= 2) return "fully drawn · 4.7× STR";
-      if(S.heavyCharge === 1) return "ready · 2.7× STR";
+      if(S.heavyCharge >= 2) return "fully drawn · 4.7× attack";
+      if(S.heavyCharge === 1) return "ready · 2.7× attack";
       return "6 stamina · prepares 2.7×";
     },
     cost(){ return S.heavyCharge > 0 ? 0 : 6; },
     preview(){
       const f = S.foe;
       if(S.className !== "Votary"){
-        const stat = attackStatKey();
         if(S.heavyCharge === 0){
           const back = incoming();
-          return `Prepare a <span class="dmg">2.7× ${stat}</span> committed blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>${back?` · take <span class="bad">~${back}</span> while preparing`:""}`;
+          return `Prepare a <span class="dmg">2.7× ${attackScaleLabel()}</span> committed blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>${back?` · take <span class="bad">~${back}</span> while preparing`:""}`;
         }
         const d = dmgHeavy(), back = incoming(), mult = heavyMultiplier();
-        return `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${stat}</span> · releases before it acts${S.foe.intent==="dodge"?` · <span class="bad">70% miss chance</span>`:""}${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;
+        return `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span> · releases before it acts${S.foe.intent==="dodge"?` · <span class="bad">70% miss chance</span>`:""}${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;
       }
 
       if(S.heavyCharge === 0){
         const back = incoming();
-        let s = `Prepare a <span class="dmg">2.7× STR</span> blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>`;
+        let s = `Prepare a <span class="dmg">2.7× ${attackScaleLabel()}</span> blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>`;
         if(back) s += ` · you take <span class="bad">~${back}</span> while winding up`;
         else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
         s += ` · next turn: Release / Wind up further / ${defenceName()}`;
@@ -4541,7 +4622,7 @@ const ACTIONS = {
 
       const d = dmgHeavy(), back = incoming();
       const mult = heavyMultiplier();
-      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× STR</span> · <span class="cost">0 stamina</span> · releases before it acts`;
+      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span> · <span class="cost">0 stamina</span> · releases before it acts`;
       if(f.offBalance) s += ` · <span class="dmg">+${Math.round((openingBonus()-1)*100)}% opening</span>`;
       if(f.intent === "dodge") s += ` · <span class="bad">70% miss chance</span>`;
       if(f.intent === "guard") s += ` · punches through most of its guard`;
@@ -4581,7 +4662,7 @@ const ACTIONS = {
       if(S.heavyCharge >= 2) return `The blow is already fully drawn. Release it or ${defenceName()} to abandon it.`;
       const back = incoming();
       const full = dmgHeavy(2);
-      let s = `Commit another turn · <span class="cost">2 stamina</span> · raise the blow to <span class="dmg">4.7× STR (~${full} damage)</span>`;
+      let s = `Commit another turn · <span class="cost">2 stamina</span> · raise the blow to <span class="dmg">4.7× ${attackScaleLabel()} (~${full} damage)</span>`;
       if(back) s += ` · you take <span class="bad">~${back}</span> while drawing further`;
       else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
       s += ` · then Release or ${defenceName()}`;
@@ -4589,7 +4670,7 @@ const ACTIONS = {
     },
     run(){
       S.heavyCharge = 2;
-      return `<p class="good">Drew the blow back further. It is <b>fully drawn — 4.7× STR</b>.</p>`;
+      return `<p class="good">Drew the blow back further. It is <b>fully drawn — 4.7× attack</b>.</p>`;
     }
   },
 
@@ -5586,39 +5667,60 @@ const CLASS_DEFS = {
 const CLASS_ORDER = ["Votary","Rogue","Wizard"];
 
 const GEAR_ITEMS = {
-  worn_longsword:{name:"Worn Longsword",slot:"rightHand",slots:["rightHand"],stat:"STR",power:0,itemLevel:5,rarity:"Common",family:"sword",hands:1,desc:"Reliable Guild-issue steel."},
-  tempered_longsword:{name:"Tempered Longsword",slot:"rightHand",slots:["rightHand"],stat:"STR",power:2,itemLevel:8,rarity:"Uncommon",family:"sword",hands:1,desc:"A better-balanced STR weapon."},
-  worn_shortsword:{name:"Worn Shortsword",slot:"rightHand",slots:["rightHand"],stat:"DEX",power:0,itemLevel:5,rarity:"Common",family:"shortsword",hands:1,desc:"A light finesse weapon using DEX."},
-  balanced_dagger:{name:"Balanced Dagger",slot:"rightHand",slots:["rightHand"],stat:"DEX",power:2,itemLevel:8,rarity:"Uncommon",family:"dagger",hands:1,desc:"A precise finesse weapon using DEX."},
-  worn_wand:{name:"Worn Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",power:0,itemLevel:5,rarity:"Common",family:"wand",hands:1,desc:"An arcane focus; basic attacks use INT."},
-  etched_wand:{name:"Etched Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",power:2,itemLevel:8,rarity:"Uncommon",family:"wand",hands:1,desc:"A stronger arcane focus using INT."},
-  handaxe:{name:"Salvaged Hand-axe",slot:"rightHand",slots:["rightHand"],stat:"STR",power:1,itemLevel:6,rarity:"Common",family:"axe",hands:1,desc:"An off-class STR weapon."},
-  hunting_bow:{name:"Hunting Bow",slot:"rightHand",slots:["rightHand"],stat:"DEX",power:1,itemLevel:6,rarity:"Common",family:"bow",hands:2,desc:"A two-handed ranged DEX weapon."},
-  worn_greatsword:{name:"Worn Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",power:1,itemLevel:8,rarity:"Uncommon",family:"greatsword",hands:2,greatWeapon:true,desc:"A Great Weapon. It occupies both hands while equipped."}
+  worn_longsword:{name:"Worn Longsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Common",family:"sword",hands:1,desc:"Reliable Guild-issue steel."},
+  tempered_longsword:{name:"Tempered Longsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:108,rarity:"Uncommon",family:"sword",hands:1,desc:"A better-balanced STR weapon."},
+  worn_shortsword:{name:"Worn Shortsword",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:100,rarity:"Common",family:"shortsword",hands:1,desc:"A light finesse weapon using DEX."},
+  balanced_dagger:{name:"Balanced Dagger",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:108,rarity:"Uncommon",family:"dagger",hands:1,desc:"A precise finesse weapon using DEX."},
+  worn_wand:{name:"Worn Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:100,rarity:"Common",family:"wand",hands:1,desc:"An arcane focus; basic attacks use INT."},
+  etched_wand:{name:"Etched Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:108,rarity:"Uncommon",family:"wand",hands:1,desc:"A stronger arcane focus using INT."},
+  handaxe:{name:"Salvaged Hand-axe",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:102,rarity:"Common",family:"axe",hands:1,desc:"An off-class STR weapon."},
+  hunting_bow:{name:"Hunting Bow",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:100,rarity:"Common",family:"bow",hands:2,desc:"A two-handed ranged DEX weapon."},
+  worn_greatsword:{name:"Worn Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:108,rarity:"Uncommon",family:"greatsword",hands:2,greatWeapon:true,desc:"A Great Weapon. It occupies both hands while equipped."}
 };
 
 const EQUIPMENT_ITEMS = {
   ...GEAR_ITEMS,
-  worn_buckler:{name:"Worn Buckler",slot:"leftHand",slots:["leftHand"],itemLevel:6,rarity:"Common",family:"shield",stats:["Defence identity","Guard support"],desc:"A compact shield kept close to the body."},
-  parrying_knife:{name:"Parrying Knife",slot:"leftHand",slots:["leftHand"],itemLevel:6,rarity:"Common",stats:["Finesse offhand","Parry support"],desc:"A narrow offhand blade built to catch and redirect steel."},
-  chalkbound_grimoire:{name:"Chalkbound Grimoire",slot:"leftHand",slots:["leftHand"],itemLevel:6,rarity:"Common",stats:["Arcane focus","Translation aid"],desc:"A compact field grimoire bound for hostile conditions."},
-  hooded_lantern:{name:"Hooded Lantern",slot:"light",slots:["light"],itemLevel:5,rarity:"Common",stats:["Steady light","Hands remain free"],desc:"A shuttered lantern suited to long descents and controlled illumination."},
-  leather_coif:{name:"Leather Coif",slot:"hat",slots:["hat"],itemLevel:6,rarity:"Common",stats:["Armor +3","Perception +1"],desc:"Simple head protection that leaves hearing mostly unobstructed."},
-  grey_delvers_cape:{name:"Grey Delver's Cape",slot:"cape",slots:["cape"],itemLevel:4,rarity:"Common",stats:["Stealth +1","Cold ward +1"],desc:"A short cape cut not to snag easily on ladders or rough tunnels."},
-  saints_pendant:{name:"Saint's Pendant",slot:"necklace",slots:["necklace"],itemLevel:8,rarity:"Rare",stats:["WIS +1","Resolve +2"],desc:"A small devotional token worn close enough to grip in the dark."},
-  padded_delvers_jack:{name:"Padded Delver's Jack",slot:"top",slots:["top"],itemLevel:8,rarity:"Uncommon",stats:["Armor +6","CON +1"],desc:"Layered cloth reinforced for scraping stone, claws and hurried retreats."},
-  locksmith_gloves:{name:"Locksmith's Gloves",slot:"gloves",slots:["gloves"],itemLevel:7,rarity:"Rare",stats:["Armor +3","DEX +1","Rogue Tools +2"],desc:"Thin protected fingertips preserve touch while giving the palm and knuckles some protection."},
-  reinforced_trousers:{name:"Reinforced Trousers",slot:"bottoms",slots:["bottoms"],itemLevel:6,rarity:"Common",stats:["Armor +4","Athletics +1"],desc:"Heavy cloth with reinforced knees and seat for crawling through bad stone."},
-  tool_belt:{name:"Tool Belt",slot:"belt",slots:["belt"],itemLevel:5,rarity:"Common",stats:["Utility +1","Quick access"],desc:"Loops, ties and little pockets for the practical objects a descent keeps demanding."},
-  hobnailed_boots:{name:"Hobnailed Boots",slot:"boots",slots:["boots"],itemLevel:7,rarity:"Uncommon",stats:["Armor +3","Sure footing +2"],desc:"Hard soles and iron nails bite into timber, packed earth and old stairways."},
-  iron_signet:{name:"Iron Signet",slot:"ring",slots:["ring1","ring2","ring3","ring4"],itemLevel:7,rarity:"Uncommon",stats:["CON +1","Guard +1"],desc:"A heavy stamped ring whose original mark has been filed away."},
-  bone_ring:{name:"Bone Ring",slot:"ring",slots:["ring1","ring2","ring3","ring4"],itemLevel:5,rarity:"Uncommon",stats:["WIS +1","Read +1"],desc:"Polished pale bone, warm even when the surrounding stone is cold."},
-  copper_stud:{name:"Copper Stud",slot:"earring",slots:["earLeft","earRight"],itemLevel:4,rarity:"Common",stats:["Utility +1"],desc:"A plain copper stud made to survive rough travel."},
-  plate_gauntlets:{name:"Plate Gauntlets",slot:"gloves",slots:["gloves"],itemLevel:9,rarity:"Uncommon",stats:["Armor +8","Delicate work -2"],desc:"Heavy articulated plates prioritize protection over fine manipulation."}
+  worn_buckler:{name:"Worn Buckler",slot:"leftHand",slots:["leftHand"],itemLevel:100,rarity:"Common",family:"shield",armor:10,stats:["Armor +10","Guard support"],desc:"A compact shield kept close to the body."},
+  parrying_knife:{name:"Parrying Knife",slot:"leftHand",slots:["leftHand"],itemLevel:100,rarity:"Common",stats:["Finesse offhand","Parry support"],desc:"A narrow offhand blade built to catch and redirect steel."},
+  chalkbound_grimoire:{name:"Chalkbound Grimoire",slot:"leftHand",slots:["leftHand"],itemLevel:100,rarity:"Common",stats:["Arcane focus","Translation aid"],desc:"A compact field grimoire bound for hostile conditions."},
+  hooded_lantern:{name:"Hooded Lantern",slot:"light",slots:["light"],itemLevel:100,rarity:"Common",stats:["Steady light","Hands remain free"],desc:"A shuttered lantern suited to long descents and controlled illumination."},
+  leather_coif:{name:"Leather Coif",slot:"hat",slots:["hat"],itemLevel:100,rarity:"Common",armor:3,stats:["Armor +3","Perception +1"],desc:"Simple head protection that leaves hearing mostly unobstructed."},
+  grey_delvers_cape:{name:"Grey Delver's Cape",slot:"cape",slots:["cape"],itemLevel:100,rarity:"Common",stats:["Stealth +1","Cold ward +1"],desc:"A short cape cut not to snag easily on ladders or rough tunnels."},
+  saints_pendant:{name:"Saint's Pendant",slot:"necklace",slots:["necklace"],itemLevel:118,rarity:"Rare",stats:["WIS +1","Resolve +2"],desc:"A small devotional token worn close enough to grip in the dark."},
+  padded_delvers_jack:{name:"Padded Delver's Jack",slot:"top",slots:["top"],itemLevel:108,rarity:"Uncommon",armor:6,stats:["Armor +6","CON +1"],desc:"Layered cloth reinforced for scraping stone, claws and hurried retreats."},
+  locksmith_gloves:{name:"Locksmith's Gloves",slot:"gloves",slots:["gloves"],itemLevel:118,rarity:"Rare",armor:3,stats:["Armor +3","DEX +1","Rogue Tools +2"],desc:"Thin protected fingertips preserve touch while giving the palm and knuckles some protection."},
+  reinforced_trousers:{name:"Reinforced Trousers",slot:"bottoms",slots:["bottoms"],itemLevel:100,rarity:"Common",armor:4,stats:["Armor +4","Athletics +1"],desc:"Heavy cloth with reinforced knees and seat for crawling through bad stone."},
+  tool_belt:{name:"Tool Belt",slot:"belt",slots:["belt"],itemLevel:100,rarity:"Common",stats:["Utility +1","Quick access"],desc:"Loops, ties and little pockets for the practical objects a descent keeps demanding."},
+  hobnailed_boots:{name:"Hobnailed Boots",slot:"boots",slots:["boots"],itemLevel:108,rarity:"Uncommon",armor:3,stats:["Armor +3","Sure footing +2"],desc:"Hard soles and iron nails bite into timber, packed earth and old stairways."},
+  iron_signet:{name:"Iron Signet",slot:"ring",slots:["ring1","ring2","ring3","ring4"],itemLevel:108,rarity:"Uncommon",stats:["CON +1","Guard +1"],desc:"A heavy stamped ring whose original mark has been filed away."},
+  bone_ring:{name:"Bone Ring",slot:"ring",slots:["ring1","ring2","ring3","ring4"],itemLevel:108,rarity:"Uncommon",stats:["WIS +1","Read +1"],desc:"Polished pale bone, warm even when the surrounding stone is cold."},
+  copper_stud:{name:"Copper Stud",slot:"earring",slots:["earLeft","earRight"],itemLevel:100,rarity:"Common",stats:["Utility +1"],desc:"A plain copper stud made to survive rough travel."},
+  plate_gauntlets:{name:"Plate Gauntlets",slot:"gloves",slots:["gloves"],itemLevel:108,rarity:"Uncommon",armor:8,stats:["Armor +8","Delicate work -2"],desc:"Heavy articulated plates prioritize protection over fine manipulation."}
 };
 
 function equipmentItemDef(id){ return EQUIPMENT_ITEMS[id] || null; }
 function equipmentItemLevel(id){ return Number(equipmentItemDef(id)?.itemLevel)||0; }
+function equipmentItemArmor(id){
+  const def=equipmentItemDef(id); if(!def) return 0;
+  if(Number.isFinite(Number(def.armor))) return Math.max(0,Number(def.armor));
+  for(const stat of def.stats||[]){ const m=String(stat).match(/^Armor\s*\+(\d+(?:\.\d+)?)/i); if(m) return Number(m[1])||0; }
+  return 0;
+}
+function equipmentArmorFor(equipmentState=S?.equipment){
+  if(!equipmentState) return 0;
+  let total=0;
+  for(const slot of EQUIPMENT_SLOT_ORDER){
+    if(slot==="leftHand" && equipmentItemUsesBothHands(equipmentState.rightHand)) continue;
+    total+=equipmentItemArmor(equipmentState[slot]);
+  }
+  return total;
+}
+function armorMitigationFor(equipmentState=S?.equipment,depth=S?.depth||0){
+  const expected=Math.max(1,expectedMediumArmorAtDepth(depth));
+  const r=equipmentArmorFor(equipmentState)/expected;
+  return r<=0?0:r/(r+ARMOR_CURVE_CONSTANT);
+}
+function armorMitigation(){ return armorMitigationFor(); }
 function equipmentItemUsesBothHands(id){ const d=equipmentItemDef(id); return !!d && (d.hands===2 || d.greatWeapon===true); }
 function startingEquipmentLoadout(cls,weaponId){
   const offhand={Votary:"worn_buckler",Rogue:"parrying_knife",Wizard:"chalkbound_grimoire"}[cls]||"worn_buckler";
@@ -5651,7 +5753,7 @@ const BOSS_PROFILE = {
   weakness:{id:"rage_opening",txt:"Its second wind becomes reckless. Heavy commitment is easier to punish once it is bloodied.",eff:{counterBonus:1.40,offBalanceBonus:1.40}}
 };
 
-const UNARMED_WEAPON = Object.freeze({name:"Unarmed",stat:"STR",power:-4,itemLevel:0,rarity:"Common",family:"unarmed",hands:1,unarmed:true,desc:"No Main Hand weapon equipped."});
+const UNARMED_WEAPON = Object.freeze({name:"Unarmed",stat:"STR",itemLevel:0,rarity:"Common",family:"unarmed",hands:1,unarmed:true,weaponContribution:1,desc:"No Main Hand weapon equipped."});
 function classDef(){ return CLASS_DEFS[S?.className] || CLASS_DEFS.Votary; }
 function classAbilityOrder(){ return S ? classDef().abilities : CLASS_DEFS.Votary.abilities; }
 function proficiencyBonus(id){ return S?.proficiencies?.[id] || 0; }
@@ -5661,7 +5763,21 @@ function equippedWeaponDef(){
   return GEAR_ITEMS[id] || UNARMED_WEAPON;
 }
 function attackStatKey(){ return equippedWeaponDef().stat || "STR"; }
-function attackStatValue(){ const key=attackStatKey(); return (S?.[key] || 10) + (equippedWeaponDef().power || 0); }
+function weaponContribution(def=equippedWeaponDef()){
+  if(def?.unarmed) return Number(def.weaponContribution)||1;
+  const handUnits=Number(def?.hands||1)===2?2:1;
+  return itemBudgetFromLevel(def?.itemLevel||0)*handUnits/WEAPON_BUDGET_COST;
+}
+function attackStatValue(){ const key=attackStatKey(); return S?.[key] || 10; }
+function weaponAttackBase(def=equippedWeaponDef(),statValue=attackStatValue()){ return 0.5*statValue + weaponContribution(def); }
+function attackScaleLabel(){ return `${attackStatKey()} + weapon`; }
+function weaponDefForEquipment(equipmentState=S?.equipment){
+  const id=equipmentState?.rightHand; return GEAR_ITEMS[id]||UNARMED_WEAPON;
+}
+function weaponAttackBaseForEquipment(equipmentState=S?.equipment){
+  const def=weaponDefForEquipment(equipmentState), key=def.stat||"STR";
+  return 0.5*(S?.[key]||10)+weaponContribution(def);
+}
 function sideAreaActive(){ return !!S?.sideArea && !S.sideArea.completed && !S.sideArea.abandoned; }
 function curseActive(){ return !!S?.curse && (S.curse.remaining || 0) > 0; }
 function trapDc(base=12){ return base + Math.floor((S?.depth || 0)/30); }
@@ -6130,13 +6246,14 @@ ACTIONS.heavyfeint={
 // Six normal choices fit cleanly in the 2x3 pad. Heavy commitment remains focused;
 // Feint appears only when Dodge is specifically frustrating the prepared blow.
 
-// Run pressure is now uncertainty rather than an HP surcharge. Each attempt in a
-// stratum worsens the next escape chance: 100% -> 75% -> 50% -> 30% (floor).
+// Run pressure is now uncertainty rather than an HP surcharge. Attempts reset
+// on a short 60-fathom pressure band, independent of the 500-fathom biome.
+// Chance within a band: 100% -> 75% -> 50% -> 30% (floor).
 // A failed attempt costs no Run HP, but consumes the player's entire turn and lets
 // the foe resolve its already-declared intent normally.
 function syncRunAttempts(){
   if(!S)return 0;
-  const idx=stratumIndex(S.depth);
+  const idx=Math.max(0,Math.floor(S.depth/RUN_PRESSURE_RESET_FATHOMS));
   if(S.runAttemptStratum!==idx){S.runAttemptStratum=idx;S.runAttempts=0;}
   return S.runAttempts||0;
 }
@@ -6150,16 +6267,17 @@ ACTIONS.runattempt={
   run(){return `<p class="hurt"><b>Escape failed.</b> You lose the turn trying to break contact.</p>`;}
 };
 
-// One side-passage opportunity per stratum. Failing, declining or completing it
-// resolves that stratum's opportunity; the next stratum gets a fresh one.
+// Side-passage opportunities use their own 60-fathom cadence. Failing, declining
+// or completing one resolves that local opportunity without waiting 500 fathoms
+// for the next major biome.
 function syncSidePassageStratum(){
   if(!S||sideAreaActive())return;
-  const idx=stratumIndex(S.depth);
+  const idx=Math.max(0,Math.floor(S.depth/SIDE_PASSAGE_CADENCE_FATHOMS));
   if(S.sideDiscoveryStratum===idx)return;
   S.sideDiscoveryStratum=idx;
   S.sideDiscoveryAttempted=false;
   S.sideAreaResolved=false;
-  S.sideDiscoveryAt=idx*FATHOMS_PER_STRATUM+ri(15,30);
+  S.sideDiscoveryAt=idx*SIDE_PASSAGE_CADENCE_FATHOMS+ri(15,30);
 }
 
 // New delvers need the small Session 7.5 tracking fields explicitly initialized.
@@ -6767,8 +6885,33 @@ function migrateSave1To2(snapshot){
   if(next.over && next.state && Number(next.state.hp)>0) next.state.hp=0;
   return next;
 }
+function migrateSave2To3(snapshot){
+  const next=cloneForSave(snapshot);
+  next.schema=3;
+  const state=next.state;
+  if(isSaveRecord(state)){
+    // v0.084.0 expands major strata from 60 to 500 fathoms. Old stratum-indexed
+    // recovery/boss/run/side markers cannot be reinterpreted safely, so reset
+    // only those pacing markers. Character progression, depth, gear, inventory,
+    // Bestiary knowledge and combat resources remain untouched.
+    state.hollowStates={};
+    state.activeHollow=null;
+    state.bossDefeated={};
+    state.runAttemptStratum=null;
+    state.runAttempts=0;
+    if(!state.sideArea || state.sideArea.completed || state.sideArea.abandoned){
+      state.sideDiscoveryStratum=null;
+      state.sideDiscoveryAttempted=false;
+      state.sideAreaResolved=false;
+      state.sideDiscoveryAt=Number(state.depth)||0;
+    }
+  }
+  if(next.pendingEncounter?.options?.boss) next.pendingEncounter=null;
+  return next;
+}
 const SAVE_MIGRATIONS={
-  1:migrateSave1To2
+  1:migrateSave1To2,
+  2:migrateSave2To3
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
