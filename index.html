@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.083.6 — Persistent Descent Browsing</title>
+<title>Lowfathom v0.083.7 — Equipment Filter Flicker Fix</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.083.6 persistent descent browsing + protected v0.075 Smite FX
+   LOWFATHOM — v0.083.7 equipment filter render fix + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -95,6 +95,7 @@
    - v0.083.4: Backpack / Equipment inventory tabs, category filters and independent scroll state
    - v0.083.5: fixed inventory sheet height, clear descent backdrop and origin-aware return to Character Equipment
    - v0.083.6: persistent shaft visibility for browsing sheets plus compact Descend / Stop controls
+   - v0.083.7: stop travel ticks rebuilding open inventory/equipment filters, preventing horizontal filter flicker
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9B attaches real equip/swap state and comparisons; detailed item stat effects remain provisional until Session 9C.
@@ -1469,7 +1470,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.083.6</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.083.7</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1497,7 +1498,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.083.6</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.083.7</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -2005,7 +2006,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.083.6";
+const BUILD_VERSION = "v0.083.7";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -5264,7 +5265,9 @@ function renderTravel(){
   renderTrail();
   renderTravelEvent();
   renderSafeHollow();
-  renderPack();
+  // Inventory/equipment is rendered on open and on actual inventory interactions.
+  // Rebuilding it on every 500 ms travel tick caused the horizontal filter row
+  // to visibly flicker even though its scroll position was restored afterward.
   renderActiveBoon();
   renderBoonChoice();
 
