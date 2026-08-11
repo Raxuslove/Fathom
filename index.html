@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.083.0 — Session 9B Real Equipment Model</title>
+<title>Lowfathom v0.083.1 — Session 9B.1 Character Slots + Equipment QOL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.083.0 Session 9B real equipment model + protected v0.075 Smite FX
+   LOWFATHOM — v0.083.1 Session 9B.1 character slots + equipment QOL + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -89,6 +89,7 @@
    - v0.082.0: Session 9A equipment UI prototype — 17-slot spatial loadout, quick inspect and expandable compact list
    - v0.082.1: Session 9A refinement — anatomical slot layout, Main/Off Hand labels, inline grid inspection and two-handed Off Hand state
    - v0.083.0: Session 9B real equipment state, Backpack swapping, automatic iLv/Gear comparison and two-handed Great Weapon handling
+   - v0.083.1: Session 9B.1 three chronicle slots, equipment filters/sorting, empty Main Hand, dual-wield compatibility and equip QOL
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9B attaches real equip/swap state and comparisons; detailed item stat effects remain provisional until Session 9C.
@@ -930,6 +931,38 @@ button{
 .equipment-inspect-actions .primary{color:var(--lamp)}
 .equipment-inspect-empty{padding:14px 11px;background:#141a20;font-size:11px;line-height:1.4;color:var(--dim)}
 
+.equipment-info-action{
+  width:100%;margin-top:7px;border:1px solid var(--rule-hi);background:#11171c;padding:6px 5px;
+  font-family:var(--cond);font-size:7.8px;letter-spacing:.1em;text-transform:uppercase;color:#a8a296;
+}
+.equipment-info-action:active{background:#20272d;border-color:var(--lamp-dim);color:var(--lamp)}
+.equipment-filter-row{
+  grid-column:1/-1;display:flex;gap:4px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;
+  padding:6px 7px;background:#101418;border-bottom:1px solid var(--rule);-webkit-overflow-scrolling:touch;
+}
+.equipment-filter{
+  flex:0 0 auto;border:1px solid var(--rule-hi);background:#11171c;padding:5px 7px;min-height:30px;
+  font-family:var(--cond);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap;
+}
+.equipment-filter.selected{border-color:var(--lamp-dim);background:#20272d;color:var(--lamp)}
+.equipment-filter-empty{grid-column:1/-1;padding:11px 10px;background:#101418;color:#59636e;font-size:10px}
+.pack-equipment-head{background:#101418;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.pack-equipment-headline{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:8px 13px 5px}
+.pack-equipment-headline b{font-family:var(--slab);font-size:14px;color:var(--bone)}
+.pack-equipment-headline span{font-family:var(--cond);font-size:9px;color:var(--dim)}
+.pack-equipment-head .equipment-filter-row{border-bottom:none;padding:4px 9px 7px}
+.settings-slot-list{background:var(--rule)}
+.settings-slot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 13px;background:#141a20;border-top:1px solid var(--rule)}
+.settings-slot:first-child{border-top:none}
+.settings-slot.active{box-shadow:inset 3px 0 0 var(--lamp-dim);background:#171d23}
+.settings-slot-copy{min-width:0}
+.settings-slot-copy em{display:block;font-style:normal;font-family:var(--cond);font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--lamp-dim)}
+.settings-slot-copy b{display:block;margin-top:1px;font-family:var(--slab);font-size:14px;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.settings-slot-copy span{display:block;margin-top:2px;font-family:var(--cond);font-size:9.5px;line-height:1.3;color:var(--dim)}
+.settings-slot-btn{min-width:64px;border:1px solid var(--rule-hi);background:#11171c;padding:7px 8px;font-family:var(--cond);font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:var(--bone)}
+.settings-slot-btn.active{border-color:var(--lamp-dim);color:var(--lamp);cursor:default}
+.settings-slot-btn:disabled{border-color:var(--rule);background:#101418;color:#3f4954;cursor:not-allowed}
+
 @media (max-width:390px){
   .equipment-stage{grid-template-columns:40px minmax(0,1fr) 94px;gap:4px;padding:6px}
   .equipment-ring-rail,.equipment-body-grid{gap:4px}
@@ -1545,7 +1578,7 @@ button{
           <div class="equipment-gear"><em>Gear level</em><b id="equipmentGearLevel">6.4</b></div>
           <button class="equipment-expand" id="btnEquipmentExpand" type="button" aria-expanded="false" aria-label="Expand equipment list" title="Expand equipment list">⌄</button>
         </div>
-        <div class="equipment-prototype-note">Session 9B · equipped slots, Backpack swaps, Item Level and Gear Level are now real run state. Item stat effects remain provisional until Session 9C.</div>
+        <div class="equipment-prototype-note">Session 9B.1 · three chronicle slots, filtered Backpack comparison, empty Main Hand and improved hand-slot swapping are active. Item stat effects remain provisional until Session 9C.</div>
         <div class="equipment-stage">
           <div class="equipment-ring-rail" id="equipmentRingRail"></div>
           <div class="equipment-body-grid" id="equipmentBodyGrid"></div>
@@ -1603,6 +1636,11 @@ button{
             <button class="settings-choice" type="button" data-encounter-grace="30">30 sec</button>
           </div>
         </div>
+      </section>
+      <section class="settings-section">
+        <div class="settings-section-title">Character slots</div>
+        <div class="settings-slot-list" id="characterSlotList"></div>
+        <div class="settings-note">Three independent autosaved chronicles. Switching freezes the inactive delver exactly where they were; slots are not backup copies and permadeath still applies inside each chronicle.</div>
       </section>
       <div class="settings-note">Settings are stored separately from the current chronicle. They survive permadeath and starting a new delver.</div>
       <button class="settings-reset" id="btnResetSettings" type="button">Reset settings to defaults</button>
@@ -1900,7 +1938,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.083.0";
+const BUILD_VERSION = "v0.083.1";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -2065,6 +2103,7 @@ let equipmentInspectSlot = null;
 let equipmentInspectItemId = null;
 let equipmentInspectTargetSlot = null;
 let equipmentInspectExpanded = false;
+let equipmentFilter = "all";
 let statPointDraft = Object.fromEntries(STAT_KEYS.map(stat => [stat,0]));
 let levelUpNoticeDismissed = false;
 let levelUpNoticeDeadline = 0;
@@ -2077,6 +2116,9 @@ const SAVE_SCHEMA = 2;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
+const ACTIVE_RUN_SLOT_KEY = "lowfathom:active-run-slot";
+const RUN_SLOT_KEYS = Object.freeze({1:SAVE_KEY,2:"lowfathom:run:slot2",3:"lowfathom:run:slot3"});
+let currentRunSlot = 1;
 const SAVE_THROTTLE_MS = 750;
 let saveTimer = null;
 let lastSaveAt = 0;
@@ -2833,6 +2875,32 @@ const EQUIPMENT_BODY_LAYOUT = [
   ["gloves",4,1],["bottoms",4,2],["belt",4,3],
   ["boots",5,2]
 ];
+const EQUIPMENT_FILTERS = [
+  {id:"all",label:"All",slots:null},
+  {id:"main",label:"Main",slots:["rightHand"]},
+  {id:"off",label:"Off",slots:["leftHand"]},
+  {id:"light",label:"Light",slots:["light"]},
+  {id:"hat",label:"Hat",slots:["hat"]},
+  {id:"cape",label:"Cape",slots:["cape"]},
+  {id:"earrings",label:"Earrings",slots:["earLeft","earRight"]},
+  {id:"neck",label:"Pendant",slots:["necklace"]},
+  {id:"top",label:"Top",slots:["top"]},
+  {id:"gloves",label:"Gloves",slots:["gloves"]},
+  {id:"belt",label:"Belt",slots:["belt"]},
+  {id:"bottoms",label:"Bottoms",slots:["bottoms"]},
+  {id:"boots",label:"Boots",slots:["boots"]},
+  {id:"rings",label:"Rings",slots:["ring1","ring2","ring3","ring4"]}
+];
+const DUAL_WIELD_FAMILIES = new Set(["dagger"]);
+function equipmentFilterDef(id=equipmentFilter){ return EQUIPMENT_FILTERS.find(f=>f.id===id)||EQUIPMENT_FILTERS[0]; }
+function equipmentFilterButtonsHtml(){
+  return EQUIPMENT_FILTERS.map(f=>`<button class="equipment-filter${equipmentFilter===f.id?" selected":""}" type="button" data-equipment-filter="${f.id}">${esc(f.label)}</button>`).join("");
+}
+function setEquipmentFilter(id){
+  if(!EQUIPMENT_FILTERS.some(f=>f.id===id)) return;
+  equipmentFilter=id;
+  if(S){renderEquipmentUI();renderPack();}
+}
 function ensureEquipmentState(){
   if(!S) return;
   S.inventory=S.inventory||{};
@@ -2854,7 +2922,7 @@ function ensureEquipmentState(){
     if(id!==S.equipment.rightHand && !S.inventory.equipment.includes(id)) S.inventory.equipment.push(id);
   }
   const main=S.equipment.rightHand;
-  if(main && GEAR_ITEMS[main]) S.equippedWeapon=main;
+  S.equippedWeapon=(main && GEAR_ITEMS[main])?main:null;
 }
 function equipmentItems(){
   ensureEquipmentState();
@@ -2887,31 +2955,70 @@ function equipmentGearLevelFor(equipmentState=S?.equipment){
   return total/EQUIPMENT_SLOT_ORDER.length;
 }
 function equipmentGearLevel(){ return equipmentGearLevelFor().toFixed(1); }
-function compatibleEquipmentSlots(itemId){ return equipmentItemDef(itemId)?.slots||[]; }
-function recommendedEquipmentSlot(itemId,preferred=null){
-  const slots=compatibleEquipmentSlots(itemId);
-  if(preferred && slots.includes(preferred)) return preferred;
-  const empty=slots.find(slot=>!S?.equipment?.[slot] && !(slot==="leftHand"&&equipmentItemUsesBothHands(S?.equipment?.rightHand)));
-  return empty||slots[0]||null;
-}
-function simulateEquipmentEquip(itemId,targetSlot){
-  const next={...(S?.equipment||{})};
+function equipmentItemDualWieldable(itemId){
   const def=equipmentItemDef(itemId);
-  if(!def) return next;
-  const target=recommendedEquipmentSlot(itemId,targetSlot);
-  if(!target) return next;
+  return !!def && Number(def.hands||1)===1 && DUAL_WIELD_FAMILIES.has(def.family);
+}
+function compatibleEquipmentSlots(itemId){
+  const def=equipmentItemDef(itemId);
+  if(!def) return [];
+  const slots=[...(def.slots||[])];
+  if(equipmentItemDualWieldable(itemId)){
+    if(!slots.includes("rightHand")) slots.push("rightHand");
+    if(!slots.includes("leftHand")) slots.push("leftHand");
+  }
+  return slots;
+}
+function equipmentFilterCompatibleSlots(itemId,filterId=equipmentFilter){
+  const slots=compatibleEquipmentSlots(itemId), filter=equipmentFilterDef(filterId);
+  return filter.slots ? slots.filter(slot=>filter.slots.includes(slot)) : slots;
+}
+function simulateEquipmentEquipDirect(itemId,target){
+  const next={...(S?.equipment||{})};
+  if(!equipmentItemDef(itemId) || !target || !compatibleEquipmentSlots(itemId).includes(target)) return next;
   for(const slot of EQUIPMENT_SLOT_ORDER) if(next[slot]===itemId) next[slot]=null;
+  if(target==="leftHand" && equipmentItemUsesBothHands(next.rightHand)) next.rightHand=null;
   next[target]=itemId;
   if(target==="rightHand" && equipmentItemUsesBothHands(itemId)) next.leftHand=null;
   return next;
 }
-function equipmentComparison(itemId,targetSlot=null){
-  const target=recommendedEquipmentSlot(itemId,targetSlot);
+function equipmentComparisonForTarget(itemId,target){
   const currentId=target?S?.equipment?.[target]:null;
   const itemDelta=equipmentItemLevel(itemId)-equipmentItemLevel(currentId);
   const before=equipmentGearLevelFor();
-  const after=equipmentGearLevelFor(simulateEquipmentEquip(itemId,target));
+  const after=equipmentGearLevelFor(simulateEquipmentEquipDirect(itemId,target));
   return {target,currentId,itemDelta,gearDelta:after-before,before,after};
+}
+function recommendedEquipmentSlot(itemId,preferred=null,filterId="all"){
+  const slots=equipmentFilterCompatibleSlots(itemId,filterId);
+  if(preferred && slots.includes(preferred)) return preferred;
+  if(!slots.length) return null;
+  return [...slots].sort((a,b)=>{
+    const ca=equipmentComparisonForTarget(itemId,a), cb=equipmentComparisonForTarget(itemId,b);
+    if(Math.abs(cb.gearDelta-ca.gearDelta)>0.0001) return cb.gearDelta-ca.gearDelta;
+    if(cb.itemDelta!==ca.itemDelta) return cb.itemDelta-ca.itemDelta;
+    const ae=S?.equipment?.[a]?1:0, be=S?.equipment?.[b]?1:0;
+    return ae-be;
+  })[0];
+}
+function simulateEquipmentEquip(itemId,targetSlot){
+  const target=recommendedEquipmentSlot(itemId,targetSlot,"all");
+  return simulateEquipmentEquipDirect(itemId,target);
+}
+function equipmentComparison(itemId,targetSlot=null,filterId="all"){
+  const target=recommendedEquipmentSlot(itemId,targetSlot,filterId);
+  return target?equipmentComparisonForTarget(itemId,target):{target:null,currentId:null,itemDelta:0,gearDelta:0,before:equipmentGearLevelFor(),after:equipmentGearLevelFor()};
+}
+function equipmentMatchesFilter(itemId,filterId=equipmentFilter){ return equipmentFilterCompatibleSlots(itemId,filterId).length>0; }
+function sortedBackpackEquipment(filterId=equipmentFilter){
+  if(!S) return [];
+  return S.inventory.equipment.filter(id=>equipmentItemDef(id)&&equipmentMatchesFilter(id,filterId)).sort((a,b)=>{
+    const ca=equipmentComparison(a,null,filterId), cb=equipmentComparison(b,null,filterId);
+    if(cb.itemDelta!==ca.itemDelta) return cb.itemDelta-ca.itemDelta;
+    if(Math.abs(cb.gearDelta-ca.gearDelta)>0.0001) return cb.gearDelta-ca.gearDelta;
+    const il=equipmentItemLevel(b)-equipmentItemLevel(a); if(il) return il;
+    return String(equipmentItemDef(a)?.name||a).localeCompare(String(equipmentItemDef(b)?.name||b));
+  });
 }
 function deltaClass(v){ return v>0?"good":v<0?"bad":"same"; }
 function deltaText(v,digits=0){
@@ -2929,28 +3036,40 @@ function removeEquipmentFromBag(itemId){
 function addEquipmentToBag(itemId){
   if(itemId && equipmentItemDef(itemId) && !S.inventory.equipment.includes(itemId)) S.inventory.equipment.push(itemId);
 }
+function equipmentItemIsShield(itemId){ return equipmentItemDef(itemId)?.family==="shield"; }
+function syncVotaryLoadoutFromHands(){
+  if(!S || S.className!=="Votary") return;
+  if(equipmentItemUsesBothHands(S.equipment?.rightHand)) S.loadout="sword";
+  else if(equipmentItemIsShield(S.equipment?.leftHand)) S.loadout="shield";
+  else if(S.loadout==="shield") S.loadout="sword";
+}
 function equipEquipmentItem(itemId,targetSlot=null){
   if(!S || S.foe || encounterWarningActive()) return false;
   ensureEquipmentState();
   const def=equipmentItemDef(itemId); if(!def) return false;
-  const target=recommendedEquipmentSlot(itemId,targetSlot); if(!target) return false;
+  const target=recommendedEquipmentSlot(itemId,targetSlot,"all"); if(!target) return false;
   if(!compatibleEquipmentSlots(itemId).includes(target)) return false;
-  if(target==="leftHand" && equipmentItemUsesBothHands(S.equipment.rightHand)) return false;
   const current=S.equipment[target];
   if(current===itemId) return true;
   // An item can only occupy one normal slot at a time.
   for(const slot of EQUIPMENT_SLOT_ORDER){
     if(S.equipment[slot]===itemId) S.equipment[slot]=null;
   }
+  if(target==="leftHand" && equipmentItemUsesBothHands(S.equipment.rightHand)){
+    const twoHander=S.equipment.rightHand;
+    addEquipmentToBag(twoHander);
+    S.equipment.rightHand=null;
+    S.equippedWeapon=null;
+  }
   if(current) addEquipmentToBag(current);
   if(target==="rightHand" && equipmentItemUsesBothHands(itemId)){
     if(S.equipment.leftHand) addEquipmentToBag(S.equipment.leftHand);
     S.equipment.leftHand=null;
-    if(S.className==="Votary") S.loadout="sword";
   }
   removeEquipmentFromBag(itemId);
   S.equipment[target]=itemId;
-  if(target==="rightHand" && GEAR_ITEMS[itemId]) S.equippedWeapon=itemId;
+  if(target==="rightHand") S.equippedWeapon=GEAR_ITEMS[itemId]?itemId:null;
+  syncVotaryLoadoutFromHands();
   travelLogAdd(`Equipped <b>${esc(def.name)}</b> in <b>${esc(EQUIPMENT_SLOT_LABELS[target])}</b>.`,"good");
   closeEquipmentInspect();
   renderPack();
@@ -2961,11 +3080,12 @@ function equipEquipmentItem(itemId,targetSlot=null){
 function unequipEquipmentSlot(slot){
   if(!S || S.foe || encounterWarningActive() || !EQUIPMENT_SLOT_ORDER.includes(slot)) return false;
   ensureEquipmentState();
-  if(slot==="rightHand") return false; // Keep basic combat defined until an Unarmed state is designed.
   if(equipmentSlotBlocked(slot)) return false;
   const id=S.equipment[slot]; if(!id) return false;
   addEquipmentToBag(id);
   S.equipment[slot]=null;
+  if(slot==="rightHand") S.equippedWeapon=null;
+  syncVotaryLoadoutFromHands();
   travelLogAdd(`Moved <b>${esc(equipmentItemDef(id)?.name||id)}</b> to the Backpack.`,"note");
   closeEquipmentInspect();
   renderPack();
@@ -2995,7 +3115,7 @@ function renderEquipmentInfo(items){
   const label=EQUIPMENT_SLOT_LABELS[slot]||slot;
   if(equipmentSlotBlocked(slot,items)){
     const main=items.rightHand;
-    root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b>Used by Main Hand</b><span class="equipment-info-meta">Two-handed</span><p class="info-note"><strong>${esc(main?.name||"Main Hand")}</strong> uses both hands. Equip a one-handed Main Hand item to free this slot.</p><dl><div><dt>Main</dt><dd>${main?`iLv ${main.ilvl}`:"—"}</dd></div><div><dt>Off Hand</dt><dd>blocked</dd></div></dl>`;
+    root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b>Used by Main Hand</b><span class="equipment-info-meta">Two-handed</span><p class="info-note"><strong>${esc(main?.name||"Main Hand")}</strong> uses both hands. Equipping an Off Hand item will stow it and leave Main Hand empty.</p><dl><div><dt>Main</dt><dd>${main?`iLv ${main.ilvl}`:"—"}</dd></div><div><dt>Off Hand</dt><dd>2-hand</dd></div></dl>`;
     return;
   }
   const item=items[slot];
@@ -3009,7 +3129,7 @@ function renderEquipmentInfo(items){
     return m?`<div class="equipment-info-stat"><span>${esc(m[1].trim())}</span><strong>${esc(m[2])}</strong></div>`:`<div class="equipment-info-stat"><span>${esc(stat)}</span><strong>•</strong></div>`;
   }).join("");
   const compatible=S.inventory.equipment.filter(id=>compatibleEquipmentSlots(id).includes(slot)).length;
-  root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b>${esc(item.name)}</b><span class="equipment-info-meta">${esc(item.rarity)} · iLv ${item.ilvl}${item.twoHanded?" · two-handed":""}</span><div class="equipment-info-stats">${stats}</div><p class="info-note">${esc(item.desc||"")}</p><dl><div><dt>Backpack</dt><dd>${compatible} match${compatible===1?"":"es"}</dd></div></dl>`;
+  root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b>${esc(item.name)}</b><span class="equipment-info-meta">${esc(item.rarity)} · iLv ${item.ilvl}${item.twoHanded?" · two-handed":""}${equipmentItemDualWieldable(item.id)?" · dual-wieldable":""}</span><div class="equipment-info-stats">${stats}</div><p class="info-note">${esc(item.desc||"")}</p><dl><div><dt>Backpack</dt><dd>${compatible} match${compatible===1?"":"es"}</dd></div></dl><button class="equipment-info-action" type="button" data-equipment-inline-unequip="${slot}">Remove</button>`;
 }
 function renderEquipmentUI(){
   if(!S) return;
@@ -3033,12 +3153,12 @@ function renderEquipmentUI(){
       const blocked=equipmentSlotBlocked(slot,items),item=blocked?null:items[slot],label=EQUIPMENT_SLOT_LABELS[slot];
       return `<button class="equipment-compact-item${item?"":" empty"}" type="button" data-equipment-slot="${slot}"><small>${esc(label)}</small><b>${blocked?"Used by Main Hand":item?esc(item.name):"Empty"}</b><span>${blocked?"Two-handed":item?`iLv ${item.ilvl} · ${esc(item.rarity)}`:"—"}</span></button>`;
     }).join("");
-    const bag=S.inventory.equipment.filter(id=>equipmentItemDef(id));
+    const bag=sortedBackpackEquipment(equipmentFilter);
     const bagHtml=bag.length?bag.map(id=>{
-      const d=equipmentItemDef(id),target=recommendedEquipmentSlot(id),cmp=equipmentCompareHtml(id,target);
+      const d=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentCompareHtml(id,target);
       return `<button class="equipment-compact-item equipment-backpack-item" type="button" data-equipment-item="${id}" data-equipment-target="${target||""}"><small>Backpack · ${esc(EQUIPMENT_SLOT_LABELS[target]||d.slot)}</small><b>${esc(d.name)}</b><span>iLv ${d.itemLevel} · ${esc(d.rarity)}</span><span class="equipment-compare">${cmp}</span></button>`;
-    }).join(""):`<div class="equipment-compact-item empty"><small>Backpack equipment</small><b>None carried</b><span>—</span></div>`;
-    compact.innerHTML=`${equippedHtml}<div class="equipment-list-subhead">Backpack equipment · automatic comparison</div>${bagHtml}`;
+    }).join(""):`<div class="equipment-filter-empty">No carried equipment matches this filter.</div>`;
+    compact.innerHTML=`${equippedHtml}<div class="equipment-list-subhead">Backpack equipment · automatic comparison</div><div class="equipment-filter-row">${equipmentFilterButtonsHtml()}</div>${bagHtml}`;
   }
 }
 function selectEquipmentSlot(slot){
@@ -3067,7 +3187,7 @@ function renderEquipmentInspect(){
   const candidateId=equipmentInspectItemId;
   if(!candidateId && equipmentSlotBlocked(slot,items)){
     const main=items.rightHand;
-    root.innerHTML=`<div class="equipment-inspect-head"><div><em>${esc(label)}</em><h3 id="equipmentInspectName">Off Hand unavailable</h3></div><span class="equipment-inspect-rarity">Two-handed</span></div><div class="equipment-inspect-empty">${esc(main?.name||"The Main Hand item")} uses both hands. Equip a one-handed Main Hand item to free this slot.</div><div class="equipment-inspect-actions"><button class="primary" type="button" data-equipment-close style="grid-column:1/-1">Close</button></div>`;
+    root.innerHTML=`<div class="equipment-inspect-head"><div><em>${esc(label)}</em><h3 id="equipmentInspectName">Off Hand unavailable</h3></div><span class="equipment-inspect-rarity">Two-handed</span></div><div class="equipment-inspect-empty">${esc(main?.name||"The Main Hand item")} uses both hands. Equipping an Off Hand item will stow it and leave Main Hand empty.</div><div class="equipment-inspect-actions"><button class="primary" type="button" data-equipment-close style="grid-column:1/-1">Close</button></div>`;
     return;
   }
   const itemId=candidateId || S.equipment[slot];
@@ -3083,8 +3203,8 @@ function renderEquipmentInspect(){
   const candidate=!!candidateId;
   const comp=candidate?equipmentComparison(itemId,slot):null;
   const compare=candidate?`<div class="equipment-inspect-special"><b>Compared with ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}</b><br><span class="equipment-delta ${deltaClass(comp.itemDelta)}">Item Level ${deltaText(comp.itemDelta)}</span> · <span class="equipment-delta ${deltaClass(comp.gearDelta)}">Gear Level ${deltaText(comp.gearDelta,1)}</span>${equipmentItemUsesBothHands(itemId)?`<br>Equipping this two-handed item returns the current Off Hand item to the Backpack.`:""}</div>`:"";
-  const canUnequip=!candidate && slot!=="rightHand";
-  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9B</b><br>Equip state, Item Level, Gear Level and two-handed slot handling are active. Listed armor/utility stats remain informational until Session 9C.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
+  const canUnequip=!candidate;
+  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9B.1</b><br>Equip state, filters, Item Level, Gear Level, two-handed handling and dual-wield slot compatibility are active. Listed armor/utility stats remain informational until Session 9C.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
 }
 function toggleEquipmentList(){
   equipmentListExpanded=!equipmentListExpanded; renderEquipmentUI();
@@ -3324,11 +3444,12 @@ function renderPack(){
   if(S.inventory.passageKey) html+=itemRow(S.inventory.passageKey.name,1,"A unique key tied to the current side passage. It disappears when that passage ends.");
   ensureEquipmentState();
   if(S.inventory.equipment.length){
-    html+=`<div class="pack-item compact"><div class="pack-item-top"><b>Equipment</b><strong>${S.inventory.equipment.length} carried</strong></div><p>Every class can use every equipment type. Comparison is against the slot this item would currently replace.</p></div>`;
-    html+=S.inventory.equipment.filter(id=>equipmentItemDef(id)).map(id=>{
-      const g=equipmentItemDef(id),target=recommendedEquipmentSlot(id),cmp=equipmentComparison(id,target);
+    const filteredEquipment=sortedBackpackEquipment(equipmentFilter);
+    html+=`<div class="pack-equipment-head"><div class="pack-equipment-headline"><b>Equipment</b><span>${S.inventory.equipment.length} carried · automatic comparison</span></div><div class="equipment-filter-row">${equipmentFilterButtonsHtml()}</div></div>`;
+    html+=filteredEquipment.length?filteredEquipment.map(id=>{
+      const g=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentComparison(id,target,equipmentFilter);
       return `<div class="pack-item compact equipment-pack"><div class="pack-item-top"><b>${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span></b><strong>iLv ${g.itemLevel}</strong></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta ${deltaClass(cmp.itemDelta)}">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta ${deltaClass(cmp.gearDelta)}">Gear ${deltaText(cmp.gearDelta,1)}</span></div><div class="pack-actions"><button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button></div></div>`;
-    }).join("");
+    }).join(""):`<div class="pack-note">No carried equipment matches this filter.</div>`;
   }
   for(const [name,count] of Object.entries(S.inventory.misc||{})) if(count>0) html+=itemRow(name,count,"Prototype loot / secondary item.",offerBtn(`misc:${name}`,name,count));
   root.innerHTML=html;
@@ -5069,11 +5190,11 @@ function render(){
   }
 
   const w = equippedWeaponDef();
-  $("heroStats").textContent = `STR ${S.STR} · CON ${S.CON} · DEX ${S.DEX} · ${w.stat} weapon`;
+  $("heroStats").textContent = `STR ${S.STR} · CON ${S.CON} · DEX ${S.DEX} · ${w.unarmed?"unarmed":`${w.stat} weapon`}`;
   if(S.className==="Votary"){
     const twoHanded=equipmentItemUsesBothHands(S?.equipment?.rightHand||S?.equippedWeapon);
     $("btnLoadout").disabled = twoHanded;
-    $("loadoutTxt").textContent = twoHanded ? `${w.name} · two-handed · Parry` : S.loadout==="shield" ? `${w.name} + shield · Guard` : `${w.name} · Parry`;
+    $("loadoutTxt").textContent = twoHanded ? `${w.name} · two-handed · Parry` : S.loadout==="shield" ? `${w.name}${w.unarmed?"":" +"} shield · Guard` : `${w.name} · Parry`;
   }else if(S.className==="Rogue"){
     $("btnLoadout").disabled = true;
     $("loadoutTxt").textContent = `${w.name} · DEX · Dodge`;
@@ -5252,7 +5373,7 @@ const GEAR_ITEMS = {
 
 const EQUIPMENT_ITEMS = {
   ...GEAR_ITEMS,
-  worn_buckler:{name:"Worn Buckler",slot:"leftHand",slots:["leftHand"],itemLevel:6,rarity:"Common",stats:["Defence identity","Guard support"],desc:"A compact shield kept close to the body."},
+  worn_buckler:{name:"Worn Buckler",slot:"leftHand",slots:["leftHand"],itemLevel:6,rarity:"Common",family:"shield",stats:["Defence identity","Guard support"],desc:"A compact shield kept close to the body."},
   parrying_knife:{name:"Parrying Knife",slot:"leftHand",slots:["leftHand"],itemLevel:6,rarity:"Common",stats:["Finesse offhand","Parry support"],desc:"A narrow offhand blade built to catch and redirect steel."},
   chalkbound_grimoire:{name:"Chalkbound Grimoire",slot:"leftHand",slots:["leftHand"],itemLevel:6,rarity:"Common",stats:["Arcane focus","Translation aid"],desc:"A compact field grimoire bound for hostile conditions."},
   hooded_lantern:{name:"Hooded Lantern",slot:"light",slots:["light"],itemLevel:5,rarity:"Common",stats:["Steady light","Hands remain free"],desc:"A shuttered lantern suited to long descents and controlled illumination."},
@@ -5304,10 +5425,15 @@ const BOSS_PROFILE = {
   weakness:{id:"rage_opening",txt:"Its second wind becomes reckless. Heavy commitment is easier to punish once it is bloodied.",eff:{counterBonus:1.40,offBalanceBonus:1.40}}
 };
 
+const UNARMED_WEAPON = Object.freeze({name:"Unarmed",stat:"STR",power:-4,itemLevel:0,rarity:"Common",family:"unarmed",hands:1,unarmed:true,desc:"No Main Hand weapon equipped."});
 function classDef(){ return CLASS_DEFS[S?.className] || CLASS_DEFS.Votary; }
 function classAbilityOrder(){ return S ? classDef().abilities : CLASS_DEFS.Votary.abilities; }
 function proficiencyBonus(id){ return S?.proficiencies?.[id] || 0; }
-function equippedWeaponDef(){ return GEAR_ITEMS[S?.equipment?.rightHand || S?.equippedWeapon] || GEAR_ITEMS.worn_longsword; }
+function equippedWeaponDef(){
+  const hasEquipment=!!S?.equipment && Object.prototype.hasOwnProperty.call(S.equipment,"rightHand");
+  const id=hasEquipment?S.equipment.rightHand:S?.equippedWeapon;
+  return GEAR_ITEMS[id] || UNARMED_WEAPON;
+}
 function attackStatKey(){ return equippedWeaponDef().stat || "STR"; }
 function attackStatValue(){ const key=attackStatKey(); return (S?.[key] || 10) + (equippedWeaponDef().power || 0); }
 function sideAreaActive(){ return !!S?.sideArea && !S.sideArea.completed && !S.sideArea.abandoned; }
@@ -6202,6 +6328,73 @@ function resetSettings(){
   renderSettingsSheet();
   if(S){renderCharacterSheet();renderCharacterNotices();requestRunSave();}
 }
+function runSlotKey(slot=currentRunSlot){ return RUN_SLOT_KEYS[Number(slot)]||RUN_SLOT_KEYS[1]; }
+function runQuarantineKey(slot=currentRunSlot){ return Number(slot)===1?SAVE_QUARANTINE_KEY:`${SAVE_QUARANTINE_KEY}:slot${Number(slot)}`; }
+function loadActiveRunSlot(){
+  try{
+    const n=Number(localStorage.getItem(ACTIVE_RUN_SLOT_KEY));
+    currentRunSlot=[1,2,3].includes(n)?n:1;
+  }catch(err){currentRunSlot=1;}
+  return currentRunSlot;
+}
+function saveActiveRunSlot(){
+  try{localStorage.setItem(ACTIVE_RUN_SLOT_KEY,String(currentRunSlot));return true;}catch(err){console.error("Lowfathom active slot save failed",err);return false;}
+}
+function slotSnapshotSummary(slot){
+  const keys=[runSlotKey(slot),...(Number(slot)===1?LEGACY_SAVE_KEYS:[])];
+  for(const key of keys){
+    let raw=null;
+    try{raw=localStorage.getItem(key);}catch(err){return {kind:"error"};}
+    if(!raw) continue;
+    try{
+      const parsed=JSON.parse(raw),result=migrateRunSnapshot(parsed);
+      if(result.future) return {kind:"future",schema:result.snapshot.schema};
+      if(!validateRunSnapshot(result.snapshot)) return {kind:"invalid"};
+      const snap=result.snapshot,state=snap.state;
+      return {kind:"run",name:state.name,className:state.className,level:state.level,depth:state.depth,gear:state.equipment?equipmentGearLevelFor(state.equipment):0,dead:!!snap.over||Number(state.hp)<=0};
+    }catch(err){return {kind:"invalid"};}
+  }
+  return {kind:"empty"};
+}
+function canSwitchCharacterSlot(){ return !!S && !S.foe && !encounterWarningActive(); }
+function renderCharacterSlots(){
+  const root=$("characterSlotList"); if(!root) return;
+  const safe=canSwitchCharacterSlot();
+  root.innerHTML=[1,2,3].map(slot=>{
+    const summary=slotSnapshotSummary(slot),active=slot===currentRunSlot;
+    let title="Empty Chronicle",meta="Ready for a new delver.",button=active?"Active":"Create";
+    if(summary.kind==="run"){
+      title=`${summary.name}${summary.dead?" · dead":""}`;
+      meta=`${summary.className} · Level ${summary.level} · ${formatDepth(summary.depth)}f · Gear ${Number(summary.gear||0).toFixed(1)}`;
+      button=active?"Active":"Switch";
+    }else if(summary.kind==="future"){title="Newer save format";meta=`Schema ${summary.schema} needs a newer Fathom build.`;button="Unavailable";}
+    else if(summary.kind==="invalid"||summary.kind==="error"){title="Unreadable Chronicle";meta="This slot cannot be previewed safely.";button="Unavailable";}
+    const disabled=active || summary.kind==="future" || summary.kind==="invalid" || summary.kind==="error" || (!safe && !active);
+    return `<div class="settings-slot${active?" active":""}"><div class="settings-slot-copy"><em>Slot ${slot}${active?" · active":""}</em><b>${esc(title)}</b><span>${esc(meta)}</span></div><button class="settings-slot-btn${active?" active":""}" type="button" data-character-slot="${slot}" ${disabled?"disabled":""}>${esc(button)}</button></div>`;
+  }).join("");
+}
+function resetRuntimeForSlotChange(){
+  stopEncounterWarningFrame();clearCombatTransitionTimers();clearCombatVictoryTimer();clearHollowTimer();stopLevelUpNoticeFrame();pauseBoonClock();
+  closePack();closeCharacterSheet();closeSettingsSheet();closeLootHistory();closeEquipmentInspect();
+  document.querySelectorAll(".dead,.save-integrity").forEach(n=>n.remove());
+  encounterWarningState=null;suspendedEncounterWarningMs=null;suspendedLevelUpNoticeMs=null;suspendedHollowResumeMs=null;
+  armed=null;combatVictoryPending=null;levelUpNoticeDeadline=0;levelUpNoticeDismissed=true;
+}
+function switchCharacterSlot(slot){
+  slot=Number(slot);
+  if(![1,2,3].includes(slot)||slot===currentRunSlot||!canSwitchCharacterSlot()) return false;
+  pauseBoonClock();
+  if(S && !saveRunNow()) return false;
+  resetRuntimeForSlotChange();
+  currentRunSlot=slot;saveActiveRunSlot();
+  S=null;knowledge={};over=false;runSaveWritesBlocked=false;runSaveLoadIssue=null;
+  const snapshot=loadRunSnapshot(slot);
+  if(snapshot){restoreRun(snapshot);return true;}
+  creatorDraft={name:"",folk:null,trade:null,origin:null,className:null,humanPlus2:null,humanPlus1:null,humanMinus2:null};
+  openCreator({keepChoices:true});
+  if(runSaveLoadIssue) showSaveLoadIssueScreen(runSaveLoadIssue);
+  return true;
+}
 function renderSettingsSheet(){
   const sheet=$("settingsSheet");
   if(!sheet) return;
@@ -6219,6 +6412,7 @@ function renderSettingsSheet(){
   document.querySelectorAll("[data-encounter-grace]").forEach(btn=>{
     btn.classList.toggle("selected",Number(btn.dataset.encounterGrace)===settings.encounterGraceSeconds);
   });
+  renderCharacterSlots();
 }
 function openSettingsSheet(){
   if(over || !S) return;
@@ -6344,10 +6538,10 @@ function validateRunSnapshot(snapshot){
   if(snapshot.levelUpNotice!=null && !isSaveRecord(snapshot.levelUpNotice)) return false;
   return true;
 }
-function quarantineRunSave(sourceKey,raw,reason){
+function quarantineRunSave(sourceKey,raw,reason,slot=currentRunSlot){
   try{
     // Keep the untouched bytes. Only remove the active copy after preservation succeeds.
-    localStorage.setItem(SAVE_QUARANTINE_KEY,raw);
+    localStorage.setItem(runQuarantineKey(slot),raw);
     localStorage.removeItem(sourceKey);
     console.error(`Lowfathom quarantined unreadable save from ${sourceKey}: ${reason}`);
     return true;
@@ -6356,10 +6550,11 @@ function quarantineRunSave(sourceKey,raw,reason){
     return false;
   }
 }
-function persistCanonicalSnapshot(snapshot,sourceKey){
+function persistCanonicalSnapshot(snapshot,sourceKey,slot=currentRunSlot){
+  const targetKey=runSlotKey(slot);
   try{
-    localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot));
-    if(sourceKey!==SAVE_KEY) localStorage.removeItem(sourceKey);
+    localStorage.setItem(targetKey,JSON.stringify(snapshot));
+    if(sourceKey!==targetKey) localStorage.removeItem(sourceKey);
     return true;
   }catch(err){
     console.error("Lowfathom could not rewrite the migrated save",err);
@@ -6373,7 +6568,7 @@ function saveRunNow(){
   clearScheduledSave();
   if(restoringRun || !S || runSaveWritesBlocked) return false;
   try{
-    localStorage.setItem(SAVE_KEY,JSON.stringify(buildRunSnapshot()));
+    localStorage.setItem(runSlotKey(),JSON.stringify(buildRunSnapshot()));
     lastSaveAt=Date.now();
     return true;
   }catch(err){
@@ -6387,23 +6582,24 @@ function requestRunSave(){
   if(wait===0){saveRunNow();return;}
   if(saveTimer===null) saveTimer=setTimeout(()=>{saveTimer=null;saveRunNow();},wait);
 }
-function clearRunSave(){
+function clearRunSave(slot=currentRunSlot){
   clearScheduledSave();
   if(runSaveWritesBlocked) return false;
   try{
-    localStorage.removeItem(SAVE_KEY);
-    for(const key of LEGACY_SAVE_KEYS) localStorage.removeItem(key);
+    localStorage.removeItem(runSlotKey(slot));
+    if(Number(slot)===1) for(const key of LEGACY_SAVE_KEYS) localStorage.removeItem(key);
     return true;
   }catch(err){
     console.error("Lowfathom save clear failed",err);
     return false;
   }
 }
-function loadRunSnapshot(){
+function loadRunSnapshot(slot=currentRunSlot){
   runSaveWritesBlocked=false;
   runSaveLoadIssue=null;
   let quarantinedSomething=false;
-  const keys=[SAVE_KEY,...LEGACY_SAVE_KEYS];
+  const canonicalKey=runSlotKey(slot);
+  const keys=[canonicalKey,...(Number(slot)===1?LEGACY_SAVE_KEYS:[])];
 
   for(const sourceKey of keys){
     let raw=null;
@@ -6415,7 +6611,7 @@ function loadRunSnapshot(){
 
     let parsed;
     try{parsed=JSON.parse(raw);}catch(err){
-      if(!quarantineRunSave(sourceKey,raw,"malformed JSON")){
+      if(!quarantineRunSave(sourceKey,raw,"malformed JSON",slot)){
         runSaveWritesBlocked=true;
         runSaveLoadIssue={kind:"corrupt",quarantined:false};
         return null;
@@ -6426,7 +6622,7 @@ function loadRunSnapshot(){
 
     let result;
     try{result=migrateRunSnapshot(parsed);}catch(err){
-      if(!quarantineRunSave(sourceKey,raw,err.message||"migration failed")){
+      if(!quarantineRunSave(sourceKey,raw,err.message||"migration failed",slot)){
         runSaveWritesBlocked=true;
         runSaveLoadIssue={kind:"corrupt",quarantined:false};
         return null;
@@ -6443,7 +6639,7 @@ function loadRunSnapshot(){
 
     const snapshot=result.snapshot;
     if(!validateRunSnapshot(snapshot)){
-      if(!quarantineRunSave(sourceKey,raw,"required save fields were invalid")){
+      if(!quarantineRunSave(sourceKey,raw,"required save fields were invalid",slot)){
         runSaveWritesBlocked=true;
         runSaveLoadIssue={kind:"corrupt",quarantined:false};
         return null;
@@ -6452,7 +6648,7 @@ function loadRunSnapshot(){
       continue;
     }
 
-    if(sourceKey!==SAVE_KEY || parsed.schema!==SAVE_SCHEMA) persistCanonicalSnapshot(snapshot,sourceKey);
+    if(sourceKey!==canonicalKey || parsed.schema!==SAVE_SCHEMA) persistCanonicalSnapshot(snapshot,sourceKey,slot);
     if(quarantinedSomething) console.warn("Lowfathom recovered a valid older chronicle after quarantining a bad save.");
     return snapshot;
   }
@@ -6849,6 +7045,7 @@ $("travelEventActions").addEventListener("click", e => {
 $("btnPackClose").addEventListener("click", closePack);
 $("packScrim").addEventListener("click", closePack);
 $("packDynamicItems").addEventListener("click", e => {
+  const filter=e.target.closest("[data-equipment-filter]"); if(filter){setEquipmentFilter(filter.dataset.equipmentFilter);return;}
   const bandage=e.target.closest("[data-use-bandage]"); if(bandage){useBandage();return;}
   const weapon=e.target.closest("[data-equip-weapon]"); if(weapon){equipWeapon(weapon.dataset.equipWeapon);return;}
   const equipment=e.target.closest("[data-equip-equipment]"); if(equipment){equipEquipmentItem(equipment.dataset.equipEquipment,equipment.dataset.equipmentTarget||null);return;}
@@ -6920,8 +7117,13 @@ $("btnEquipmentExpand").addEventListener("click", toggleEquipmentList);
 $("equipmentRingRail").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)selectEquipmentSlot(b.dataset.equipmentSlot);});
 $("equipmentBodyGrid").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)selectEquipmentSlot(b.dataset.equipmentSlot);});
 $("equipmentCompactGrid").addEventListener("click", e => {
+  const filter=e.target.closest("[data-equipment-filter]"); if(filter){setEquipmentFilter(filter.dataset.equipmentFilter);return;}
   const item=e.target.closest("[data-equipment-item]"); if(item){openEquipmentItemInspect(item.dataset.equipmentItem,item.dataset.equipmentTarget||null);return;}
   const b=e.target.closest("[data-equipment-slot]"); if(b)openEquipmentInspect(b.dataset.equipmentSlot);
+});
+$("equipmentInfo").addEventListener("click", e => {
+  const remove=e.target.closest("[data-equipment-inline-unequip]");
+  if(remove) unequipEquipmentSlot(remove.dataset.equipmentInlineUnequip);
 });
 $("equipmentInspectContent").addEventListener("click", e => {
   if(e.target.closest("[data-equipment-close]")){closeEquipmentInspect();return;}
@@ -6952,6 +7154,10 @@ $("encounterGraceChoices").addEventListener("click", e => {
   if(b) setEncounterGrace(b.dataset.encounterGrace);
 });
 $("btnResetSettings").addEventListener("click", resetSettings);
+$("characterSlotList").addEventListener("click", e => {
+  const b=e.target.closest("[data-character-slot]");
+  if(b && !b.disabled) switchCharacterSlot(b.dataset.characterSlot);
+});
 $("restAbilityOptions").addEventListener("click", e => {
   const b = e.target.closest(".restskill-opt[data-recover-ability]");
   if(!b || !S?.pendingRestAbilityChoice) return;
@@ -7007,7 +7213,8 @@ $("arena").addEventListener("click",()=>{setTimeout(saveRunNow,0);});
 
 function bootGame(){
   loadSettings();
-  const snapshot=loadRunSnapshot();
+  loadActiveRunSlot();
+  const snapshot=loadRunSnapshot(currentRunSlot);
   const restored=restoreRun(snapshot);
   if(!restored){
     renderCreator();
