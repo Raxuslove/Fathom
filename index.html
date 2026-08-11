@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0f1317">
-<title>Lowfathom v0.081.1 — Session 8 Settings Foundation</title>
+<title>Lowfathom v0.081.2 — Session 8 Settings Access QOL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.081.1 Session 8 settings foundation + protected v0.075 Smite FX
+   LOWFATHOM — v0.081.2 Session 8 settings access QOL + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -78,6 +78,7 @@
    - v0.080.19: final wrapper consolidation for creator, Skills, Abilities, combat pad/Run, side-route rendering and finale helpers
    - v0.081.0: Session 8 persistence foundation — localStorage run saves, reload restore, permadeath save integrity and hidden-tab freeze
    - v0.081.1: Session 8 settings foundation — device-persistent preferences, character indicator toggle and encounter-grace duration
+   - v0.081.2: moved Settings to a consistent bottom-right cog utility slot across travel, combat and common soft sheets
 
    Session 8 has begun. Run state is now persisted locally and restored on reload.
    Settings, manifest/service worker and install/offline support follow in later Session 8 slices.
@@ -325,7 +326,8 @@ button{
 .travel-act.rest b{color:var(--stamina)}
 .travel-act.pack b{color:var(--bone)}
 .travel-act.rest,.travel-act.pack{min-height:52px;padding:9px 11px}
-.travel-act.stop{grid-column:1/-1;min-height:46px;padding:9px 11px}
+.travel-bottom-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:1px;background:var(--rule)}
+.travel-act.stop{grid-column:auto;min-height:46px;padding:9px 11px}
 .travel-act.stop b{font-size:13.5px;color:var(--dim)}
 .travel-act.active{background:#202b33;box-shadow:inset 0 0 0 1px var(--lamp-dim)}
 .travel-act.explore.active{box-shadow:inset 0 0 0 1px var(--verdigris)}
@@ -678,6 +680,20 @@ button{
 .botbtn.armed span{color:var(--lamp)}
 .botbtn.go{background:#1a2229}
 .botbtn.go b{color:var(--lamp)}
+.combat-bottom-row{display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:1px;background:var(--rule)}
+.combat-bottom-row .botbtn{border-top:none;min-width:0}
+.settings-cog{
+  border:none;background:#10161b;min-width:52px;min-height:46px;padding:8px 0;
+  display:flex;align-items:center;justify-content:center;color:#76828c;
+  font-family:var(--cond);font-size:19px;line-height:1;
+}
+.settings-cog::before{content:'⚙';transform:translateY(-1px)}
+.settings-cog:active{background:#20272d;color:var(--lamp)}
+.settings-cog:disabled{background:#101418;color:#39434e;cursor:not-allowed}
+.combat-bottom-row .settings-cog{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+.bottom-sheet-row{display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:1px;background:var(--rule);border-top:1px solid var(--rule)}
+.bottom-sheet-row>.settings-cog{min-height:52px;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+.bottom-sheet-row>.pack-close,.bottom-sheet-row>.loot-history-close,.bottom-sheet-row>.char-close,.bottom-sheet-row>.sheet-back{border-top:none;min-width:0}
 
 /* ---------- Session 6: rest ability recovery ---------- */
 .restskillpick{
@@ -935,8 +951,6 @@ button{
 
 /* ---------- v0.081.1: persistent Settings foundation ---------- */
 .char-head-buttons{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
-.char-settings-btn{border:1px solid var(--rule-hi);background:#12181e;padding:5px 7px;font-family:var(--cond);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#9aa3aa;white-space:nowrap}
-.char-settings-btn:active{background:#20272d;color:var(--bone)}
 .settings-sheet{position:absolute;inset:0;z-index:12;display:flex;flex-direction:column;justify-content:flex-end}
 .settings-sheet[hidden]{display:none}
 .settings-scrim{flex:1;min-height:0;background:rgba(8,11,14,.76)}
@@ -1196,7 +1210,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.081.1</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.081.2</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1224,7 +1238,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.1</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.2</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -1277,7 +1291,10 @@ button{
       <button class="travel-act explore" id="btnExplore"><b>Explore</b><span>hold this depth</span></button>
       <button class="travel-act rest" id="btnRest"><b>Rest</b><span id="restSub">25% Max HP</span></button>
       <button class="travel-act pack" id="btnPack"><b>Backpack</b><span id="packSub">2 Camp Supplies</span></button>
-      <button class="travel-act stop" id="btnStopTravel" disabled><b>Stop</b><span>hold where you are</span></button>
+      <div class="travel-bottom-row">
+        <button class="travel-act stop" id="btnStopTravel" disabled><b>Stop</b><span>hold where you are</span></button>
+        <button class="settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
+      </div>
     </div>
   </section>
 
@@ -1291,7 +1308,10 @@ button{
       </div>
       <div id="packDynamicItems"></div>
       <div class="pack-note" id="packNote">Session 7.5 prototype inventory. Tools are reusable; consumables and passage keys are tracked separately.</div>
-      <button class="pack-close" id="btnPackClose">Back to the delve</button>
+      <div class="bottom-sheet-row">
+        <button class="pack-close" id="btnPackClose">Back to the delve</button>
+        <button class="settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
+      </div>
     </div>
   </div>
 
@@ -1301,7 +1321,10 @@ button{
       <div class="loot-history-head"><h2>Loot History</h2><span>travel continues</span></div>
       <div class="loot-history-list" id="lootHistoryList"></div>
       <div class="loot-history-note">Ordinary loot is collected automatically. This history is only a record; everything shown here is already in your Backpack.</div>
-      <button class="loot-history-close" id="btnLootHistoryClose">Back to the delve</button>
+      <div class="bottom-sheet-row">
+        <button class="loot-history-close" id="btnLootHistoryClose">Back to the delve</button>
+        <button class="settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
+      </div>
     </div>
   </div>
 
@@ -1310,7 +1333,7 @@ button{
     <div class="char-panel">
       <div class="char-head">
         <div><em>Character</em><h2 id="charName">—</h2><span id="charClassLevel">Votary · Level —</span><span id="charBackground">—</span></div>
-        <div class="char-head-actions"><span class="char-live">travel continues</span><div class="char-head-buttons"><button class="char-settings-btn" id="btnSettings" type="button">Settings</button><button class="char-clear-new" id="btnClearCharNotices" type="button" hidden>Clear new</button></div></div>
+        <div class="char-head-actions"><span class="char-live">travel continues</span><div class="char-head-buttons"><button class="char-clear-new" id="btnClearCharNotices" type="button" hidden>Clear new</button></div></div>
       </div>
       <div class="char-vitals">
         <div><em>HP</em><b id="charHp">—</b><span class="char-hp-track" id="charHpBar"><i id="charHpFill"></i></span></div>
@@ -1360,7 +1383,10 @@ button{
         <div class="char-note">Some abilities can be used outside combat. For now, Lay On Hands and Mending Spark support field use.</div>
       </section>
 
-      <button class="char-close" id="btnCharClose">Back to the delve</button>
+      <div class="bottom-sheet-row">
+        <button class="char-close" id="btnCharClose">Back to the delve</button>
+        <button class="settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
+      </div>
     </div>
   </div>
 
@@ -1388,7 +1414,7 @@ button{
       </section>
       <div class="settings-note">Settings are stored separately from the current chronicle. They survive permadeath and starting a new delver.</div>
       <button class="settings-reset" id="btnResetSettings" type="button">Reset settings to defaults</button>
-      <button class="settings-close" id="btnSettingsClose" type="button">Back to character</button>
+      <button class="settings-close" id="btnSettingsClose" type="button">Close settings</button>
     </div>
   </div>
 
@@ -1464,7 +1490,10 @@ button{
     <button class="mact pack" id="btnLoadout"><b>Loadout</b><span id="loadoutTxt">sword + shield</span></button>
   </div>
 
-  <button class="botbtn" id="btnRun"><b>Run</b><span>—</span></button>
+  <div class="combat-bottom-row">
+    <button class="botbtn" id="btnRun"><b>Run</b><span>—</span></button>
+    <button class="settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
+  </div>
 
   <div class="levelup" id="levelup" hidden aria-live="polite">
     <div class="levelup-panel">
@@ -1503,7 +1532,10 @@ button{
       </div>
       <div id="abilitiesList"></div>
       <div class="sheet-note" id="sheetNote">Abilities spend uses across the descent. Camp restores them all. Rest restores one spent use of one chosen ability.</div>
-      <button class="sheet-back" id="btnBack">Back to the fight</button>
+      <div class="bottom-sheet-row">
+        <button class="sheet-back" id="btnBack">Back to the fight</button>
+        <button class="settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
+      </div>
     </div>
   </div>
 
@@ -1676,13 +1708,12 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.081.1";
+const BUILD_VERSION = "v0.081.2";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
 const ENCOUNTER_GRACE_OPTIONS = [5,15,30];
 let settings = {...DEFAULT_SETTINGS};
-let settingsReturnToCharacter = false;
 
 const TRAVEL_TICK_MS = 500;
 const TRAVEL_STEP = 0.25;          // 0.5 fathom / second while Descending
@@ -5657,9 +5688,8 @@ function resetSettings(){
 function renderSettingsSheet(){
   const sheet=$("settingsSheet");
   if(!sheet) return;
-  if(!sheet.hidden && (over || S?.foe || S?.travelEvent)){
+  if(!sheet.hidden && (over || !S)){
     sheet.hidden=true;
-    settingsReturnToCharacter=false;
     return;
   }
   const noticeBtn=$("btnSettingNotices");
@@ -5674,18 +5704,13 @@ function renderSettingsSheet(){
   });
 }
 function openSettingsSheet(){
-  if(over || S?.foe || S?.travelEvent) return;
-  settingsReturnToCharacter=!$("charSheet").hidden;
-  $("charSheet").hidden=true;
+  if(over || !S) return;
   $("settingsSheet").hidden=false;
   renderSettingsSheet();
 }
-function closeSettingsSheet(returnToCharacter=true){
+function closeSettingsSheet(){
   const sheet=$("settingsSheet");
   if(sheet) sheet.hidden=true;
-  const shouldReturn=returnToCharacter && settingsReturnToCharacter && S && !over && !S.foe && !S.travelEvent;
-  settingsReturnToCharacter=false;
-  if(shouldReturn){renderCharacterSheet();$("charSheet").hidden=false;}
 }
 
 /* ============================================================
@@ -5896,7 +5921,6 @@ function restoreRun(snapshot){
     $("restAbilityPick").hidden=true;
     $("charSheet").hidden=true;
     $("settingsSheet").hidden=true;
-    settingsReturnToCharacter=false;
     $("lootHistorySheet").hidden=true;
     rebuildTravelLogFromState();
     renderTravelLogCollapse();
@@ -6224,9 +6248,12 @@ $("charAbilities").addEventListener("click", e => {
 });
 $("btnCharClose").addEventListener("click", closeCharacterSheet);
 $("charScrim").addEventListener("click", closeCharacterSheet);
-$("btnSettings").addEventListener("click", openSettingsSheet);
-$("btnSettingsClose").addEventListener("click", () => closeSettingsSheet(true));
-$("settingsScrim").addEventListener("click", () => closeSettingsSheet(true));
+$("btnSettingsClose").addEventListener("click", closeSettingsSheet);
+$("settingsScrim").addEventListener("click", closeSettingsSheet);
+$("arena").addEventListener("click", e => {
+  const cog=e.target.closest("[data-open-settings]");
+  if(cog) openSettingsSheet();
+});
 $("btnSettingNotices").addEventListener("click", () => setCharacterIndicators(!settings.characterIndicators));
 $("encounterGraceChoices").addEventListener("click", e => {
   const b=e.target.closest("[data-encounter-grace]");
