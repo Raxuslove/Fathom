@@ -293,3 +293,5 @@ The purpose is to avoid building a combat-specific random encounter system that 
 
 Character selection screen, so you can choose to either make a new character + game mode, It would say name of character, race, class, current depth.
 3x character slots to begin with.
+
+Add optional HUD overlay for utility info. Clock: show current device time - high priority, browser safe. Battery: show battery percentage where supported; likely native only. Not reliable in PWAs. Put each as a separate toggle in settings.

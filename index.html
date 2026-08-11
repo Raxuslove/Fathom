@@ -5,13 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0f1317">
-<title>Lowfathom v0.081.2 — Session 8 Settings Access QOL</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lowfathom">
+<title>Lowfathom v0.081.3 — Session 8 Settings Access QOL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.081.2 Session 8 settings access QOL + protected v0.075 Smite FX
+   LOWFATHOM — v0.081.3 Session 8 settings access QOL + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -78,7 +82,7 @@
    - v0.080.19: final wrapper consolidation for creator, Skills, Abilities, combat pad/Run, side-route rendering and finale helpers
    - v0.081.0: Session 8 persistence foundation — localStorage run saves, reload restore, permadeath save integrity and hidden-tab freeze
    - v0.081.1: Session 8 settings foundation — device-persistent preferences, character indicator toggle and encounter-grace duration
-   - v0.081.2: moved Settings to a consistent bottom-right cog utility slot across travel, combat and common soft sheets
+   - v0.081.3: moved Settings to a consistent bottom-right cog utility slot across travel, combat and common soft sheets
 
    Session 8 has begun. Run state is now persisted locally and restored on reload.
    Settings, manifest/service worker and install/offline support follow in later Session 8 slices.
@@ -1210,7 +1214,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.081.2</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.081.3</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1238,7 +1242,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.2</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.081.3</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
         </div>
@@ -1708,7 +1712,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.081.2";
+const BUILD_VERSION = "v0.081.3";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -6320,6 +6324,20 @@ function bootGame(){
   setInterval(travelTick,TRAVEL_TICK_MS);
 }
 bootGame();
+/* ---------- Session 8C: PWA service worker ---------- */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(registration => {
+        // Ask the browser to check for a newer worker whenever Lowfathom opens.
+        registration.update().catch(() => {});
+      })
+      .catch(error => {
+        console.error("Lowfathom service worker registration failed:", error);
+      });
+  });
+}
+
 </script>
 </body>
 </html>

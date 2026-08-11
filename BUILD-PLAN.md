@@ -124,8 +124,8 @@ hollows + supplies. The whole session's shape depends on which one.
 ## PHASE 3 — Make it real (Session 8)
 
 ### Session 8 · Saving and installing
-- [ ] Save state to localStorage, restore on open
-- [ ] Save on every meaningful action — a permadeath game must never lose progress to a closed tab
+- [x] Save state to localStorage, restore on open
+- [x] Save on every meaningful action — a permadeath game must never lose progress to a closed tab
 - [ ] `manifest.json` + icons
 - [ ] Service worker so it opens offline
 - [ ] Install to your phone's home screen and play it as an app
