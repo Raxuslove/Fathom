@@ -4,7 +4,7 @@
   LOWFATHOM — Session 8C PWA shell
   Bump CACHE_NAME whenever the shipped app shell changes.
 */
-const CACHE_NAME = "lowfathom-v0.081.3";
+const CACHE_NAME = "lowfathom-v0.081.4";
 
 const APP_SHELL = [
   "./",
@@ -41,21 +41,16 @@ self.addEventListener("fetch", event => {
 
   if (request.method !== "GET") return;
 
-  // Navigation requests:
-  // use the newest index while online,
-  // fall back to the cached app when offline.
+  // Navigation requests get the newest index while online, then fall back to
+  // the cached app shell when the network is unavailable.
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then(response => {
           if (response && response.ok) {
             const copy = response.clone();
-
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put("./index.html", copy);
-            });
+            caches.open(CACHE_NAME).then(cache => cache.put("./index.html", copy));
           }
-
           return response;
         })
         .catch(() =>
@@ -63,24 +58,18 @@ self.addEventListener("fetch", event => {
             .then(cached => cached || caches.match("./"))
         )
     );
-
     return;
   }
 
-  // Other files:
-  // network first while developing so updates appear quickly,
-  // cached copy if the network is unavailable.
+  // For ordinary assets use network-first while developing so updates appear
+  // promptly, with cache fallback for offline use.
   event.respondWith(
     fetch(request)
       .then(response => {
         if (response && (response.ok || response.type === "opaque")) {
           const copy = response.clone();
-
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, copy);
-          });
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
         }
-
         return response;
       })
       .catch(() =>
