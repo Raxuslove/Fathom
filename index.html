@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.083.3 — Session 9B.1 Equipment Filter QOL</title>
+<title>Lowfathom v0.083.6 — Persistent Descent Browsing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.083.3 Session 9B.1 equipment filter QOL + protected v0.075 Smite FX
+   LOWFATHOM — v0.083.6 persistent descent browsing + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -92,6 +92,9 @@
    - v0.083.1: Session 9B.1 three chronicle slots, equipment filters/sorting, empty Main Hand, dual-wield compatibility and equip QOL
    - v0.083.2: character-slot delete controls and Settings access from character creation
    - v0.083.3: equipment filter rows preserve horizontal scroll position while filtering and rerendering
+   - v0.083.4: Backpack / Equipment inventory tabs, category filters and independent scroll state
+   - v0.083.5: fixed inventory sheet height, clear descent backdrop and origin-aware return to Character Equipment
+   - v0.083.6: persistent shaft visibility for browsing sheets plus compact Descend / Stop controls
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9B attaches real equip/swap state and comparisons; detailed item stat effects remain provisional until Session 9C.
@@ -174,6 +177,17 @@ button{
   font-family:var(--cond);font-size:9px;letter-spacing:.14em;
   text-transform:uppercase;color:var(--dim);
 }
+/* v0.083.6: compact travel controls shown only while browsing soft menus. */
+.travel-mini-controls{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:9px;max-width:150px}
+.travel-mini-controls[hidden]{display:none}
+.travel-mini-btn{
+  min-height:28px;border:1px solid var(--rule-hi);background:#10161b;padding:4px 6px;
+  font-family:var(--cond);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+}
+.travel-mini-btn.descend{color:var(--lamp);border-color:var(--lamp-dim)}
+.travel-mini-btn.descend.active{background:#20272d;box-shadow:inset 0 0 0 1px rgba(230,194,136,.12)}
+.travel-mini-btn.stop{color:#8e99a3}
+.travel-mini-btn:disabled{background:#0f1418;border-color:var(--rule);color:#39434e;cursor:not-allowed}
 .travel-status{
   margin-top:7px;padding-top:7px;border-top:1px solid var(--rule);
   color:#8e99a3;font-size:10.5px;line-height:1.35;
@@ -347,25 +361,43 @@ button{
 .travel-act:disabled{background:#101418;cursor:not-allowed}
 .travel-act:disabled b,.travel-act:disabled span{color:#39434e}
 
-/* ---------- Session 5: minimal Pack sheet ---------- */
+/* ---------- Session 5 / v0.083.6: Backpack + Equipment inventory sheet ---------- */
 .pack-sheet{
   position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;justify-content:flex-end;
 }
 .pack-sheet[hidden]{display:none}
-.pack-scrim{flex:1;min-height:0;background:rgba(8,11,14,.72)}
-.pack-panel{background:var(--panel);border-top:1px solid var(--rule-hi)}
-.pack-head{
-  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
-  padding:10px 13px;border-bottom:1px solid var(--rule);background:#12181e;
+/* The exposed shaft remains interactive while a normal browsing sheet is open. */
+.arena.browse-descent-visible .pack-sheet,
+.arena.browse-descent-visible .char-sheet,
+.arena.browse-descent-visible .loot-history-sheet,
+.arena.browse-descent-visible .settings-sheet{pointer-events:none}
+.arena.browse-descent-visible .pack-panel,
+.arena.browse-descent-visible .char-panel,
+.arena.browse-descent-visible .loot-history-panel,
+.arena.browse-descent-visible .settings-panel{pointer-events:auto}
+.pack-scrim{flex:1;min-height:0;background:transparent}
+.pack-panel{
+  height:min(81%,calc(100% - 150px));min-height:0;display:flex;flex-direction:column;overflow:hidden;
+  background:var(--panel);border-top:1px solid var(--rule-hi);
 }
-.pack-head h2{margin:0;font-family:var(--slab);font-size:17px;font-weight:600;color:var(--lamp)}
-.pack-head span{font-family:var(--cond);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.pack-tabs{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
+.pack-tab{
+  min-height:48px;border:none;background:#12181e;padding:10px 12px;text-align:center;
+  font-family:var(--slab);font-size:16px;font-weight:600;color:var(--dim);
+}
+.pack-tab.active{background:#20272d;color:var(--lamp);box-shadow:inset 0 -2px 0 var(--lamp-dim)}
+.pack-tab:disabled{background:#101418;color:#3f4954;cursor:not-allowed}
+.pack-filter-bar{
+  flex:0 0 auto;min-width:0;background:#101418;border-bottom:1px solid var(--rule);
+}
+.pack-filter-bar .equipment-filter-row{border-bottom:none}
+.pack-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;background:var(--panel)}
 .pack-item{padding:13px;border-bottom:1px solid var(--rule)}
 .pack-item-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
 .pack-item b{font-family:var(--slab);font-size:15px;font-weight:600;color:var(--bone)}
 .pack-item strong{font-family:var(--cond);font-size:14px;color:var(--lamp)}
 .pack-item p{margin:4px 0 0;color:var(--dim);font-size:11.5px}
-.pack-note{padding:10px 13px;color:#59636e;font-size:10.5px;background:#101418}
+.pack-note{flex:0 0 auto;padding:9px 13px;color:#59636e;font-size:10.5px;background:#101418;border-top:1px solid var(--rule)}
 .pack-close{
   width:100%;min-height:50px;border:none;border-top:1px solid var(--rule);background:#12181e;
   padding:12px 13px calc(12px + env(safe-area-inset-bottom));
@@ -741,8 +773,13 @@ button{
   position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;justify-content:flex-end;
 }
 .char-sheet[hidden]{display:none}
-.char-scrim{flex:1;min-height:0;background:rgba(8,11,14,.76)}
-.char-panel{max-height:90%;overflow-y:auto;background:var(--panel);border-top:1px solid var(--lamp-dim)}
+.char-scrim{flex:1;min-height:0;background:transparent}
+.char-panel{
+  height:min(81%,calc(100% - 150px));min-height:0;display:flex;flex-direction:column;overflow:hidden;
+  background:var(--panel);border-top:1px solid var(--lamp-dim)
+}
+.char-panel>.char-head,.char-panel>.char-vitals,.char-panel>.char-nav,.char-panel>.bottom-sheet-row{flex:0 0 auto}
+.char-panel>.char-page:not([hidden]){flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .char-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:12px 13px 10px;background:#12181e;border-bottom:1px solid var(--rule)}
 .char-head em{display:block;font-style:normal;font-family:var(--cond);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--lamp-dim)}
 .char-head h2{margin:1px 0 0;font-family:var(--slab);font-size:20px;color:var(--bone);line-height:1.15}
@@ -1035,12 +1072,15 @@ button{
 .loot-log-btn .loot-log-items{color:#a9a397}
 .loot-history-sheet{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;justify-content:flex-end}
 .loot-history-sheet[hidden]{display:none}
-.loot-history-scrim{flex:1;min-height:0;background:rgba(8,11,14,.68)}
-.loot-history-panel{max-height:78%;display:flex;flex-direction:column;background:var(--panel);border-top:1px solid var(--lamp-dim)}
+.loot-history-scrim{flex:1;min-height:0;background:transparent}
+.loot-history-panel{
+  height:min(81%,calc(100% - 150px));min-height:0;display:flex;flex-direction:column;overflow:hidden;
+  background:var(--panel);border-top:1px solid var(--lamp-dim)
+}
 .loot-history-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 13px;border-bottom:1px solid var(--rule);background:#12181e}
 .loot-history-head h2{margin:0;font-family:var(--slab);font-size:17px;font-weight:600;color:var(--lamp)}
 .loot-history-head span{font-family:var(--cond);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
-.loot-history-list{overflow-y:auto;min-height:0}
+.loot-history-list{flex:1;overflow-y:auto;min-height:0;overscroll-behavior:contain}
 .loot-history-entry{padding:10px 13px;border-bottom:1px solid var(--rule);background:#141a20}
 .loot-history-entry.selected{box-shadow:inset 3px 0 0 var(--lamp-dim);background:#192129}
 .loot-history-entry-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -1132,6 +1172,13 @@ button{
 .settings-sheet[hidden]{display:none}
 .settings-scrim{flex:1;min-height:0;background:rgba(8,11,14,.76)}
 .settings-panel{max-height:88%;overflow-y:auto;background:var(--panel);border-top:1px solid var(--lamp-dim)}
+.settings-scroll{min-height:0}
+.settings-sheet.travel-browse .settings-scrim{background:transparent}
+.settings-sheet.travel-browse .settings-panel{
+  height:min(81%,calc(100% - 150px));max-height:none;min-height:0;display:flex;flex-direction:column;overflow:hidden
+}
+.settings-sheet.travel-browse .settings-head,.settings-sheet.travel-browse .settings-close{flex:0 0 auto}
+.settings-sheet.travel-browse .settings-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .settings-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 13px;background:#12181e;border-bottom:1px solid var(--rule)}
 .settings-head h2{margin:0;font-family:var(--slab);font-size:18px;font-weight:600;color:var(--lamp)}
 .settings-head span{font-family:var(--cond);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
@@ -1422,7 +1469,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.083.3</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.083.6</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1450,9 +1497,13 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.083.3</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.083.6</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
+          <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
+            <button class="travel-mini-btn descend" id="btnBrowseDescend" type="button">Descend</button>
+            <button class="travel-mini-btn stop" id="btnBrowseStop" type="button">Stop</button>
+          </div>
         </div>
         <div class="travel-status" id="travelStatus">
           <b>The descent is waiting.</b><br>
@@ -1513,13 +1564,15 @@ button{
   <div class="pack-sheet" id="packSheet" hidden>
     <div class="pack-scrim" id="packScrim"></div>
     <div class="pack-panel">
-      <div class="pack-head"><h2>Backpack</h2><span>your pack · travel continues</span></div>
-      <div class="pack-item" title="Found rarely on scavenger-type foes and in caches.">
-        <div class="pack-item-top"><b>Camp Supplies</b><strong id="packCampSupplies">×2</strong></div>
-        <p>Found rarely on scavenger-type foes and in caches. Consumed when you make a full camp at a safe hollow.</p>
+      <div class="pack-tabs" id="packTabs" role="tablist" aria-label="Inventory view">
+        <button class="pack-tab active" id="btnPackTabBackpack" type="button" data-pack-tab="backpack" role="tab" aria-selected="true">Backpack</button>
+        <button class="pack-tab" id="btnPackTabEquipment" type="button" data-pack-tab="equipment" role="tab" aria-selected="false">Equipment</button>
       </div>
-      <div id="packDynamicItems"></div>
-      <div class="pack-note" id="packNote">Session 7.5 prototype inventory. Tools are reusable; consumables and passage keys are tracked separately.</div>
+      <div class="pack-filter-bar" id="packFilterBar"></div>
+      <div class="pack-scroll" id="packScroll">
+        <div id="packDynamicItems"></div>
+      </div>
+      <div class="pack-note" id="packNote">Categories keep carried items separate from equipment comparisons.</div>
       <div class="bottom-sheet-row">
         <button class="pack-close" id="btnPackClose">Back to the delve</button>
         <button class="settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
@@ -1590,7 +1643,7 @@ button{
           <div class="equipment-gear"><em>Gear level</em><b id="equipmentGearLevel">6.4</b></div>
           <button class="equipment-expand" id="btnEquipmentExpand" type="button" aria-expanded="false" aria-label="Expand equipment list" title="Expand equipment list">⌄</button>
         </div>
-        <div class="equipment-prototype-note">Session 9B.1 · three chronicle slots, filtered Backpack comparison, empty Main Hand and improved hand-slot swapping are active. Item stat effects remain provisional until Session 9C.</div>
+        <div class="equipment-prototype-note">Session 9B.1 · inventory tabs, filtered Backpack categories, automatic equipment comparison and hand-slot QOL are active. Item stat effects remain provisional until Session 9C.</div>
         <div class="equipment-stage">
           <div class="equipment-ring-rail" id="equipmentRingRail"></div>
           <div class="equipment-body-grid" id="equipmentBodyGrid"></div>
@@ -1631,6 +1684,7 @@ button{
     <div class="settings-scrim" id="settingsScrim"></div>
     <div class="settings-panel">
       <div class="settings-head"><h2>Settings</h2><span>saved on this device</span></div>
+      <div class="settings-scroll">
       <section class="settings-section">
         <div class="settings-section-title">Interface</div>
         <div class="settings-row">
@@ -1656,6 +1710,7 @@ button{
       </section>
       <div class="settings-note">Settings are stored separately from the current chronicle. They survive permadeath and starting a new delver.</div>
       <button class="settings-reset" id="btnResetSettings" type="button">Reset settings to defaults</button>
+      </div>
       <button class="settings-close" id="btnSettingsClose" type="button">Close settings</button>
     </div>
   </div>
@@ -1950,7 +2005,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 60;
-const BUILD_VERSION = "v0.083.3";
+const BUILD_VERSION = "v0.083.6";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -2116,6 +2171,11 @@ let equipmentInspectItemId = null;
 let equipmentInspectTargetSlot = null;
 let equipmentInspectExpanded = false;
 let equipmentFilter = "all";
+let packActiveTab = "backpack";
+let packReturnTarget = null;
+let backpackFilter = "all";
+const packViewScrollTop = {backpack:0,equipment:0};
+const packFilterScrollLeft = {backpack:0,equipment:0};
 let statPointDraft = Object.fromEntries(STAT_KEYS.map(stat => [stat,0]));
 let levelUpNoticeDismissed = false;
 let levelUpNoticeDeadline = 0;
@@ -2860,15 +2920,47 @@ function renderLevelUpNotice(){
   $("levelupText").textContent=`Spend it whenever you are ready · closes in ${(remaining/1000).toFixed(1)}s`;
   $("levelupBar").style.transform=`scaleX(${frac})`;
 }
+function travelBrowsingContextAvailable(){
+  if(!S || over || S.foe || S.travelEvent || S.activeHollow || S.pendingBoonChoice) return false;
+  if(sideAreaActive() || encounterWarningActive()) return false;
+  const creator=$("creator");
+  return !creator || creator.hidden;
+}
+function browsingSheetOpen(){
+  return ["packSheet","charSheet","lootHistorySheet","settingsSheet"].some(id=>{
+    const el=$(id); return !!el && !el.hidden;
+  });
+}
+function syncBrowseTravelUI(){
+  const controls=$("travelMiniControls"),arena=$("arena"),settingsSheet=$("settingsSheet");
+  const show=travelBrowsingContextAvailable() && browsingSheetOpen();
+  if(arena) arena.classList.toggle("browse-descent-visible",show);
+  if(settingsSheet){
+    const travelContext=!!S && !over && !S.foe && ($("creator")?.hidden ?? true);
+    settingsSheet.classList.toggle("travel-browse",travelContext);
+  }
+  if(!controls) return;
+  controls.hidden=!show;
+  if(!show) return;
+  const descend=$("btnBrowseDescend"),stop=$("btnBrowseStop");
+  if(descend){
+    descend.disabled=S.travelMode==="descend";
+    descend.classList.toggle("active",S.travelMode==="descend");
+  }
+  if(stop) stop.disabled=S.travelMode==="stopped";
+}
+
 function openCharacterSheet(){
   if(!S || over || S.foe || S.travelEvent) return;
   clearCharacterNotice(charView);
   renderCharacterSheet();
   $("charSheet").hidden = false;
+  syncBrowseTravelUI();
 }
 function closeCharacterSheet(){
   closeEquipmentInspect();
   $("charSheet").hidden = true;
+  syncBrowseTravelUI();
 }
 
 const EQUIPMENT_SLOT_ORDER = [
@@ -2903,6 +2995,15 @@ const EQUIPMENT_FILTERS = [
   {id:"boots",label:"Boots",slots:["boots"]},
   {id:"rings",label:"Rings",slots:["ring1","ring2","ring3","ring4"]}
 ];
+const BACKPACK_FILTERS = [
+  {id:"all",label:"All"},
+  {id:"consumables",label:"Consumables"},
+  {id:"tools",label:"Tools"},
+  {id:"quest",label:"Quest"},
+  {id:"texts",label:"Texts"},
+  {id:"materials",label:"Materials"},
+  {id:"other",label:"Other"}
+];
 const DUAL_WIELD_FAMILIES = new Set(["dagger"]);
 function equipmentFilterDef(id=equipmentFilter){ return EQUIPMENT_FILTERS.find(f=>f.id===id)||EQUIPMENT_FILTERS[0]; }
 const equipmentFilterScrollLeft = {equipment:0,pack:0};
@@ -2927,8 +3028,47 @@ function setEquipmentFilter(id){
     renderEquipmentUI();
     renderPack();
     restoreEquipmentFilterScroll();
-    if(typeof requestAnimationFrame==="function") requestAnimationFrame(restoreEquipmentFilterScroll);
+    if(typeof requestAnimationFrame==="function") requestAnimationFrame(()=>{restoreEquipmentFilterScroll();restorePackViewState();});
   }
+}
+function backpackFilterButtonsHtml(){
+  return BACKPACK_FILTERS.map(f=>`<button class="equipment-filter${backpackFilter===f.id?" selected":""}" type="button" data-backpack-filter="${f.id}">${esc(f.label)}</button>`).join("");
+}
+function rememberPackViewState(){
+  const sheet=$("packSheet");
+  if(!sheet || sheet.hidden) return;
+  const scroll=$("packScroll");
+  if(scroll) packViewScrollTop[packActiveTab]=scroll.scrollTop;
+  const row=$("packFilterBar")?.querySelector(".equipment-filter-row");
+  if(row) packFilterScrollLeft[packActiveTab]=row.scrollLeft;
+}
+function restorePackViewState(){
+  const scroll=$("packScroll");
+  if(scroll) scroll.scrollTop=packViewScrollTop[packActiveTab]||0;
+  const row=$("packFilterBar")?.querySelector(".equipment-filter-row");
+  if(row) row.scrollLeft=packFilterScrollLeft[packActiveTab]||0;
+}
+function setPackTab(tab){
+  if(!["backpack","equipment"].includes(tab)) return;
+  if(S?.packMode==="offering" && tab==="equipment") return;
+  rememberPackViewState();
+  packActiveTab=tab;
+  renderPack(false);
+  if(typeof requestAnimationFrame==="function") requestAnimationFrame(restorePackViewState);
+}
+function setBackpackFilter(id){
+  if(!BACKPACK_FILTERS.some(f=>f.id===id)) return;
+  rememberPackViewState();
+  backpackFilter=id;
+  renderPack();
+  if(typeof requestAnimationFrame==="function") requestAnimationFrame(restorePackViewState);
+}
+function backpackMiscCategory(name){
+  const n=String(name||"").toLowerCase();
+  if(/dust|shard|fragment|scrap|reagent|ore|ingot|salvage|essence/.test(n)) return "materials";
+  if(/spellbook|book|scroll|page|map|journal|tome|ledger|writ|lexicon/.test(n)) return "texts";
+  if(/key|quest|seal|objective/.test(n)) return "quest";
+  return "other";
 }
 function ensureEquipmentState(){
   if(!S) return;
@@ -3174,9 +3314,9 @@ function renderEquipmentUI(){
   const bodyRoot=$("equipmentBodyGrid");
   if(bodyRoot) bodyRoot.innerHTML=EQUIPMENT_BODY_LAYOUT.map(([slot,row,col])=>equipmentSlotButton(slot,items[slot],`grid-row:${row};grid-column:${col}`,items)).join("");
   renderEquipmentInfo(items);
-  const list=$("equipmentCompactList"); if(list) list.hidden=!equipmentListExpanded;
+  const list=$("equipmentCompactList"); if(list) list.hidden=true;
   const expand=$("btnEquipmentExpand");
-  if(expand){expand.classList.toggle("open",equipmentListExpanded);expand.setAttribute("aria-expanded",equipmentListExpanded?"true":"false");expand.textContent=equipmentListExpanded?"⌃":"⌄";expand.title=equipmentListExpanded?"Collapse equipment list":"Expand equipment list";}
+  if(expand){expand.classList.remove("open");expand.setAttribute("aria-expanded","false");expand.textContent="⌄";expand.title="Open equipment inventory";}
   const compact=$("equipmentCompactGrid");
   if(compact){
     const equippedHtml=EQUIPMENT_SLOT_ORDER.map(slot=>{
@@ -3238,8 +3378,9 @@ function renderEquipmentInspect(){
   root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9B.1</b><br>Equip state, filters, Item Level, Gear Level, two-handed handling and dual-wield slot compatibility are active. Listed armor/utility stats remain informational until Session 9C.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
 }
 function toggleEquipmentList(){
-  equipmentListExpanded=!equipmentListExpanded; renderEquipmentUI();
-  if(equipmentListExpanded) requestAnimationFrame(()=>$("equipmentCompactList")?.scrollIntoView({block:"nearest",behavior:"smooth"}));
+  equipmentListExpanded=false;
+  closeCharacterSheet();
+  openPack(null,"equipment","characterEquipment");
 }
 
 function renderCharacterSheet(){
@@ -3443,53 +3584,101 @@ function takeRest(){
   }
   render();
 }
-function openPack(mode=null){
+function openPack(mode=null,tab="backpack",returnTarget=null){
   if(!S || over || S.foe) return;
   if(S.travelEvent && mode!=="offering") return;
   cancelHollowAutoResume();
   S.packMode=mode;
-  renderPack();
+  packReturnTarget=returnTarget;
+  packActiveTab=mode==="offering"?"backpack":(["backpack","equipment"].includes(tab)?tab:"backpack");
   $("packSheet").hidden=false;
+  renderPack(false);
+  syncBrowseTravelUI();
+  if(typeof requestAnimationFrame==="function") requestAnimationFrame(restorePackViewState);
 }
 function closePack(){
+  rememberPackViewState();
   if(S) S.packMode=null;
+  packReturnTarget=null;
   $("packSheet").hidden=true;
+  syncBrowseTravelUI();
 }
-function renderPack(){
+function backFromPack(){
+  if(packReturnTarget==="characterEquipment"){
+    rememberPackViewState();
+    if(S) S.packMode=null;
+    packReturnTarget=null;
+    $("packSheet").hidden=true;
+    charView="equipment";
+    openCharacterSheet();
+    syncBrowseTravelUI();
+    return;
+  }
+  closePack();
+}
+function renderPack(rememberView=true){
   if(!S) return;
+  if(rememberView) rememberPackViewState();
   rememberEquipmentFilterScroll();
-  $("packCampSupplies").textContent=`×${S.inventory.campSupplies}`;
-  const root=$("packDynamicItems");
-  if(!root) return;
-  const offer=S.packMode==="offering";
-  const itemRow=(name,count,desc,actions="")=>`<div class="pack-item compact"><div class="pack-item-top"><b>${esc(name)}</b><strong>×${count}</strong></div><p>${esc(desc)}</p>${actions?`<div class="pack-actions">${actions}</div>`:""}</div>`;
-  let html="";
-  html+=itemRow("Specialization",1,S.specialization||"—");
-  if(curseActive()) html+=`<div class="pack-item compact"><div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain · ${esc(S.curse.desc)}</div></div>`;
-  if(S.bleeding) html+=`<div class="pack-item compact"><div class="curse-line"><b>Bleeding</b> · lose small amounts of HP during active travel.</div></div>`;
-  const offerBtn=(kind,label,count)=>offer&&count>0?`<button class="pack-mini-btn warn" data-offer-item="${kind}">Offer 1 ${esc(label)}</button>`:"";
-  html+=itemRow("Bandages",S.inventory.bandages,"Stops Bleeding. Commonly found as creature salvage or extra searched loot.",`${S.inventory.bandages>0&&S.bleeding?`<button class="pack-mini-btn good" data-use-bandage>Use Bandage</button>`:""}${offerBtn("bandage","Bandage",S.inventory.bandages)}`);
-  html+=itemRow("Meat",S.inventory.meat,"A rough ration. Often found as creature salvage or searched loot; some old places may value it.",offerBtn("meat","Meat",S.inventory.meat));
-  html+=itemRow("Rope",S.inventory.rope,"General delving tool; can turn up in searched loot and caches. No dedicated use in this slice yet.",offerBtn("rope","Rope",S.inventory.rope));
-  html+=itemRow("Water",S.inventory.water,"A carried jug/flask; can turn up in searched loot and caches. No dedicated use in this slice yet.",offerBtn("water","Water",S.inventory.water));
-  html+=itemRow("Rogue Tools",S.inventory.rogueTools,"Reusable lockpick and trap tools. Any class can use them. Goblin Scroungers are a known possible source.");
-  if(S.inventory.passageKey) html+=itemRow(S.inventory.passageKey.name,1,"A unique key tied to the current side passage. It disappears when that passage ends.");
   ensureEquipmentState();
-  if(S.inventory.equipment.length){
+  const offer=S.packMode==="offering";
+  if(offer) packActiveTab="backpack";
+  const packClose=$("btnPackClose");
+  if(packClose){
+    const returning=packReturnTarget==="characterEquipment";
+    packClose.textContent=returning?"← Back to Character":"Back to the delve";
+    packClose.setAttribute("aria-label",returning?"Back to Character Equipment":"Back to the delve");
+  }
+
+  document.querySelectorAll("#packTabs [data-pack-tab]").forEach(btn=>{
+    const active=btn.dataset.packTab===packActiveTab;
+    btn.classList.toggle("active",active);
+    btn.setAttribute("aria-selected",active?"true":"false");
+    btn.disabled=offer && btn.dataset.packTab==="equipment";
+  });
+
+  const filterBar=$("packFilterBar");
+  const root=$("packDynamicItems");
+  if(!filterBar || !root) return;
+  const itemRow=(name,count,desc,actions="")=>`<div class="pack-item compact"><div class="pack-item-top"><b>${esc(name)}</b><strong>×${count}</strong></div><p>${esc(desc)}</p>${actions?`<div class="pack-actions">${actions}</div>`:""}</div>`;
+
+  if(packActiveTab==="equipment"){
+    filterBar.innerHTML=`<div class="equipment-filter-row" data-equipment-filter-context="pack">${equipmentFilterButtonsHtml()}</div>`;
     const filteredEquipment=sortedBackpackEquipment(equipmentFilter);
-    html+=`<div class="pack-equipment-head"><div class="pack-equipment-headline"><b>Equipment</b><span>${S.inventory.equipment.length} carried · automatic comparison</span></div><div class="equipment-filter-row" data-equipment-filter-context="pack">${equipmentFilterButtonsHtml()}</div></div>`;
-    html+=filteredEquipment.length?filteredEquipment.map(id=>{
+    root.innerHTML=filteredEquipment.length?filteredEquipment.map(id=>{
       const g=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentComparison(id,target,equipmentFilter);
       return `<div class="pack-item compact equipment-pack"><div class="pack-item-top"><b>${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span></b><strong>iLv ${g.itemLevel}</strong></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta ${deltaClass(cmp.itemDelta)}">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta ${deltaClass(cmp.gearDelta)}">Gear ${deltaText(cmp.gearDelta,1)}</span></div><div class="pack-actions"><button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button></div></div>`;
     }).join(""):`<div class="pack-note">No carried equipment matches this filter.</div>`;
+    $("packNote").textContent="Equipment is filtered by compatible slot and sorted by current iLv upgrade potential.";
+  }else{
+    filterBar.innerHTML=`<div class="equipment-filter-row">${backpackFilterButtonsHtml()}</div>`;
+    const rows=[];
+    const add=(category,html)=>rows.push({category,html});
+    const offerBtn=(kind,label,count)=>offer&&count>0?`<button class="pack-mini-btn warn" data-offer-item="${kind}">Offer 1 ${esc(label)}</button>`:"";
+
+    add("consumables",itemRow("Camp Supplies",S.inventory.campSupplies,"Found rarely on scavenger-type foes and in caches. Consumed when you make a full camp at a safe hollow."));
+    add("other",itemRow("Specialization",1,S.specialization||"—"));
+    add("consumables",itemRow("Bandages",S.inventory.bandages,"Stops Bleeding. Commonly found as creature salvage or extra searched loot.",`${S.inventory.bandages>0&&S.bleeding?`<button class="pack-mini-btn good" data-use-bandage>Use Bandage</button>`:""}${offerBtn("bandage","Bandage",S.inventory.bandages)}`));
+    add("consumables",itemRow("Meat",S.inventory.meat,"A rough ration. Often found as creature salvage or searched loot; some old places may value it.",offerBtn("meat","Meat",S.inventory.meat)));
+    add("tools",itemRow("Rope",S.inventory.rope,"General delving tool; can turn up in searched loot and caches. No dedicated use in this slice yet.",offerBtn("rope","Rope",S.inventory.rope)));
+    add("consumables",itemRow("Water",S.inventory.water,"A carried jug/flask; can turn up in searched loot and caches. No dedicated use in this slice yet.",offerBtn("water","Water",S.inventory.water)));
+    add("tools",itemRow("Rogue Tools",S.inventory.rogueTools,"Reusable lockpick and trap tools. Any class can use them. Goblin Scroungers are a known possible source."));
+    if(S.inventory.passageKey) add("quest",itemRow(S.inventory.passageKey.name,1,"A unique key tied to the current side passage. It disappears when that passage ends."));
+    for(const [name,count] of Object.entries(S.inventory.misc||{})) if(count>0) add(backpackMiscCategory(name),itemRow(name,count,"Prototype loot / secondary item.",offerBtn(`misc:${name}`,name,count)));
+
+    const visible=backpackFilter==="all"?rows:rows.filter(row=>row.category===backpackFilter);
+    let status="";
+    if(backpackFilter==="all"){
+      if(curseActive()) status+=`<div class="pack-item compact"><div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain · ${esc(S.curse.desc)}</div></div>`;
+      if(S.bleeding) status+=`<div class="pack-item compact"><div class="curse-line"><b>Bleeding</b> · lose small amounts of HP during active travel.</div></div>`;
+    }
+    root.innerHTML=status+(visible.length?visible.map(row=>row.html).join(""):`<div class="pack-note">No carried items match this filter.</div>`);
+    $("packNote").textContent=offer?"Choose one carried item to place on the altar. Equipment is unavailable while choosing an offering.":"Backpack categories: Consumables · Tools · Quest · Texts · Materials · Other.";
   }
-  for(const [name,count] of Object.entries(S.inventory.misc||{})) if(count>0) html+=itemRow(name,count,"Prototype loot / secondary item.",offerBtn(`misc:${name}`,name,count));
-  root.innerHTML=html;
-  $("packNote").textContent=offer?"Choose one carried item to place on the altar. This proof-of-concept offers exactly one item.":"Equipment comparisons are automatic. Tools are reusable. Passage keys are unique to their generated side area.";
-  const head=document.querySelector("#packSheet .pack-head span");
-  if(head) head.textContent=offer?"choose one offering":"your pack · travel continues";
+
   if(encounterWarningActive()) document.querySelectorAll("[data-use-bandage],[data-equip-weapon],[data-equip-equipment],[data-offer-item]").forEach(el=>el.disabled=true);
   restoreEquipmentFilterScroll();
+  restorePackViewState();
 }
 
 function spawnEncounter(options={}){
@@ -5135,6 +5324,7 @@ function renderTravel(){
   $("packSub").textContent=`${S.inventory.campSupplies} Camp Supplies · ${S.inventory.bandages} Bandage${S.inventory.bandages===1?"":"s"}`;
   document.querySelectorAll(".passage-dots").forEach(el=>el.textContent=liveExploreDots());
   renderTravelEffects();
+  syncBrowseTravelUI();
 }
 
 function render(){
@@ -6145,10 +6335,12 @@ function openLootHistory(id){
   selectedLootHistoryId=id;
   renderLootHistory();
   $("lootHistorySheet").hidden=false;
+  syncBrowseTravelUI();
 }
 function closeLootHistory(){
   selectedLootHistoryId=null;
   if($("lootHistorySheet"))$("lootHistorySheet").hidden=true;
+  syncBrowseTravelUI();
 }
 
 // Ordinary loot is inserted directly into the Backpack; makeLootRecord supplies the history.
@@ -6459,6 +6651,7 @@ function renderSettingsSheet(){
   const sheet=$("settingsSheet");
   if(!sheet) return;
   const creatorVisible=!$("creator")?.hidden;
+  sheet.classList.toggle("travel-browse",!!S && !over && !S.foe && !creatorVisible);
   if(!sheet.hidden && over && !creatorVisible){
     sheet.hidden=true;
     return;
@@ -6480,10 +6673,12 @@ function openSettingsSheet(){
   if((over || !S) && !creatorVisible) return;
   $("settingsSheet").hidden=false;
   renderSettingsSheet();
+  syncBrowseTravelUI();
 }
 function closeSettingsSheet(){
   const sheet=$("settingsSheet");
   if(sheet) sheet.hidden=true;
+  syncBrowseTravelUI();
 }
 
 /* ============================================================
@@ -7095,8 +7290,10 @@ $("tell").addEventListener("click", () => {
 $("btnDescend").addEventListener("click", () => startTravel("descend"));
 $("btnExplore").addEventListener("click", () => startTravel("explore"));
 $("btnRest").addEventListener("click", takeRest);
-$("btnPack").addEventListener("click", openPack);
+$("btnPack").addEventListener("click", () => openPack(null,"backpack"));
 $("btnStopTravel").addEventListener("click", stopTravel);
+$("btnBrowseDescend").addEventListener("click", () => startTravel("descend"));
+$("btnBrowseStop").addEventListener("click", stopTravel);
 $("btnCampHere").addEventListener("click", campAtHollow);
 $("btnLeaveHollow").addEventListener("click", () => leaveHollow(false));
 $("travelEventActions").addEventListener("click", e => {
@@ -7104,8 +7301,18 @@ $("travelEventActions").addEventListener("click", e => {
   if(!b) return;
   handleTravelEventAction(b.dataset.eventAction);
 });
-$("btnPackClose").addEventListener("click", closePack);
+$("btnPackClose").addEventListener("click", backFromPack);
 $("packScrim").addEventListener("click", closePack);
+$("packTabs").addEventListener("click", e => {
+  const tab=e.target.closest("[data-pack-tab]");
+  if(tab && !tab.disabled) setPackTab(tab.dataset.packTab);
+});
+$("packFilterBar").addEventListener("click", e => {
+  const equipment=e.target.closest("[data-equipment-filter]");
+  if(equipment){setEquipmentFilter(equipment.dataset.equipmentFilter);return;}
+  const backpack=e.target.closest("[data-backpack-filter]");
+  if(backpack){setBackpackFilter(backpack.dataset.backpackFilter);return;}
+});
 $("packDynamicItems").addEventListener("click", e => {
   const filter=e.target.closest("[data-equipment-filter]"); if(filter){setEquipmentFilter(filter.dataset.equipmentFilter);return;}
   const bandage=e.target.closest("[data-use-bandage]"); if(bandage){useBandage();return;}
