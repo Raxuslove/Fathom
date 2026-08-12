@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.084.13 — Sunless Name Readability Tweak</title>
+<title>Lowfathom v0.084.14 — Premium Rarity Surface Wash Pass</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.084.13 Sunless name readability tweak + protected v0.075 Smite FX
+   LOWFATHOM — v0.084.14 premium rarity surface wash pass + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -108,6 +108,7 @@
    - v0.084.11: Sunless name color lifted one last notch brighter as the final readability pass
    - v0.084.12: Sunless name color lifted one more notch after phone testing
    - v0.084.13: Sunless name color lifted one additional small step for final phone readability
+   - v0.084.14: strengthened Wondrous / Legendary / Mythical / Ancient / Unfathomable interior card washes; Sunless unchanged
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
@@ -950,26 +951,26 @@ button{
 .equipment-slot.has-rarity:active,.equipment-slot.has-rarity.selected{border-color:var(--rarity-frame-color);box-shadow:inset 0 0 0 1px rgba(230,194,136,.16),var(--rarity-frame-glow)}
 .equipment-slot.has-rarity.rarity-frame-unfathomable:active,.equipment-slot.has-rarity.rarity-frame-unfathomable.selected{border-color:transparent;border-image:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288) 1}
 
-/* v0.084.7: premium rarities now tint the whole card surface very subtly so
-   their identity reads as more than a border without becoming neon. */
+/* v0.084.14: premium rarity surface washes are slightly stronger so stacked
+   cards carry a clearer rarity atmosphere without brighter/neon outlines. */
 .equipment-slot.has-rarity.rarity-frame-wondrous,
 .equipment-backpack-item.rarity-frame-wondrous,
-.pack-item.equipment-pack.rarity-frame-wondrous{background:linear-gradient(145deg,rgba(207,135,166,.085) 0%,rgba(207,135,166,.032) 58%,#12181e 100%)}
+.pack-item.equipment-pack.rarity-frame-wondrous{background:linear-gradient(145deg,rgba(207,135,166,.115) 0%,rgba(207,135,166,.044) 58%,#12181e 100%)}
 .equipment-slot.has-rarity.rarity-frame-legendary,
 .equipment-backpack-item.rarity-frame-legendary,
-.pack-item.equipment-pack.rarity-frame-legendary{background:linear-gradient(145deg,rgba(217,154,78,.11) 0%,rgba(217,154,78,.042) 58%,#12181e 100%)}
+.pack-item.equipment-pack.rarity-frame-legendary{background:linear-gradient(145deg,rgba(217,154,78,.145) 0%,rgba(217,154,78,.057) 58%,#12181e 100%)}
 .equipment-slot.has-rarity.rarity-frame-mythical,
 .equipment-backpack-item.rarity-frame-mythical,
-.pack-item.equipment-pack.rarity-frame-mythical{background:linear-gradient(145deg,rgba(217,95,52,.12) 0%,rgba(217,95,52,.048) 58%,#12181e 100%)}
+.pack-item.equipment-pack.rarity-frame-mythical{background:linear-gradient(145deg,rgba(217,95,52,.155) 0%,rgba(217,95,52,.062) 58%,#12181e 100%)}
 .equipment-slot.has-rarity.rarity-frame-ancient,
 .equipment-backpack-item.rarity-frame-ancient,
-.pack-item.equipment-pack.rarity-frame-ancient{background:linear-gradient(145deg,rgba(244,240,230,.1) 0%,rgba(244,240,230,.034) 56%,#12181e 100%)}
+.pack-item.equipment-pack.rarity-frame-ancient{background:linear-gradient(145deg,rgba(244,240,230,.13) 0%,rgba(244,240,230,.046) 56%,#12181e 100%)}
 .equipment-slot.has-rarity.rarity-frame-sunless,
 .equipment-backpack-item.rarity-frame-sunless,
 .pack-item.equipment-pack.rarity-frame-sunless{background:linear-gradient(145deg,#080c10 0%,#111820 72%,#10151a 100%)}
 .equipment-slot.has-rarity.rarity-frame-unfathomable,
 .equipment-backpack-item.rarity-frame-unfathomable,
-.pack-item.equipment-pack.rarity-frame-unfathomable{background:linear-gradient(145deg,rgba(159,212,224,.055) 0%,rgba(201,184,232,.048) 54%,rgba(230,194,136,.038) 100%),#12181e}
+.pack-item.equipment-pack.rarity-frame-unfathomable{background:linear-gradient(145deg,rgba(159,212,224,.075) 0%,rgba(201,184,232,.065) 54%,rgba(230,194,136,.052) 100%),#12181e}
 
 /* Slow diamond-like glints. Legendary+ gets three independent sparkles at
    deterministic pseudo-random positions/sizes; no fixed corner badge. */
@@ -1588,7 +1589,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.084.13</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.084.14</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1616,7 +1617,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.13</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.14</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -2124,7 +2125,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.084.13";
+const BUILD_VERSION = "v0.084.14";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
