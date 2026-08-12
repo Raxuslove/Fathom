@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.084.27 — Session 9C Delve Camera Layer</title>
+<title>Lowfathom v0.085.0 — Session 9D Procedural Equipment</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.084.27 Session 9C delve camera layer + protected v0.075 Smite FX
+   LOWFATHOM — v0.085.0 Session 9D procedural equipment + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -118,6 +118,7 @@
    - v0.084.25: large-view depth labels are reattached to their tick marks; half-pixel snapping reduces text shimmer without changing the compact minimap or current zoom
    - v0.084.26: large-view depth labels use persistent HTML overlays centered on their tick marks, avoiding SVG text re-rasterization jitter while the route scrolls
    - v0.084.27: both delve visuals render a stable cave/world layer and move it with one camera transform; ticks and labels remain rigidly attached while the yellow delver marker stays anchored
+   - v0.085.0: procedural equipment generation, live equipment attributes, 500+ Wondrous/Legendary access, Wizard INT counters, and collapsible combat history
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
@@ -654,13 +655,30 @@ button{
   border-bottom:1px solid var(--rule);
 }
 
-/* ---------- 4. readout ---------- */
-.readout{
-  overflow-y:auto;max-height:19vh;
-  padding:10px 13px;
-  background:var(--panel);
+/* ---------- 4. combat history / readout ---------- */
+.combat-log-wrap{
+  min-height:0;display:flex;flex-direction:column;background:var(--panel);
   border-bottom:1px solid var(--rule);
 }
+.combat-log-toggle{
+  flex:0 0 auto;width:100%;min-height:29px;border:0;border-bottom:1px solid var(--rule);
+  background:#151b21;padding:5px 13px;display:flex;align-items:center;gap:8px;text-align:left;
+  font-family:var(--cond);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
+  -webkit-appearance:none;appearance:none;border-radius:0;
+}
+.combat-log-toggle .combat-log-toggle-text{margin-left:auto;color:#59636e;letter-spacing:.08em}
+.combat-log-toggle i{font-style:normal;color:var(--lamp-dim);font-size:11px;transition:transform .16s}
+.combat-log-wrap:not(.collapsed) .combat-log-toggle i{transform:rotate(180deg)}
+.readout{
+  min-height:0;overflow-y:auto;max-height:31vh;padding:9px 13px;background:var(--panel);overscroll-behavior:contain;
+}
+.combat-log-entry{padding:0 0 7px;margin:0 0 7px;border-bottom:1px solid rgba(46,57,68,.55)}
+.combat-log-entry:last-child{padding-bottom:0;margin-bottom:0;border-bottom:none}
+.combat-log-wrap.collapsed .readout{max-height:58px;overflow:hidden;padding:7px 13px 8px}
+.combat-log-wrap.collapsed .combat-log-entry{display:none}
+.combat-log-wrap.collapsed .combat-log-entry:last-child{display:block}
+.combat-log-wrap.collapsed .combat-log-entry:last-child p{display:none}
+.combat-log-wrap.collapsed .combat-log-entry:last-child p:first-child{display:block}
 .readout p{margin:0 0 5px}
 .readout p:last-child{margin-bottom:0}
 .readout .said{font-family:var(--slab);font-size:14.5px;color:var(--bone)}
@@ -668,6 +686,8 @@ button{
 .readout .good{color:var(--verdigris)}
 .readout .note{color:var(--dim);font-style:italic;font-size:12px}
 .readout b{font-weight:600;color:var(--bone)}
+.arena.combat-log-expanded{overflow-y:auto;overscroll-behavior-y:contain}
+.arena.combat-log-expanded .combat-log-wrap{max-height:46vh}
 
 /* ---------- 5. you ---------- */
 .hero{
@@ -862,6 +882,7 @@ button{
 .char-folk-trait .pos{color:#92b896}.char-folk-trait .neg{color:#b97363}
 .char-stat{display:flex;justify-content:space-between;gap:8px;padding:9px 11px;background:#12181e;font-family:var(--cond);font-size:11px;color:var(--dim)}
 .char-stat b{color:var(--bone);font-weight:600}
+.char-stat b small{margin-left:4px;font-family:var(--cond);font-size:8px;font-weight:500;color:var(--verdigris)}
 .char-stat.editable{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px;padding:8px 9px}
 .char-stat-main{min-width:0}
 .char-stat-main span{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
@@ -1585,7 +1606,10 @@ button{
   .intent{padding:6px 12px 7px}
   .intent b{font-size:18px;line-height:1.18}
   .battle-space{min-height:8px}
-  .readout{max-height:14vh;padding:7px 12px}
+  .combat-log-toggle{min-height:27px;padding:4px 12px}
+  .combat-log-wrap.collapsed .readout{max-height:52px;padding:6px 12px 7px}
+  .combat-log-wrap:not(.collapsed) .readout{max-height:40vh;padding:7px 12px}
+  .arena.combat-log-expanded .combat-log-wrap{max-height:48vh}
   .readout p{margin-bottom:4px}
   .hero{padding:6px 12px 7px}
   .hero .cname{margin-bottom:2px}
@@ -1718,7 +1742,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.084.27</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.085.0</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1748,7 +1772,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.27</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.085.0</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -1910,7 +1934,7 @@ button{
           <div class="equipment-gear"><em>Gear level</em><b id="equipmentGearLevel">6.4</b></div>
           <button class="equipment-expand" id="btnEquipmentExpand" type="button" aria-expanded="false" aria-label="Expand equipment list" title="Expand equipment list">⌄</button>
         </div>
-        <div class="equipment-prototype-note">Session 9C playtest · weapon contribution and Armor mitigation are live. New delvers start in Salvage gear, and ordinary goblins can now drop hand-authored equipment through 500 fathoms.</div>
+        <div class="equipment-prototype-note">Session 9D · ordinary equipment drops are procedural. Weapon contribution, Armor and equipment attributes are live; authored starters, special items and boss rewards remain fixed.</div>
         <div class="equipment-stage">
           <div class="equipment-ring-rail" id="equipmentRingRail"></div>
           <div class="equipment-body-grid" id="equipmentBodyGrid"></div>
@@ -2023,7 +2047,10 @@ button{
 
   <div class="battle-space" aria-hidden="true"></div>
 
-  <div class="readout" id="readout" role="log"></div>
+  <section class="combat-log-wrap collapsed" id="combatLogWrap" aria-label="Combat log">
+    <button class="combat-log-toggle" id="btnCombatLogToggle" type="button" aria-expanded="false"><span>Combat log</span><span class="combat-log-toggle-text">latest</span><i aria-hidden="true">▾</i></button>
+    <div class="readout" id="readout" role="log" aria-live="polite"></div>
+  </section>
 
   <section class="hero">
     <div class="cname"><b id="heroName">—</b><span class="lv" id="heroLv"></span></div>
@@ -2272,7 +2299,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.084.27";
+const BUILD_VERSION = "v0.085.0";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -2303,6 +2330,8 @@ const BALANCE_DEPTH_EXPONENT = 0.60;
 const ITEM_BUDGET_PER_ILVL = 0.195; // iLv 100 = 19.5 normalized 1.0-slot budget
 const ARMOR_BUDGET_COST = 1.5;
 const WEAPON_BUDGET_COST = 3;
+const ATTRIBUTE_BUDGET_COST = 8; // provisional Session 9D price; tune from live play rather than hidden multipliers
+const GENERATED_ILVL_VARIANCE = 0.06;
 const ARMOR_CURVE_CONSTANT = 2.5;
 const SLOT_BUDGET_COEFFICIENTS = Object.freeze({
   rightHand:1.00,leftHand:1.00,top:1.00,bottoms:0.80,hat:0.60,gloves:0.60,boots:0.60,
@@ -2330,7 +2359,7 @@ const RARITY_DEFS = Object.freeze({
   Rare:{unlockDepth:0,baseChance:0.10,budgetMult:1.18},
   Epic:{unlockDepth:250,baseChance:0.05,budgetMult:1.32},
   Wondrous:{unlockDepth:500,baseChance:0.04,budgetMult:1.47},
-  Legendary:{unlockDepth:1000,baseChance:0.03,budgetMult:1.63},
+  Legendary:{unlockDepth:500,baseChance:0.01,budgetMult:1.63},
   Mythical:{unlockDepth:2000,baseChance:0.025,budgetMult:1.81},
   Ancient:{unlockDepth:3000,baseChance:0.02,budgetMult:2.00},
   Sunless:{unlockDepth:4000,baseChance:0.0175,budgetMult:2.22},
@@ -2522,9 +2551,10 @@ let levelUpNoticeDeadline = 0;
 let levelUpNoticeFrame = null;
 let combatVictoryPending = null;
 let combatVictoryTimer = null;
+let combatLogCollapsed = true;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 3;
+const SAVE_SCHEMA = 4;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -2545,9 +2575,36 @@ let runSaveLoadIssue = null;
 function xpToNext(level=S.level){
   return Math.round(20 + 10*Math.pow(level,1.5));
 }
+function equipmentItemAttributes(id){
+  const def=equipmentItemDef(id);
+  const out=Object.fromEntries(STAT_KEYS.map(stat=>[stat,0]));
+  if(!def?.attributes || typeof def.attributes!=="object") return out;
+  for(const stat of STAT_KEYS) out[stat]=Number(def.attributes[stat])||0;
+  return out;
+}
+function equipmentAttributeTotalsFor(equipmentState=S?.equipment){
+  const out=Object.fromEntries(STAT_KEYS.map(stat=>[stat,0]));
+  if(!equipmentState) return out;
+  for(const slot of EQUIPMENT_SLOT_ORDER){
+    if(slot==="leftHand" && equipmentItemUsesBothHands(equipmentState.rightHand)) continue;
+    const attrs=equipmentItemAttributes(equipmentState[slot]);
+    for(const stat of STAT_KEYS) out[stat]+=attrs[stat]||0;
+  }
+  return out;
+}
+function effectiveStatForEquipment(stat,equipmentState=S?.equipment){
+  return (Number(S?.[stat])||0)+(equipmentAttributeTotalsFor(equipmentState)[stat]||0);
+}
+function effectiveStat(stat){ return effectiveStatForEquipment(stat,S?.equipment); }
 function maxHp(){
-  // CON is the HP investment in this prototype. Level itself does not grant HP.
-  return S.CON * 6;
+  // Base CON plus equipped CON sets the ceiling. Equipping CON never heals; callers clamp separately.
+  return effectiveStat("CON") * 6;
+}
+function syncEquipmentHpCeiling(){
+  if(!S) return;
+  S.hpMax=maxHp();
+  const floor=Number(S.hp)<=0?0:1;
+  S.hp=Math.max(floor,Math.min(S.hp,S.hpMax));
 }
 function knowledgeReads(key){
   return knowledge[key]?.reads || 0;
@@ -2640,11 +2697,11 @@ function signed(n){ return n >= 0 ? `+${n}` : `${n}`; }
 function skillCheckBonus(id){
   const def=SKILL_DEFS[id], st=skillState(id);
   if(!def||!st||!S) return 0;
-  return (S[def.stat]-10)+st.rank+proficiencyBonus(id);
+  return (effectiveStat(def.stat)-10)+st.rank+proficiencyBonus(id);
 }
 function runSkillCheck(id, dc, situational=0){
   const def=SKILL_DEFS[id], st=skillState(id);
-  const roll=ri(1,20), attrBonus=S[def.stat]-10, rankBonus=st.rank, prof=proficiencyBonus(id);
+  const roll=ri(1,20), attrBonus=effectiveStat(def.stat)-10, rankBonus=st.rank, prof=proficiencyBonus(id);
   const total=roll+attrBonus+rankBonus+prof+situational;
   return {id,def,dc,roll,attrBonus,rankBonus,proficiency:prof,situational,total,success:total>=dc};
 }
@@ -2721,6 +2778,7 @@ function newDelver(profile){
       rogueTools:cls==="Rogue"?1:0, lexicon:cls==="Wizard"?1:0, reliquary:cls==="Votary"?1:0,
       misc:{}, weapons:[startingEquipment.rightHand].filter(Boolean), equipment:[...startingEquipmentBag], passageKey:null
     },
+    generatedItems:{},
     equipment:{...startingEquipment},
     hollowStates:{}, activeHollow:null, boon:null, pendingBoonChoice:false, pendingRestAbilityChoice:false,
     abilityQuickUsed:false, className:classInfo.name, proficiencies:{...classInfo.proficiencies},
@@ -2732,7 +2790,7 @@ function newDelver(profile){
     curse:null, bleeding:false, bleedTravel:0, bossDefeated:{}, packMode:null,
     runAttemptStratum:0, runAttempts:0,
     descentXpMaxDepth:0, descentXpPending:0,
-    lootHistory:[], pendingLoot:null,
+    lootHistory:[], pendingLoot:null, combatLog:[],
     turn:1, foe:null
   };
 
@@ -2742,6 +2800,7 @@ function newDelver(profile){
   armed = null;
   over = false;
   selectedLootHistoryId = null;
+  combatLogCollapsed = true;
   clearHollowTimer();
   closeLootHistory();
   document.querySelectorAll(".dead").forEach(n => n.remove());
@@ -3098,12 +3157,15 @@ function renderCharacterStats(){
   const editing=(S.statPoints || 0)>0 || draftTotal>0;
   const locked=typeof encounterWarningActive === "function" && encounterWarningActive();
   const available=availableStatPoints();
+  const gearAttrs=equipmentAttributeTotalsFor();
   $("charStats").innerHTML=STAT_KEYS.map(stat=>{
     const pending=Math.max(0,statPointDraft[stat] || 0);
-    const shown=S[stat]+pending;
-    if(!editing) return `<div class="char-stat"><span>${stat}</span><b>${shown}</b></div>`;
+    const gear=gearAttrs[stat]||0;
+    const shown=S[stat]+gear+pending;
+    const gearText=gear?` · +${gear} gear`:"";
+    if(!editing) return `<div class="char-stat"><span>${stat}</span><b>${shown}${gear?` <small>+${gear} gear</small>`:""}</b></div>`;
     return `<div class="char-stat editable">
-      <div class="char-stat-main"><span>${stat}</span><b>${shown}</b><small class="${pending?"pending":""}">${pending?`+${pending} pending`:esc(statPointHint(stat))}</small></div>
+      <div class="char-stat-main"><span>${stat}</span><b>${shown}</b><small class="${pending||gear?"pending":""}">${pending?`+${pending} pending${gearText}`:gear?`+${gear} gear`:esc(statPointHint(stat))}</small></div>
       <div class="char-stat-controls">
         <button class="char-stat-step minus" type="button" data-stat-minus="${stat}" aria-label="Remove staged ${stat} point" ${locked||pending<=0?"disabled":""}>−</button>
         <button class="char-stat-step plus" type="button" data-stat-plus="${stat}" aria-label="Stage ${stat} point" ${locked||available<=0?"disabled":""}>+</button>
@@ -3437,11 +3499,12 @@ function backpackMiscCategory(name){
 function ensureEquipmentState(){
   if(!S) return;
   S.inventory=S.inventory||{};
+  S.generatedItems=(S.generatedItems && typeof S.generatedItems==="object" && !Array.isArray(S.generatedItems))?S.generatedItems:{};
   S.inventory.weapons=Array.isArray(S.inventory.weapons)?S.inventory.weapons:[];
   if(!Array.isArray(S.inventory.equipment)) S.inventory.equipment=[];
   const validState=S.equipment && typeof S.equipment==="object" && !Array.isArray(S.equipment);
   if(!validState){
-    const main=(S.equippedWeapon && GEAR_ITEMS[S.equippedWeapon])?S.equippedWeapon:(CLASS_DEFS[S.className]?.startingWeapon||"worn_longsword");
+    const main=(S.equippedWeapon && equipmentItemDef(S.equippedWeapon))?S.equippedWeapon:(CLASS_DEFS[S.className]?.startingWeapon||"worn_longsword");
     S.equipment=startingEquipmentLoadout(S.className,main);
     const seed=[...startingEquipmentBackpack(S.className),...S.inventory.weapons];
     const equippedIds=new Set(Object.values(S.equipment).filter(Boolean));
@@ -3458,7 +3521,7 @@ function ensureEquipmentState(){
   S.inventory.equipment=S.inventory.equipment.filter(id=>!RARITY_TEST_WEAPONS.includes(id));
   if(RARITY_TEST_WEAPONS.includes(S.equipment.rightHand)) S.equipment.rightHand=null;
   const main=S.equipment.rightHand;
-  S.equippedWeapon=(main && GEAR_ITEMS[main])?main:null;
+  S.equippedWeapon=(main && equipmentItemDef(main))?main:null;
 }
 function equipmentItems(){
   ensureEquipmentState();
@@ -3525,8 +3588,10 @@ function equipmentComparisonForTarget(itemId,target){
   const before=equipmentGearLevelFor(beforeState), after=equipmentGearLevelFor(afterState);
   const armorBefore=equipmentArmorFor(beforeState),armorAfter=equipmentArmorFor(afterState);
   const mitigationBefore=armorMitigationFor(beforeState),mitigationAfter=armorMitigationFor(afterState);
+  const attributesBefore=equipmentAttributeTotalsFor(beforeState),attributesAfter=equipmentAttributeTotalsFor(afterState);
+  const hpBefore=effectiveStatForEquipment("CON",beforeState)*6,hpAfter=effectiveStatForEquipment("CON",afterState)*6;
   const strikeBefore=weaponAttackBaseForEquipment(beforeState),strikeAfter=weaponAttackBaseForEquipment(afterState);
-  return {target,currentId,itemDelta,gearDelta:after-before,before,after,armorBefore,armorAfter,mitigationBefore,mitigationAfter,strikeBefore,strikeAfter};
+  return {target,currentId,itemDelta,gearDelta:after-before,before,after,armorBefore,armorAfter,mitigationBefore,mitigationAfter,attributesBefore,attributesAfter,hpBefore,hpAfter,strikeBefore,strikeAfter};
 }
 function recommendedEquipmentSlot(itemId,preferred=null,filterId="all"){
   const slots=equipmentFilterCompatibleSlots(itemId,filterId);
@@ -3570,6 +3635,10 @@ function equipmentCompareHtml(itemId,targetSlot=null){
   const c=equipmentComparison(itemId,targetSlot), targetLabel=EQUIPMENT_SLOT_LABELS[c.target]||"slot",bits=[];
   bits.push(`<span class="equipment-delta power">iLv ${deltaText(c.itemDelta)}</span>`,`<span class="equipment-delta power">Gear ${deltaText(c.gearDelta,1)}</span>`);
   const armorDelta=(c.armorAfter??0)-(c.armorBefore??0); if(Math.abs(armorDelta)>.001) bits.push(`<span class="equipment-delta ${deltaClass(armorDelta)}">Armor ${deltaText(armorDelta)}</span>`);
+  for(const stat of STAT_KEYS){
+    const d=(c.attributesAfter?.[stat]||0)-(c.attributesBefore?.[stat]||0);
+    if(d) bits.push(`<span class="equipment-delta ${deltaClass(d)}">${stat} ${deltaText(d)}</span>`);
+  }
   const strikeDelta=(c.strikeAfter??0)-(c.strikeBefore??0); if(Math.abs(strikeDelta)>.05) bits.push(`<span class="equipment-delta ${deltaClass(strikeDelta)}">Strike ${deltaText(strikeDelta,1)}</span>`);
   bits.push(`<span>${esc(targetLabel)}</span>`);
   return bits.join("");
@@ -3613,8 +3682,9 @@ function equipEquipmentItem(itemId,targetSlot=null){
   }
   removeEquipmentFromBag(itemId);
   S.equipment[target]=itemId;
-  if(target==="rightHand") S.equippedWeapon=GEAR_ITEMS[itemId]?itemId:null;
+  if(target==="rightHand") S.equippedWeapon=equipmentItemDef(itemId)?itemId:null;
   syncVotaryLoadoutFromHands();
+  syncEquipmentHpCeiling();
   travelLogAdd(`Equipped <b>${esc(def.name)}</b> in <b>${esc(EQUIPMENT_SLOT_LABELS[target])}</b>.`,"good");
   closeEquipmentInspect();
   renderPack();
@@ -3631,6 +3701,7 @@ function unequipEquipmentSlot(slot){
   S.equipment[slot]=null;
   if(slot==="rightHand") S.equippedWeapon=null;
   syncVotaryLoadoutFromHands();
+  syncEquipmentHpCeiling();
   travelLogAdd(`Moved <b>${esc(equipmentItemDef(id)?.name||id)}</b> to the Backpack.`,"note");
   closeEquipmentInspect();
   renderPack();
@@ -3757,12 +3828,17 @@ function renderEquipmentInspect(){
   const compare=candidate?(()=>{
     const lines=[`<span class="equipment-delta power">Item Level ${deltaText(comp.itemDelta)}</span> · <span class="equipment-delta power">Gear Level ${deltaText(comp.gearDelta,1)}</span>`];
     if(Math.abs(comp.armorAfter-comp.armorBefore)>.001) lines.push(`Armor <span class="equipment-delta ${deltaClass(comp.armorAfter-comp.armorBefore)}">${comp.armorBefore} → ${comp.armorAfter}</span> · mitigation ${Math.round(comp.mitigationBefore*100)}% → ${Math.round(comp.mitigationAfter*100)}%`);
+    for(const stat of STAT_KEYS){
+      const d=(comp.attributesAfter?.[stat]||0)-(comp.attributesBefore?.[stat]||0);
+      if(d) lines.push(`${stat} <span class="equipment-delta ${deltaClass(d)}">${effectiveStatForEquipment(stat,S.equipment)} → ${effectiveStatForEquipment(stat,simulateEquipmentEquipDirect(itemId,slot))}</span>`);
+    }
+    if(comp.hpAfter!==comp.hpBefore) lines.push(`Max HP <span class="equipment-delta ${deltaClass(comp.hpAfter-comp.hpBefore)}">${comp.hpBefore} → ${comp.hpAfter}</span>`);
     if(Math.abs(comp.strikeAfter-comp.strikeBefore)>.05) lines.push(`Basic attack <span class="equipment-delta ${deltaClass(comp.strikeAfter-comp.strikeBefore)}">${comp.strikeBefore.toFixed(1)} → ${comp.strikeAfter.toFixed(1)}</span>`);
     if(equipmentItemUsesBothHands(itemId)) lines.push(`Equipping this two-handed item returns the current Off Hand item to the Backpack.`);
     return `<div class="equipment-inspect-special"><b>Compared with ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}</b><br>${lines.join("<br>")}</div>`;
   })():"";
   const canUnequip=!candidate;
-  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName" class="${rarityClass(item.rarity)}">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity ${rarityClass(item.rarity)}">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9C</b><br>Weapon contribution and Armor are mechanical. Item Level is a fixed-rate budget rating; attribute/utility properties remain informational until their scaling curves are locked.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
+  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName" class="${rarityClass(item.rarity)}">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity ${rarityClass(item.rarity)}">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9D</b><br>Weapon contribution, Armor and generated STR / CON / DEX / INT / WIS / CHA bonuses are mechanical. Item Level is a fixed-rate budget rating; older prototype utility lines remain informational until separately priced.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
 }
 function toggleEquipmentList(){
   equipmentListExpanded=false;
@@ -4039,7 +4115,8 @@ function renderPack(rememberView=true){
     root.innerHTML=filteredEquipment.length?filteredEquipment.map(id=>{
       const g=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentComparison(id,target,equipmentFilter);
       const armorDelta=(cmp.armorAfter??0)-(cmp.armorBefore??0),strikeDelta=(cmp.strikeAfter??0)-(cmp.strikeBefore??0);
-      const consequences=`${Math.abs(armorDelta)>.001?`<span class="equipment-delta ${deltaClass(armorDelta)}">Armor ${deltaText(armorDelta)}</span>`:""}${Math.abs(strikeDelta)>.05?`<span class="equipment-delta ${deltaClass(strikeDelta)}">Strike ${deltaText(strikeDelta,1)}</span>`:""}`;
+      const attrConsequences=STAT_KEYS.map(stat=>{const d=(cmp.attributesAfter?.[stat]||0)-(cmp.attributesBefore?.[stat]||0);return d?`<span class="equipment-delta ${deltaClass(d)}">${stat} ${deltaText(d)}</span>`:"";}).join("");
+      const consequences=`${Math.abs(armorDelta)>.001?`<span class="equipment-delta ${deltaClass(armorDelta)}">Armor ${deltaText(armorDelta)}</span>`:""}${attrConsequences}${Math.abs(strikeDelta)>.05?`<span class="equipment-delta ${deltaClass(strikeDelta)}">Strike ${deltaText(strikeDelta,1)}</span>`:""}`;
       const frame=rarityFrameClass(g.rarity);
       return `<div class="pack-item compact equipment-pack ${frame}">${raritySparkles(g.rarity,`pack:${id}`)}<div class="pack-item-top"><b class="${rarityClass(g.rarity)}">${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span></b><strong class="${rarityClass(g.rarity)}">iLv ${g.itemLevel}</strong></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta power">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta power">Gear ${deltaText(cmp.gearDelta,1)}</span>${consequences}</div><div class="pack-actions"><button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button></div></div>`;
     }).join(""):`<div class="pack-note">No carried equipment matches this filter.</div>`;
@@ -4091,6 +4168,8 @@ function spawnEncounter(options={}){
   S.strikeChain = 0;
   S.defenceChain = 0;
   S.abilityQuickUsed = false;
+  S.combatLog = [];
+  combatLogCollapsed = true;
   armed = null;
 
   const base = options.profile || (options.boss ? BOSS_PROFILE : chooseFoeProfile());
@@ -4640,9 +4719,9 @@ function counterDamage(style, perfect=false){
     const mult = perfect
       ? (style === "shield" ? 0.75 : 1.25)
       : (style === "shield" ? 0.35 : 0.75);
-    d = S.STR * mult;
+    d = effectiveStat("STR") * mult;
   } else {
-    const base = S.className === "Rogue" ? S.DEX : S.STR;
+    const base = S.className === "Rogue" ? effectiveStat("DEX") : S.className === "Wizard" ? effectiveStat("INT") : effectiveStat("STR");
     d = base * (perfect ? 1.05 : 0.55);
   }
   if(eff.counterBonus) d *= eff.counterBonus;
@@ -4678,7 +4757,7 @@ function defenceName(){
   return S.loadout === "shield" ? "Guard" : "Parry";
 }
 function defenceReduction(){
-  if(S?.className === "Rogue") return clamp(.55-(S.DEX-10)*.025,.25,.55);
+  if(S?.className === "Rogue") return clamp(.55-(effectiveStat("DEX")-10)*.025,.25,.55);
   if(S?.className === "Wizard") return .50;
   return S.loadout === "shield" ? 0.25 : 0.45;
 }
@@ -5477,10 +5556,36 @@ function travelLogAdd(html, cls=""){
   if(nearBottom) r.scrollTop = r.scrollHeight;
 }
 
+function renderCombatLog(){
+  const r=$("readout"); if(!r) return;
+  const entries=Array.isArray(S?.combatLog)?S.combatLog:[];
+  r.innerHTML=entries.length?entries.map(html=>`<div class="combat-log-entry">${html}</div>`).join(""):`<div class="combat-log-entry"><p class="note">Nothing has happened yet.</p></div>`;
+  if(!combatLogCollapsed) r.scrollTop=r.scrollHeight; else r.scrollTop=0;
+}
+function renderCombatLogCollapse(){
+  const wrap=$("combatLogWrap"),btn=$("btnCombatLogToggle"),arena=$("arena");
+  if(!wrap||!btn) return;
+  wrap.classList.toggle("collapsed",combatLogCollapsed);
+  btn.setAttribute("aria-expanded",combatLogCollapsed?"false":"true");
+  const txt=btn.querySelector(".combat-log-toggle-text"); if(txt) txt.textContent=combatLogCollapsed?"latest":"history";
+  if(arena) arena.classList.toggle("combat-log-expanded",!combatLogCollapsed);
+}
+function toggleCombatLog(){
+  combatLogCollapsed=!combatLogCollapsed;
+  renderCombatLogCollapse();
+  renderCombatLog();
+}
 function say(html){
-  const r = $("readout");
-  r.innerHTML = html;
-  r.scrollTop = 0;
+  if(!S) return;
+  if(S.foe){
+    if(!Array.isArray(S.combatLog)) S.combatLog=[];
+    S.combatLog.push(html);
+    if(S.combatLog.length>40) S.combatLog.shift();
+  }else{
+    S.combatLog=[html];
+  }
+  renderCombatLog();
+  renderCombatLogCollapse();
 }
 
 function hpClass(el, frac){
@@ -5837,7 +5942,7 @@ function render(){
 
   $("heroName").textContent = S.name;
   $("heroLv").textContent = "Level " + S.level;
-  $("heroStats").textContent = `STR ${S.STR} · CON ${S.CON} · DEX ${S.DEX}`;
+  $("heroStats").textContent = `STR ${effectiveStat("STR")} · CON ${effectiveStat("CON")} · DEX ${effectiveStat("DEX")}`;
   $("heroXp").textContent = `${S.xp} / ${xpToNext(S.level)} XP`;
 
   const hf = clamp(S.hp/S.hpMax,0,1);
@@ -5897,6 +6002,7 @@ function render(){
   renderLevelUpNotice();
   renderPad();
   renderPreview();
+  renderCombatLogCollapse();
 
   $("btnRun").hidden = !f || over;
   if(f){
@@ -5914,7 +6020,7 @@ function render(){
   }
 
   const w = equippedWeaponDef();
-  $("heroStats").textContent = `STR ${S.STR} · CON ${S.CON} · DEX ${S.DEX} · ${w.unarmed?"unarmed":`${w.stat} weapon`}`;
+  $("heroStats").textContent = `STR ${effectiveStat("STR")} · CON ${effectiveStat("CON")} · DEX ${effectiveStat("DEX")} · ${w.unarmed?"unarmed":`${w.stat} weapon`}`;
   const combatPackBtn=$("btnCombatPack"),combatPackTxt=$("combatPackTxt");
   if(combatPackBtn) combatPackBtn.disabled=!f||over||combatVictoryPending;
   if(combatPackTxt){
@@ -6166,7 +6272,138 @@ const EQUIPMENT_ITEMS = {
   plate_gauntlets:{name:"Plate Gauntlets",slot:"gloves",slots:["gloves"],itemLevel:108,rarity:"Uncommon",armor:8,stats:["Armor +8","Delicate work -2"],desc:"Heavy articulated plates prioritize protection over fine manipulation."}
 };
 
-function equipmentItemDef(id){ return EQUIPMENT_ITEMS[id] || null; }
+/* ============================================================
+   v0.085.0 — SESSION 9D PROCEDURAL EQUIPMENT
+   Authored starters, bosses and special items stay in EQUIPMENT_ITEMS. Ordinary
+   drops are unique saved instances generated from depth, rarity and slot budget.
+   ============================================================ */
+const GENERATED_WEAPON_FAMILIES = Object.freeze([
+  Object.freeze({base:"Longsword",family:"sword",stat:"STR",hands:1,weight:2}),
+  Object.freeze({base:"Greatsword",family:"greatsword",stat:"STR",hands:2,greatWeapon:true,weight:1}),
+  Object.freeze({base:"Hand Axe",family:"axe",stat:"STR",hands:1,weight:1}),
+  Object.freeze({base:"Dagger",family:"dagger",stat:"DEX",hands:1,weight:2}),
+  Object.freeze({base:"Shortbow",family:"bow",stat:"DEX",hands:2,weight:2}),
+  Object.freeze({base:"Wand",family:"wand",stat:"INT",hands:1,weight:2}),
+  Object.freeze({base:"Wooden Staff",family:"staff",stat:"INT",hands:2,weight:2})
+]);
+const GENERATED_DROP_FAMILIES = Object.freeze([
+  Object.freeze({id:"weapon",kind:"weapon",weight:22}),
+  Object.freeze({id:"shield",kind:"armor",base:"Buckler",family:"shield",slot:"leftHand",slots:["leftHand"],weight:6}),
+  Object.freeze({id:"focus",kind:"attributes",base:"Field Grimoire",family:"focus",slot:"leftHand",slots:["leftHand"],pool:["INT","WIS"],weight:4}),
+  Object.freeze({id:"top",kind:"armor",base:"Delver's Jack",slot:"top",slots:["top"],weight:9}),
+  Object.freeze({id:"bottoms",kind:"armor",base:"Trousers",slot:"bottoms",slots:["bottoms"],weight:7}),
+  Object.freeze({id:"hat",kind:"armor",base:"Coif",slot:"hat",slots:["hat"],weight:6}),
+  Object.freeze({id:"gloves",kind:"armor",base:"Gloves",slot:"gloves",slots:["gloves"],weight:6}),
+  Object.freeze({id:"boots",kind:"armor",base:"Boots",slot:"boots",slots:["boots"],weight:6}),
+  Object.freeze({id:"cape",kind:"attributes",base:"Cape",slot:"cape",slots:["cape"],pool:["DEX","WIS","CHA"],weight:5}),
+  Object.freeze({id:"belt",kind:"attributes",base:"Belt",slot:"belt",slots:["belt"],pool:["STR","CON","DEX"],weight:5}),
+  Object.freeze({id:"light",kind:"attributes",base:"Hooded Lantern",slot:"light",slots:["light"],pool:["WIS","INT","DEX"],weight:5}),
+  Object.freeze({id:"necklace",kind:"attributes",base:"Pendant",slot:"necklace",slots:["necklace"],pool:["WIS","CHA","INT","CON"],weight:5}),
+  Object.freeze({id:"earring",kind:"attributes",base:"Stud",slot:"earring",slots:["earLeft","earRight"],pool:["DEX","INT","WIS","CHA"],weight:7}),
+  Object.freeze({id:"ring",kind:"attributes",base:"Ring",slot:"ring",slots:["ring1","ring2","ring3","ring4"],pool:["STR","CON","DEX","INT","WIS","CHA"],weight:7})
+]);
+const GENERATED_RARITY_PREFIX = Object.freeze({
+  Salvage:"Salvaged",Poor:"Worn",Common:"",Uncommon:"Hardened",Rare:"Deep-forged",Epic:"Masterwork",
+  Wondrous:"Wonder-wrought",Legendary:"Legend-marked",Mythical:"Mythbound",Ancient:"Ancient",Sunless:"Sunless",Unfathomable:"Unfathomable"
+});
+function rollEquipmentRarity(depth=S?.depth||0){
+  const d=Math.max(0,Number(depth)||0),roll=rnd();
+  let cursor=0;
+  for(const rarity of RARITY_ORDER){
+    if(rarity==="Common") continue;
+    const chance=equipmentRarityChanceAtDepth(rarity,d);
+    if(chance<=0) continue;
+    cursor+=chance;
+    if(roll<cursor) return rarity;
+  }
+  return "Common";
+}
+function generatedWeightedPick(entries,weightFn=e=>e.weight||1){
+  const weights=entries.map(e=>Math.max(0,Number(weightFn(e))||0)),total=weights.reduce((a,b)=>a+b,0);
+  if(total<=0) return entries[0];
+  let roll=rnd()*total;
+  for(let i=0;i<entries.length;i++){roll-=weights[i];if(roll<=0)return entries[i];}
+  return entries[entries.length-1];
+}
+function generatedFamilyWeight(entry,sourceKey){
+  let w=entry.weight||1;
+  if(["cutter","mauler"].includes(sourceKey) && entry.id==="weapon") w*=1.8;
+  if(sourceKey==="shieldback" && ["shield","top","gloves"].includes(entry.id)) w*=1.8;
+  if(sourceKey==="skitter" && ["bottoms","hat","boots","cape"].includes(entry.id)) w*=1.45;
+  if(["scrounger","oldhand"].includes(sourceKey) && ["focus","belt","light","necklace","earring","ring"].includes(entry.id)) w*=1.65;
+  return w;
+}
+function generatedStratumTag(depth=S?.depth||0){
+  return ["Warren","Mine","Barrow","Undertemple","Wyrm"][stratumIndex(depth)]||"Deep";
+}
+function generatedItemName(base,rarity,depth){
+  const prefix=GENERATED_RARITY_PREFIX[rarity]||"",tag=generatedStratumTag(depth);
+  return [prefix,tag,base].filter(Boolean).join(" ");
+}
+function generatedInstanceId(){
+  if(!S) return `gen_${Date.now()}_${Math.floor(rnd()*1e9)}`;
+  S.generatedItemSeq=(Number(S.generatedItemSeq)||0)+1;
+  return `gen_${Date.now().toString(36)}_${S.generatedItemSeq.toString(36)}_${Math.floor(rnd()*0xffffff).toString(36)}`;
+}
+function stochasticWhole(value,min=0){
+  const v=Math.max(0,Number(value)||0),floor=Math.floor(v);
+  return Math.max(min,floor+(rnd()<(v-floor)?1:0));
+}
+function generatedTargetItemLevel(depth,rarity){
+  const variance=1-GENERATED_ILVL_VARIANCE+rnd()*(GENERATED_ILVL_VARIANCE*2);
+  return Math.max(1,Math.round(expectedItemLevelAtDepth(depth)*rarityDef(rarity).budgetMult*variance));
+}
+function generatedSlotCoefficient(entry,weapon=null){
+  if(entry.kind==="weapon") return Number(weapon?.hands||1)===2?2:SLOT_BUDGET_COEFFICIENTS.rightHand;
+  const slot=(entry.slots||[])[0];
+  return SLOT_BUDGET_COEFFICIENTS[slot]||1;
+}
+function distributeGeneratedAttributes(points,pool){
+  const attrs={};
+  for(let i=0;i<points;i++){const stat=pick(pool);attrs[stat]=(attrs[stat]||0)+1;}
+  return attrs;
+}
+function generatedStatsLines(item){
+  if(item.kind==="weapon") return [`${item.stat} scaling`,`Weapon contribution +${Number(item.weaponContribution).toFixed(1)}`];
+  if(item.armor) return [`Armor +${item.armor}`];
+  return STAT_KEYS.filter(stat=>item.attributes?.[stat]).map(stat=>`${stat} +${item.attributes[stat]}`);
+}
+function generateProceduralEquipment(depth=S?.depth||0,sourceKey=""){
+  const d=Math.max(0,Number(depth)||0),rarity=rollEquipmentRarity(d);
+  const entry=generatedWeightedPick(GENERATED_DROP_FAMILIES,e=>generatedFamilyWeight(e,sourceKey));
+  const targetIlvl=generatedTargetItemLevel(d,rarity);
+  let weapon=null,coef=1,actualIlvl=targetIlvl,item;
+  if(entry.kind==="weapon") weapon=generatedWeightedPick(GENERATED_WEAPON_FAMILIES);
+  coef=generatedSlotCoefficient(entry,weapon);
+  const slotBudget=itemBudgetFromLevel(targetIlvl)*coef;
+  if(entry.kind==="weapon"){
+    const contribution=slotBudget/WEAPON_BUDGET_COST;
+    item={kind:"weapon",base:weapon.base,family:weapon.family,stat:weapon.stat,hands:weapon.hands,greatWeapon:!!weapon.greatWeapon,slot:"rightHand",slots:["rightHand"],weaponContribution:Number(contribution.toFixed(2))};
+  }else if(entry.kind==="armor"){
+    const armor=stochasticWhole(slotBudget/ARMOR_BUDGET_COST,1),actualBudget=armor*ARMOR_BUDGET_COST;
+    actualIlvl=Math.max(1,itemLevelFromBudget(actualBudget/coef));
+    item={kind:"armor",base:entry.base,family:entry.family||"armor",slot:entry.slot,slots:[...entry.slots],armor};
+  }else{
+    const points=stochasticWhole(slotBudget/ATTRIBUTE_BUDGET_COST,1),actualBudget=points*ATTRIBUTE_BUDGET_COST;
+    actualIlvl=Math.max(1,itemLevelFromBudget(actualBudget/coef));
+    item={kind:"attributes",base:entry.base,family:entry.family||entry.id,slot:entry.slot,slots:[...entry.slots],attributes:distributeGeneratedAttributes(points,entry.pool)};
+  }
+  const id=generatedInstanceId();
+  item.id=id;item.generated=true;item.generatedDepth=Number(d.toFixed(1));item.rarity=rarity;item.itemLevel=actualIlvl;
+  item.name=generatedItemName(item.base,rarity,d);
+  item.stats=generatedStatsLines(item);
+  item.desc=`Procedural ${item.rarity} ${item.base.toLowerCase()} generated at ${formatDepth(d)} fathoms. Its displayed iLv reflects the properties actually allocated to it.`;
+  return item;
+}
+function addGeneratedEquipment(item){
+  if(!S||!item?.id) return null;
+  S.generatedItems=S.generatedItems||{};
+  S.generatedItems[item.id]=cloneForSave(item);
+  addEquipmentToBag(item.id);
+  return item.id;
+}
+
+function equipmentItemDef(id){ return EQUIPMENT_ITEMS[id] || S?.generatedItems?.[id] || null; }
 function equipmentItemLevel(id){ return Number(equipmentItemDef(id)?.itemLevel)||0; }
 function equipmentItemArmor(id){
   const def=equipmentItemDef(id); if(!def) return 0;
@@ -6229,57 +6466,20 @@ const DROP_HINTS = {
   warren_boss:["stratum reward","better equipment","unusual trinkets"]
 };
 
-// Hand-authored Session 9C playtest pools. These deliberately stop short of a
-// procedural generator: each item is authored and budgeted, while depth only
-// selects which fixed pool an enemy may draw from.
-const PLAYTEST_EQUIPMENT_POOLS = Object.freeze({
-  cutter:Object.freeze({
-    low:["worn_longsword","worn_shortsword","worn_wand"],
-    mid:["tempered_longsword","balanced_dagger","etched_wand"],
-    deep:["guildsteel_longsword","needle_dagger","runed_wand"]
-  }),
-  scrounger:Object.freeze({
-    low:["leather_coif","plate_gauntlets","hobnailed_boots"],
-    mid:["mail_coif","riveted_gloves","ironshod_boots"],
-    deep:["deep_sallet","plated_gloves","deep_boots"]
-  }),
-  skitter:Object.freeze({
-    low:["leather_coif","reinforced_trousers","hobnailed_boots"],
-    mid:["mail_coif","scaled_trousers","ironshod_boots"],
-    deep:["deep_sallet","plated_bottoms","deep_boots"]
-  }),
-  shieldback:Object.freeze({
-    low:["worn_buckler","padded_delvers_jack","plate_gauntlets"],
-    mid:["reinforced_buckler","ringmail_jack","riveted_gloves"],
-    deep:["tower_buckler","brigandine_jack","plated_gloves"]
-  }),
-  mauler:Object.freeze({
-    low:["worn_greatsword","hunting_bow","worn_staff"],
-    mid:["iron_greatsword","recurved_bow","ash_staff"],
-    deep:["deep_greatsword","war_bow","ironwood_staff"]
-  }),
-  oldhand:Object.freeze({
-    low:["padded_delvers_jack","worn_greatsword","worn_shortsword","worn_wand"],
-    mid:["ringmail_jack","iron_greatsword","balanced_dagger","etched_wand"],
-    deep:["brigandine_jack","deep_greatsword","needle_dagger","runed_wand","war_bow","ironwood_staff"]
-  })
-});
-function playtestEquipmentBand(depth=S?.depth||0){ return depth>=325?"deep":depth>=150?"mid":"low"; }
+// Authored equipment definitions above remain valid for old chronicles, starters, bosses and special rewards.
 function ownsEquipmentItem(id){
   return !!id && (S?.inventory?.equipment?.includes(id) || Object.values(S?.equipment||{}).includes(id));
 }
 function maybeEquipmentLoot(f){
   if(!S||!f||f.boss||f.mimic) return null;
   const key=f.key||f.profile?.id;
-  const set=PLAYTEST_EQUIPMENT_POOLS[key]; if(!set) return null;
   const chance=key==="oldhand"?.18:key==="shieldback"||key==="mauler"?.15:.12;
   if(rnd()>=chance) return null;
-  const pool=(set[playtestEquipmentBand()]||[]).filter(id=>equipmentItemDef(id)&&!ownsEquipmentItem(id));
-  if(!pool.length) return null;
-  const id=pick(pool), def=equipmentItemDef(id);
-  addEquipmentToBag(id);
-  S._lootFoundCurrent.push(`${def.name} · ${def.rarity} · iLv ${def.itemLevel}`);
-  return id;
+  const item=generateProceduralEquipment(S.depth,key);
+  if(!item) return null;
+  addGeneratedEquipment(item);
+  S._lootFoundCurrent.push(`${item.name} · ${item.rarity} · iLv ${item.itemLevel}`);
+  return item.id;
 }
 function stratumBossEquipmentReward(){
   const def=equippedWeaponDef(), two=Number(def?.hands||1)===2;
@@ -6308,23 +6508,24 @@ function proficiencyBonus(id){ return S?.proficiencies?.[id] || 0; }
 function equippedWeaponDef(){
   const hasEquipment=!!S?.equipment && Object.prototype.hasOwnProperty.call(S.equipment,"rightHand");
   const id=hasEquipment?S.equipment.rightHand:S?.equippedWeapon;
-  return GEAR_ITEMS[id] || UNARMED_WEAPON;
+  return equipmentItemDef(id) || UNARMED_WEAPON;
 }
 function attackStatKey(){ return equippedWeaponDef().stat || "STR"; }
 function weaponContribution(def=equippedWeaponDef()){
   if(def?.unarmed) return Number(def.weaponContribution)||1;
+  if(Number.isFinite(Number(def?.weaponContribution))) return Number(def.weaponContribution);
   const handUnits=Number(def?.hands||1)===2?2:1;
   return itemBudgetFromLevel(def?.itemLevel||0)*handUnits/WEAPON_BUDGET_COST;
 }
-function attackStatValue(){ const key=attackStatKey(); return S?.[key] || 10; }
+function attackStatValue(){ const key=attackStatKey(); return effectiveStat(key) || 10; }
 function weaponAttackBase(def=equippedWeaponDef(),statValue=attackStatValue()){ return 0.5*statValue + weaponContribution(def); }
 function attackScaleLabel(){ return `${attackStatKey()} + weapon`; }
 function weaponDefForEquipment(equipmentState=S?.equipment){
-  const id=equipmentState?.rightHand; return GEAR_ITEMS[id]||UNARMED_WEAPON;
+  const id=equipmentState?.rightHand; return equipmentItemDef(id)||UNARMED_WEAPON;
 }
 function weaponAttackBaseForEquipment(equipmentState=S?.equipment){
   const def=weaponDefForEquipment(equipmentState), key=def.stat||"STR";
-  return 0.5*(S?.[key]||10)+weaponContribution(def);
+  return 0.5*(effectiveStatForEquipment(key,equipmentState)||10)+weaponContribution(def);
 }
 function sideAreaActive(){ return !!S?.sideArea && !S.sideArea.completed && !S.sideArea.abandoned; }
 function curseActive(){ return !!S?.curse && (S.curse.remaining || 0) > 0; }
@@ -6384,18 +6585,18 @@ function useNegateAbility(id, extraStamina=0){
 }
 ACTIONS.feint={
   label:"Feint I",sub:"0 stamina · DEX ability",cost:0,
-  preview(){const d=Math.max(1,Math.round((S.DEX*1.35+2)*(S.foe.intent==="guard"?1.5:1)*openingBonus()));const back=incoming();return `<span class="dmg">~${d} damage</span> · DEX · Guard cannot soak it${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;},
-  run(){const sk=abilityState("feint");if(!sk||sk.cur<=0)return `<p class="note">Feint is spent.</p>`;sk.cur--;let d=Math.max(1,Math.round((S.DEX*1.35+ri(0,4))*(S.foe.intent==="guard"?1.5:1)*openingBonus()));if(S.foe.intent==="dodge"&&rnd()<0.20)return `<p>The feint drew a reaction, but the follow-up still missed.</p>`;S.foe.hp-=d;return `<p>Sold the wrong line and cut through the opening for <b>${d}</b>.</p>${S.foe.intent==="guard"?`<p class="good">Its Guard became the opening instead of the answer.</p>`:""}`;}
+  preview(){const d=Math.max(1,Math.round((effectiveStat("DEX")*1.35+2)*(S.foe.intent==="guard"?1.5:1)*openingBonus()));const back=incoming();return `<span class="dmg">~${d} damage</span> · DEX · Guard cannot soak it${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;},
+  run(){const sk=abilityState("feint");if(!sk||sk.cur<=0)return `<p class="note">Feint is spent.</p>`;sk.cur--;let d=Math.max(1,Math.round((effectiveStat("DEX")*1.35+ri(0,4))*(S.foe.intent==="guard"?1.5:1)*openingBonus()));if(S.foe.intent==="dodge"&&rnd()<0.20)return `<p>The feint drew a reaction, but the follow-up still missed.</p>`;S.foe.hp-=d;return `<p>Sold the wrong line and cut through the opening for <b>${d}</b>.</p>${S.foe.intent==="guard"?`<p class="good">Its Guard became the opening instead of the answer.</p>`:""}`;}
 };
 ACTIONS.dirtytrick={
   label:"Dirty Trick I",sub:"0 stamina · light DEX + Blind",cost:0,
-  preview(){const d=Math.max(1,Math.round(S.DEX*.8));const back=incoming();return `<span class="dmg">~${d} damage + Blinded</span> · DEX${back?` · Blind can spoil the declared attack`:""}`;},
-  run(){const sk=abilityState("dirtytrick");if(!sk||sk.cur<=0)return `<p class="note">Dirty Trick is spent.</p>`;sk.cur--;let d=Math.max(1,Math.round((S.DEX*.8+ri(0,3))*openingBonus()));if(S.foe.intent==="guard")d=Math.max(1,Math.round(d*(1-INTENTS.guard.armour)));S.foe.hp-=d;S.foe.blinded=true;return `<p>Clipped the ${esc(S.foe.name)} for <b>${d}</b> and left it <b>Blinded</b>.</p>`;}
+  preview(){const d=Math.max(1,Math.round(effectiveStat("DEX")*.8));const back=incoming();return `<span class="dmg">~${d} damage + Blinded</span> · DEX${back?` · Blind can spoil the declared attack`:""}`;},
+  run(){const sk=abilityState("dirtytrick");if(!sk||sk.cur<=0)return `<p class="note">Dirty Trick is spent.</p>`;sk.cur--;let d=Math.max(1,Math.round((effectiveStat("DEX")*.8+ri(0,3))*openingBonus()));if(S.foe.intent==="guard")d=Math.max(1,Math.round(d*(1-INTENTS.guard.armour)));S.foe.hp-=d;S.foe.blinded=true;return `<p>Clipped the ${esc(S.foe.name)} for <b>${d}</b> and left it <b>Blinded</b>.</p>`;}
 };
 ACTIONS.arcbolt={
   label:"Arc Bolt I",sub:"0 stamina · INT Arcane",cost:0,
-  preview(){const d=Math.max(1,Math.round(S.INT*1.25+4));const back=incoming();return `<span class="dmg">~${d} Arcane</span> · INT · ignores ordinary Guard${S.foe.intent==="dodge"?` · <span class="bad">20% miss chance</span>`:""}${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;},
-  run(){const sk=abilityState("arcbolt");if(!sk||sk.cur<=0)return `<p class="note">Arc Bolt is spent.</p>`;sk.cur--;if(S.foe.intent==="dodge"&&rnd()<0.20)return `<p>The bolt tore through empty air as the ${esc(S.foe.name)} slipped aside.</p>`;const d=Math.max(1,Math.round((S.INT*1.25+ri(2,6))*openingBonus()));S.foe.hp-=d;return `<p>Arcane force struck the ${esc(S.foe.name)} for <b>${d}</b>.</p>${S.foe.intent==="guard"?`<p class="good">Its ordinary Guard did nothing against the spell.</p>`:""}`;}
+  preview(){const d=Math.max(1,Math.round(effectiveStat("INT")*1.25+4));const back=incoming();return `<span class="dmg">~${d} Arcane</span> · INT · ignores ordinary Guard${S.foe.intent==="dodge"?` · <span class="bad">20% miss chance</span>`:""}${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;},
+  run(){const sk=abilityState("arcbolt");if(!sk||sk.cur<=0)return `<p class="note">Arc Bolt is spent.</p>`;sk.cur--;if(S.foe.intent==="dodge"&&rnd()<0.20)return `<p>The bolt tore through empty air as the ${esc(S.foe.name)} slipped aside.</p>`;const d=Math.max(1,Math.round((effectiveStat("INT")*1.25+ri(2,6))*openingBonus()));S.foe.hp-=d;return `<p>Arcane force struck the ${esc(S.foe.name)} for <b>${d}</b>.</p>${S.foe.intent==="guard"?`<p class="good">Its ordinary Guard did nothing against the spell.</p>`:""}`;}
 };
 // ----- class weapon scaling and defensive identity -----
 // v0.080.11: class combat behavior is consolidated into the canonical combat functions above.
@@ -7437,7 +7638,7 @@ function buildRunSnapshot(){
     over:dead,
     pendingEncounter:dead?null:pendingEncounterForSave(),
     levelUpNotice:dead?null:levelUpNoticeForSave(),
-    ui:{travelLogExpanded:!!travelLogExpanded}
+    ui:{travelLogExpanded:!!travelLogExpanded,combatLogCollapsed:!!combatLogCollapsed}
   };
 }
 function isSaveRecord(value){
@@ -7477,9 +7678,23 @@ function migrateSave2To3(snapshot){
   if(next.pendingEncounter?.options?.boss) next.pendingEncounter=null;
   return next;
 }
+function migrateSave3To4(snapshot){
+  const next=cloneForSave(snapshot);
+  next.schema=4;
+  const state=next.state;
+  if(isSaveRecord(state)){
+    if(!isSaveRecord(state.generatedItems)) state.generatedItems={};
+    if(!Array.isArray(state.combatLog)) state.combatLog=[];
+    if(!Number.isInteger(state.generatedItemSeq)) state.generatedItemSeq=0;
+  }
+  if(!isSaveRecord(next.ui)) next.ui={};
+  if(typeof next.ui.combatLogCollapsed!=="boolean") next.ui.combatLogCollapsed=true;
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
-  2:migrateSave2To3
+  2:migrateSave2To3,
+  3:migrateSave3To4
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -7680,11 +7895,14 @@ function normalizeRestoredRun(){
   S.seenTravelEvents=S.seenTravelEvents||{};
   S.skillPracticeSources=S.skillPracticeSources||{};
   S.lootHistory=Array.isArray(S.lootHistory)?S.lootHistory:[];
+  S.combatLog=Array.isArray(S.combatLog)?S.combatLog:[];
+  S.generatedItems=(S.generatedItems && typeof S.generatedItems==="object" && !Array.isArray(S.generatedItems))?S.generatedItems:{};
   S.inventory=S.inventory||{};
   S.inventory.misc=S.inventory.misc||{};
   S.inventory.weapons=Array.isArray(S.inventory.weapons)?S.inventory.weapons:[];
   S.inventory.equipment=Array.isArray(S.inventory.equipment)?S.inventory.equipment:[];
   ensureEquipmentState();
+  syncEquipmentHpCeiling();
   if(!settings.characterIndicators) clearCurrentCharacterIndicators();
   if(S.foe){
     const base=profileById(S.foe.profile?.id||S.foe.key);
@@ -7753,6 +7971,7 @@ function restoreRun(snapshot){
     selectedLootHistoryId=null;
     statPointDraft=Object.fromEntries(STAT_KEYS.map(stat=>[stat,0]));
     travelLogExpanded=!!snapshot.ui?.travelLogExpanded;
+    combatLogCollapsed=snapshot.ui?.combatLogCollapsed!==false;
     normalizeRestoredRun();
     creatorDraft={
       name:"",folk:S.folk||null,trade:S.trade||null,origin:S.origin||null,className:S.className||null,startingLoadout:null,
@@ -7768,6 +7987,8 @@ function restoreRun(snapshot){
     $("lootHistorySheet").hidden=true;
     rebuildTravelLogFromState();
     renderTravelLogCollapse();
+    renderCombatLog();
+    renderCombatLogCollapse();
 
     encounterWarningState=null;
     suspendedEncounterWarningMs=null;
@@ -7862,6 +8083,7 @@ function renderTravelLogCollapse(){
   if(travelLogExpanded){const log=$("travelLog");if(log)requestAnimationFrame(()=>{log.scrollTop=log.scrollHeight;});}
 }
 $("btnTravelLogToggle").addEventListener("click",()=>{travelLogExpanded=!travelLogExpanded;renderTravelLogCollapse();});
+$("btnCombatLogToggle").addEventListener("click",toggleCombatLog);
 $("btnFaceEncounter").addEventListener("click",beginEncounterTransition);
 renderTravelLogCollapse();
 

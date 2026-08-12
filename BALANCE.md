@@ -1,7 +1,7 @@
 # Fathom — Balance Reference
 
-**Build reference:** v0.084.17  
-**Session:** 9C — Item Power Foundation  
+**Build reference:** v0.085.0  
+**Session:** 9D — Procedural Equipment  
 
 This file records the agreed balance spine so later item work does not need to re-open the same architecture. Constants are tuning targets, not promises that playtesting can never change them.
 
@@ -145,7 +145,8 @@ Named/themed/Unique equipment may violate ordinary slot rules intentionally.
 
 ## 7. Attributes and other properties
 
-- STR / CON / DEX / INT / WIS / CHA on equipment remain **rare and restrained** so level-up allocation remains the primary source of build identity.
+- STR / CON / DEX / INT / WIS / CHA on generated equipment are now mechanically live and remain **rare and restrained** so level-up allocation stays the primary source of build identity.
+- **Provisional Session 9D price:** `+1 attribute = 8 normalized budget`. This is a playtest tuning constant, not a permanent promise.
 - Generic Max Stamina is **not rollable**. Exceptional named items may potentially grant +1 as a special property.
 - Generic Max HP is not part of the first item budget implementation.
 - Skill/check-bonus pricing is deferred until the Skill/DC progression curve is locked; fixed cheap check bonuses would eventually overwhelm a d20 system.
@@ -183,7 +184,7 @@ Unfathomable
 | Rare | 0 | 10% | ×1.18 |
 | Epic | 250 | 5% | ×1.32 |
 | Wondrous | 500 | 4% | ×1.47 |
-| Legendary | 1,000 | 3% | ×1.63 |
+| Legendary | 500 | 1% | ×1.63 |
 | Mythical | 2,000 | 2.5% | ×1.81 |
 | Ancient | 3,000 | 2% | ×2.00 |
 | Sunless | 4,000 | 1.75% | ×2.22 |
@@ -191,7 +192,7 @@ Unfathomable
 
 The upper ladder continues the existing rarity progression at roughly an 11% multiplicative step per tier. **Ancient is the clean ×2.00 Common anchor.** Unfathomable is the ceiling at ×2.47 Common; it does not gain numbered subtiers or any hidden post-generation multiplier.
 
-At full unlock depth and the 1.5% Unfathomable cap, the raw eligible-equipment-drop distribution averages roughly **×1.13 Common budget**. This does not mean equipped player Gear Level will average ×1.13: players keep the best item found for each slot rather than equipping an average drop.
+At full unlock depth and the 1.5% Unfathomable cap, the raw eligible-equipment-drop distribution averages roughly **×1.12 Common budget**. This does not mean equipped player Gear Level will average ×1.12: players keep the best item found for each slot rather than equipping an average drop.
 
 ### Unfathomable chance
 
@@ -229,25 +230,28 @@ Do not label an item simply **BETTER** or **UPGRADE** when build preference is u
   - basic attack 11.5 → 19.0
 - Later, other consequences can be added when those properties become mechanical.
 
-## 10. 500-fathom Session 9C playtest baseline
+## 10. Session 9D procedural-equipment baseline
 
-The first live equipment-progression test intentionally uses **hand-authored gear**, not the procedural generator.
+The live ordinary-equipment path is now procedural rather than a finite Warren catalogue.
 
-- New delvers start with **Salvage iLv 75** equipment: Top, Bottoms, Boots, plus a class-selected hand setup.
+- New delvers still start with **Salvage iLv 75** authored equipment: Top, Bottoms, Boots, plus a class-selected hand setup.
 - Votary: Salvage Longsword + Buckler, or two-handed Salvage Greatsword.
-- Rogue: Salvage Dagger + Buckler, or two-handed Salvage Shortbow. Dual-wield attacks remain deferred, so the second-dagger start waits for the real dual-wield rules.
+- Rogue: Salvage Dagger + Buckler, or two-handed Salvage Shortbow. Real dual-wield attacks remain deferred.
 - Wizard: Salvage Wand + Buckler, or two-handed Salvage Wooden Staff.
-- Existing Bandage / Camp Supply / Meat / Water / Rope / Scroll Dust creature salvage remains live. **No healing potion is added for this test**, so Rest/Camp/ability recovery pressure remains observable.
-- Ordinary Warren enemies may drop authored Common / Uncommon / Rare equipment from low-, mid- and deep-Warren pools. This is a finite test catalogue, not procedural generation.
-- The first 500-fathom stratum boss grants one class-relevant **Epic iLv 385** weapon as a clear end-of-stratum reward.
+- Existing Bandage / Camp Supply / Meat / Water / Rope / Scroll Dust creature salvage remains live. **No healing potion is added**, so Rest/Camp/ability recovery pressure remains observable.
+- Ordinary enemy equipment drops use the generation pipeline: **depth → rarity → iLv/budget → item family/slot → valid properties → persistent generated instance**.
+- Before 500 fathoms, Epic is the highest possible rarity. At 500+, Wondrous (4%) and Legendary (1%) become eligible on equipment-rarity rolls.
+- Normal generated weapon families have fixed sensible scaling: martial weapons use STR, finesse/ranged weapons use DEX, and wands/staves use INT. Special authored items may deliberately break this rule later.
+- Protective equipment spends its live budget on Armor. Jewelry and current utility families spend their live budget on attributes. Generated items are stamped from the properties actually allocated; there is no hidden post-generation rarity multiplier.
+- Generated items receive unique instance IDs and are stored in the chronicle so reloads preserve the exact item.
+- Authored starters, boss rewards, Uniques and special encounter items remain static. The first 500-fathom stratum boss still grants one class-relevant **Epic iLv 385** weapon.
 
-The purpose of this run is to observe real equipped Gear Level, Armor mitigation, weapon replacement frequency, resource pressure and whether the player naturally sits above the raw expected-drop benchmark.
+The purpose of the ongoing playtest is now to evaluate the real endless equipment loop: replacement frequency, Gear Level selection bias, attribute pressure, Armor mitigation, weapon contribution, resource pressure and whether rarity excitement remains appropriately sparse.
 
 ## 11. Explicitly still deferred
 
-- procedural affix generator (after hand-authored 500-fathom playtesting);
-- full procedural equipment catalogue;
-- generic attribute/check-bonus pricing;
+- broader procedural affix catalogue beyond Armor / Weapon Contribution / six attributes;
+- skill/check-bonus pricing;
 - real dual-wield attack rules;
 - detailed ranged/arcane weapon-family mechanics;
 - crafting, durability and merchants;
