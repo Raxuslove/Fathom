@@ -4,7 +4,7 @@
   LOWFATHOM — Session 8D PWA update hardening
   Bump CACHE_NAME whenever the shipped app shell changes.
 */
-const CACHE_NAME = "lowfathom-v0.084.10";
+const CACHE_NAME = "lowfathom-v0.084.13";
 
 const APP_SHELL = [
   "./",

@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.084.10 — Sunless Name Readability Tweak</title>
+<title>Lowfathom v0.084.13 — Sunless Name Readability Tweak</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.084.10 Sunless name readability tweak + protected v0.075 Smite FX
+   LOWFATHOM — v0.084.13 Sunless name readability tweak + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -105,6 +105,9 @@
    - v0.084.8: Sunless name color lifted slightly brighter for mobile readability while keeping the void-purple identity
    - v0.084.9: Sunless name color lifted one more step to improve phone readability without losing the dark-purple tone
    - v0.084.10: Sunless name color lifted a final small step for clearer readability on phone
+   - v0.084.11: Sunless name color lifted one last notch brighter as the final readability pass
+   - v0.084.12: Sunless name color lifted one more notch after phone testing
+   - v0.084.13: Sunless name color lifted one additional small step for final phone readability
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
@@ -120,7 +123,7 @@
   --rarity-salvage:#6b6355; --rarity-poor:#7d8794; --rarity-common:#c2bdb1;
   --rarity-uncommon:#6f9e79; --rarity-rare:#6a9bc4; --rarity-epic:#a87fc0;
   --rarity-wondrous:#cf87a6; --rarity-legendary:#d99a4e; --rarity-mythical:#d95f34;
-  --rarity-ancient:#f4f0e6; --rarity-sunless:#0b0f14; --rarity-sunless-edge:#7895a6; --rarity-sunless-text:#301854;
+  --rarity-ancient:#f4f0e6; --rarity-sunless:#0b0f14; --rarity-sunless-edge:#7895a6; --rarity-sunless-text:#4e2a82;
   --mono:'IBM Plex Mono',ui-monospace,monospace;
   --slab:'Zilla Slab',Georgia,serif;
   --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
@@ -1037,8 +1040,8 @@ button{
 .rarity-uncommon{color:var(--rarity-uncommon)!important}.rarity-rare{color:var(--rarity-rare)!important}.rarity-epic{color:var(--rarity-epic)!important}
 .rarity-wondrous{color:var(--rarity-wondrous)!important}.rarity-legendary{color:var(--rarity-legendary)!important}.rarity-mythical{color:var(--rarity-mythical)!important}
 .rarity-ancient{color:var(--rarity-ancient)!important}
-/* v0.084.10: Sunless keeps the successful dark frame, but the item name is
-   lifted one final small step brighter for clearer mobile readability. */
+/* v0.084.13: Sunless keeps the successful dark frame, but the item name is
+   lifted one additional small step after phone readability testing. */
 .rarity-sunless{color:var(--rarity-sunless-text)!important;-webkit-text-stroke:0;text-shadow:none}
 .rarity-unfathomable{background:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288);-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent}
 .pack-compare{margin-top:5px;font-family:var(--cond);font-size:9.5px;color:var(--dim)}
@@ -1585,7 +1588,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.084.10</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.084.13</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1613,7 +1616,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.10</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.13</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -2121,7 +2124,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.084.10";
+const BUILD_VERSION = "v0.084.13";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
