@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.084.15 — Premium Rarity Smoky Surface Pass</title>
+<title>Lowfathom v0.084.16 — Full Rarity Smoky Surface Pass</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.084.15 premium rarity smoky surface pass + protected v0.075 Smite FX
+   LOWFATHOM — v0.084.16 full rarity smoky surface pass + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -108,7 +108,7 @@
    - v0.084.11: Sunless name color lifted one last notch brighter as the final readability pass
    - v0.084.12: Sunless name color lifted one more notch after phone testing
    - v0.084.13: Sunless name color lifted one additional small step for final phone readability
-   - v0.084.15: deepened Wondrous / Legendary / Mythical / Ancient / Unfathomable interior smoky card washes; Sunless unchanged
+   - v0.084.16: extended smoky interior card washes down the full rarity ladder with descending intensity; premium tiers preserved and Sunless unchanged
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
@@ -951,9 +951,59 @@ button{
 .equipment-slot.has-rarity:active,.equipment-slot.has-rarity.selected{border-color:var(--rarity-frame-color);box-shadow:inset 0 0 0 1px rgba(230,194,136,.16),var(--rarity-frame-glow)}
 .equipment-slot.has-rarity.rarity-frame-unfathomable:active,.equipment-slot.has-rarity.rarity-frame-unfathomable.selected{border-color:transparent;border-image:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288) 1}
 
-/* v0.084.15: premium rarity surface identity leans further into a smoky
-   interior treatment so stacked cards read immediately without brighter or
-   more neon outlines. Sunless stays on its approved dark container. */
+/* v0.084.16: the full rarity ladder now carries subtle interior smoky
+   surface color. Intensity descends from Wondrous down toward Salvage so low
+   rarities stay understated while premium tiers keep stronger identity.
+   Sunless stays on its approved dark container. */
+.equipment-slot.has-rarity.rarity-frame-salvage,
+.equipment-backpack-item.rarity-frame-salvage,
+.pack-item.equipment-pack.rarity-frame-salvage{
+  background:
+    radial-gradient(78% 110% at 16% 22%,rgba(107,99,85,.065) 0%,rgba(107,99,85,.028) 24%,rgba(107,99,85,0) 60%),
+    radial-gradient(82% 108% at 78% 74%,rgba(107,99,85,.048) 0%,rgba(107,99,85,.02) 22%,rgba(107,99,85,0) 56%),
+    linear-gradient(145deg,rgba(107,99,85,.05) 0%,rgba(107,99,85,.02) 48%,#12181e 100%);
+}
+.equipment-slot.has-rarity.rarity-frame-poor,
+.equipment-backpack-item.rarity-frame-poor,
+.pack-item.equipment-pack.rarity-frame-poor{
+  background:
+    radial-gradient(78% 110% at 16% 22%,rgba(125,135,148,.07) 0%,rgba(125,135,148,.032) 24%,rgba(125,135,148,0) 60%),
+    radial-gradient(82% 108% at 78% 74%,rgba(125,135,148,.052) 0%,rgba(125,135,148,.022) 22%,rgba(125,135,148,0) 56%),
+    linear-gradient(145deg,rgba(125,135,148,.055) 0%,rgba(125,135,148,.022) 48%,#12181e 100%);
+}
+.equipment-slot.has-rarity.rarity-frame-common,
+.equipment-backpack-item.rarity-frame-common,
+.pack-item.equipment-pack.rarity-frame-common{
+  background:
+    radial-gradient(80% 112% at 16% 22%,rgba(194,189,177,.078) 0%,rgba(194,189,177,.036) 24%,rgba(194,189,177,0) 60%),
+    radial-gradient(84% 110% at 78% 74%,rgba(194,189,177,.058) 0%,rgba(194,189,177,.024) 22%,rgba(194,189,177,0) 56%),
+    linear-gradient(145deg,rgba(194,189,177,.06) 0%,rgba(194,189,177,.026) 48%,#12181e 100%);
+}
+.equipment-slot.has-rarity.rarity-frame-uncommon,
+.equipment-backpack-item.rarity-frame-uncommon,
+.pack-item.equipment-pack.rarity-frame-uncommon{
+  background:
+    radial-gradient(80% 114% at 16% 22%,rgba(111,158,121,.09) 0%,rgba(111,158,121,.044) 25%,rgba(111,158,121,0) 61%),
+    radial-gradient(86% 112% at 78% 74%,rgba(111,158,121,.068) 0%,rgba(111,158,121,.028) 22%,rgba(111,158,121,0) 56%),
+    linear-gradient(145deg,rgba(111,158,121,.074) 0%,rgba(111,158,121,.032) 48%,#12181e 100%);
+}
+.equipment-slot.has-rarity.rarity-frame-rare,
+.equipment-backpack-item.rarity-frame-rare,
+.pack-item.equipment-pack.rarity-frame-rare{
+  background:
+    radial-gradient(80% 116% at 16% 22%,rgba(106,155,196,.105) 0%,rgba(106,155,196,.052) 25%,rgba(106,155,196,0) 61%),
+    radial-gradient(88% 112% at 78% 74%,rgba(106,155,196,.078) 0%,rgba(106,155,196,.032) 22%,rgba(106,155,196,0) 56%),
+    linear-gradient(145deg,rgba(106,155,196,.085) 0%,rgba(106,155,196,.038) 48%,#12181e 100%);
+}
+.equipment-slot.has-rarity.rarity-frame-epic,
+.equipment-backpack-item.rarity-frame-epic,
+.pack-item.equipment-pack.rarity-frame-epic{
+  background:
+    radial-gradient(82% 118% at 16% 22%,rgba(168,127,192,.13) 0%,rgba(168,127,192,.064) 26%,rgba(168,127,192,0) 62%),
+    radial-gradient(88% 114% at 78% 74%,rgba(168,127,192,.096) 0%,rgba(168,127,192,.04) 22%,rgba(168,127,192,0) 56%),
+    radial-gradient(50% 64% at 50% 46%,rgba(186,151,207,.05) 0%,rgba(186,151,207,0) 60%),
+    linear-gradient(145deg,rgba(168,127,192,.105) 0%,rgba(168,127,192,.046) 48%,#12181e 100%);
+}
 .equipment-slot.has-rarity.rarity-frame-wondrous,
 .equipment-backpack-item.rarity-frame-wondrous,
 .pack-item.equipment-pack.rarity-frame-wondrous{
@@ -1620,7 +1670,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.084.15</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.084.16</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1648,7 +1698,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.15</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.16</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -2156,7 +2206,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.084.15";
+const BUILD_VERSION = "v0.084.16";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
