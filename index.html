@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.084.6 — Premium Rarity VFX</title>
+<title>Lowfathom v0.084.7 — Premium Rarity Card Washes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.084.6 premium rarity VFX + protected v0.075 Smite FX
+   LOWFATHOM — v0.084.7 premium rarity card washes + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -101,6 +101,7 @@
    - v0.084.2: replaced obsolete combat Loadout test control with Backpack; Bandages can be used in combat and consume the player turn
    - v0.084.4: equipped slots inherit rarity borders/iLv color, Wondrous+ inset glow, Legendary+ corner-star accent, and readable Sunless text
    - v0.084.6: Sunless readability pass, structural rarity-frame fix, and slow multi-position diamond glints on premium equipment cards
+   - v0.084.7: premium rarity rows/slots gain subtle surface color washes; Sunless item names now use a dark void-purple test
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
@@ -116,7 +117,7 @@
   --rarity-salvage:#6b6355; --rarity-poor:#7d8794; --rarity-common:#c2bdb1;
   --rarity-uncommon:#6f9e79; --rarity-rare:#6a9bc4; --rarity-epic:#a87fc0;
   --rarity-wondrous:#cf87a6; --rarity-legendary:#d99a4e; --rarity-mythical:#d95f34;
-  --rarity-ancient:#f4f0e6; --rarity-sunless:#0b0f14; --rarity-sunless-edge:#7895a6; --rarity-sunless-text:#b6cad5;
+  --rarity-ancient:#f4f0e6; --rarity-sunless:#0b0f14; --rarity-sunless-edge:#7895a6; --rarity-sunless-text:#13072a;
   --mono:'IBM Plex Mono',ui-monospace,monospace;
   --slab:'Zilla Slab',Georgia,serif;
   --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
@@ -933,7 +934,6 @@ button{
 }
 .equipment-slot.has-rarity{border-color:var(--rarity-frame-color);box-shadow:var(--rarity-frame-glow)}
 .equipment-slot.has-rarity .slot-level{color:var(--rarity-frame-color)}
-.equipment-slot.has-rarity.rarity-frame-sunless{background:linear-gradient(145deg,#080c10 0%,#111820 74%,#10151a 100%)}
 .equipment-slot.has-rarity.rarity-frame-unfathomable{border-color:transparent;border-image:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288) 1}
 .equipment-slot.has-rarity.rarity-frame-unfathomable .slot-level{
   background:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288);
@@ -943,6 +943,27 @@ button{
 .equipment-slot.has-rarity .slot-name{-webkit-text-fill-color:currentColor;background:none}
 .equipment-slot.has-rarity:active,.equipment-slot.has-rarity.selected{border-color:var(--rarity-frame-color);box-shadow:inset 0 0 0 1px rgba(230,194,136,.16),var(--rarity-frame-glow)}
 .equipment-slot.has-rarity.rarity-frame-unfathomable:active,.equipment-slot.has-rarity.rarity-frame-unfathomable.selected{border-color:transparent;border-image:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288) 1}
+
+/* v0.084.7: premium rarities now tint the whole card surface very subtly so
+   their identity reads as more than a border without becoming neon. */
+.equipment-slot.has-rarity.rarity-frame-wondrous,
+.equipment-backpack-item.rarity-frame-wondrous,
+.pack-item.equipment-pack.rarity-frame-wondrous{background:linear-gradient(145deg,rgba(207,135,166,.085) 0%,rgba(207,135,166,.032) 58%,#12181e 100%)}
+.equipment-slot.has-rarity.rarity-frame-legendary,
+.equipment-backpack-item.rarity-frame-legendary,
+.pack-item.equipment-pack.rarity-frame-legendary{background:linear-gradient(145deg,rgba(217,154,78,.11) 0%,rgba(217,154,78,.042) 58%,#12181e 100%)}
+.equipment-slot.has-rarity.rarity-frame-mythical,
+.equipment-backpack-item.rarity-frame-mythical,
+.pack-item.equipment-pack.rarity-frame-mythical{background:linear-gradient(145deg,rgba(217,95,52,.12) 0%,rgba(217,95,52,.048) 58%,#12181e 100%)}
+.equipment-slot.has-rarity.rarity-frame-ancient,
+.equipment-backpack-item.rarity-frame-ancient,
+.pack-item.equipment-pack.rarity-frame-ancient{background:linear-gradient(145deg,rgba(244,240,230,.1) 0%,rgba(244,240,230,.034) 56%,#12181e 100%)}
+.equipment-slot.has-rarity.rarity-frame-sunless,
+.equipment-backpack-item.rarity-frame-sunless,
+.pack-item.equipment-pack.rarity-frame-sunless{background:linear-gradient(145deg,#080c10 0%,#111820 72%,#10151a 100%)}
+.equipment-slot.has-rarity.rarity-frame-unfathomable,
+.equipment-backpack-item.rarity-frame-unfathomable,
+.pack-item.equipment-pack.rarity-frame-unfathomable{background:linear-gradient(145deg,rgba(159,212,224,.055) 0%,rgba(201,184,232,.048) 54%,rgba(230,194,136,.038) 100%),#12181e}
 
 /* Slow diamond-like glints. Legendary+ gets three independent sparkles at
    deterministic pseudo-random positions/sizes; no fixed corner badge. */
@@ -1003,8 +1024,6 @@ button{
 .equipment-backpack-item.rarity-frame-ancient,
 .equipment-backpack-item.rarity-frame-sunless,
 .equipment-backpack-item.rarity-frame-unfathomable{border:1px solid var(--rarity-frame-color);box-shadow:var(--rarity-frame-glow);z-index:1}
-.equipment-backpack-item.rarity-frame-sunless{background:linear-gradient(145deg,#080c10,#111820)}
-.equipment-backpack-item.rarity-frame-unfathomable{border-color:transparent;border-image:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288) 1;background:#12181e}
 .equipment-backpack-item .equipment-compare{display:flex;gap:5px;flex-wrap:wrap;margin-top:3px;font-family:var(--cond);font-size:8px}
 .equipment-delta{font-weight:600}
 .equipment-delta.good{color:#92b896}
@@ -1015,9 +1034,9 @@ button{
 .rarity-uncommon{color:var(--rarity-uncommon)!important}.rarity-rare{color:var(--rarity-rare)!important}.rarity-epic{color:var(--rarity-epic)!important}
 .rarity-wondrous{color:var(--rarity-wondrous)!important}.rarity-legendary{color:var(--rarity-legendary)!important}.rarity-mythical{color:var(--rarity-mythical)!important}
 .rarity-ancient{color:var(--rarity-ancient)!important}
-/* v0.084.6: Sunless keeps darkness in the frame; its text is deliberately pale
-   and cold so compact mobile item names remain readable. */
-.rarity-sunless{color:var(--rarity-sunless-text)!important;-webkit-text-stroke:0;text-shadow:0 1px 0 #020406,0 0 6px rgba(182,202,213,.23)}
+/* v0.084.7: Sunless keeps the successful dark frame, but the item name now
+   tests a buried void-purple instead of the old icy blue treatment. */
+.rarity-sunless{color:var(--rarity-sunless-text)!important;-webkit-text-stroke:0;text-shadow:none}
 .rarity-unfathomable{background:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288);-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent}
 .pack-compare{margin-top:5px;font-family:var(--cond);font-size:9.5px;color:var(--dim)}
 .pack-compare .equipment-delta{margin-right:7px}
@@ -1029,7 +1048,6 @@ button{
 .pack-item.equipment-pack.rarity-frame-ancient,
 .pack-item.equipment-pack.rarity-frame-sunless,
 .pack-item.equipment-pack.rarity-frame-unfathomable{box-shadow:var(--rarity-frame-glow);border-top:1px solid var(--rarity-frame-color);border-right:1px solid var(--rarity-frame-color);border-bottom:1px solid var(--rarity-frame-color)}
-.pack-item.equipment-pack.rarity-frame-sunless{background:linear-gradient(145deg,#080c10,#111820 72%,#12181e)}
 .pack-item.equipment-pack.rarity-frame-unfathomable{border-image:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288) 1}
 
 .equipment-inspect{position:absolute;inset:0;z-index:5;display:flex;align-items:flex-end;justify-content:center}
@@ -1564,7 +1582,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.084.6</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.084.7</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1592,7 +1610,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.6</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.7</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -2100,7 +2118,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.084.6";
+const BUILD_VERSION = "v0.084.7";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
