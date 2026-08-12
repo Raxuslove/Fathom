@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.084.2 — Combat Backpack QOL</title>
+<title>Lowfathom v0.084.4 — Rarity Slot Visuals</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.084.2 combat Backpack QOL + protected v0.075 Smite FX
+   LOWFATHOM — v0.084.4 rarity slot visuals + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -99,6 +99,7 @@
    - v0.084.0: Session 9C foundation — 500-fathom strata, decoupled hollow/side/run cadence, unified weapon contribution, real Armor mitigation, rarity language and balance reference
    - v0.084.1: rarity palette test — exact 12-tier colors plus one equal-iLv two-handed test greatsword per rarity in the Equipment Backpack
    - v0.084.2: replaced obsolete combat Loadout test control with Backpack; Bandages can be used in combat and consume the player turn
+   - v0.084.4: equipped slots inherit rarity borders/iLv color, Wondrous+ inset glow, Legendary+ corner-star accent, and readable Sunless text
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
@@ -114,7 +115,7 @@
   --rarity-salvage:#6b6355; --rarity-poor:#7d8794; --rarity-common:#c2bdb1;
   --rarity-uncommon:#6f9e79; --rarity-rare:#6a9bc4; --rarity-epic:#a87fc0;
   --rarity-wondrous:#cf87a6; --rarity-legendary:#d99a4e; --rarity-mythical:#d95f34;
-  --rarity-ancient:#f4f0e6; --rarity-sunless:#1a2028; --rarity-sunless-edge:#8fa8b8;
+  --rarity-ancient:#f4f0e6; --rarity-sunless:#1a2028; --rarity-sunless-edge:#8fa8b8; --rarity-sunless-text:#8fa8b8;
   --mono:'IBM Plex Mono',ui-monospace,monospace;
   --slab:'Zilla Slab',Georgia,serif;
   --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
@@ -907,6 +908,64 @@ button{
 .equipment-slot.blocked .slot-name{color:#6a737b}
 .equipment-slot.blocked .slot-level{margin-top:5px;color:#59636e;font-family:var(--cond);font-size:8px;letter-spacing:.07em;text-transform:uppercase}
 .equipment-slot.ring .slot-name{font-size:8.5px}
+/* v0.084.4: equipped-slot rarity language. Keep the dark equipment silhouette;
+   rarity lives in the border + iLv, then gains restrained depth from Wondrous up. */
+.equipment-slot.has-rarity{
+  --slot-rarity:var(--lamp);
+  --rarity-glow:inset 0 0 0 rgba(0,0,0,0);
+  border-color:var(--slot-rarity);
+  box-shadow:var(--rarity-glow);
+}
+.equipment-slot.has-rarity .slot-level{color:var(--slot-rarity)}
+.equipment-slot.has-rarity.rarity-salvage{--slot-rarity:var(--rarity-salvage)}
+.equipment-slot.has-rarity.rarity-poor{--slot-rarity:var(--rarity-poor)}
+.equipment-slot.has-rarity.rarity-common{--slot-rarity:var(--rarity-common)}
+.equipment-slot.has-rarity.rarity-uncommon{--slot-rarity:var(--rarity-uncommon)}
+.equipment-slot.has-rarity.rarity-rare{--slot-rarity:var(--rarity-rare)}
+.equipment-slot.has-rarity.rarity-epic{--slot-rarity:var(--rarity-epic)}
+.equipment-slot.has-rarity.rarity-wondrous{--slot-rarity:var(--rarity-wondrous);--rarity-glow:inset 0 0 11px rgba(207,135,166,.10)}
+.equipment-slot.has-rarity.rarity-legendary{--slot-rarity:var(--rarity-legendary);--rarity-glow:inset 0 0 12px rgba(217,154,78,.12)}
+.equipment-slot.has-rarity.rarity-mythical{--slot-rarity:var(--rarity-mythical);--rarity-glow:inset 0 0 12px rgba(217,95,52,.12)}
+.equipment-slot.has-rarity.rarity-ancient{--slot-rarity:var(--rarity-ancient);--rarity-glow:inset 0 0 12px rgba(244,240,230,.11)}
+.equipment-slot.has-rarity.rarity-sunless{--slot-rarity:var(--rarity-sunless-edge);--rarity-glow:inset 0 0 0 1px rgba(26,32,40,.92),inset 0 0 13px rgba(143,168,184,.10)}
+.equipment-slot.has-rarity.rarity-unfathomable{
+  --slot-rarity:#c9b8e8;
+  --rarity-glow:inset 0 0 13px rgba(159,212,224,.11),inset 0 0 20px rgba(201,184,232,.06);
+  border-color:transparent;border-image:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288) 1;
+}
+.equipment-slot.has-rarity.rarity-unfathomable .slot-level{
+  background:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288);
+  -webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent;
+}
+.equipment-slot.has-rarity:active,.equipment-slot.has-rarity.selected{
+  border-color:var(--slot-rarity);
+  box-shadow:inset 0 0 0 1px rgba(230,194,136,.16),var(--rarity-glow);
+}
+.equipment-slot.has-rarity.rarity-unfathomable:active,.equipment-slot.has-rarity.rarity-unfathomable.selected{
+  border-color:transparent;border-image:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288) 1;
+}
+/* Legendary+ gets a tiny occasional corner glint. It is intentionally absent on
+   Wondrous and Epic; Wondrous starts the static inset glow, not animation. */
+.equipment-slot.has-rarity.rarity-legendary::after,
+.equipment-slot.has-rarity.rarity-mythical::after,
+.equipment-slot.has-rarity.rarity-ancient::after,
+.equipment-slot.has-rarity.rarity-sunless::after,
+.equipment-slot.has-rarity.rarity-unfathomable::after{
+  content:'✦';position:absolute;top:1px;right:2px;z-index:2;pointer-events:none;
+  font-family:Georgia,serif;font-size:7px;line-height:1;color:var(--slot-rarity);
+  opacity:0;transform:scale(.4) rotate(0deg);transform-origin:center;
+  text-shadow:0 0 4px currentColor;
+  animation:rarityCornerStar 7.2s ease-in-out infinite;
+  animation-delay:var(--rarity-delay,0s);
+}
+.equipment-slot.has-rarity.rarity-unfathomable::after{color:#e6c288;text-shadow:0 0 3px #e6c288,0 0 7px #9fd4e0,0 0 9px #c9b8e8}
+@keyframes rarityCornerStar{
+  0%,68%,100%{opacity:0;transform:scale(.4) rotate(0deg)}
+  73%{opacity:.25;transform:scale(.7) rotate(10deg)}
+  77%{opacity:.95;transform:scale(1.08) rotate(20deg)}
+  81%{opacity:.22;transform:scale(1.34) rotate(32deg)}
+  85%{opacity:0;transform:scale(1.5) rotate(40deg)}
+}
 .equipment-body-grid .slot-boots{grid-column:2;grid-row:5}
 .equipment-info{
   min-width:0;display:flex;flex-direction:column;padding:8px 7px;border:1px solid var(--rule-hi);background:#12181e;overflow:hidden;
@@ -949,7 +1008,9 @@ button{
 .rarity-uncommon{color:var(--rarity-uncommon)!important}.rarity-rare{color:var(--rarity-rare)!important}.rarity-epic{color:var(--rarity-epic)!important}
 .rarity-wondrous{color:var(--rarity-wondrous)!important}.rarity-legendary{color:var(--rarity-legendary)!important}.rarity-mythical{color:var(--rarity-mythical)!important}
 .rarity-ancient{color:var(--rarity-ancient)!important}
-.rarity-sunless{color:var(--rarity-sunless)!important;-webkit-text-stroke:.5px var(--rarity-sunless-edge);paint-order:stroke fill}
+/* v0.084.4: Sunless keeps its near-black identity in slot treatment, but the actual
+   text uses the cold edge color so tiny mobile labels remain legible. */
+.rarity-sunless{color:var(--rarity-sunless-text)!important;-webkit-text-stroke:0;text-shadow:0 1px 0 #070a0d,0 0 5px rgba(143,168,184,.16)}
 .rarity-unfathomable{background:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288);-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent}
 .pack-compare{margin-top:5px;font-family:var(--cond);font-size:9.5px;color:var(--dim)}
 .pack-compare .equipment-delta{margin-right:7px}
@@ -1378,7 +1439,14 @@ button{
   body{background:#0a0d11}
   .arena{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+  .equipment-slot.has-rarity.rarity-legendary::after,
+  .equipment-slot.has-rarity.rarity-mythical::after,
+  .equipment-slot.has-rarity.rarity-ancient::after,
+  .equipment-slot.has-rarity.rarity-sunless::after,
+  .equipment-slot.has-rarity.rarity-unfathomable::after{animation:none!important;opacity:.18;transform:none}
+}
 
 
 /* ---------- v0.080.8: encounter grace + compact delve log ---------- */
@@ -1484,7 +1552,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.084.2</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.084.4</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1512,7 +1580,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.2</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.4</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -2020,7 +2088,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.084.2";
+const BUILD_VERSION = "v0.084.4";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -3355,8 +3423,12 @@ function equipmentSlotButton(slot,item,style="",items=equipmentItems()){
   const blocked=equipmentSlotBlocked(slot,items);
   const label=EQUIPMENT_SLOT_LABELS[slot]||slot;
   const shownItem=blocked?null:item;
+  const rarity=shownItem?rarityClass(shownItem.rarity):"";
+  const slotIndex=Math.max(0,EQUIPMENT_SLOT_ORDER.indexOf(slot));
+  const rarityDelay=shownItem?`--rarity-delay:-${((slotIndex*0.83)%6.7).toFixed(2)}s`:"";
+  const mergedStyle=[style,rarityDelay].filter(Boolean).join(";");
   const aria=blocked?`${label}: unavailable while ${items.rightHand?.name||"the Main Hand item"} uses both hands`:shownItem?`${label}: ${shownItem.name}`:`${label}: empty`;
-  return `<button class="equipment-slot${equipmentSlotClass(slot)}${shownItem?"":" empty"}${blocked?" blocked":""}${selected?" selected":""}${slot==="boots"?" slot-boots":""}" type="button" data-equipment-slot="${slot}" ${blocked?'aria-disabled="true"':''} ${style?`style="${style}"`:""} aria-label="${esc(aria)}"><span class="slot-name">${esc(label)}</span><span class="slot-level">${blocked?"2-hand":shownItem?`iLv ${shownItem.ilvl}`:"—"}</span></button>`;
+  return `<button class="equipment-slot${equipmentSlotClass(slot)}${shownItem?` has-rarity ${rarity}`:" empty"}${blocked?" blocked":""}${selected?" selected":""}${slot==="boots"?" slot-boots":""}" type="button" data-equipment-slot="${slot}" ${blocked?'aria-disabled="true"':''} ${mergedStyle?`style="${mergedStyle}"`:""} aria-label="${esc(aria)}"><span class="slot-name">${esc(label)}</span><span class="slot-level">${blocked?"2-hand":shownItem?`iLv ${shownItem.ilvl}`:"—"}</span></button>`;
 }
 function renderEquipmentInfo(items){
   const root=$("equipmentInfo"); if(!root) return;
