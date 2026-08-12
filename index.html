@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.084.17 — Session 9C 500-Fathom Playtest Prep</title>
+<title>Lowfathom v0.084.27 — Session 9C Delve Camera Layer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.084.17 Session 9C 500-fathom playtest prep + protected v0.075 Smite FX
+   LOWFATHOM — v0.084.27 Session 9C delve camera layer + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -109,7 +109,15 @@
    - v0.084.12: Sunless name color lifted one more notch after phone testing
    - v0.084.13: Sunless name color lifted one additional small step for final phone readability
    - v0.084.16: extended smoky interior card washes down the full rarity ladder with descending intensity; premium tiers preserved and Sunless unchanged
-   - v0.084.17: 500-fathom playtest prep — clean Salvage starting kits, class weapon choice, real hand-authored equipment drops and finalized upper-rarity budget multipliers
+   - v0.084.18: delve screen uses a large central route visual by default and collapses back to a compact minimap while browsing menus
+   - v0.084.20: the large delve visual is shorter and more rectangular, and the expanded delve log now grows upward to use the reclaimed central space
+   - v0.084.21: collapsed Delve Log is bottom-anchored again while expanded history still fills the reclaimed central space
+   - v0.084.22: zoomed out the route drawing inside the delve visual so more path is visible without resizing the panel
+   - v0.084.23: only the large delve route view is zoomed further out, showing more path ahead and behind without changing the compact minimap
+   - v0.084.24: large delve route zooms out another 25%; large-view depth labels keep stable vertical positions while the route pans
+   - v0.084.25: large-view depth labels are reattached to their tick marks; half-pixel snapping reduces text shimmer without changing the compact minimap or current zoom
+   - v0.084.26: large-view depth labels use persistent HTML overlays centered on their tick marks, avoiding SVG text re-rasterization jitter while the route scrolls
+   - v0.084.27: both delve visuals render a stable cave/world layer and move it with one camera transform; ticks and labels remain rigidly attached while the yellow delver marker stays anchored
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
@@ -171,10 +179,14 @@ button{
 }
 .travel[hidden]{display:none}
 .travel-top{
+  display:block;
+  padding:calc(12px + env(safe-area-inset-top)) 12px 12px;
+  background:#12181e;border-bottom:1px solid var(--rule);
+}
+.travel.browse-mini-map .travel-top{
   display:grid;grid-template-columns:minmax(168px,1.12fr) minmax(128px,.88fr);gap:12px;
   align-content:start;
   padding:calc(12px + env(safe-area-inset-top)) 12px 18px;
-  background:#12181e;border-bottom:1px solid var(--rule);
 }
 .travel-info{min-width:0;display:flex;flex-direction:column;justify-content:space-between;padding:2px 0}
 .travel-band-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:2px}
@@ -225,6 +237,9 @@ button{
     linear-gradient(180deg,#0a0e12 0%,#11171c 52%,#090d11 100%);
   border:1px solid var(--rule);
 }
+.trail-view.mini{display:none}
+.travel.browse-mini-map .trail-view.mini{display:block}
+.trail-view.large{min-height:0}
 .trail-view::after{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:4;
   box-shadow:inset 13px 0 20px rgba(7,10,13,.56),inset -13px 0 20px rgba(7,10,13,.56),
@@ -246,6 +261,22 @@ button{
   paint-order:stroke;stroke:#0b1014;stroke-width:3px;stroke-linejoin:round;
 }
 .trail-label.major{fill:var(--lamp-dim)}
+/* v0.084.27: route geometry, tick marks and depth labels live inside one
+   composited world layer. The camera moves that layer as a rigid unit rather
+   than rebuilding every element on every animation frame. */
+.trail-world-layer{
+  position:absolute;inset:0;z-index:2;pointer-events:none;overflow:visible;
+  will-change:transform;transform:translate3d(0,0,0);backface-visibility:hidden;
+}
+.trail-world-layer .trail-svg{z-index:1}
+.trail-label-layer{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:visible}
+.trail-html-label{
+  position:absolute;will-change:auto;
+  font-family:var(--cond);font-size:clamp(12px,3.2vw,16px);line-height:1;color:#687580;
+  text-shadow:-1px -1px 0 #0b1014,1px -1px 0 #0b1014,-1px 1px 0 #0b1014,1px 1px 0 #0b1014,0 0 3px #0b1014;
+  white-space:nowrap;transform:translate(-50%,-100%);transform-origin:50% 100%;
+}
+.trail-html-label.major{color:var(--lamp-dim)}
 .trail-marker{
   position:absolute;left:0;top:50%;
   /* Anchor the CENTER of the 8px delver dot to the route coordinate.
@@ -266,10 +297,18 @@ button{
 .trail-marker.exploring span{color:#9fbdba}
 
 .travel-middle{
-  min-height:0;display:flex;flex-direction:column;justify-content:flex-end;
+  min-height:0;display:flex;flex-direction:column;justify-content:flex-start;
   background:
     radial-gradient(80% 75% at 50% 0%,rgba(35,45,54,.22),transparent 70%),
     #0f1419;
+}
+.travel.browse-mini-map .travel-middle{justify-content:flex-end}
+.travel-middle-visual{
+  flex:0 0 auto;min-height:0;padding:12px 12px 8px;display:flex;align-items:flex-start;
+}
+.travel-middle-visual[hidden]{display:none}
+.travel-middle-visual .trail-view{
+  flex:0 0 auto;width:100%;aspect-ratio:1.72 / 1;height:auto;max-height:272px;
 }
 .safe-hollow-card{
   margin:auto 12px 12px;padding:11px 12px 12px;
@@ -324,9 +363,9 @@ button{
 
 .travel-log-wrap{
   min-height:0;
-  height:clamp(128px,20vh,170px);
+  min-height:132px;
   max-height:100%;
-  flex:0 0 auto;
+  flex:1 1 auto;
   display:flex;flex-direction:column;
   background:var(--panel);
   border-top:1px solid var(--rule);
@@ -1575,7 +1614,8 @@ button{
 }
 .travel-log-head .travel-log-toggle-text{margin-left:auto;color:#59636e;letter-spacing:.08em}
 .travel-log-head i{font-style:normal;color:var(--lamp-dim);font-size:12px;transition:transform .16s}
-.travel-log-wrap.collapsed{height:auto;flex:0 0 auto}
+.travel-log-wrap.collapsed{height:auto;min-height:0;flex:0 0 auto;margin-top:auto}
+.travel-log-wrap:not(.collapsed){margin-top:0}
 .travel-log-wrap.collapsed .travel-log{flex:0 0 auto;height:auto;max-height:none;overflow:hidden;padding:7px 12px 9px}
 .travel-log-wrap.collapsed .travel-entry{display:none}
 .travel-log-wrap.collapsed .travel-entry:last-child{display:grid}
@@ -1678,7 +1718,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.084.17</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.084.27</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1693,20 +1733,22 @@ button{
 
   <section class="travel" id="travel">
     <div class="travel-top">
-      <div class="trail-view" aria-label="Nearby route through the caves">
-        <svg class="trail-svg" id="trailSvg" viewBox="0 0 220 154" preserveAspectRatio="none" aria-hidden="true">
-          <path class="trail-corridor" id="trailCorridor" d=""></path>
-          <path class="trail-path" id="trailPath" d=""></path>
-          <path class="trail-side-corridor" id="trailSideCorridor" d="" hidden></path>
-          <path class="trail-side-path" id="trailSidePath" d="" hidden></path>
-          <g id="trailMarks"></g>
-        </svg>
+      <div class="trail-view mini" aria-label="Nearby route through the caves">
+        <div class="trail-world-layer" id="trailWorldMini" aria-hidden="true">
+          <svg class="trail-svg" id="trailSvg" viewBox="0 0 220 154" preserveAspectRatio="none">
+            <path class="trail-corridor" id="trailCorridor" d=""></path>
+            <path class="trail-path" id="trailPath" d=""></path>
+            <path class="trail-side-corridor" id="trailSideCorridor" d="" hidden></path>
+            <path class="trail-side-path" id="trailSidePath" d="" hidden></path>
+            <g id="trailMarks"></g>
+          </svg>
+        </div>
         <div class="trail-marker" id="trailMarker"><i></i></div>
       </div>
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.17</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.27</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -1740,6 +1782,22 @@ button{
         </div>
         <div class="hollow-countdown" id="hollowCountdown"></div>
       </section>
+
+      <div class="travel-middle-visual" id="travelMiddleVisual" aria-hidden="true">
+        <div class="trail-view large" aria-label="Route through the caves">
+          <div class="trail-world-layer" id="trailWorldLarge" aria-hidden="true">
+            <svg class="trail-svg" id="trailSvgLarge" viewBox="0 0 220 154" preserveAspectRatio="none">
+              <path class="trail-corridor" id="trailCorridorLarge" d=""></path>
+              <path class="trail-path" id="trailPathLarge" d=""></path>
+              <path class="trail-side-corridor" id="trailSideCorridorLarge" d="" hidden></path>
+              <path class="trail-side-path" id="trailSidePathLarge" d="" hidden></path>
+              <g id="trailMarksLarge"></g>
+            </svg>
+            <div class="trail-label-layer" id="trailLabelsLarge"></div>
+          </div>
+          <div class="trail-marker" id="trailMarkerLarge"><i></i></div>
+        </div>
+      </div>
 
       <section class="travel-log-wrap collapsed" id="travelLogWrap" aria-label="Delve log">
         <button class="travel-log-head" id="btnTravelLogToggle" type="button" aria-expanded="false"><span>Delve log</span><span class="travel-log-toggle-text">latest only</span><i aria-hidden="true">▾</i></button>
@@ -2214,7 +2272,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.084.17";
+const BUILD_VERSION = "v0.084.27";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -2225,13 +2283,14 @@ const TRAVEL_TICK_MS = 500;
 const TRAVEL_STEP = 0.25;          // 0.5 fathom / second while Descending
 const TRAVEL_QUIET = 3;            // a short breathing stretch after an event
 const TRAVEL_FORCE_EVENT = 16;     // prototype anti-drought cap
-const TRAIL_BEHIND = 8;               // fathoms kept visible behind the delver
-const TRAIL_AHEAD = 12;                // extra room ahead for future scouting information
+const TRAIL_BEHIND = 10;              // compact minimap: behind the delver
+const TRAIL_AHEAD = 15;                // compact minimap: ahead; keeps marker near 40% across
 const TRAIL_SPAN = TRAIL_BEHIND + TRAIL_AHEAD;
 const TRAIL_TICK = 4;                  // labelled depth spacing on the route
 const TRAIL_W = 220;
 const TRAIL_H = 154;
 const TRAIL_MARKER_Y = 77;             // visually centered while the route slopes downward
+const TRAIL_VERTICAL_ZOOM = 0.80;      // compact minimap route height
 
 /* Strike momentum prototype. Normal Strike is unchanged. Double Strike lands just
    below the first 2.7× Heavy; Perfect Strike sits above it but below 4.7× Heavy. */
@@ -3224,8 +3283,20 @@ function browsingSheetOpen(){
     const el=$(id); return !!el && !el.hidden;
   });
 }
+function syncTravelMapMode(){
+  const travel=$("travel"),creator=$("creator"),middleVisual=$("travelMiddleVisual");
+  if(!travel) return false;
+  const travelVisible=!!S && !over && !S.foe && (creator?.hidden ?? true);
+  const browseMini=travelVisible && browsingSheetOpen();
+  travel.classList.toggle("browse-mini-map",browseMini);
+  if(middleVisual){
+    middleVisual.hidden=!!(browseMini || S?.travelEvent || S?.activeHollow || S?.pendingBoonChoice);
+  }
+  return browseMini;
+}
 function syncBrowseTravelUI(){
   const controls=$("travelMiniControls"),arena=$("arena"),settingsSheet=$("settingsSheet");
+  syncTravelMapMode();
   const show=travelBrowsingContextAvailable() && browsingSheetOpen();
   if(arena) arena.classList.toggle("browse-descent-visible",show);
   if(settingsSheet){
@@ -3383,7 +3454,7 @@ function ensureEquipmentState(){
   for(const id of legacyWeapons){
     if(id!==S.equipment.rightHand && !S.inventory.equipment.includes(id)) S.inventory.equipment.push(id);
   }
-  // v0.084.17: palette-test fixtures are no longer part of live chronicles.
+  // Palette-test fixtures are no longer part of live chronicles.
   S.inventory.equipment=S.inventory.equipment.filter(id=>!RARITY_TEST_WEAPONS.includes(id));
   if(RARITY_TEST_WEAPONS.includes(S.equipment.rightHand)) S.equipment.rightHand=null;
   const main=S.equipment.rightHand;
@@ -5429,10 +5500,25 @@ function renderCombatHeader(){
 
 let trailVisualDepth = null;
 let trailAnimFrame = null;
+const TRAIL_RENDER_TARGETS = [
+  {
+    key:"mini", world:"trailWorldMini",
+    corridor:"trailCorridor", path:"trailPath", marks:"trailMarks", marker:"trailMarker",
+    sideCorridor:"trailSideCorridor", sidePath:"trailSidePath",
+    behind:TRAIL_BEHIND, ahead:TRAIL_AHEAD, verticalZoom:TRAIL_VERTICAL_ZOOM,
+    htmlLabels:null
+  },
+  {
+    key:"large", world:"trailWorldLarge",
+    corridor:"trailCorridorLarge", path:"trailPathLarge", marks:"trailMarksLarge", marker:"trailMarkerLarge",
+    sideCorridor:"trailSideCorridorLarge", sidePath:"trailSidePathLarge",
+    behind:TRAIL_BEHIND*1.875, ahead:TRAIL_AHEAD*1.875, verticalZoom:TRAIL_VERTICAL_ZOOM*0.74,
+    htmlLabels:"trailLabelsLarge"
+  }
+];
+const trailWorldState = new Map();
 
 function trailWave(depth){
-  // Deterministic cave undulation. The overall line still trends downward to the right;
-  // these small variations stop it looking like a graph or conveyor belt.
   return Math.sin(depth * 0.72) * 6 + Math.sin(depth * 1.61 + 0.8) * 2.5;
 }
 
@@ -5442,102 +5528,183 @@ function sideAreaRouteProgress(area=S?.sideArea){
   const needed=Math.max(1,area.encountersNeeded||4);
   const resolved=clamp((area.encountersDefeated||0)/needed,0,1);
   const between=clamp((area.activity||0)/4,0,1);
-  // A small visible crack appears immediately. Encounter progress carries most
-  // of the length; active exploration grows the next stretch between fights.
   return clamp(.08 + resolved*.75 + between*.17,.08,.98);
 }
 function sideBranchPath(anchorX,anchorY,progress=1,routeOffsets=null){
   return sideBranchGeometry(anchorX,anchorY,progress,routeOffsets).d;
 }
 
-function drawTrail(depth){
-  const viewStart=Math.max(0,depth-TRAIL_BEHIND);
-  const currentWave=trailWave(depth);
-  const xOf=d=>((d-viewStart)/TRAIL_SPAN)*TRAIL_W;
-  const yOf=d=>TRAIL_MARKER_Y+(d-depth)*2.25+(trailWave(d)-currentWave);
+function trailStructureSignature(){
+  const active=sideAreaActive();
+  const area=S?.sideArea;
+  const activeProgress=active?sideAreaRouteProgress(area).toFixed(3):"-";
+  const history=(S?.sideAreaHistory||[]).map(h=>`${Number(h.entryDepth||0).toFixed(2)}:${Number(h.progress??(h.completed?1:.5)).toFixed(2)}:${h.completed?1:0}`).join("|");
+  return `${active?1:0}:${activeProgress}:${area?.entryDepth??"-"}:${history}`;
+}
+
+function syncLargeTrailLabels(layerId,labelPositions){
+  const layer=$(layerId);
+  if(!layer)return;
+  const wanted=new Set(labelPositions.map(p=>String(p.depth)));
+  for(const node of [...layer.children]){
+    if(!wanted.has(node.dataset.depth)) node.remove();
+  }
+  for(const p of labelPositions){
+    const key=String(p.depth);
+    let node=[...layer.children].find(n=>n.dataset.depth===key);
+    if(!node){
+      node=document.createElement("span");
+      node.className="trail-html-label";
+      node.dataset.depth=key;
+      node.textContent=formatDepth(p.depth).replace('.0','');
+      layer.appendChild(node);
+    }
+    node.classList.toggle("major",p.major);
+    node.style.left=`${(p.x/TRAIL_W)*100}%`;
+    node.style.top=`${(p.labelY/TRAIL_H)*100}%`;
+  }
+}
+
+function rebuildTrailWorld(target,anchorDepth){
+  const behind=target.behind ?? TRAIL_BEHIND;
+  const ahead=target.ahead ?? TRAIL_AHEAD;
+  const span=behind+ahead;
+  const verticalZoom=target.verticalZoom ?? TRAIL_VERTICAL_ZOOM;
+  const anchorViewStart=Math.max(0,anchorDepth-behind);
+  const anchorWave=trailWave(anchorDepth);
+  const xScale=TRAIL_W/span;
+  const xOf=d=>(d-anchorViewStart)*xScale;
+  const yOf=d=>TRAIL_MARKER_Y+((d-anchorDepth)*2.25+(trailWave(d)-anchorWave))*verticalZoom;
+  const buffer=Math.max(TRAIL_TICK*2,span*.55);
+  const worldFrom=Math.max(0,anchorViewStart-buffer);
+  const worldTo=anchorViewStart+span+buffer;
 
   const pts=[];
-  const from=Math.max(0,viewStart-.5),to=viewStart+TRAIL_SPAN+.5;
-  for(let d=from;d<=to+.001;d+=.5) pts.push([xOf(d),clamp(yOf(d),10,TRAIL_H-10)]);
-  const path=pts.map((p,i)=>`${i?"L":"M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-  $("trailCorridor").setAttribute("d",path);
-  $("trailPath").setAttribute("d",path);
+  for(let d=Math.max(0,worldFrom-.5);d<=worldTo+.501;d+=.5) pts.push([xOf(d),yOf(d)]);
+  const path=pts.map((p,i)=>`${i?"L":"M"}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(" ");
 
   let marks="";
-  const firstTick=Math.ceil(viewStart/TRAIL_TICK)*TRAIL_TICK,last=viewStart+TRAIL_SPAN;
-  for(let d=firstTick;d<=last+.001;d+=TRAIL_TICK){
-    const x=xOf(d),y=clamp(yOf(d),12,TRAIL_H-12),major=Math.abs(d%FATHOMS_PER_STRATUM)<.001;
-    marks+=`<line class="trail-tick" x1="${x.toFixed(1)}" y1="${(y-5).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(y+5).toFixed(1)}"></line>`;
-    marks+=`<text class="trail-label ${major?"major":""}" x="${(x+3).toFixed(1)}" y="${(y-7).toFixed(1)}">${formatDepth(d).replace('.0','')}</text>`;
+  const labelPositions=[];
+  const firstTick=Math.ceil(worldFrom/TRAIL_TICK)*TRAIL_TICK;
+  for(let d=firstTick;d<=worldTo+.001;d+=TRAIL_TICK){
+    const x=xOf(d),y=yOf(d),major=Math.abs(d%FATHOMS_PER_STRATUM)<.001;
+    marks+=`<line class="trail-tick" x1="${x.toFixed(2)}" y1="${(y-5).toFixed(2)}" x2="${x.toFixed(2)}" y2="${(y+5).toFixed(2)}"></line>`;
+    if(target.htmlLabels) labelPositions.push({depth:d,x,labelY:y-7,major});
+    else marks+=`<text class="trail-label ${major?"major":""}" x="${(x+3).toFixed(2)}" y="${(y-7).toFixed(2)}">${formatDepth(d).replace('.0','')}</text>`;
   }
-  const firstBoundary=Math.ceil(viewStart/FATHOMS_PER_STRATUM)*FATHOMS_PER_STRATUM;
-  for(let d=firstBoundary;d<=last+.001;d+=FATHOMS_PER_STRATUM){
+  const firstBoundary=Math.ceil(worldFrom/FATHOMS_PER_STRATUM)*FATHOMS_PER_STRATUM;
+  for(let d=firstBoundary;d<=worldTo+.001;d+=FATHOMS_PER_STRATUM){
     if(d<=0)continue;
     const x=xOf(d);
-    marks+=`<line class="trail-boundary" x1="${x.toFixed(1)}" y1="7" x2="${x.toFixed(1)}" y2="${TRAIL_H-7}"></line>`;
+    marks+=`<line class="trail-boundary" x1="${x.toFixed(2)}" y1="${(TRAIL_MARKER_Y-TRAIL_H).toFixed(2)}" x2="${x.toFixed(2)}" y2="${(TRAIL_MARKER_Y+TRAIL_H).toFixed(2)}"></line>`;
   }
   for(const h of (S.sideAreaHistory||[])){
-    if(h.entryDepth<viewStart-.001||h.entryDepth>last+.001)continue;
-    const hx=xOf(h.entryDepth),hy=clamp(yOf(h.entryDepth),10,TRAIL_H-10);
+    if(h.entryDepth<worldFrom-.001||h.entryDepth>worldTo+.001)continue;
+    const hx=xOf(h.entryDepth),hy=yOf(h.entryDepth);
     const hd=sideBranchPath(hx,hy,h.progress??(h.completed?1:.5),h.routeOffsets);
     marks+=`<path class="trail-side-history ${h.completed?"completed":"abandoned"}" d="${hd}"></path>`;
   }
-  $("trailMarks").innerHTML=marks;
 
-  const anchorX=xOf(depth),anchorY=clamp(yOf(depth),10,TRAIL_H-10);
-  let markerX=anchorX,markerY=anchorY;
-  const marker=$("trailMarker"),sideCorridor=$("trailSideCorridor"),sidePath=$("trailSidePath");
+  const corridor=$(target.corridor),mainPath=$(target.path),marksNode=$(target.marks),sideCorridor=$(target.sideCorridor),sidePath=$(target.sidePath);
+  if(!corridor||!mainPath||!marksNode)return;
+  corridor.setAttribute("d",path);
+  mainPath.setAttribute("d",path);
+  marksNode.innerHTML=marks;
+  if(target.htmlLabels) syncLargeTrailLabels(target.htmlLabels,labelPositions);
+
+  let sideMarkerWorld=null;
   if(sideCorridor&&sidePath){
     const active=sideAreaActive();
-    // SVG elements do not reliably reflect the HTML `.hidden` property.
-    // Toggle the actual attribute so the active branch is visible DURING travel,
-    // rather than only appearing later as a completed history path.
     if(active){
       sideCorridor.removeAttribute("hidden");
       sidePath.removeAttribute("hidden");
-    } else {
+      const entryDepth=Number(S.sideArea?.entryDepth ?? S.depth);
+      const g=sideBranchGeometry(xOf(entryDepth),yOf(entryDepth),sideAreaRouteProgress(),S.sideArea.routeOffsets);
+      sideCorridor.setAttribute("d",g.d);
+      sidePath.setAttribute("d",g.d);
+      sideMarkerWorld={x:g.end[0],y:g.end[1]};
+    }else{
       sideCorridor.setAttribute("hidden","");
       sidePath.setAttribute("hidden","");
     }
-    if(active){
-      const g=sideBranchGeometry(anchorX,anchorY,sideAreaRouteProgress(),S.sideArea.routeOffsets);
-      sideCorridor.setAttribute("d",g.d);
-      sidePath.setAttribute("d",g.d);
-      markerX=g.end[0];
-      markerY=g.end[1];
-    }
+  }
+
+  trailWorldState.set(target.key,{
+    anchorDepth,anchorViewStart,anchorWave,xScale,verticalZoom,span,behind,ahead,
+    structure:trailStructureSignature(),worldFrom,worldTo,sideMarkerWorld
+  });
+}
+
+function ensureTrailWorld(target,cameraDepth){
+  let state=trailWorldState.get(target.key);
+  const signature=trailStructureSignature();
+  const span=(target.behind??TRAIL_BEHIND)+(target.ahead??TRAIL_AHEAD);
+  const driftLimit=Math.max(TRAIL_TICK*1.5,span*.28);
+  if(!state || Math.abs(cameraDepth-state.anchorDepth)>driftLimit || state.structure!==signature){
+    rebuildTrailWorld(target,cameraDepth);
+    state=trailWorldState.get(target.key);
+  }
+  return state;
+}
+
+function applyTrailCamera(target,cameraDepth){
+  const state=ensureTrailWorld(target,cameraDepth);
+  if(!state)return;
+  const world=$(target.world),marker=$(target.marker);
+  if(!world||!marker)return;
+
+  const cameraViewStart=Math.max(0,cameraDepth-state.behind);
+  const dxSvg=(state.anchorViewStart-cameraViewStart)*state.xScale;
+  const dySvg=((state.anchorDepth-cameraDepth)*2.25+(state.anchorWave-trailWave(cameraDepth)))*state.verticalZoom;
+  const width=world.clientWidth||world.parentElement?.clientWidth||1;
+  const height=world.clientHeight||world.parentElement?.clientHeight||1;
+  const dxPx=dxSvg*(width/TRAIL_W);
+  const dyPx=dySvg*(height/TRAIL_H);
+  world.style.transform=`translate3d(${dxPx.toFixed(3)}px,${dyPx.toFixed(3)}px,0)`;
+
+  let markerX=((cameraDepth-cameraViewStart)/state.span)*TRAIL_W;
+  let markerY=TRAIL_MARKER_Y;
+  if(sideAreaActive() && state.sideMarkerWorld){
+    markerX=state.sideMarkerWorld.x+dxSvg;
+    markerY=state.sideMarkerWorld.y+dySvg;
   }
   marker.style.left=`${(markerX/TRAIL_W)*100}%`;
   marker.style.top=`${(markerY/TRAIL_H)*100}%`;
   marker.classList.toggle("exploring",S.travelMode==="explore"||S.travelMode==="side");
 }
 
-function renderTrail(){
-  const target = S.depth;
-  if(trailVisualDepth === null || Math.abs(target - trailVisualDepth) > 2){
-    trailVisualDepth = target;
-    drawTrail(target);
-    return;
-  }
-  if(Math.abs(target - trailVisualDepth) < 0.001){
-    drawTrail(target);
-    return;
-  }
+function applyTrailCameras(cameraDepth){
+  for(const target of TRAIL_RENDER_TARGETS) applyTrailCamera(target,cameraDepth);
+}
 
-  if(trailAnimFrame !== null) cancelAnimationFrame(trailAnimFrame);
-  const startDepth = trailVisualDepth;
-  const delta = target - startDepth;
-  const started = performance.now();
-  const duration = Math.min(480, TRAVEL_TICK_MS * 0.94);
-  const step = now => {
-    const t = clamp((now - started) / duration, 0, 1);
-    const eased = 1 - Math.pow(1 - t, 2);
-    trailVisualDepth = startDepth + delta * eased;
-    drawTrail(trailVisualDepth);
-    if(t < 1) trailAnimFrame = requestAnimationFrame(step);
-    else { trailVisualDepth = target; trailAnimFrame = null; drawTrail(target); }
+function renderTrail(){
+  const targetDepth=S.depth;
+  if(trailVisualDepth===null || Math.abs(targetDepth-trailVisualDepth)>2){
+    trailVisualDepth=targetDepth;
+    applyTrailCameras(targetDepth);
+    return;
+  }
+  if(Math.abs(targetDepth-trailVisualDepth)<0.001){
+    applyTrailCameras(targetDepth);
+    return;
+  }
+  if(trailAnimFrame!==null) cancelAnimationFrame(trailAnimFrame);
+  const startDepth=trailVisualDepth;
+  const delta=targetDepth-startDepth;
+  const started=performance.now();
+  const duration=TRAVEL_TICK_MS*1.04;
+  const step=now=>{
+    const t=clamp((now-started)/duration,0,1);
+    trailVisualDepth=startDepth+delta*t;
+    applyTrailCameras(trailVisualDepth);
+    if(t<1) trailAnimFrame=requestAnimationFrame(step);
+    else{
+      trailVisualDepth=targetDepth;
+      trailAnimFrame=null;
+      applyTrailCameras(targetDepth);
+    }
   };
-  trailAnimFrame = requestAnimationFrame(step);
+  trailAnimFrame=requestAnimationFrame(step);
 }
 
 function renderSafeHollow(){
@@ -5580,6 +5747,7 @@ function renderTravel(){
   const show=!!S&&!S.foe&&!over;
   travel.hidden=!show;
   if(!show) return;
+  syncTravelMapMode();
   const idx=stratumIndex();
   $("travelBand").textContent=`Stratum ${idx+1}`;
   $("buildVersion").textContent=BUILD_VERSION;
