@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.084.0 — Session 9C Item Power Foundation</title>
+<title>Lowfathom v0.084.2 — Combat Backpack QOL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.084.0 Session 9C item power foundation + protected v0.075 Smite FX
+   LOWFATHOM — v0.084.2 combat Backpack QOL + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -97,6 +97,8 @@
    - v0.083.6: persistent shaft visibility for browsing sheets plus compact Descend / Stop controls
    - v0.083.7: stop travel ticks rebuilding open inventory/equipment filters, preventing horizontal filter flicker
    - v0.084.0: Session 9C foundation — 500-fathom strata, decoupled hollow/side/run cadence, unified weapon contribution, real Armor mitigation, rarity language and balance reference
+   - v0.084.1: rarity palette test — exact 12-tier colors plus one equal-iLv two-handed test greatsword per rarity in the Equipment Backpack
+   - v0.084.2: replaced obsolete combat Loadout test control with Backpack; Bandages can be used in combat and consume the player turn
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
@@ -109,10 +111,10 @@
   --lamp:#e6c288; --lamp-dim:#8a7550;
   --rust:#b4553c; --verdigris:#5f9490;
   --stamina:#c89b4b; --warn:#d99a4e;
-  --rarity-salvage:#59636e; --rarity-poor:#8b7d70; --rarity-uncommon:#6f9e79;
-  --rarity-rare:#6a9bc4; --rarity-epic:#a87fc0; --rarity-wondrous:#c6b06f;
-  --rarity-legendary:#d99a4e; --rarity-mythical:#c97fa5; --rarity-ancient:#bd7655;
-  --rarity-sunless:#8275a2; --rarity-unfathomable:#ddd6c8;
+  --rarity-salvage:#6b6355; --rarity-poor:#7d8794; --rarity-common:#c2bdb1;
+  --rarity-uncommon:#6f9e79; --rarity-rare:#6a9bc4; --rarity-epic:#a87fc0;
+  --rarity-wondrous:#cf87a6; --rarity-legendary:#d99a4e; --rarity-mythical:#d95f34;
+  --rarity-ancient:#f4f0e6; --rarity-sunless:#1a2028; --rarity-sunless-edge:#8fa8b8;
   --mono:'IBM Plex Mono',ui-monospace,monospace;
   --slab:'Zilla Slab',Georgia,serif;
   --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
@@ -943,10 +945,12 @@ button{
 .equipment-delta.bad{color:#d17459}
 .equipment-delta.same{color:#687580}
 .equipment-delta.power{color:var(--bone)}
-.rarity-salvage{color:var(--rarity-salvage)!important}.rarity-poor{color:var(--rarity-poor)!important}.rarity-common{color:var(--bone)!important}
+.rarity-salvage{color:var(--rarity-salvage)!important}.rarity-poor{color:var(--rarity-poor)!important}.rarity-common{color:var(--rarity-common)!important}
 .rarity-uncommon{color:var(--rarity-uncommon)!important}.rarity-rare{color:var(--rarity-rare)!important}.rarity-epic{color:var(--rarity-epic)!important}
 .rarity-wondrous{color:var(--rarity-wondrous)!important}.rarity-legendary{color:var(--rarity-legendary)!important}.rarity-mythical{color:var(--rarity-mythical)!important}
-.rarity-ancient{color:var(--rarity-ancient)!important}.rarity-sunless{color:var(--rarity-sunless)!important}.rarity-unfathomable{color:var(--rarity-unfathomable)!important;text-shadow:0 0 8px rgba(221,214,200,.18)}
+.rarity-ancient{color:var(--rarity-ancient)!important}
+.rarity-sunless{color:var(--rarity-sunless)!important;-webkit-text-stroke:.5px var(--rarity-sunless-edge);paint-order:stroke fill}
+.rarity-unfathomable{background:linear-gradient(90deg,#9fd4e0,#c9b8e8,#e6c288);-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent}
 .pack-compare{margin-top:5px;font-family:var(--cond);font-size:9.5px;color:var(--dim)}
 .pack-compare .equipment-delta{margin-right:7px}
 .pack-item.equipment-pack{border-left:2px solid #35424d}
@@ -1480,7 +1484,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.084.0</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.084.2</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1508,7 +1512,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.0</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.2</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -1654,7 +1658,7 @@ button{
           <div class="equipment-gear"><em>Gear level</em><b id="equipmentGearLevel">6.4</b></div>
           <button class="equipment-expand" id="btnEquipmentExpand" type="button" aria-expanded="false" aria-label="Expand equipment list" title="Expand equipment list">⌄</button>
         </div>
-        <div class="equipment-prototype-note">Session 9C · weapon contribution and Armor mitigation are live. Attribute/utility item properties remain provisional until their own scaling curves are locked.</div>
+        <div class="equipment-prototype-note">Session 9C · weapon contribution and Armor mitigation are live. v0.084.1 adds equal-iLv two-handed rarity test swords for palette testing; reserved upper rarities still have no live drop mechanics.</div>
         <div class="equipment-stage">
           <div class="equipment-ring-rail" id="equipmentRingRail"></div>
           <div class="equipment-body-grid" id="equipmentBodyGrid"></div>
@@ -1795,7 +1799,7 @@ button{
 
   <div class="pad2">
     <button class="mact abilities" id="btnAbilities"><b>Abilities</b><span id="abilitySummary">7 / 7 uses ready</span></button>
-    <button class="mact pack" id="btnLoadout"><b>Loadout</b><span id="loadoutTxt">sword + shield</span></button>
+    <button class="mact pack" id="btnCombatPack"><b>Backpack</b><span id="combatPackTxt">items · consumables</span></button>
   </div>
 
   <div class="combat-bottom-row">
@@ -2016,7 +2020,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.084.0";
+const BUILD_VERSION = "v0.084.2";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -3117,7 +3121,7 @@ function restorePackViewState(){
 }
 function setPackTab(tab){
   if(!["backpack","equipment"].includes(tab)) return;
-  if(S?.packMode==="offering" && tab==="equipment") return;
+  if((S?.packMode==="offering"||S?.packMode==="combat") && tab==="equipment") return;
   rememberPackViewState();
   packActiveTab=tab;
   renderPack(false);
@@ -3155,6 +3159,11 @@ function ensureEquipmentState(){
   }
   const legacyWeapons=S.inventory.weapons.filter(id=>GEAR_ITEMS[id]);
   for(const id of legacyWeapons){
+    if(id!==S.equipment.rightHand && !S.inventory.equipment.includes(id)) S.inventory.equipment.push(id);
+  }
+  // v0.084.1 palette test: expose one equal-iLv two-handed greatsword for every
+  // rarity in existing and new chronicles. These are test fixtures, not drops.
+  for(const id of RARITY_TEST_WEAPONS){
     if(id!==S.equipment.rightHand && !S.inventory.equipment.includes(id)) S.inventory.equipment.push(id);
   }
   const main=S.equipment.rightHand;
@@ -3256,6 +3265,8 @@ function sortedBackpackEquipment(filterId=equipmentFilter){
     if(cb.itemDelta!==ca.itemDelta) return cb.itemDelta-ca.itemDelta;
     if(Math.abs(cb.gearDelta-ca.gearDelta)>0.0001) return cb.gearDelta-ca.gearDelta;
     const il=equipmentItemLevel(b)-equipmentItemLevel(a); if(il) return il;
+    const ta=RARITY_TEST_WEAPONS.indexOf(a), tb=RARITY_TEST_WEAPONS.indexOf(b);
+    if(ta>=0 && tb>=0) return ta-tb;
     return String(equipmentItemDef(a)?.name||a).localeCompare(String(equipmentItemDef(b)?.name||b));
   });
 }
@@ -3665,12 +3676,15 @@ function takeRest(){
   render();
 }
 function openPack(mode=null,tab="backpack",returnTarget=null){
-  if(!S || over || S.foe) return;
+  if(!S || over) return;
+  const combat=!!S.foe;
+  if(combat && mode!=="combat") return;
+  if(!combat && mode==="combat") return;
   if(S.travelEvent && mode!=="offering") return;
   cancelHollowAutoResume();
   S.packMode=mode;
   packReturnTarget=returnTarget;
-  packActiveTab=mode==="offering"?"backpack":(["backpack","equipment"].includes(tab)?tab:"backpack");
+  packActiveTab=(mode==="offering"||mode==="combat")?"backpack":(["backpack","equipment"].includes(tab)?tab:"backpack");
   $("packSheet").hidden=false;
   renderPack(false);
   syncBrowseTravelUI();
@@ -3702,19 +3716,20 @@ function renderPack(rememberView=true){
   rememberEquipmentFilterScroll();
   ensureEquipmentState();
   const offer=S.packMode==="offering";
-  if(offer) packActiveTab="backpack";
+  const combatPack=S.packMode==="combat" && !!S.foe;
+  if(offer||combatPack) packActiveTab="backpack";
   const packClose=$("btnPackClose");
   if(packClose){
     const returning=packReturnTarget==="characterEquipment";
-    packClose.textContent=returning?"← Back to Character":"Back to the delve";
-    packClose.setAttribute("aria-label",returning?"Back to Character Equipment":"Back to the delve");
+    packClose.textContent=returning?"← Back to Character":combatPack?"Back to combat":"Back to the delve";
+    packClose.setAttribute("aria-label",returning?"Back to Character Equipment":combatPack?"Back to combat":"Back to the delve");
   }
 
   document.querySelectorAll("#packTabs [data-pack-tab]").forEach(btn=>{
     const active=btn.dataset.packTab===packActiveTab;
     btn.classList.toggle("active",active);
     btn.setAttribute("aria-selected",active?"true":"false");
-    btn.disabled=offer && btn.dataset.packTab==="equipment";
+    btn.disabled=(offer||combatPack) && btn.dataset.packTab==="equipment";
   });
 
   const filterBar=$("packFilterBar");
@@ -3755,9 +3770,10 @@ function renderPack(rememberView=true){
       if(S.bleeding) status+=`<div class="pack-item compact"><div class="curse-line"><b>Bleeding</b> · lose small amounts of HP during active travel.</div></div>`;
     }
     root.innerHTML=status+(visible.length?visible.map(row=>row.html).join(""):`<div class="pack-note">No carried items match this filter.</div>`);
-    $("packNote").textContent=offer?"Choose one carried item to place on the altar. Equipment is unavailable while choosing an offering.":"Backpack categories: Consumables · Tools · Quest · Texts · Materials · Other.";
+    $("packNote").textContent=offer?"Choose one carried item to place on the altar. Equipment is unavailable while choosing an offering.":combatPack?"Combat Backpack · usable consumables spend your turn. Equipment changes are locked until the fight ends.":"Backpack categories: Consumables · Tools · Quest · Texts · Materials · Other.";
   }
 
+  if(combatPack) document.querySelectorAll("[data-equip-weapon],[data-equip-equipment],[data-offer-item]").forEach(el=>el.disabled=true);
   if(encounterWarningActive()) document.querySelectorAll("[data-use-bandage],[data-equip-weapon],[data-equip-equipment],[data-offer-item]").forEach(el=>el.disabled=true);
   restoreEquipmentFilterScroll();
   restorePackViewState();
@@ -5498,16 +5514,11 @@ function render(){
 
   const w = equippedWeaponDef();
   $("heroStats").textContent = `STR ${S.STR} · CON ${S.CON} · DEX ${S.DEX} · ${w.unarmed?"unarmed":`${w.stat} weapon`}`;
-  if(S.className==="Votary"){
-    const twoHanded=equipmentItemUsesBothHands(S?.equipment?.rightHand||S?.equippedWeapon);
-    $("btnLoadout").disabled = twoHanded;
-    $("loadoutTxt").textContent = twoHanded ? `${w.name} · two-handed · Parry` : S.loadout==="shield" ? `${w.name}${w.unarmed?"":" +"} shield · Guard` : `${w.name} · Parry`;
-  }else if(S.className==="Rogue"){
-    $("btnLoadout").disabled = true;
-    $("loadoutTxt").textContent = `${w.name} · DEX · Dodge`;
-  }else{
-    $("btnLoadout").disabled = true;
-    $("loadoutTxt").textContent = `${w.name} · INT focus`;
+  const combatPackBtn=$("btnCombatPack"),combatPackTxt=$("combatPackTxt");
+  if(combatPackBtn) combatPackBtn.disabled=!f||over||combatVictoryPending;
+  if(combatPackTxt){
+    const bandages=S.inventory?.bandages||0;
+    combatPackTxt.textContent=S.bleeding?`${bandages} Bandage${bandages===1?"":"s"} · Bleeding`:`${bandages} Bandage${bandages===1?"":"s"} · items`;
   }
 
   const aff = $("combatCurse"), affTxt = $("combatCurseTxt");
@@ -5545,7 +5556,7 @@ function render(){
   renderEncounterWarningLocks();
   if($("btnAbilities")) $("btnAbilities").disabled = !f || over || !!combatVictoryPending;
   if(combatVictoryPending){
-    if($("btnLoadout")) $("btnLoadout").disabled = true;
+    if($("btnCombatPack")) $("btnCombatPack").disabled = true;
     if($("btnRun")) $("btnRun").disabled = true;
   }
   renderSettingsSheet();
@@ -5675,8 +5686,25 @@ const GEAR_ITEMS = {
   etched_wand:{name:"Etched Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:108,rarity:"Uncommon",family:"wand",hands:1,desc:"A stronger arcane focus using INT."},
   handaxe:{name:"Salvaged Hand-axe",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:102,rarity:"Common",family:"axe",hands:1,desc:"An off-class STR weapon."},
   hunting_bow:{name:"Hunting Bow",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:100,rarity:"Common",family:"bow",hands:2,desc:"A two-handed ranged DEX weapon."},
-  worn_greatsword:{name:"Worn Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:108,rarity:"Uncommon",family:"greatsword",hands:2,greatWeapon:true,desc:"A Great Weapon. It occupies both hands while equipped."}
+  worn_greatsword:{name:"Worn Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:108,rarity:"Uncommon",family:"greatsword",hands:2,greatWeapon:true,desc:"A Great Weapon. It occupies both hands while equipped."},
+  rarity_test_salvage:{name:"Salvage Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Salvage",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · equal iLv with every rarity test greatsword."},
+  rarity_test_poor:{name:"Poor Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Poor",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · equal iLv with every rarity test greatsword."},
+  rarity_test_common:{name:"Common Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Common",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · equal iLv with every rarity test greatsword."},
+  rarity_test_uncommon:{name:"Uncommon Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Uncommon",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · equal iLv with every rarity test greatsword."},
+  rarity_test_rare:{name:"Rare Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Rare",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · equal iLv with every rarity test greatsword."},
+  rarity_test_epic:{name:"Epic Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Epic",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · equal iLv with every rarity test greatsword."},
+  rarity_test_wondrous:{name:"Wondrous Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Wondrous",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · reserved rarity palette preview only."},
+  rarity_test_legendary:{name:"Legendary Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Legendary",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · reserved rarity palette preview only."},
+  rarity_test_mythical:{name:"Mythical Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Mythical",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · reserved rarity palette preview only."},
+  rarity_test_ancient:{name:"Ancient Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Ancient",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · reserved rarity palette preview only."},
+  rarity_test_sunless:{name:"Sunless Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Sunless",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · reserved rarity palette preview only."},
+  rarity_test_unfathomable:{name:"Unfathomable Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Unfathomable",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · reserved rarity palette preview only."}
 };
+
+const RARITY_TEST_WEAPONS = Object.freeze([
+  "rarity_test_salvage","rarity_test_poor","rarity_test_common","rarity_test_uncommon","rarity_test_rare","rarity_test_epic",
+  "rarity_test_wondrous","rarity_test_legendary","rarity_test_mythical","rarity_test_ancient","rarity_test_sunless","rarity_test_unfathomable"
+]);
 
 const EQUIPMENT_ITEMS = {
   ...GEAR_ITEMS,
@@ -5730,7 +5758,7 @@ function startingEquipmentLoadout(cls,weaponId){
     bottoms:"reinforced_trousers",belt:"tool_belt",boots:"hobnailed_boots",ring1:"iron_signet",ring2:null,ring3:"bone_ring",ring4:null
   };
 }
-function startingEquipmentBackpack(){ return ["worn_greatsword","plate_gauntlets","copper_stud"]; }
+function startingEquipmentBackpack(){ return ["worn_greatsword","plate_gauntlets","copper_stud",...RARITY_TEST_WEAPONS]; }
 
 
 const DROP_HINTS = {
@@ -5855,6 +5883,12 @@ ACTIONS.arcbolt={
 // ----- inventory -----
 function useBandage(){
   if(encounterWarningActive() || !S || !S.bleeding || S.inventory.bandages<=0) return;
+  if(S.foe){
+    closePack();
+    armed=null;
+    takeTurn("bandage");
+    return;
+  }
   S.inventory.bandages--;
   S.bleeding=false;
   S.bleedTravel=0;
@@ -5862,6 +5896,19 @@ function useBandage(){
   renderPack();
   render();
 }
+ACTIONS.bandage={
+  label:"Bandage",sub:"combat item · consumes turn",cost:0,
+  preview(){return "Use a Bandage to stop Bleeding. Consumes your turn.";},
+  run(){
+    if(!S.bleeding || S.inventory.bandages<=0) return `<p class="note">There is nothing to bandage.</p>`;
+    S.inventory.bandages--;
+    S.bleeding=false;
+    S.bleedTravel=0;
+    const abandonedHeavy=S.heavyCharge>0;
+    S.heavyCharge=0;
+    return `<p class="good">Bound the wound with a <b>Bandage</b>. <b>Bleeding stopped.</b></p>${abandonedHeavy?`<p class="note">The prepared Heavy was abandoned.</p>`:""}`;
+  }
+};
 function equipWeapon(id){
   if(!GEAR_ITEMS[id]) return;
   equipEquipmentItem(id,"rightHand");
@@ -7584,15 +7631,10 @@ $("restAbilityOptions").addEventListener("click", e => {
     render();
   }
 });
-$("btnLoadout").addEventListener("click", () => {
-  if(S.className !== "Votary" || S.heavyCharge > 0 || equipmentItemUsesBothHands(S?.equipment?.rightHand||S?.equippedWeapon)) return;
-  S.loadout = S.loadout === "shield" ? "sword" : "shield";
-  S.defenceChain = 0;
-  armed = null;
-  say(S.loadout === "shield"
-    ? `<p class="note">Test loadout: sword and shield. Defence is now <b>Guard</b>.</p>`
-    : `<p class="note">Test loadout: sword only. Defence is now <b>Parry</b>.</p>`);
-  render();
+$("btnCombatPack").addEventListener("click", () => {
+  if(!S || over || !S.foe || combatVictoryPending) return;
+  armed=null;
+  openPack("combat","backpack");
 });
 $("btnBack").addEventListener("click", closeAbilitySheet);
 $("scrim").addEventListener("click", closeAbilitySheet);
