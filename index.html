@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.084.16 — Full Rarity Smoky Surface Pass</title>
+<title>Lowfathom v0.084.17 — Session 9C 500-Fathom Playtest Prep</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.084.16 full rarity smoky surface pass + protected v0.075 Smite FX
+   LOWFATHOM — v0.084.17 Session 9C 500-fathom playtest prep + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -109,6 +109,7 @@
    - v0.084.12: Sunless name color lifted one more notch after phone testing
    - v0.084.13: Sunless name color lifted one additional small step for final phone readability
    - v0.084.16: extended smoky interior card washes down the full rarity ladder with descending intensity; premium tiers preserved and Sunless unchanged
+   - v0.084.17: 500-fathom playtest prep — clean Salvage starting kits, class weapon choice, real hand-authored equipment drops and finalized upper-rarity budget multipliers
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
@@ -1669,8 +1670,15 @@ button{
         <p class="creator-folk-flavor" id="classFlavor" hidden></p>
       </section>
 
+      <section class="creator-section" id="startingLoadoutSection" hidden>
+        <div class="creator-section-head"><b>Starting kit</b><span>all Salvage</span></div>
+        <p>Every delver begins in Salvage Top, Bottoms and Boots. Choose the hand setup you want to take below.</p>
+        <div class="creator-grid" id="startingLoadoutChoices"></div>
+        <p class="creator-folk-flavor" id="startingLoadoutNote">Dual-wield attacks are not live yet, so Rogue's second choice is a two-handed shortbow rather than two daggers.</p>
+      </section>
+
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.084.16</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.084.17</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1698,7 +1706,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.16</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.084.17</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -1844,7 +1852,7 @@ button{
           <div class="equipment-gear"><em>Gear level</em><b id="equipmentGearLevel">6.4</b></div>
           <button class="equipment-expand" id="btnEquipmentExpand" type="button" aria-expanded="false" aria-label="Expand equipment list" title="Expand equipment list">⌄</button>
         </div>
-        <div class="equipment-prototype-note">Session 9C · weapon contribution and Armor mitigation are live. v0.084.1 adds equal-iLv two-handed rarity test swords for palette testing; reserved upper rarities still have no live drop mechanics.</div>
+        <div class="equipment-prototype-note">Session 9C playtest · weapon contribution and Armor mitigation are live. New delvers start in Salvage gear, and ordinary goblins can now drop hand-authored equipment through 500 fathoms.</div>
         <div class="equipment-stage">
           <div class="equipment-ring-rail" id="equipmentRingRail"></div>
           <div class="equipment-body-grid" id="equipmentBodyGrid"></div>
@@ -2206,7 +2214,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.084.16";
+const BUILD_VERSION = "v0.084.17";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -2262,12 +2270,12 @@ const RARITY_DEFS = Object.freeze({
   Uncommon:{unlockDepth:0,baseChance:0.20,budgetMult:1.08},
   Rare:{unlockDepth:0,baseChance:0.10,budgetMult:1.18},
   Epic:{unlockDepth:250,baseChance:0.05,budgetMult:1.32},
-  Wondrous:{unlockDepth:500,baseChance:0.04,budgetMult:null},
-  Legendary:{unlockDepth:1000,baseChance:0.03,budgetMult:null},
-  Mythical:{unlockDepth:2000,baseChance:0.025,budgetMult:null},
-  Ancient:{unlockDepth:3000,baseChance:0.02,budgetMult:null},
-  Sunless:{unlockDepth:4000,baseChance:0.0175,budgetMult:null},
-  Unfathomable:{unlockDepth:5000,baseChance:0.005,budgetMult:null}
+  Wondrous:{unlockDepth:500,baseChance:0.04,budgetMult:1.47},
+  Legendary:{unlockDepth:1000,baseChance:0.03,budgetMult:1.63},
+  Mythical:{unlockDepth:2000,baseChance:0.025,budgetMult:1.81},
+  Ancient:{unlockDepth:3000,baseChance:0.02,budgetMult:2.00},
+  Sunless:{unlockDepth:4000,baseChance:0.0175,budgetMult:2.22},
+  Unfathomable:{unlockDepth:5000,baseChance:0.005,budgetMult:2.47}
 });
 function rarityDef(name){ return RARITY_DEFS[name]||RARITY_DEFS.Common; }
 function rarityClass(name){ return `rarity-${String(name||"Common").toLowerCase().replace(/[^a-z]+/g,"")}`; }
@@ -2434,7 +2442,7 @@ let over = false;  // true once you're dead
 let hollowTimer = null; // UI countdown for ordinary safe hollows
 let healFxTimer = null;
 let smiteFxTimer = null;
-let creatorDraft = {name:"", folk:null, trade:null, origin:null, humanPlus2:null, humanPlus1:null, humanMinus2:null};
+let creatorDraft = {name:"", folk:null, trade:null, origin:null, className:null, startingLoadout:null, humanPlus2:null, humanPlus1:null, humanMinus2:null};
 let combatExpandedAbility = null;
 let charExpandedAbility = null;
 let charView = "overview";
@@ -2628,9 +2636,10 @@ function newDelver(profile){
   const chosen = profile || {name:"Leofrun Fenwick",folk:"Orc",trade:"Smith's Apprentice",origin:"Market Town"};
   const cls = chosen.className || creatorDraft.className || "Votary";
   const classInfo = CLASS_DEFS[cls] || CLASS_DEFS.Votary;
+  const loadoutId = chosen.startingLoadout || creatorDraft.startingLoadout || startingLoadoutOptions(cls)[0]?.id;
   const starting = startingStatsForProfile(chosen);
   const startingFolkMods = folkModifiers(chosen.folk, chosen);
-  const startingEquipment = startingEquipmentLoadout(cls,classInfo.startingWeapon);
+  const startingEquipment = startingEquipmentLoadout(cls,null,loadoutId);
   const startingEquipmentBag = startingEquipmentBackpack(cls);
 
   S = {
@@ -2643,7 +2652,7 @@ function newDelver(profile){
     STR:starting.STR, CON:starting.CON, DEX:starting.DEX, INT:starting.INT, WIS:starting.WIS, CHA:starting.CHA,
     hpMax:0, hp:0, staminaMax:10, stamina:10,
     heavyCharge:0, strikeChain:0, defenceChain:0,
-    loadout:cls === "Votary" ? "shield" : cls === "Rogue" ? "rogue" : "staff",
+    loadout:cls === "Votary" ? (equipmentItemIsShield(startingEquipment.leftHand)?"shield":"sword") : cls === "Rogue" ? "rogue" : "staff",
     depth:0, encounter:0, seenFoes:{}, seenTravelEvents:{}, travelEvent:null,
     exploreActivity:0, exploreElapsedMs:0, exploreDepth:0,
     skills:Object.fromEntries(SKILL_ORDER.map(id => [id,{rank:0,xp:0}])), skillPracticeSources:{},
@@ -2651,7 +2660,7 @@ function newDelver(profile){
     inventory:{
       campSupplies:STARTING_CAMP_SUPPLIES, bandages:1, meat:0, rope:0, water:1,
       rogueTools:cls==="Rogue"?1:0, lexicon:cls==="Wizard"?1:0, reliquary:cls==="Votary"?1:0,
-      misc:{}, weapons:[classInfo.startingWeapon], equipment:[...startingEquipmentBag], passageKey:null
+      misc:{}, weapons:[startingEquipment.rightHand].filter(Boolean), equipment:[...startingEquipmentBag], passageKey:null
     },
     equipment:{...startingEquipment},
     hollowStates:{}, activeHollow:null, boon:null, pendingBoonChoice:false, pendingRestAbilityChoice:false,
@@ -2688,6 +2697,7 @@ function newDelver(profile){
   travelLogAdd(`The way down waits. Choose how you want to move.`, "note");
   say(`<p class="note">The way down waits. Choose how you want to move.</p>`);
   travelLogAdd(`<b>${esc(classInfo.name)}</b> specialization: ${esc(classInfo.specialization)}.`,"good");
+  travelLogAdd(`Starting kit: <b>${esc(equipmentItemDef(startingEquipment.rightHand)?.name||"Unarmed")}</b>${startingEquipment.leftHand?` + <b>${esc(equipmentItemDef(startingEquipment.leftHand)?.name||"")}</b>`:""} · Salvage Top · Salvage Bottoms · Salvage Boots.`,"note");
   if(cls==="Rogue") travelLogAdd(`Rogue proficiency: <b>+5 Sleight of Hand</b>. Rogue Tools are packed and ready.`,"note");
   if(cls==="Wizard") travelLogAdd(`Wizard proficiency: <b>+5 Translation</b>. Your lexicon already identifies one word of the old tongue.`,"note");
 
@@ -2699,7 +2709,7 @@ function creatorComplete(){
   const basics = creatorDraft.name.trim().length > 0 && !!creatorDraft.folk && !!creatorDraft.trade && !!creatorDraft.origin;
   if(!basics) return false;
   if(creatorDraft.folk === "Human" && !humanTraitsComplete()) return false;
-  return !!creatorDraft.className;
+  return !!creatorDraft.className && !!creatorDraft.startingLoadout;
 }
 function renderCreatorChoices(id, options, key){
   const root = $(id);
@@ -2772,6 +2782,14 @@ function renderCreator(){
   }
   if($("creatorClass")) $("creatorClass").textContent=d?.name || "—";
 
+  const loadoutSection=$("startingLoadoutSection"), loadoutRoot=$("startingLoadoutChoices");
+  if(loadoutSection) loadoutSection.hidden=!d;
+  if(loadoutRoot){
+    const opts=d?startingLoadoutOptions(d.name):[];
+    if(d && creatorDraft.startingLoadout && !opts.some(opt=>opt.id===creatorDraft.startingLoadout)) creatorDraft.startingLoadout=null;
+    loadoutRoot.innerHTML=opts.map(opt=>`<button class="creator-choice class-card ${creatorDraft.startingLoadout===opt.id?"selected":""}" data-starting-loadout="${esc(opt.id)}"><b>${esc(opt.label)}</b><span>${esc(opt.sub)}</span></button>`).join("");
+  }
+
   const complete=creatorComplete();
   $("btnSignFate").disabled=!complete;
   if(!creatorDraft.name.trim() || !creatorDraft.folk || !creatorDraft.trade || !creatorDraft.origin){
@@ -2780,13 +2798,15 @@ function renderCreator(){
     $("creatorReadyText").textContent="choose Human +2, +1 and −2 attributes";
   } else if(!creatorDraft.className){
     $("creatorReadyText").textContent="choose a class";
+  } else if(!creatorDraft.startingLoadout){
+    $("creatorReadyText").textContent="choose a Salvage starting kit";
   } else {
     $("creatorReadyText").textContent=`${creatorDraft.className} · ${creatorDraft.folk} · ${creatorDraft.trade}`;
   }
 }
 function openCreator({keepChoices=true}={}){
   pauseBoonClock?.();
-  if(!keepChoices) creatorDraft = {name:"",folk:null,trade:null,origin:null,humanPlus2:null,humanPlus1:null,humanMinus2:null};
+  if(!keepChoices) creatorDraft = {name:"",folk:null,trade:null,origin:null,className:null,startingLoadout:null,humanPlus2:null,humanPlus1:null,humanMinus2:null};
   else creatorDraft.name = "";
   document.querySelectorAll(".dead").forEach(n => n.remove());
   $("creator").hidden = false;
@@ -2797,7 +2817,7 @@ function signFate(){
   if(!creatorComplete()) return;
   const profile={
     name:creatorDraft.name.trim(), folk:creatorDraft.folk, trade:creatorDraft.trade, origin:creatorDraft.origin,
-    className:creatorDraft.className,
+    className:creatorDraft.className, startingLoadout:creatorDraft.startingLoadout,
     humanPlus2:creatorDraft.humanPlus2, humanPlus1:creatorDraft.humanPlus1, humanMinus2:creatorDraft.humanMinus2
   };
   newDelver(profile);
@@ -3363,11 +3383,9 @@ function ensureEquipmentState(){
   for(const id of legacyWeapons){
     if(id!==S.equipment.rightHand && !S.inventory.equipment.includes(id)) S.inventory.equipment.push(id);
   }
-  // v0.084.1 palette test: expose one equal-iLv two-handed greatsword for every
-  // rarity in existing and new chronicles. These are test fixtures, not drops.
-  for(const id of RARITY_TEST_WEAPONS){
-    if(id!==S.equipment.rightHand && !S.inventory.equipment.includes(id)) S.inventory.equipment.push(id);
-  }
+  // v0.084.17: palette-test fixtures are no longer part of live chronicles.
+  S.inventory.equipment=S.inventory.equipment.filter(id=>!RARITY_TEST_WEAPONS.includes(id));
+  if(RARITY_TEST_WEAPONS.includes(S.equipment.rightHand)) S.equipment.rightHand=null;
   const main=S.equipment.rightHand;
   S.equippedWeapon=(main && GEAR_ITEMS[main])?main:null;
 }
@@ -4699,6 +4717,13 @@ function finishKill(out){
     const trophy=`Prototype Stratum ${bossStratum+1} Trophy`;
     addMisc(trophy,1);
     S._lootFoundCurrent.push(trophy);
+    if(bossStratum===0){
+      const bossGear=stratumBossEquipmentReward(), bossDef=equipmentItemDef(bossGear);
+      if(bossDef && !ownsEquipmentItem(bossGear)){
+        addEquipmentToBag(bossGear);
+        S._lootFoundCurrent.push(`${bossDef.name} · ${bossDef.rarity} · iLv ${bossDef.itemLevel}`);
+      }
+    }
     travelLogAdd(`The boundary opens. You cross into <b>${esc(stratumName(bossStratum+1))}</b>.`,"beat");
   }
 
@@ -5870,31 +5895,54 @@ const CLASS_DEFS = {
   Votary:{
     name:"Votary", short:"Martial faith", flavor:"A defensive martial calling built around commitment, recovery and Radiant force.",
     abilities:["layonhands","holdfast","smite","withdraw"], proficiencies:{},
-    specialization:"Votive Reliquary", startingWeapon:"worn_longsword"
+    specialization:"Votive Reliquary", startingWeapon:"salvage_longsword"
   },
   Rogue:{
     name:"Rogue", short:"DEX · traps · locks", flavor:"A finesse delver trained to manipulate mechanisms and survive bad positions.",
     abilities:["feint","slip","dirtytrick","withdraw"], proficiencies:{sleight:5},
-    specialization:"Rogue Tools", startingWeapon:"worn_shortsword"
+    specialization:"Rogue Tools", startingWeapon:"salvage_dagger"
   },
   Wizard:{
     name:"Wizard", short:"INT · arcane · language", flavor:"A scholar of hostile places, using Arcane force and practiced translation.",
     abilities:["arcbolt","ward","mend","withdraw"], proficiencies:{translation:5},
-    specialization:"Scholar's Lexicon", startingWeapon:"worn_wand"
+    specialization:"Scholar's Lexicon", startingWeapon:"salvage_wand"
   }
 };
 const CLASS_ORDER = ["Votary","Rogue","Wizard"];
 
 const GEAR_ITEMS = {
+
+  salvage_longsword:{name:"Salvage Longsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:75,rarity:"Salvage",family:"sword",hands:1,desc:"A nicked starter blade worth exactly what the Guild paid for it."},
+  salvage_dagger:{name:"Salvage Dagger",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:75,rarity:"Salvage",family:"dagger",hands:1,desc:"A battered finesse blade with just enough edge left to descend."},
+  salvage_wand:{name:"Salvage Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:75,rarity:"Salvage",family:"wand",hands:1,desc:"A cracked focus that still answers a practiced hand."},
+  salvage_greatsword:{name:"Salvage Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:75,rarity:"Salvage",family:"greatsword",hands:2,greatWeapon:true,desc:"A two-handed starter blade, heavy and badly kept."},
+  salvage_shortbow:{name:"Salvage Shortbow",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:75,rarity:"Salvage",family:"bow",hands:2,desc:"A shortbow with a patched grip and serviceable string."},
+  salvage_staff:{name:"Salvage Wooden Staff",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:75,rarity:"Salvage",family:"staff",hands:2,desc:"A scarred two-handed staff used as both focus and weapon."},
   worn_longsword:{name:"Worn Longsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Common",family:"sword",hands:1,desc:"Reliable Guild-issue steel."},
-  tempered_longsword:{name:"Tempered Longsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:108,rarity:"Uncommon",family:"sword",hands:1,desc:"A better-balanced STR weapon."},
+  tempered_longsword:{name:"Tempered Longsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:205,rarity:"Uncommon",family:"sword",hands:1,desc:"A mid-depth STR weapon balanced for the Warren."},
   worn_shortsword:{name:"Worn Shortsword",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:100,rarity:"Common",family:"shortsword",hands:1,desc:"A light finesse weapon using DEX."},
-  balanced_dagger:{name:"Balanced Dagger",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:108,rarity:"Uncommon",family:"dagger",hands:1,desc:"A precise finesse weapon using DEX."},
+  balanced_dagger:{name:"Balanced Dagger",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:205,rarity:"Uncommon",family:"dagger",hands:1,desc:"A mid-depth finesse weapon using DEX."},
   worn_wand:{name:"Worn Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:100,rarity:"Common",family:"wand",hands:1,desc:"An arcane focus; basic attacks use INT."},
-  etched_wand:{name:"Etched Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:108,rarity:"Uncommon",family:"wand",hands:1,desc:"A stronger arcane focus using INT."},
+  etched_wand:{name:"Etched Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:205,rarity:"Uncommon",family:"wand",hands:1,desc:"A mid-depth arcane focus using INT."},
   handaxe:{name:"Salvaged Hand-axe",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:102,rarity:"Common",family:"axe",hands:1,desc:"An off-class STR weapon."},
   hunting_bow:{name:"Hunting Bow",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:100,rarity:"Common",family:"bow",hands:2,desc:"A two-handed ranged DEX weapon."},
-  worn_greatsword:{name:"Worn Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:108,rarity:"Uncommon",family:"greatsword",hands:2,greatWeapon:true,desc:"A Great Weapon. It occupies both hands while equipped."},
+  worn_greatsword:{name:"Worn Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Common",family:"greatsword",hands:2,greatWeapon:true,desc:"A Great Weapon. It occupies both hands while equipped."},
+  worn_staff:{name:"Worn Wooden Staff",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:100,rarity:"Common",family:"staff",hands:2,desc:"A two-handed arcane staff using INT."},
+  recurved_bow:{name:"Recurved Bow",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:205,rarity:"Uncommon",family:"bow",hands:2,desc:"A mid-depth two-handed DEX weapon."},
+  ash_staff:{name:"Ash Staff",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:205,rarity:"Uncommon",family:"staff",hands:2,desc:"A mid-depth two-handed INT focus."},
+  iron_greatsword:{name:"Iron Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:205,rarity:"Uncommon",family:"greatsword",hands:2,greatWeapon:true,desc:"A mid-depth Great Weapon that occupies both hands."},
+  guildsteel_longsword:{name:"Guildsteel Longsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:295,rarity:"Rare",family:"sword",hands:1,desc:"A rare deep-Warren STR weapon."},
+  needle_dagger:{name:"Needle Dagger",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:295,rarity:"Rare",family:"dagger",hands:1,desc:"A rare deep-Warren DEX weapon."},
+  runed_wand:{name:"Runed Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:295,rarity:"Rare",family:"wand",hands:1,desc:"A rare deep-Warren INT focus."},
+  war_bow:{name:"Warren War Bow",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:295,rarity:"Rare",family:"bow",hands:2,desc:"A rare two-handed DEX weapon from the deepest Warren galleries."},
+  ironwood_staff:{name:"Ironwood Staff",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:295,rarity:"Rare",family:"staff",hands:2,desc:"A rare two-handed INT focus hardened by the deep."},
+  deep_greatsword:{name:"Deep-forged Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:295,rarity:"Rare",family:"greatsword",hands:2,greatWeapon:true,desc:"A rare Great Weapon from the deep Warren."},
+  warren_epic_longsword:{name:"Warren-Bane Longsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:385,rarity:"Epic",family:"sword",hands:1,desc:"A stratum-boss reward stamped at the 500-fathom boundary."},
+  warren_epic_greatsword:{name:"Warren-Bane Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:385,rarity:"Epic",family:"greatsword",hands:2,greatWeapon:true,desc:"A stratum-boss reward stamped at the 500-fathom boundary."},
+  warren_epic_dagger:{name:"Warren-Bane Dagger",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:385,rarity:"Epic",family:"dagger",hands:1,desc:"A stratum-boss reward stamped at the 500-fathom boundary."},
+  warren_epic_bow:{name:"Warren-Bane Bow",slot:"rightHand",slots:["rightHand"],stat:"DEX",itemLevel:385,rarity:"Epic",family:"bow",hands:2,desc:"A stratum-boss reward stamped at the 500-fathom boundary."},
+  warren_epic_wand:{name:"Warren-Bane Wand",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:385,rarity:"Epic",family:"wand",hands:1,desc:"A stratum-boss reward stamped at the 500-fathom boundary."},
+  warren_epic_staff:{name:"Warren-Bane Staff",slot:"rightHand",slots:["rightHand"],stat:"INT",itemLevel:385,rarity:"Epic",family:"staff",hands:2,desc:"A stratum-boss reward stamped at the 500-fathom boundary."},
   rarity_test_salvage:{name:"Salvage Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Salvage",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · equal iLv with every rarity test greatsword."},
   rarity_test_poor:{name:"Poor Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Poor",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · equal iLv with every rarity test greatsword."},
   rarity_test_common:{name:"Common Test Greatsword",slot:"rightHand",slots:["rightHand"],stat:"STR",itemLevel:100,rarity:"Common",family:"greatsword",hands:2,greatWeapon:true,desc:"Palette test item · equal iLv with every rarity test greatsword."},
@@ -5916,18 +5964,34 @@ const RARITY_TEST_WEAPONS = Object.freeze([
 
 const EQUIPMENT_ITEMS = {
   ...GEAR_ITEMS,
-  worn_buckler:{name:"Worn Buckler",slot:"leftHand",slots:["leftHand"],itemLevel:100,rarity:"Common",family:"shield",armor:10,stats:["Armor +10","Guard support"],desc:"A compact shield kept close to the body."},
+  salvage_buckler:{name:"Salvage Buckler",slot:"leftHand",slots:["leftHand"],itemLevel:75,rarity:"Salvage",family:"shield",armor:10,stats:["Armor +10","Guard support"],desc:"A dented starter shield with a sound strap."},
+  salvage_top:{name:"Salvage Top",slot:"top",slots:["top"],itemLevel:75,rarity:"Salvage",armor:10,stats:["Armor +10"],desc:"Patched layers and scavenged plates. Barely enough protection to sign the register."},
+  salvage_bottoms:{name:"Salvage Bottoms",slot:"bottoms",slots:["bottoms"],itemLevel:75,rarity:"Salvage",armor:8,stats:["Armor +8"],desc:"Repaired trousers reinforced at the knees and thighs."},
+  salvage_boots:{name:"Salvage Boots",slot:"boots",slots:["boots"],itemLevel:75,rarity:"Salvage",armor:6,stats:["Armor +6"],desc:"Mismatched boots with enough sole left for the first descent."},
+  reinforced_buckler:{name:"Reinforced Buckler",slot:"leftHand",slots:["leftHand"],itemLevel:205,rarity:"Uncommon",family:"shield",armor:27,stats:["Armor +27","Guard support"],desc:"A mid-depth shield reinforced with Warren iron."},
+  ringmail_jack:{name:"Ringmail Jack",slot:"top",slots:["top"],itemLevel:205,rarity:"Uncommon",armor:27,stats:["Armor +27"],desc:"A mid-depth defensive top of patched ringmail."},
+  scaled_trousers:{name:"Scaled Trousers",slot:"bottoms",slots:["bottoms"],itemLevel:205,rarity:"Uncommon",armor:21,stats:["Armor +21"],desc:"Layered scales sewn over the legs for deeper work."},
+  mail_coif:{name:"Mail Coif",slot:"hat",slots:["hat"],itemLevel:205,rarity:"Uncommon",armor:16,stats:["Armor +16"],desc:"A practical mid-depth coif."},
+  riveted_gloves:{name:"Riveted Gloves",slot:"gloves",slots:["gloves"],itemLevel:205,rarity:"Uncommon",armor:16,stats:["Armor +16"],desc:"Riveted protection without the weight of full plate."},
+  ironshod_boots:{name:"Ironshod Boots",slot:"boots",slots:["boots"],itemLevel:205,rarity:"Uncommon",armor:16,stats:["Armor +16"],desc:"Mid-depth boots plated where the stone bites hardest."},
+  tower_buckler:{name:"Deep Tower Buckler",slot:"leftHand",slots:["leftHand"],itemLevel:295,rarity:"Rare",family:"shield",armor:38,stats:["Armor +38","Guard support"],desc:"A rare deep-Warren shield that carries nearly a full hand-slot of protection."},
+  brigandine_jack:{name:"Deep Brigandine",slot:"top",slots:["top"],itemLevel:295,rarity:"Rare",armor:38,stats:["Armor +38"],desc:"Rare deep-Warren body protection."},
+  plated_bottoms:{name:"Plated Bottoms",slot:"bottoms",slots:["bottoms"],itemLevel:295,rarity:"Rare",armor:31,stats:["Armor +31"],desc:"Rare leg protection built for the last Warren galleries."},
+  deep_sallet:{name:"Deep Sallet",slot:"hat",slots:["hat"],itemLevel:295,rarity:"Rare",armor:23,stats:["Armor +23"],desc:"A rare helmet from the deep Warren."},
+  plated_gloves:{name:"Plated Gloves",slot:"gloves",slots:["gloves"],itemLevel:295,rarity:"Rare",armor:23,stats:["Armor +23"],desc:"Rare articulated hand protection."},
+  deep_boots:{name:"Deep-forged Boots",slot:"boots",slots:["boots"],itemLevel:295,rarity:"Rare",armor:23,stats:["Armor +23"],desc:"Rare boots made to survive the lower Warren."},
+  worn_buckler:{name:"Worn Buckler",slot:"leftHand",slots:["leftHand"],itemLevel:100,rarity:"Common",family:"shield",armor:13,stats:["Armor +13","Guard support"],desc:"A compact shield kept close to the body."},
   parrying_knife:{name:"Parrying Knife",slot:"leftHand",slots:["leftHand"],itemLevel:100,rarity:"Common",stats:["Finesse offhand","Parry support"],desc:"A narrow offhand blade built to catch and redirect steel."},
   chalkbound_grimoire:{name:"Chalkbound Grimoire",slot:"leftHand",slots:["leftHand"],itemLevel:100,rarity:"Common",stats:["Arcane focus","Translation aid"],desc:"A compact field grimoire bound for hostile conditions."},
   hooded_lantern:{name:"Hooded Lantern",slot:"light",slots:["light"],itemLevel:100,rarity:"Common",stats:["Steady light","Hands remain free"],desc:"A shuttered lantern suited to long descents and controlled illumination."},
-  leather_coif:{name:"Leather Coif",slot:"hat",slots:["hat"],itemLevel:100,rarity:"Common",armor:3,stats:["Armor +3","Perception +1"],desc:"Simple head protection that leaves hearing mostly unobstructed."},
+  leather_coif:{name:"Leather Coif",slot:"hat",slots:["hat"],itemLevel:100,rarity:"Common",armor:8,stats:["Armor +8","Perception +1"],desc:"Simple head protection that leaves hearing mostly unobstructed."},
   grey_delvers_cape:{name:"Grey Delver's Cape",slot:"cape",slots:["cape"],itemLevel:100,rarity:"Common",stats:["Stealth +1","Cold ward +1"],desc:"A short cape cut not to snag easily on ladders or rough tunnels."},
   saints_pendant:{name:"Saint's Pendant",slot:"necklace",slots:["necklace"],itemLevel:118,rarity:"Rare",stats:["WIS +1","Resolve +2"],desc:"A small devotional token worn close enough to grip in the dark."},
-  padded_delvers_jack:{name:"Padded Delver's Jack",slot:"top",slots:["top"],itemLevel:108,rarity:"Uncommon",armor:6,stats:["Armor +6","CON +1"],desc:"Layered cloth reinforced for scraping stone, claws and hurried retreats."},
-  locksmith_gloves:{name:"Locksmith's Gloves",slot:"gloves",slots:["gloves"],itemLevel:118,rarity:"Rare",armor:3,stats:["Armor +3","DEX +1","Rogue Tools +2"],desc:"Thin protected fingertips preserve touch while giving the palm and knuckles some protection."},
-  reinforced_trousers:{name:"Reinforced Trousers",slot:"bottoms",slots:["bottoms"],itemLevel:100,rarity:"Common",armor:4,stats:["Armor +4","Athletics +1"],desc:"Heavy cloth with reinforced knees and seat for crawling through bad stone."},
+  padded_delvers_jack:{name:"Padded Delver's Jack",slot:"top",slots:["top"],itemLevel:108,rarity:"Uncommon",armor:14,stats:["Armor +14","CON +1"],desc:"Layered cloth reinforced for scraping stone, claws and hurried retreats."},
+  locksmith_gloves:{name:"Locksmith's Gloves",slot:"gloves",slots:["gloves"],itemLevel:118,rarity:"Rare",armor:9,stats:["Armor +9","DEX +1","Rogue Tools +2"],desc:"Thin protected fingertips preserve touch while giving the palm and knuckles some protection."},
+  reinforced_trousers:{name:"Reinforced Trousers",slot:"bottoms",slots:["bottoms"],itemLevel:100,rarity:"Common",armor:10,stats:["Armor +10","Athletics +1"],desc:"Heavy cloth with reinforced knees and seat for crawling through bad stone."},
   tool_belt:{name:"Tool Belt",slot:"belt",slots:["belt"],itemLevel:100,rarity:"Common",stats:["Utility +1","Quick access"],desc:"Loops, ties and little pockets for the practical objects a descent keeps demanding."},
-  hobnailed_boots:{name:"Hobnailed Boots",slot:"boots",slots:["boots"],itemLevel:108,rarity:"Uncommon",armor:3,stats:["Armor +3","Sure footing +2"],desc:"Hard soles and iron nails bite into timber, packed earth and old stairways."},
+  hobnailed_boots:{name:"Hobnailed Boots",slot:"boots",slots:["boots"],itemLevel:108,rarity:"Uncommon",armor:8,stats:["Armor +8","Sure footing +2"],desc:"Hard soles and iron nails bite into timber, packed earth and old stairways."},
   iron_signet:{name:"Iron Signet",slot:"ring",slots:["ring1","ring2","ring3","ring4"],itemLevel:108,rarity:"Uncommon",stats:["CON +1","Guard +1"],desc:"A heavy stamped ring whose original mark has been filed away."},
   bone_ring:{name:"Bone Ring",slot:"ring",slots:["ring1","ring2","ring3","ring4"],itemLevel:108,rarity:"Uncommon",stats:["WIS +1","Read +1"],desc:"Polished pale bone, warm even when the surrounding stone is cold."},
   copper_stud:{name:"Copper Stud",slot:"earring",slots:["earLeft","earRight"],itemLevel:100,rarity:"Common",stats:["Utility +1"],desc:"A plain copper stud made to survive rough travel."},
@@ -5958,15 +6022,33 @@ function armorMitigationFor(equipmentState=S?.equipment,depth=S?.depth||0){
 }
 function armorMitigation(){ return armorMitigationFor(); }
 function equipmentItemUsesBothHands(id){ const d=equipmentItemDef(id); return !!d && (d.hands===2 || d.greatWeapon===true); }
-function startingEquipmentLoadout(cls,weaponId){
-  const offhand={Votary:"worn_buckler",Rogue:"parrying_knife",Wizard:"chalkbound_grimoire"}[cls]||"worn_buckler";
+const STARTING_LOADOUTS = Object.freeze({
+  Votary:Object.freeze([
+    Object.freeze({id:"sword-shield",label:"Sword + Buckler",sub:"Salvage Longsword · Salvage Buckler",main:"salvage_longsword",off:"salvage_buckler"}),
+    Object.freeze({id:"greatsword",label:"Two-handed Greatsword",sub:"Salvage Greatsword · Off Hand occupied",main:"salvage_greatsword",off:null})
+  ]),
+  Rogue:Object.freeze([
+    Object.freeze({id:"dagger-shield",label:"Dagger + Buckler",sub:"Salvage Dagger · Salvage Buckler",main:"salvage_dagger",off:"salvage_buckler"}),
+    Object.freeze({id:"shortbow",label:"Two-handed Shortbow",sub:"Salvage Shortbow · dual-wield attacks are deferred",main:"salvage_shortbow",off:null})
+  ]),
+  Wizard:Object.freeze([
+    Object.freeze({id:"wand-shield",label:"Wand + Buckler",sub:"Salvage Wand · Salvage Buckler",main:"salvage_wand",off:"salvage_buckler"}),
+    Object.freeze({id:"staff",label:"Two-handed Wooden Staff",sub:"Salvage Wooden Staff · Off Hand occupied",main:"salvage_staff",off:null})
+  ])
+});
+function startingLoadoutOptions(cls){ return STARTING_LOADOUTS[cls]||STARTING_LOADOUTS.Votary; }
+function startingLoadoutDef(cls,id){ return startingLoadoutOptions(cls).find(opt=>opt.id===id)||startingLoadoutOptions(cls)[0]; }
+function startingEquipmentLoadout(cls,weaponId=null,loadoutId=null){
+  const choice=startingLoadoutDef(cls,loadoutId);
+  const main=weaponId&&GEAR_ITEMS[weaponId]?weaponId:choice.main;
+  const off=equipmentItemUsesBothHands(main)?null:choice.off;
   return {
-    rightHand:weaponId||"worn_longsword",leftHand:offhand,light:"hooded_lantern",hat:"leather_coif",cape:"grey_delvers_cape",
-    earLeft:null,necklace:"saints_pendant",earRight:null,top:"padded_delvers_jack",gloves:"locksmith_gloves",
-    bottoms:"reinforced_trousers",belt:"tool_belt",boots:"hobnailed_boots",ring1:"iron_signet",ring2:null,ring3:"bone_ring",ring4:null
+    rightHand:main,leftHand:off,light:null,hat:null,cape:null,
+    earLeft:null,necklace:null,earRight:null,top:"salvage_top",gloves:null,
+    bottoms:"salvage_bottoms",belt:null,boots:"salvage_boots",ring1:null,ring2:null,ring3:null,ring4:null
   };
 }
-function startingEquipmentBackpack(){ return ["worn_greatsword","plate_gauntlets","copper_stud",...RARITY_TEST_WEAPONS]; }
+function startingEquipmentBackpack(){ return []; }
 
 
 const DROP_HINTS = {
@@ -5978,6 +6060,68 @@ const DROP_HINTS = {
   oldhand:["keys","better weapons","unusual trinkets"],
   warren_boss:["stratum reward","better equipment","unusual trinkets"]
 };
+
+// Hand-authored Session 9C playtest pools. These deliberately stop short of a
+// procedural generator: each item is authored and budgeted, while depth only
+// selects which fixed pool an enemy may draw from.
+const PLAYTEST_EQUIPMENT_POOLS = Object.freeze({
+  cutter:Object.freeze({
+    low:["worn_longsword","worn_shortsword","worn_wand"],
+    mid:["tempered_longsword","balanced_dagger","etched_wand"],
+    deep:["guildsteel_longsword","needle_dagger","runed_wand"]
+  }),
+  scrounger:Object.freeze({
+    low:["leather_coif","plate_gauntlets","hobnailed_boots"],
+    mid:["mail_coif","riveted_gloves","ironshod_boots"],
+    deep:["deep_sallet","plated_gloves","deep_boots"]
+  }),
+  skitter:Object.freeze({
+    low:["leather_coif","reinforced_trousers","hobnailed_boots"],
+    mid:["mail_coif","scaled_trousers","ironshod_boots"],
+    deep:["deep_sallet","plated_bottoms","deep_boots"]
+  }),
+  shieldback:Object.freeze({
+    low:["worn_buckler","padded_delvers_jack","plate_gauntlets"],
+    mid:["reinforced_buckler","ringmail_jack","riveted_gloves"],
+    deep:["tower_buckler","brigandine_jack","plated_gloves"]
+  }),
+  mauler:Object.freeze({
+    low:["worn_greatsword","hunting_bow","worn_staff"],
+    mid:["iron_greatsword","recurved_bow","ash_staff"],
+    deep:["deep_greatsword","war_bow","ironwood_staff"]
+  }),
+  oldhand:Object.freeze({
+    low:["padded_delvers_jack","worn_greatsword","worn_shortsword","worn_wand"],
+    mid:["ringmail_jack","iron_greatsword","balanced_dagger","etched_wand"],
+    deep:["brigandine_jack","deep_greatsword","needle_dagger","runed_wand","war_bow","ironwood_staff"]
+  })
+});
+function playtestEquipmentBand(depth=S?.depth||0){ return depth>=325?"deep":depth>=150?"mid":"low"; }
+function ownsEquipmentItem(id){
+  return !!id && (S?.inventory?.equipment?.includes(id) || Object.values(S?.equipment||{}).includes(id));
+}
+function maybeEquipmentLoot(f){
+  if(!S||!f||f.boss||f.mimic) return null;
+  const key=f.key||f.profile?.id;
+  const set=PLAYTEST_EQUIPMENT_POOLS[key]; if(!set) return null;
+  const chance=key==="oldhand"?.18:key==="shieldback"||key==="mauler"?.15:.12;
+  if(rnd()>=chance) return null;
+  const pool=(set[playtestEquipmentBand()]||[]).filter(id=>equipmentItemDef(id)&&!ownsEquipmentItem(id));
+  if(!pool.length) return null;
+  const id=pick(pool), def=equipmentItemDef(id);
+  addEquipmentToBag(id);
+  S._lootFoundCurrent.push(`${def.name} · ${def.rarity} · iLv ${def.itemLevel}`);
+  return id;
+}
+function stratumBossEquipmentReward(){
+  const def=equippedWeaponDef(), two=Number(def?.hands||1)===2;
+  const byClass={
+    Votary:two?"warren_epic_greatsword":"warren_epic_longsword",
+    Rogue:two?"warren_epic_bow":"warren_epic_dagger",
+    Wizard:two?"warren_epic_staff":"warren_epic_wand"
+  };
+  return byClass[S?.className]||"warren_epic_longsword";
+}
 
 const LANG_DICT = {Cor:"I", amina:"want", mi:"one", mattra:"meat", keth:"open", sava:"blood"};
 const ALTAR_SENTENCE = ["Cor","amina","mi","mattra"];
@@ -6272,6 +6416,7 @@ function maybeMonsterLoot(f){
   }
   if(rnd()<.035){S.inventory.campSupplies++;drops.push("Camp Supply");}
   if(drops.length) S._lootFoundCurrent.push(...drops);
+  maybeEquipmentLoot(f);
   return drops;
 }
 function maybeSideKey(f){
@@ -6996,7 +7141,7 @@ function deleteCharacterSlot(slot){
   if(!active){renderCharacterSlots();return true;}
   resetRuntimeForSlotChange();
   S=null;knowledge={};over=false;runSaveWritesBlocked=false;runSaveLoadIssue=null;
-  creatorDraft={name:"",folk:null,trade:null,origin:null,className:null,humanPlus2:null,humanPlus1:null,humanMinus2:null};
+  creatorDraft={name:"",folk:null,trade:null,origin:null,className:null,startingLoadout:null,humanPlus2:null,humanPlus1:null,humanMinus2:null};
   openCreator({keepChoices:true});
   return true;
 }
@@ -7018,7 +7163,7 @@ function switchCharacterSlot(slot){
   S=null;knowledge={};over=false;runSaveWritesBlocked=false;runSaveLoadIssue=null;
   const snapshot=loadRunSnapshot(slot);
   if(snapshot){restoreRun(snapshot);return true;}
-  creatorDraft={name:"",folk:null,trade:null,origin:null,className:null,humanPlus2:null,humanPlus1:null,humanMinus2:null};
+  creatorDraft={name:"",folk:null,trade:null,origin:null,className:null,startingLoadout:null,humanPlus2:null,humanPlus1:null,humanMinus2:null};
   openCreator({keepChoices:true});
   if(runSaveLoadIssue) showSaveLoadIssueScreen(runSaveLoadIssue);
   return true;
@@ -7442,7 +7587,7 @@ function restoreRun(snapshot){
     travelLogExpanded=!!snapshot.ui?.travelLogExpanded;
     normalizeRestoredRun();
     creatorDraft={
-      name:"",folk:S.folk||null,trade:S.trade||null,origin:S.origin||null,className:S.className||null,
+      name:"",folk:S.folk||null,trade:S.trade||null,origin:S.origin||null,className:S.className||null,startingLoadout:null,
       humanPlus2:S.folkChoices?.plus2||null,humanPlus1:S.folkChoices?.plus1||null,humanMinus2:S.folkChoices?.minus2||null
     };
 
@@ -7853,7 +7998,9 @@ $("creatorName").addEventListener("input", e => {
 });
 $("creator").addEventListener("click", e => {
   const cls = e.target.closest("[data-class-choice]");
-  if(cls){ creatorDraft.className = cls.dataset.classChoice; renderCreator(); return; }
+  if(cls){ creatorDraft.className = cls.dataset.classChoice; creatorDraft.startingLoadout=null; renderCreator(); return; }
+  const loadout = e.target.closest("[data-starting-loadout]");
+  if(loadout){ creatorDraft.startingLoadout=loadout.dataset.startingLoadout; renderCreator(); return; }
   const stat = e.target.closest(".creator-human-stat[data-human-trait]");
   if(stat && !stat.disabled){
     creatorDraft[stat.dataset.humanTrait] = stat.dataset.humanStat;

@@ -1,6 +1,6 @@
 # Fathom — Balance Reference
 
-**Build reference:** v0.084.0  
+**Build reference:** v0.084.17  
 **Session:** 9C — Item Power Foundation  
 
 This file records the agreed balance spine so later item work does not need to re-open the same architecture. Constants are tuning targets, not promises that playtesting can never change them.
@@ -182,14 +182,16 @@ Unfathomable
 | Uncommon | 0 | 20% | ×1.08 |
 | Rare | 0 | 10% | ×1.18 |
 | Epic | 250 | 5% | ×1.32 |
-| Wondrous | 500 | 4% | reserved |
-| Legendary | 1,000 | 3% | reserved |
-| Mythical | 2,000 | 2.5% | reserved |
-| Ancient | 3,000 | 2% | reserved |
-| Sunless | 4,000 | 1.75% | reserved |
-| Unfathomable | 5,000 | see below | reserved |
+| Wondrous | 500 | 4% | ×1.47 |
+| Legendary | 1,000 | 3% | ×1.63 |
+| Mythical | 2,000 | 2.5% | ×1.81 |
+| Ancient | 3,000 | 2% | ×2.00 |
+| Sunless | 4,000 | 1.75% | ×2.22 |
+| Unfathomable | 5,000 | see below | ×2.47 |
 
-The upper rarity names are intentionally reserved without invented budget multipliers until real deep-game loot is authored/tested. Their depth gates and rarity language are established now; their final mechanical premium is not.
+The upper ladder continues the existing rarity progression at roughly an 11% multiplicative step per tier. **Ancient is the clean ×2.00 Common anchor.** Unfathomable is the ceiling at ×2.47 Common; it does not gain numbered subtiers or any hidden post-generation multiplier.
+
+At full unlock depth and the 1.5% Unfathomable cap, the raw eligible-equipment-drop distribution averages roughly **×1.13 Common budget**. This does not mean equipped player Gear Level will average ×1.13: players keep the best item found for each slot rather than equipping an average drop.
 
 ### Unfathomable chance
 
@@ -209,6 +211,13 @@ chance = min(1.5%, 0.5% + floor((depth - 5000) / 1000) × 0.1%)
 
 There is no Unfathomable I / II / III / IV. Item Level is already the endless progression axis; the word **Unfathomable** remains the top rarity.
 
+
+### Equipped-player selection bias calibration
+
+The depth benchmark describes **generated-drop expectation**, not the exact Gear Level a real player will carry. Because a player keeps the best item seen for each slot, equipped gear should naturally sit above the raw-drop average over time.
+
+Do **not** correct this in advance. If playtesting shows that actual equipped Gear Level and Armor sit persistently above the intended depth benchmark, introduce a single calibration factor on the expected-equipment / expected-medium-Armor benchmark and tune it from observed runs. Start from `k = 1.0`; do not guess a higher value before real 500-fathom playtest data exists.
+
 ## 9. Comparison UI rule
 
 Do not label an item simply **BETTER** or **UPGRADE** when build preference is unknowable.
@@ -220,11 +229,24 @@ Do not label an item simply **BETTER** or **UPGRADE** when build preference is u
   - basic attack 11.5 → 19.0
 - Later, other consequences can be added when those properties become mechanical.
 
-## 10. Explicitly still deferred
+## 10. 500-fathom Session 9C playtest baseline
 
-- procedural affix generator;
+The first live equipment-progression test intentionally uses **hand-authored gear**, not the procedural generator.
+
+- New delvers start with **Salvage iLv 75** equipment: Top, Bottoms, Boots, plus a class-selected hand setup.
+- Votary: Salvage Longsword + Buckler, or two-handed Salvage Greatsword.
+- Rogue: Salvage Dagger + Buckler, or two-handed Salvage Shortbow. Dual-wield attacks remain deferred, so the second-dagger start waits for the real dual-wield rules.
+- Wizard: Salvage Wand + Buckler, or two-handed Salvage Wooden Staff.
+- Existing Bandage / Camp Supply / Meat / Water / Rope / Scroll Dust creature salvage remains live. **No healing potion is added for this test**, so Rest/Camp/ability recovery pressure remains observable.
+- Ordinary Warren enemies may drop authored Common / Uncommon / Rare equipment from low-, mid- and deep-Warren pools. This is a finite test catalogue, not procedural generation.
+- The first 500-fathom stratum boss grants one class-relevant **Epic iLv 385** weapon as a clear end-of-stratum reward.
+
+The purpose of this run is to observe real equipped Gear Level, Armor mitigation, weapon replacement frequency, resource pressure and whether the player naturally sits above the raw expected-drop benchmark.
+
+## 11. Explicitly still deferred
+
+- procedural affix generator (after hand-authored 500-fathom playtesting);
 - full procedural equipment catalogue;
-- final Wondrous+ budget multipliers;
 - generic attribute/check-bonus pricing;
 - real dual-wield attack rules;
 - detailed ranged/arcane weapon-family mechanics;
