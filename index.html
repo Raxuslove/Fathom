@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.086.0 — Session 9E Skill Foundation</title>
+<title>Lowfathom v0.086.1 — Session 9E Roll-High Skill Checks</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.086.0 Session 9E skill foundation + protected v0.075 Smite FX
+   LOWFATHOM — v0.086.1 Session 9E roll-high skill checks + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -120,6 +120,7 @@
    - v0.084.27: both delve visuals render a stable cave/world layer and move it with one camera transform; ticks and labels remain rigidly attached while the yellow delver marker stays anchored
    - v0.085.0: procedural equipment generation, live equipment attributes, 500+ Wondrous/Legendary access, Wizard INT counters, and collapsible combat history
    - v0.086.0: endless Elo-style Skill ratings, percentile uncertainty, logarithmic attribute aptitude, learning-value practice, passive Perception, enemy Awareness, and active Concealment
+   - v0.086.1: percentile Skill checks use intuitive roll-high targets (Need X+), result text shows target before roll, and duplicate check previews are removed
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9E replaces the finite d20 Skill modifier prototype with an endless rating resolver while preserving the equipment and combat spine from 9C–9D.
@@ -1743,7 +1744,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.086.0</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.086.1</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1773,7 +1774,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.086.0</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.086.1</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -2300,7 +2301,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.086.0";
+const BUILD_VERSION = "v0.086.1";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -2752,21 +2753,27 @@ function skillChanceData(id,challenge,situational=0){
   else label="Desperate";
   return {id,rating,challenge:cr,gap,normalizedGap:u,chance,autoSuccess,autoFail,label,situational:Number(situational)||0};
 }
+function percentileRollHighTarget(chance){
+  const pct=Math.max(1,Math.min(99,Math.round((Number(chance)||0)*100)));
+  return 101-pct;
+}
 function runSkillCheck(id, challenge, situational=0){
   const def=SKILL_DEFS[id], st=skillState(id), data=skillChanceData(id,challenge,situational);
   const threshold=Math.max(1,Math.min(99,Math.round(data.chance*100)));
+  const target=percentileRollHighTarget(data.chance);
   let roll=null,success=false,automatic=false;
   if(data.autoSuccess){success=true;automatic=true;}
   else if(data.autoFail){success=false;automatic=true;}
-  else {roll=ri(1,100);success=roll<=threshold;}
-  return {...data,id,def,rank:st?.rank||0,aptitude:skillAptitude(id),proficiency:proficiencyBonus(id),threshold,roll,success,automatic};
+  else {roll=ri(1,100);success=roll>=target;}
+  return {...data,id,def,rank:st?.rank||0,aptitude:skillAptitude(id),proficiency:proficiencyBonus(id),threshold,target,roll,success,automatic};
 }
 function skillCheckPreview(id,challenge,situational=0){
   const d=skillChanceData(id,challenge,situational);
   const pct=Math.round(d.chance*100);
-  if(d.autoSuccess) return `<strong class="check-bonus">Rating ${formatRating(d.rating)} · ${esc(d.label)} · automatic</strong>`;
-  if(d.autoFail) return `<strong class="check-bonus">Rating ${formatRating(d.rating)} · ${esc(d.label)} · &lt;1%</strong>`;
-  return `<strong class="check-bonus">Rating ${formatRating(d.rating)} · ${esc(d.label)} · ${pct}%</strong>`;
+  if(d.autoSuccess) return `<strong class="check-bonus">Automatic success · ${esc(d.label)}</strong>`;
+  if(d.autoFail) return `<strong class="check-bonus">Beyond you · automatic failure</strong>`;
+  const target=percentileRollHighTarget(d.chance);
+  return `<strong class="check-bonus">Need ${target}+ on d100 · ${esc(d.label)} · ${pct}%</strong>`;
 }
 function formatSkillCheck(result){
   const parts=[`Rank ${result.rank}`,`${result.def.stat} aptitude ${signed(formatRating(result.aptitude))}`];
@@ -2775,8 +2782,8 @@ function formatSkillCheck(result){
   const pct=Math.round(result.chance*100);
   const resolution=result.automatic
     ? `<b>${result.success?"automatic success":"automatic failure"}</b>`
-    : `d100 <b>${result.roll}</b> vs ${result.threshold}%`;
-  return `<b>${esc(result.def.name)}</b>: ${parts.join(" · ")} · effective Rating <b>${formatRating(result.rating)}</b> · <b>${esc(result.label)}</b>${result.automatic?"":` (${pct}%)`} · ${resolution} · <span class="${result.success?"good":"bad"}">${result.success?"success":"failure"}</span>`;
+    : `Need <b>${result.target}+</b> on d100 · rolled <b>${result.roll}</b>`;
+  return `<b>${esc(result.def.name)}</b>: ${resolution} · <span class="${result.success?"good":"bad"}">${result.success?"success":"failure"}</span>${result.automatic?"":` · ${esc(result.label)} (${pct}%)`}<br><span class="note">Rank ${result.rank} · ${result.def.stat} aptitude ${signed(formatRating(result.aptitude))}${result.proficiency?` · proficiency ${signed(result.proficiency)}`:""}${result.situational?` · circumstance ${signed(result.situational)}`:""} · effective Rating ${formatRating(result.rating)}</span>`;
 }
 function skillPracticeAmount(result){
   if(!result || result.automatic) return 0;
@@ -7099,7 +7106,10 @@ function annotateCheckChoice(action, skillId, challenge=authoredChallenge(12), s
   if(!b) return;
   const span=b.querySelector("span");
   if(!span) return;
-  span.innerHTML=`${skillCheckPreview(skillId,challenge,situational)} · ${span.innerHTML.replace(/<strong class="check-bonus">.*?<\/strong> · /,"")}`;
+  const detail=span.innerHTML
+    .replace(/<strong class="check-bonus">.*?<\/strong>\s*(?:·\s*)?/,"")
+    .trim();
+  span.innerHTML=`${skillCheckPreview(skillId,challenge,situational)}${detail?` · ${detail}`:""}`;
 }
 
 // Known Weakness gets one full decision-turn of prominence after the first Read,
