@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.088.7 — Percentile Result Fix</title>
+<title>Lowfathom v0.088.8 — Skill Resolver Null-Roll Fix</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.088.7 percentile result fix + true matte obsidian pass + protected v0.075 Smite FX
+   LOWFATHOM — v0.088.8 Skill resolver null-roll fix + protected v0.088.7 percentile pair + v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -131,6 +131,7 @@
    - v0.088.5: abandons the renderer-rewrite experiments, restores the proven Dice Box path, rolls a native d100 tens die + d10 ones die, and gives the pair a polished obsidian theme; active animated checks now use the physical percentile result
    - v0.088.6: fixes the accidental third die by using Dice Box's native d100 percentile pair alone, restores the forced 1–100 debug result control, and changes the Fathom theme from glossy to matte black
    - v0.088.7: reads Dice Box's native d100 as one logical combined result (while it renders two physical dice), normalizes 00+0 to Fathom 100, and suppresses specular highlights for a truer matte-black finish
+   - v0.088.8: fixes the Skill resolver treating its null roll override as a forced 1, restoring genuine hidden d100 rolls for passive checks and Dice Animation OFF while preserving physical percentile results when animation is on
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9E replaces the finite d20 Skill modifier prototype with an endless rating resolver while preserving the equipment and combat spine from 9C–9D.
@@ -2402,7 +2403,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.088.7";
+const BUILD_VERSION = "v0.088.8";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal"});
@@ -2867,7 +2868,10 @@ function runSkillCheck(id, challenge, situational=0, rollOverride=null){
   if(data.autoSuccess){success=true;automatic=true;}
   else if(data.autoFail){success=false;automatic=true;}
   else {
-    const supplied=Number(rollOverride);
+    // null means "no override". Number(null) is 0, so converting first would
+    // accidentally force every ordinary hidden roll to 1 after clamping.
+    const hasOverride=rollOverride!==null&&rollOverride!==undefined&&rollOverride!=="";
+    const supplied=hasOverride?Number(rollOverride):NaN;
     roll=Number.isFinite(supplied)?Math.max(1,Math.min(100,Math.round(supplied))):ri(1,100);
     success=roll>=target;
   }
@@ -2942,8 +2946,11 @@ async function runActiveSkillCheck(id,challenge,situational=0){
   if(data.autoSuccess||data.autoFail) return runSkillCheck(id,challenge,situational);
   const target=percentileRollHighTarget(data.chance);
   const physical=await rollFathomPercentile({name:SKILL_DEFS[id]?.name||"Skill check",target});
-  // If animation is disabled or 3D dice cannot load, preserve the normal d100 fallback.
-  return runSkillCheck(id,challenge,situational,physical);
+  // If animation is disabled or 3D dice cannot load, roll the same authoritative
+  // hidden d100 normally. Never pass null as an override: Number(null) is 0.
+  return physical==null
+    ? runSkillCheck(id,challenge,situational)
+    : runSkillCheck(id,challenge,situational,physical);
 }
 
 function skillPracticeAmount(result){
@@ -8927,7 +8934,7 @@ const ready=Promise.race([initAttempt,initTimeout]).then(()=>{
   window.fathomDiceBoxFailed=false;
   layer?.classList.remove("loading");
   if(status)status.textContent="Percentile dice ready";
-  console.info("Fathom percentile dice ready (v0.088.7 native d100 parser + matte obsidian theme)");
+  console.info("Fathom percentile dice ready (v0.088.8 Skill resolver null-roll fix + v0.088.7 native d100 parser + matte obsidian theme)");
   return diceBox;
 }).catch(err=>{
   window.fathomDiceBoxReady=false;
