@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.085.0 — Session 9D Procedural Equipment</title>
+<title>Lowfathom v0.086.0 — Session 9E Skill Foundation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.085.0 Session 9D procedural equipment + protected v0.075 Smite FX
+   LOWFATHOM — v0.086.0 Session 9E skill foundation + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -119,9 +119,10 @@
    - v0.084.26: large-view depth labels use persistent HTML overlays centered on their tick marks, avoiding SVG text re-rasterization jitter while the route scrolls
    - v0.084.27: both delve visuals render a stable cave/world layer and move it with one camera transform; ticks and labels remain rigidly attached while the yellow delver marker stays anchored
    - v0.085.0: procedural equipment generation, live equipment attributes, 500+ Wondrous/Legendary access, Wizard INT counters, and collapsible combat history
+   - v0.086.0: endless Elo-style Skill ratings, percentile uncertainty, logarithmic attribute aptitude, learning-value practice, passive Perception, enemy Awareness, and active Concealment
 
    Session 8 is complete. Session 9 returns to gameplay systems.
-   Session 9C makes weapon contribution and Armor real while keeping attributes/utility properties provisional until their own scaling curves are locked.
+   Session 9E replaces the finite d20 Skill modifier prototype with an endless rating resolver while preserving the equipment and combat spine from 9C–9D.
    ============================================================ */
 
 :root{
@@ -1742,7 +1743,7 @@ button{
       </section>
 
       <section class="creator-section">
-        <div class="creator-section-head"><b>Starting character</b><span>v0.085.0</span></div>
+        <div class="creator-section-head"><b>Starting character</b><span>v0.086.0</span></div>
         <div class="creator-identity">
           <div><em>Class</em><b id="creatorClass">—</b></div>
           <div><em>Starting level</em><b>Level 1</b></div>
@@ -1772,7 +1773,7 @@ button{
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.085.0</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.086.0</span></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -1925,7 +1926,7 @@ button{
       <section class="char-page" data-char-page="skills" hidden>
         <div class="char-section-head"><b>Skills</b><span>practice through use</span></div>
         <div class="char-field-skills" id="charSkills"></div>
-        <div class="char-field-note">Checks use d20 + (attribute − 10) + Skill rank + class proficiency + situational bonuses. Meaningful opportunities resolve after an attempt, so checks cannot be farmed indefinitely.</div>
+        <div class="char-field-note">Skill Rank is an endless expertise rating. Relevant attributes add logarithmic aptitude; class proficiency and circumstances add small rating shifts. Only uncertain contests roll percentile. Trivial challenges resolve automatically, and practice comes from genuine learning value rather than button use.</div>
       </section>
 
       <section class="char-page equipment-page" data-char-page="equipment" hidden>
@@ -2223,7 +2224,7 @@ const INTENTS = {
    exact preview truthful and gives Read a concrete mechanical payoff. */
 const FOES = [
   {
-    id:"cutter", name:"goblin cutter", unlock:0, hp:32, atk:7, xp:9, danger:0,
+    id:"cutter", name:"goblin cutter", unlock:0, hp:32, atk:7, xp:9, danger:0, awareness:-8,
     intents:{quick:55, heavy:15, dodge:10, guard:10, recover:10}, recoverAt:0.35,
     weakness:{
       id:"overcommit",
@@ -2232,7 +2233,7 @@ const FOES = [
     }
   },
   {
-    id:"scrounger", name:"goblin scrounger", unlock:4, hp:30, atk:6, xp:10, danger:0,
+    id:"scrounger", name:"goblin scrounger", unlock:4, hp:30, atk:6, xp:10, danger:0, awareness:0,
     intents:{quick:35, heavy:10, dodge:30, guard:25, recover:0},
     hurtIntents:{quick:15, heavy:5, dodge:25, guard:15, recover:40}, hurtAt:0.65,
     weakness:{
@@ -2242,7 +2243,7 @@ const FOES = [
     }
   },
   {
-    id:"skitter", name:"goblin skitter", unlock:8, hp:27, atk:6, xp:11, danger:1,
+    id:"skitter", name:"goblin skitter", unlock:8, hp:27, atk:6, xp:11, danger:1, awareness:10,
     intents:{quick:35, heavy:5, dodge:45, guard:5, recover:10}, recoverAt:0.30,
     weakness:{
       id:"frail_frame",
@@ -2251,7 +2252,7 @@ const FOES = [
     }
   },
   {
-    id:"shieldback", name:"goblin shieldback", unlock:14, hp:38, atk:6, xp:12, danger:1,
+    id:"shieldback", name:"goblin shieldback", unlock:14, hp:38, atk:6, xp:12, danger:1, awareness:-4,
     intents:{quick:25, heavy:10, dodge:5, guard:45, recover:15}, recoverAt:0.35,
     weakness:{
       id:"braced_wrong",
@@ -2260,7 +2261,7 @@ const FOES = [
     }
   },
   {
-    id:"mauler", name:"goblin mauler", unlock:22, hp:34, atk:8, xp:14, danger:1,
+    id:"mauler", name:"goblin mauler", unlock:22, hp:34, atk:8, xp:14, danger:1, awareness:-6,
     intents:{quick:30, heavy:50, dodge:5, guard:5, recover:10}, recoverAt:0.28,
     weakness:{
       id:"top_heavy",
@@ -2269,7 +2270,7 @@ const FOES = [
     }
   },
   {
-    id:"oldhand", name:"goblin oldhand", unlock:32, hp:42, atk:8, xp:16, danger:2,
+    id:"oldhand", name:"goblin oldhand", unlock:32, hp:42, atk:8, xp:16, danger:2, awareness:18,
     intents:{quick:30, heavy:20, dodge:20, guard:20, recover:10}, recoverAt:0.30,
     chargedIntents:{quick:20, heavy:5, dodge:50, guard:20, recover:5},
     weakness:{
@@ -2299,7 +2300,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.085.0";
+const BUILD_VERSION = "v0.086.0";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 1;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
@@ -2458,6 +2459,12 @@ const ABILITY_DEFS = {
     desc:"Leave the fight immediately with no Run HP cost. You gain no XP or kill rewards.",
     mechanics:"Ends the current encounter immediately. No XP, kill reward or Poultice trigger. Any prepared Heavy is abandoned.",
     scaling:"No stat scaling at Degree I."
+  },
+  concealment:{
+    id:"concealment", name:"Concealment", degree:"I", max:2, fieldOnly:true,
+    desc:"Enter a concealed travel state for 10 active minutes. Enemy Awareness tests your Stealth before combat begins.",
+    mechanics:"While concealed, creatures that fail to detect you can be ambushed or allowed to pass. Ambushing or being detected breaks Concealment. The timer advances only during active travel and freezes during combat or while held.",
+    scaling:"Uses your effective Stealth rating against each creature's authored Awareness rating."
   }
 };
 const ABILITY_ORDER = ["layonhands","holdfast","smite","withdraw"];
@@ -2491,15 +2498,33 @@ const STARTING_STATS = {STR:10,CON:10,DEX:10,INT:10,WIS:10,CHA:10};
    Lay On Hands are Abilities. Skills improve through meaningful use rather than
    being repeatedly clicked in a safe place. */
 const SKILL_DEFS = {
-  perception:{name:"Perception", stat:"WIS", desc:"Notice subtle signs, movement, sounds and things that do not belong."},
+  perception:{name:"Perception", stat:"WIS", desc:"Passively notice subtle signs, movement, sounds and things that do not belong."},
   investigation:{name:"Investigation", stat:"INT", desc:"Examine clues, mechanisms, objects and places to understand what is actually there."},
-  stealth:{name:"Stealth", stat:"DEX", desc:"Move, hide and position yourself without drawing notice."},
+  stealth:{name:"Stealth", stat:"DEX", desc:"Conceal yourself from creature Awareness and control how encounters begin."},
   acrobatics:{name:"Acrobatics", stat:"DEX", desc:"Balance, tumble, squeeze through and control precise movement."},
   athletics:{name:"Athletics", stat:"STR", desc:"Climb, force, haul, jump and overcome obstacles through physical power."},
   survival:{name:"Survival", stat:"WIS", desc:"Read tracks, terrain, signs of danger and the practical conditions of the delve."}
 };
 const SKILL_ORDER = ["perception","investigation","stealth","acrobatics","athletics","survival"];
+
+/* Session 9E: displayed Skill Rank is an Elo-like logarithmic expertise rating.
+   A fixed rating gap always means the same relative competence at Rank 10 or 1000.
+   Challenges are authored to the identity of the content; depth changes the mix of
+   content encountered, never a rusty lock's rating merely because it is deeper. */
+const SKILL_RATING_SPREAD = 30;              // +30 rating => about 91% success; -30 => about 9%
+const SKILL_APTITUDE_PER_DOUBLING = 8;       // every doubling of the governing attribute contributes +8 effective rating
+const SKILL_CHALLENGE_STEP = 8;              // compatibility map for the existing 8–14 authored check scale
+const SKILL_XP_PER_RANK = 100;               // flat forever; the logarithmic rating already encodes diminishing returns
+const SKILL_BASE_PRACTICE = 10;
+const SKILL_AGAINST_ODDS_U = -1.5;
+const SKILL_AUTO_SUCCESS_CHANCE = 0.99;
+const SKILL_AUTO_FAIL_CHANCE = 0.01;
+const CONCEALMENT_DURATION_MS = 10 * 60 * 1000;
+const UNIVERSAL_ABILITY_IDS = ["concealment"];
 const GLINT_EVENT_TRIGGER = 2.5;
+
+function authoredChallenge(base=12){ return (Number(base)-12) * SKILL_CHALLENGE_STEP; }
+function sideDiscoveryChallenge(){ return stratumIndex(S?.depth||0)===0 ? authoredChallenge(8) : authoredChallenge(12); }
 
 function stratumIndex(depth=S?.depth || 0){
   return Math.max(0, Math.floor(depth / FATHOMS_PER_STRATUM));
@@ -2554,7 +2579,7 @@ let combatVictoryTimer = null;
 let combatLogCollapsed = true;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 4;
+const SAVE_SCHEMA = 5;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -2692,46 +2717,101 @@ function humanTraitsComplete(draft=creatorDraft){
 }
 
 function skillState(id){ return S?.skills?.[id] || null; }
-function skillXpNeeded(rank){ return 3 + Math.max(0,rank) * 2; }
+function skillXpNeeded(){ return SKILL_XP_PER_RANK; }
 function signed(n){ return n >= 0 ? `+${n}` : `${n}`; }
-function skillCheckBonus(id){
-  const def=SKILL_DEFS[id], st=skillState(id);
-  if(!def||!st||!S) return 0;
-  return (effectiveStat(def.stat)-10)+st.rank+proficiencyBonus(id);
+function formatRating(n){
+  const v=Math.round((Number(n)||0)*10)/10;
+  return Number.isInteger(v)?String(v):v.toFixed(1);
 }
-function runSkillCheck(id, dc, situational=0){
-  const def=SKILL_DEFS[id], st=skillState(id);
-  const roll=ri(1,20), attrBonus=effectiveStat(def.stat)-10, rankBonus=st.rank, prof=proficiencyBonus(id);
-  const total=roll+attrBonus+rankBonus+prof+situational;
-  return {id,def,dc,roll,attrBonus,rankBonus,proficiency:prof,situational,total,success:total>=dc};
+function skillAptitude(id){
+  const def=SKILL_DEFS[id];
+  if(!def||!S) return 0;
+  const attr=Math.max(1,effectiveStat(def.stat));
+  return SKILL_APTITUDE_PER_DOUBLING * Math.log2(attr/10);
+}
+function skillRating(id,situational=0){
+  const st=skillState(id);
+  if(!st||!S) return 0;
+  return st.rank + skillAptitude(id) + proficiencyBonus(id) + (Number(situational)||0);
+}
+function skillCheckBonus(id){ return Math.round(skillRating(id)); }
+function skillChanceData(id,challenge,situational=0){
+  const rating=skillRating(id,situational), cr=Number(challenge)||0;
+  const gap=rating-cr, u=gap/SKILL_RATING_SPREAD;
+  const chance=1/(1+Math.pow(10,-u));
+  const autoSuccess=chance>=SKILL_AUTO_SUCCESS_CHANCE;
+  const autoFail=chance<SKILL_AUTO_FAIL_CHANCE;
+  let label="Even";
+  if(autoSuccess) label="Trivial";
+  else if(autoFail) label="Beyond you";
+  else if(chance>=.75) label="Favoured";
+  else if(chance>=.55) label="Slight edge";
+  else if(chance>.45) label="Even";
+  else if(chance>=.20) label="Difficult";
+  else if(chance>=.05) label="Very difficult";
+  else label="Desperate";
+  return {id,rating,challenge:cr,gap,normalizedGap:u,chance,autoSuccess,autoFail,label,situational:Number(situational)||0};
+}
+function runSkillCheck(id, challenge, situational=0){
+  const def=SKILL_DEFS[id], st=skillState(id), data=skillChanceData(id,challenge,situational);
+  const threshold=Math.max(1,Math.min(99,Math.round(data.chance*100)));
+  let roll=null,success=false,automatic=false;
+  if(data.autoSuccess){success=true;automatic=true;}
+  else if(data.autoFail){success=false;automatic=true;}
+  else {roll=ri(1,100);success=roll<=threshold;}
+  return {...data,id,def,rank:st?.rank||0,aptitude:skillAptitude(id),proficiency:proficiencyBonus(id),threshold,roll,success,automatic};
+}
+function skillCheckPreview(id,challenge,situational=0){
+  const d=skillChanceData(id,challenge,situational);
+  const pct=Math.round(d.chance*100);
+  if(d.autoSuccess) return `<strong class="check-bonus">Rating ${formatRating(d.rating)} · ${esc(d.label)} · automatic</strong>`;
+  if(d.autoFail) return `<strong class="check-bonus">Rating ${formatRating(d.rating)} · ${esc(d.label)} · &lt;1%</strong>`;
+  return `<strong class="check-bonus">Rating ${formatRating(d.rating)} · ${esc(d.label)} · ${pct}%</strong>`;
 }
 function formatSkillCheck(result){
-  const parts=[`d20 ${result.roll}`,`${result.def.stat} ${signed(result.attrBonus)}`,`${result.def.name} Rank ${result.rankBonus}`];
-  if(result.proficiency) parts.push(`class proficiency ${signed(result.proficiency)}`);
+  const parts=[`Rank ${result.rank}`,`${result.def.stat} aptitude ${signed(formatRating(result.aptitude))}`];
+  if(result.proficiency) parts.push(`proficiency ${signed(result.proficiency)}`);
   if(result.situational) parts.push(`circumstance ${signed(result.situational)}`);
-  return `<b>${esc(result.def.name)}</b>: ${parts.join(" · ")} = <b>${result.total}</b> vs DC ${result.dc} · <span class="${result.success?"good":"bad"}">${result.success?"success":"failure"}</span>`;
+  const pct=Math.round(result.chance*100);
+  const resolution=result.automatic
+    ? `<b>${result.success?"automatic success":"automatic failure"}</b>`
+    : `d100 <b>${result.roll}</b> vs ${result.threshold}%`;
+  return `<b>${esc(result.def.name)}</b>: ${parts.join(" · ")} · effective Rating <b>${formatRating(result.rating)}</b> · <b>${esc(result.label)}</b>${result.automatic?"":` (${pct}%)`} · ${resolution} · <span class="${result.success?"good":"bad"}">${result.success?"success":"failure"}</span>`;
 }
-function awardSkillPractice(id, source, amount=1){
+function skillPracticeAmount(result){
+  if(!result || result.automatic) return 0;
+  const u=result.normalizedGap;
+  if(result.success){
+    let amount=SKILL_BASE_PRACTICE*(1+Math.min(2.5,Math.max(0,-u)));
+    if(u<=SKILL_AGAINST_ODDS_U) amount+=SKILL_BASE_PRACTICE;
+    return Math.max(1,Math.round(amount));
+  }
+  // Failure can teach, but the learning value fades toward hopeless or trivial attempts.
+  const relevance=clamp(1-Math.abs(u)/2.5,0,1);
+  return Math.max(0,Math.round(SKILL_BASE_PRACTICE*0.4*relevance));
+}
+function awardSkillPractice(id, source, result=null){
   if(!S?.skills?.[id]) return {awarded:false,levelled:false};
   if(!S.skillPracticeSources[source]) S.skillPracticeSources[source]={};
   if(S.skillPracticeSources[source][id]) return {awarded:false,levelled:false};
   S.skillPracticeSources[source][id]=true;
+  const amount=typeof result==="number"?Math.max(0,Math.round(result)):skillPracticeAmount(result);
   const st=S.skills[id], beforeRank=st.rank;
-  st.xp+=Math.max(1,amount);
+  if(amount>0) st.xp+=amount;
   while(st.xp>=skillXpNeeded(st.rank)){
     st.xp-=skillXpNeeded(st.rank);
     st.rank++;
   }
   const levelled=st.rank>beforeRank;
   if(levelled) markSkillRankNotice(id);
-  return {awarded:true,amount:Math.max(1,amount),levelled,rank:st.rank,xp:st.xp,next:skillXpNeeded(st.rank)};
+  return {awarded:amount>0,amount,levelled,againstOdds:!!(result?.success && !result?.automatic && result.normalizedGap<=SKILL_AGAINST_ODDS_U),rank:st.rank,xp:st.xp,next:skillXpNeeded(st.rank)};
 }
 function practiceText(id, practice){
   if(!practice?.awarded) return "";
-  const name=SKILL_DEFS[id].name;
+  const name=SKILL_DEFS[id].name, odds=practice.againstOdds?`<b>Against the Odds.</b> `:"";
   return practice.levelled
-    ? `<br><span class="good">${esc(name)} increased to Rank ${practice.rank}.</span>`
-    : `<br><span class="good">${esc(name)} +${practice.amount||1} XP · ${practice.xp}/${practice.next}</span>`;
+    ? `<br><span class="good">${odds}${esc(name)} +${practice.amount} XP · increased to Rank ${practice.rank}.</span>`
+    : `<br><span class="good">${odds}${esc(name)} +${practice.amount} XP · ${practice.xp}/${practice.next}</span>`;
 }
 
 function newDelver(profile){
@@ -2783,14 +2863,14 @@ function newDelver(profile){
     hollowStates:{}, activeHollow:null, boon:null, pendingBoonChoice:false, pendingRestAbilityChoice:false,
     abilityQuickUsed:false, className:classInfo.name, proficiencies:{...classInfo.proficiencies},
     specialization:classInfo.specialization, equippedWeapon:startingEquipment.rightHand,
-    abilities:Object.fromEntries(classInfo.abilities.map(id=>[id,{cur:ABILITY_DEFS[id].max,max:ABILITY_DEFS[id].max,degree:ABILITY_DEFS[id].degree}])),
+    abilities:Object.fromEntries([...new Set([...classInfo.abilities,...UNIVERSAL_ABILITY_IDS])].map(id=>[id,{cur:ABILITY_DEFS[id].max,max:ABILITY_DEFS[id].max,degree:ABILITY_DEFS[id].degree}])),
     languageKnown:cls==="Wizard"?["Cor"]:[],
     sideArea:null, sideDiscoveryStratum:0, sideDiscoveryAt:ri(15,30), sideDiscoveryAttempted:false,
     sideAreaResolved:false, sideAreaHistory:[],
     curse:null, bleeding:false, bleedTravel:0, bossDefeated:{}, packMode:null,
     runAttemptStratum:0, runAttempts:0,
     descentXpMaxDepth:0, descentXpPending:0,
-    lootHistory:[], pendingLoot:null, combatLog:[],
+    lootHistory:[], pendingLoot:null, combatLog:[], concealment:null, stealthOpportunitySeq:0,
     turn:1, foe:null
   };
 
@@ -2816,8 +2896,8 @@ function newDelver(profile){
   say(`<p class="note">The way down waits. Choose how you want to move.</p>`);
   travelLogAdd(`<b>${esc(classInfo.name)}</b> specialization: ${esc(classInfo.specialization)}.`,"good");
   travelLogAdd(`Starting kit: <b>${esc(equipmentItemDef(startingEquipment.rightHand)?.name||"Unarmed")}</b>${startingEquipment.leftHand?` + <b>${esc(equipmentItemDef(startingEquipment.leftHand)?.name||"")}</b>`:""} · Salvage Top · Salvage Bottoms · Salvage Boots.`,"note");
-  if(cls==="Rogue") travelLogAdd(`Rogue proficiency: <b>+5 Sleight of Hand</b>. Rogue Tools are packed and ready.`,"note");
-  if(cls==="Wizard") travelLogAdd(`Wizard proficiency: <b>+5 Translation</b>. Your lexicon already identifies one word of the old tongue.`,"note");
+  if(cls==="Rogue") travelLogAdd(`Rogue proficiency: <b>+5 Sleight of Hand Rating</b>. Rogue Tools are packed and ready.`,"note");
+  if(cls==="Wizard") travelLogAdd(`Wizard proficiency: <b>+5 Translation Rating</b>. Your lexicon already identifies one word of the old tongue.`,"note");
 
   renderTravelLogCollapse();
   render();
@@ -3130,9 +3210,9 @@ function abilityDetailHtml(def){
 function renderAbilitySheet(){
   const list=$("abilitiesList"); if(!list||!S) return;
   const head=document.querySelector("#sheet .sheet-head h2"); if(head) head.textContent=`${S.className} Abilities`;
-  $("sheetSlots").textContent=`${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
-  $("abilitySummary").textContent=`${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
-  list.innerHTML=classAbilityOrder().map(id=>{
+  $("sheetSlots").textContent=`${combatAbilityUsesReady()} / ${combatAbilityUsesMax()} uses ready`;
+  $("abilitySummary").textContent=`${combatAbilityUsesReady()} / ${combatAbilityUsesMax()} uses ready`;
+  list.innerHTML=combatAbilityOrder().map(id=>{
     const def=ABILITY_DEFS[id],sk=abilityState(id),unusable=classAbilityDisabled(id),open=combatExpandedAbility===id;
     let meta=`${sk.cur}/${sk.max} uses ready`;
     if(["layonhands","mend"].includes(id)&&S.hp>=S.hpMax) meta+=` · full HP`;
@@ -3861,23 +3941,25 @@ function renderCharacterSheet(){
   if($("charSpecialization")) $("charSpecialization").textContent=S.specialization||"—";
 
   $("charSkills").innerHTML=SKILL_ORDER.map(id=>{
-    const def=SKILL_DEFS[id],st=skillState(id),check=skillCheckBonus(id),prof=proficiencyBonus(id),rankNotice=skillHasRankNotice(id);
-    return `<div class="char-field-skill${rankNotice?" has-rank-notice":""}"><div><b>${esc(def.name)}${rankNotice?`<span class="skill-rank-new">New rank</span>`:""}</b><p><strong>${def.stat}</strong> · ${esc(def.desc)}${prof?` · class proficiency ${signed(prof)}`:""}</p></div><div class="char-field-progress"><strong>Rank ${st.rank} · check ${signed(check)}</strong><span>${st.xp}/${skillXpNeeded(st.rank)} XP</span></div></div>`;
+    const def=SKILL_DEFS[id],st=skillState(id),rating=skillRating(id),apt=skillAptitude(id),prof=proficiencyBonus(id),rankNotice=skillHasRankNotice(id);
+    return `<div class="char-field-skill${rankNotice?" has-rank-notice":""}"><div><b>${esc(def.name)}${rankNotice?`<span class="skill-rank-new">New rank</span>`:""}</b><p><strong>${def.stat}</strong> · ${esc(def.desc)} · aptitude ${signed(formatRating(apt))}${prof?` · class proficiency ${signed(prof)}`:""}</p></div><div class="char-field-progress"><strong>Rank ${st.rank} · Rating ${formatRating(rating)}</strong><span>${st.xp}/${skillXpNeeded(st.rank)} XP</span></div></div>`;
   }).join("");
 
   const seen=[...FOES,BOSS_PROFILE].filter(f=>S.seenFoes?.[f.id]||knowledgeReads(f.id)>0);
   $("charBestiary").innerHTML=seen.length?seen.map(f=>{
     const reads=knowledgeReads(f.id),tier=knowledgeTier(f.id),drops=DROP_HINTS[f.id]||[];
     const dropText=reads>=3?`<span class="drops">Probably carries: ${esc(drops.join(" · ")||"unknown")}</span>`:"";
-    return `<div class="char-field-skill bestiary"><div><b>${esc(cap(f.name))}</b><p>${reads?`${cap(tier)} · ${reads}/6 knowledge`:"Encountered · not yet Read"}${dropText}</p></div><div class="char-field-progress"><strong>${reads>=6?"Mastered":reads>=3?"Studied":reads?"Known":"Unknown"}</strong><span>${reads>=3?"drop habits known":"study to learn drops"}</span></div></div>`;
+    const awarenessText=reads>=3?` · Awareness ${formatRating(f.awareness??0)}`:"";
+    return `<div class="char-field-skill bestiary"><div><b>${esc(cap(f.name))}</b><p>${reads?`${cap(tier)} · ${reads}/6 knowledge${awarenessText}`:"Encountered · not yet Read"}${dropText}</p></div><div class="char-field-progress"><strong>${reads>=6?"Mastered":reads>=3?"Studied":reads?"Known":"Unknown"}</strong><span>${reads>=3?"drops + Awareness known":"study to learn drops"}</span></div></div>`;
   }).join(""):`<div class="char-field-note">No archetypes recorded yet.</div>`;
 
   renderStatusEffects();
   $("charAbilitySummary").textContent=`${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
   $("charAbilities").innerHTML=classAbilityOrder().map(id=>{
     const def=ABILITY_DEFS[id],sk=abilityState(id),open=charExpandedAbility===id,usable=canFieldUseAbility(id);
-    const field=["layonhands","mend"].includes(id);
-    return `<div class="char-skill"><div class="char-skill-top"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses</span></div><p>${esc(def.desc)}</p>${field?`<div class="char-ability-actions"><button class="char-field-use" data-field-ability="${id}" ${usable?"":"disabled"}>${S.hp>=S.hpMax?"Full HP":sk.cur<=0?"Spent":"Use now"}</button></div>`:""}<button class="skill-more" data-char-ability-more="${id}">${open?"Hide details":"See more"}</button><div class="skill-detail" ${open?"":"hidden"}>${abilityDetailHtml(def)}</div></div>`;
+    const field=!!def.fieldOnly || ["layonhands","mend"].includes(id);
+    const fieldLabel=id==="concealment"?(concealmentActive()?`Active · ${formatEffectTime(S.concealment.remainingMs)}`:sk.cur<=0?"Spent":"Use now"):(S.hp>=S.hpMax?"Full HP":sk.cur<=0?"Spent":"Use now");
+    return `<div class="char-skill"><div class="char-skill-top"><b>${esc(def.name)} ${esc(sk.degree)}</b><span>${sk.cur}/${sk.max} uses</span></div><p>${esc(def.desc)}</p>${field?`<div class="char-ability-actions"><button class="char-field-use" data-field-ability="${id}" ${usable?"":"disabled"}>${esc(fieldLabel)}</button></div>`:""}<button class="skill-more" data-char-ability-more="${id}">${open?"Hide details":"See more"}</button><div class="skill-detail" ${open?"":"hidden"}>${abilityDetailHtml(def)}</div></div>`;
   }).join("");
   renderEquipmentUI();
   renderCharacterNotices();
@@ -3896,6 +3978,9 @@ function abilityState(id){
 }
 function abilityUsesReady(){ return classAbilityOrder().reduce((n,id)=>n+(abilityState(id)?.cur||0),0); }
 function abilityUsesMax(){ return classAbilityOrder().reduce((n,id)=>n+(abilityState(id)?.max||0),0); }
+function combatAbilityOrder(){ return classAbilityOrder().filter(id=>!ABILITY_DEFS[id]?.fieldOnly); }
+function combatAbilityUsesReady(){ return combatAbilityOrder().reduce((n,id)=>n+(abilityState(id)?.cur||0),0); }
+function combatAbilityUsesMax(){ return combatAbilityOrder().reduce((n,id)=>n+(abilityState(id)?.max||0),0); }
 function abilitiesNeedRestoration(){ return classAbilityOrder().some(id=>{const sk=abilityState(id);return sk&&sk.cur<sk.max;}); }
 function canRest(){
   return !!S && !over && !S.foe && !S.travelEvent && !S.pendingRestAbilityChoice &&
@@ -4173,7 +4258,9 @@ function spawnEncounter(options={}){
   armed = null;
 
   const base = options.profile || (options.boss ? BOSS_PROFILE : chooseFoeProfile());
-  travelLogAdd(`Something moves in the dark. <b>${cap(article(base.name))}</b> closes on you.`,"danger");
+  travelLogAdd(options.surprise
+    ? `You move first from concealment. <b>${cap(article(base.name))}</b> has not reacted yet.`
+    : `Something moves in the dark. <b>${cap(article(base.name))}</b> closes on you.`,options.surprise?"good":"danger");
   const hpRoll = 0.94 + rnd()*0.12;
   const hpProfile = base.hp/34;
   const atkProfile = base.atk/7;
@@ -4214,11 +4301,14 @@ function spawnEncounter(options={}){
   }
 
   rollIntent();
+  if(options.surprise){S.foe.surprised=true;S.foe.intent="recover";}
   if(S.foe.revealed){
     S.foe.weaknessManualOpen = null;
     S.foe.weaknessAutoOpenUntil = S.turn;
   }
-  say(`<p class="said">${cap(article(S.foe.name))} comes out of the dark.</p>`);
+  say(options.surprise
+    ? `<p class="said">You catch ${esc(article(S.foe.name))} before it can react.</p><p class="good">Surprise opening: its first intent is Recover.</p>`
+    : `<p class="said">${cap(article(S.foe.name))} comes out of the dark.</p>`);
   render();
   return true;
 }
@@ -4240,9 +4330,15 @@ function renderTravelEvent(){
   roll.innerHTML=ev.rollHtml||"";
 
   if(ev.id==="loot-found"){
-    roll.hidden=true; roll.innerHTML="";
-    const dc=11+Math.floor(S.depth/60);
-    actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="loot-perception"><b>Use Perception</b><span><strong class="check-bonus">Current bonus ${signed(displayedCheckBonus("perception"))}</strong> · look for signs · DC ${dc}</span></button><button class="travel-event-btn investigate" data-event-action="loot-investigation"><b>Use Investigation</b><span><strong class="check-bonus">Current bonus ${signed(displayedCheckBonus("investigation"))}</strong> · search carefully · DC ${dc}</span></button><button class="travel-event-btn ignore wide" data-event-action="loot-continue"><b>Move on</b><span>your normal loot is already collected</span></button>`;
+    roll.hidden=!ev.rollHtml; roll.innerHTML=ev.rollHtml||"";
+    const challenge=Number.isFinite(S.pendingLoot?.searchChallenge)?S.pendingLoot.searchChallenge:authoredChallenge(12);
+    actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="loot-investigation"><b>Investigate</b><span>${skillCheckPreview("investigation",challenge)} · search carefully</span></button><button class="travel-event-btn ignore wide" data-event-action="loot-continue"><b>Move on</b><span>your normal loot is already collected</span></button>`;
+    return;
+  }
+
+  if(ev.id==="stealth-contact"){
+    roll.hidden=!ev.rollHtml; roll.innerHTML=ev.rollHtml||"";
+    actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="stealth-ambush"><b>Ambush</b><span>start combat with a surprise opening · breaks Concealment</span></button><button class="travel-event-btn ignore" data-event-action="stealth-pass"><b>Let them pass</b><span>no combat XP or loot · remain concealed</span></button>`;
     return;
   }
 
@@ -4257,10 +4353,10 @@ function renderTravelEvent(){
     else if(ev.stage==="puzzle-warning") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="puzzle-begin"><b>Attempt the five seals</b><span>need 3 successes · failure: 30% Max HP backlash</span></button><button class="travel-event-btn ignore" data-event-action="leave-side-end"><b>Leave it alone</b><span>return without risking the ward</span></button>`;
     else if(ev.stage==="puzzle-step"){
       const p=puzzleState(),step=puzzleCurrent();
-      if(p.step===4) actions.innerHTML=`${S.inventory.water>0?`<button class="travel-event-btn skill" data-event-action="puzzle-water"><b>Use Water</b><span>consume 1 Jug of Water · guaranteed grounding success</span></button>`:""}<button class="travel-event-btn investigate" data-event-action="puzzle-athletics"><b>Ground it by force</b><span><strong class="check-bonus">Current bonus ${signed(displayedCheckBonus("athletics"))}</strong> · STR · Athletics · DC ${trapDc(step.dc)}</span></button>`;
+      if(p.step===4) actions.innerHTML=`${S.inventory.water>0?`<button class="travel-event-btn skill" data-event-action="puzzle-water"><b>Use Water</b><span>consume 1 Jug of Water · guaranteed grounding success</span></button>`:""}<button class="travel-event-btn investigate" data-event-action="puzzle-athletics"><b>Ground it by force</b><span>${skillCheckPreview("athletics",trapDc(step.dc))} · STR · Athletics</span></button>`;
       else{
         const situational=step.skill==="sleight"&&S.inventory.rogueTools>0?2:0,label=SKILL_DEFS[step.skill].name;
-        actions.innerHTML=`<button class="travel-event-btn skill wide" data-event-action="puzzle-skill"><b>Use ${esc(label)}</b><span><strong class="check-bonus">Current bonus ${signed(displayedCheckBonus(step.skill,situational))}</strong> · DC ${trapDc(step.dc)}${situational?" · Rogue Tools +2":""}</span></button>`;
+        actions.innerHTML=`<button class="travel-event-btn skill wide" data-event-action="puzzle-skill"><b>Use ${esc(label)}</b><span>${skillCheckPreview(step.skill,trapDc(step.dc),situational)}${situational?" · Rogue Tools +2":""}</span></button>`;
       }
     }else if(ev.stage==="puzzle-result") actions.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="puzzle-next"><b>${puzzleState().step>=4?"Resolve the ward":"Next seal"}</b><span>${puzzleState().successes}/3 successes needed · ${puzzleState().attempts}/5 attempted</span></button>`;
     return;
@@ -4269,32 +4365,31 @@ function renderTravelEvent(){
   const sideIds=["side-discovery","side-retreat","side-inscription","side-trap","side-altar"];
   if(sideIds.includes(ev.id)){
     if(ev.id==="side-discovery"){
-      if(ev.stage==="prompt") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="side-perception"><b>Use Perception</b><span>WIS · DC ${sideDiscoveryDc()}</span></button><button class="travel-event-btn ignore" data-event-action="side-ignore"><b>Keep descending</b><span>leave whatever it was behind</span></button>`;
-      else if(ev.stage==="found") actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="side-enter"><b>Enter side passage</b><span>optional danger · depth stops here</span></button><button class="travel-event-btn ignore" data-event-action="side-leave-found"><b>Leave it alone</b><span>continue the main descent</span></button>`;
+      if(ev.stage==="found") actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="side-enter"><b>Enter side passage</b><span>optional danger · depth stops here</span></button><button class="travel-event-btn ignore" data-event-action="side-leave-found"><b>Leave it alone</b><span>continue the main descent</span></button>`;
       else actions.innerHTML=`<button class="travel-event-btn wide" data-event-action="side-continue"><b>Continue</b><span>return to the main descent</span></button>`;
     }else if(ev.id==="side-retreat") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="side-keep"><b>Keep exploring</b><span>stay in the passage</span></button><button class="travel-event-btn ignore" data-event-action="side-abandon"><b>Turn back</b><span>abandon the passage and its remaining reward</span></button>`;
-    else if(ev.id==="side-inscription") actions.innerHTML=ev.stage==="prompt"?`<button class="travel-event-btn skill" data-event-action="translate-wall"><b>Translate</b><span>INT · Translation · DC ${trapDc(12)}</span></button><button class="travel-event-btn ignore" data-event-action="side-event-resume"><b>Leave it</b><span>continue deeper</span></button>`:`<button class="travel-event-btn wide" data-event-action="side-event-resume"><b>Continue</b><span>the word stays with you</span></button>`;
+    else if(ev.id==="side-inscription") actions.innerHTML=ev.stage==="prompt"?`<button class="travel-event-btn skill" data-event-action="translate-wall"><b>Translate</b><span>${skillCheckPreview("translation",trapDc(12))}</span></button><button class="travel-event-btn ignore" data-event-action="side-event-resume"><b>Leave it</b><span>continue deeper</span></button>`:`<button class="travel-event-btn wide" data-event-action="side-event-resume"><b>Continue</b><span>the word stays with you</span></button>`;
     else if(ev.id==="side-trap"){
-      if(ev.stage==="sense") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="trap-perception"><b>Use Perception</b><span>WIS · DC ${trapDc(12)}</span></button><button class="travel-event-btn ignore" data-event-action="trap-cross"><b>Keep moving</b><span>risk whatever is ahead</span></button>`;
-      else if(ev.stage==="found") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="trap-dismantle"><b>Dismantle</b><span>DEX · Sleight + Rogue Tools · DC ${trapDc(13)}</span></button><button class="travel-event-btn investigate" data-event-action="trap-destroy"><b>Destroy mechanism</b><span>STR · Athletics · DC ${trapDc(12)}</span></button>`;
+      if(ev.stage==="sense") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="trap-perception"><b>Use Perception</b><span>${skillCheckPreview("perception",trapDc(12))}</span></button><button class="travel-event-btn ignore" data-event-action="trap-cross"><b>Keep moving</b><span>risk whatever is ahead</span></button>`;
+      else if(ev.stage==="found") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="trap-dismantle"><b>Dismantle</b><span>${skillCheckPreview("sleight",trapDc(13),S.inventory?.rogueTools>0?2:0)} · Rogue Tools</span></button><button class="travel-event-btn investigate" data-event-action="trap-destroy"><b>Destroy mechanism</b><span>${skillCheckPreview("athletics",trapDc(12))}</span></button>`;
       else actions.innerHTML=`<button class="travel-event-btn wide" data-event-action="side-event-resume"><b>Continue</b><span>the mechanism cannot be attempted again</span></button>`;
     }else if(ev.id==="side-altar"){
-      if(ev.stage==="altar") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="translate-altar"><b>Translate inscription</b><span>INT · Translation · DC ${trapDc(13)}</span></button><button class="travel-event-btn investigate" data-event-action="choose-offering"><b>Make an offering</b><span>choose 1 item from Backpack</span></button><button class="travel-event-btn ignore wide" data-event-action="open-warded"><b>Ignore altar</b><span>approach the chest anyway</span></button>`;
+      if(ev.stage==="altar") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="translate-altar"><b>Translate inscription</b><span>${skillCheckPreview("translation",trapDc(13))}</span></button><button class="travel-event-btn investigate" data-event-action="choose-offering"><b>Make an offering</b><span>choose 1 item from Backpack</span></button><button class="travel-event-btn ignore wide" data-event-action="open-warded"><b>Ignore altar</b><span>approach the chest anyway</span></button>`;
       else if(ev.stage==="chest"){
         const key=S.inventory.passageKey?.id===S.sideArea.keyId,tools=S.inventory.rogueTools>0;
-        actions.innerHTML=`${key?`<button class="travel-event-btn skill" data-event-action="use-side-key"><b>Use passage key</b><span>guaranteed · consumes key</span></button>`:""}${tools?`<button class="travel-event-btn investigate" data-event-action="pick-side-lock"><b>Pick lock</b><span>DEX · Sleight + Rogue Tools · DC ${trapDc(13)}</span></button>`:""}<button class="travel-event-btn investigate" data-event-action="force-side-chest"><b>Force it</b><span>STR · Athletics · DC ${trapDc(14)}</span></button><button class="travel-event-btn ignore wide" data-event-action="leave-side-end"><b>Leave it</b><span>abandon the chest and return</span></button>`;
+        actions.innerHTML=`${key?`<button class="travel-event-btn skill" data-event-action="use-side-key"><b>Use passage key</b><span>guaranteed · consumes key</span></button>`:""}${tools?`<button class="travel-event-btn investigate" data-event-action="pick-side-lock"><b>Pick lock</b><span>${skillCheckPreview("sleight",trapDc(13),S.inventory?.rogueTools>0?2:0)} · Rogue Tools</span></button>`:""}<button class="travel-event-btn investigate" data-event-action="force-side-chest"><b>Force it</b><span>${skillCheckPreview("athletics",trapDc(14))}</span></button><button class="travel-event-btn ignore wide" data-event-action="leave-side-end"><b>Leave it</b><span>abandon the chest and return</span></button>`;
       }else if(ev.stage==="jammed") actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="force-side-chest"><b>Force it</b><span>the delicate attempt is gone</span></button><button class="travel-event-btn ignore" data-event-action="leave-side-end"><b>Leave it</b><span>return empty-handed</span></button>`;
       else if(ev.stage==="failed-force") actions.innerHTML=`<button class="travel-event-btn wide ignore" data-event-action="leave-side-end"><b>Leave it</b><span>return to the main descent</span></button>`;
       else if(ev.stage==="reward") actions.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="finish-side"><b>Return to the descent</b><span>side passage complete</span></button>`;
     }
-    annotateCheckChoice("side-perception","perception");
-    annotateCheckChoice("translate-wall","translation");
-    annotateCheckChoice("trap-perception","perception");
-    annotateCheckChoice("trap-dismantle","sleight",S.inventory?.rogueTools>0?2:0);
-    annotateCheckChoice("trap-destroy","athletics");
-    annotateCheckChoice("translate-altar","translation");
-    annotateCheckChoice("pick-side-lock","sleight",S.inventory?.rogueTools>0?2:0);
-    annotateCheckChoice("force-side-chest","athletics");
+    annotateCheckChoice("side-perception","perception",sideDiscoveryChallenge());
+    annotateCheckChoice("translate-wall","translation",trapDc(12));
+    annotateCheckChoice("trap-perception","perception",trapDc(12));
+    annotateCheckChoice("trap-dismantle","sleight",trapDc(13),S.inventory?.rogueTools>0?2:0);
+    annotateCheckChoice("trap-destroy","athletics",trapDc(12));
+    annotateCheckChoice("translate-altar","translation",trapDc(13));
+    annotateCheckChoice("pick-side-lock","sleight",trapDc(13),S.inventory?.rogueTools>0?2:0);
+    annotateCheckChoice("force-side-chest","athletics",trapDc(14));
     if(ev.id==="side-altar"&&ev.stage==="altar"&&S.sideArea?.altarTranslationAttempted){
       const b=document.querySelector('[data-event-action="translate-altar"]');
       if(b){
@@ -4306,30 +4401,31 @@ function renderTravelEvent(){
     return;
   }
 
-  if(ev.stage==="prompt") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="perception"><b>Use Perception</b><span>WIS · safer look · DC 12</span></button><button class="travel-event-btn investigate" data-event-action="investigate"><b>Investigate</b><span>INT · act immediately · DC 13</span></button><button class="travel-event-btn ignore wide" data-event-action="ignore"><b>Ignore it</b><span>leave the glint behind</span></button>`;
-  else if(ev.stage==="noticed") actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="investigate-informed"><b>Investigate</b><span>INT · Perception gives +2 · DC 13</span></button><button class="travel-event-btn ignore" data-event-action="leave"><b>Leave it</b><span>you know where the danger is</span></button>`;
+  if(ev.stage==="noticed") actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="investigate-informed"><b>Investigate</b><span>Perception has already identified the unstable approach</span></button><button class="travel-event-btn ignore" data-event-action="leave"><b>Leave it</b><span>you know where the danger is</span></button>`;
   else actions.innerHTML=`<button class="travel-event-btn wide" data-event-action="continue"><b>Continue</b><span>${ev.followupCombat?"something is coming":"return to the delve"}</span></button>`;
-  annotateCheckChoice("perception","perception");
-  annotateCheckChoice("investigate","investigation");
-  annotateCheckChoice("investigate-informed","investigation",2);
+  annotateCheckChoice("investigate-informed","investigation",authoredChallenge(13),2);
 }
 function beginGlintEvent(){
   if(!S || S.seenTravelEvents.glint || S.foe || S.travelEvent) return false;
-  closePack();
-  closeCharacterSheet();
+  closePack();closeCharacterSheet();
+  S.seenTravelEvents.glint=true;
+  const check=runSkillCheck("perception",authoredChallenge(12),0);
+  const practice=awardSkillPractice("perception","glint:perception",check);
+  const rollHtml=formatSkillCheck(check)+practiceText("perception",practice);
+  S.exploreActivity=0;
+  if(!check.success){
+    travelLogAdd(`For an instant your light catches something in the broken masonry, but whatever was there is gone before you can place it.${practiceText("perception",practice)}`,"note");
+    render();return false;
+  }
   pauseBoonClock();
-  S.seenTravelEvents.glint = true;
-  S.travelMode = "stopped";
-  S.travelSinceEvent = 0;
-  S.exploreActivity = 0;
-  S.travelEvent = {
-    id:"glint",stage:"prompt",kind:"Something caught your eye",title:"A glint in the dark",
-    text:"For an instant your light catches something beyond a tumble of broken stone. When you look straight at it, the glint is gone.",
-    rollHtml:"",followupCombat:false
+  S.travelMode="stopped";S.travelSinceEvent=0;
+  S.travelEvent={
+    id:"glint",stage:"noticed",kind:"Perception",title:"There — again.",
+    text:"You catch the glint without chasing it. A thin metal corner sits beneath the rubble, and the stones above it are badly settled. You know where not to put your weight.",
+    rollHtml,followupCombat:false
   };
-  travelLogAdd(`A brief <b>glint</b> answers your light from the broken masonry.`, "beat");
-  render();
-  return true;
+  travelLogAdd(`Perception passively reveals both a <b>glint</b> and the unstable rubble around it.`,"good");
+  render();return true;
 }
 function setTravelEventResult(title,text,rollHtml="",followupCombat=false){
   if(!S?.travelEvent) return;
@@ -4339,8 +4435,8 @@ function setTravelEventResult(title,text,rollHtml="",followupCombat=false){
 function attemptGlintInvestigation(informed=false){
   if(!S?.travelEvent) return;
   const circumstance = informed ? 2 : 0;
-  const check = runSkillCheck("investigation",13,circumstance);
-  const practice = awardSkillPractice("investigation","glint");
+  const check = runSkillCheck("investigation",authoredChallenge(13),circumstance);
+  const practice = awardSkillPractice("investigation","glint:investigation",check);
   const rollHtml = formatSkillCheck(check) + practiceText("investigation",practice);
   if(check.success){
     S.inventory.campSupplies++;
@@ -4358,8 +4454,23 @@ function handleTravelEventAction(action){
   const ev=S?.travelEvent;
   if(!ev) return;
 
+  if(ev.id==="stealth-contact"){
+    const profile=profileById(ev.profileId) || FOES.find(f=>f.id===ev.profileId);
+    const options={...(ev.encounterOptions||{}),profile};
+    if(action==="stealth-pass"){
+      const resume=ev.priorMode||"descend";
+      S.travelEvent=null;S.travelMode=resume;resumeBoonClock();
+      travelLogAdd(`You let the <b>${esc(profile?.name||"creature")}</b> pass without revealing yourself. No combat reward is gained.`,"good");render();return;
+    }
+    if(action==="stealth-ambush"){
+      clearConcealment();S.travelEvent=null;S.travelMode="stopped";pauseBoonClock();
+      travelLogAdd(`You break Concealment on your terms and spring the ambush.`,"beat");
+      return spawnEncounter({...options,surprise:true});
+    }
+    return;
+  }
+
   if(ev.id==="loot-found"){
-    if(action==="loot-perception") return resolveLootSearch("perception");
     if(action==="loot-investigation") return resolveLootSearch("investigation");
     if(action==="loot-continue") return closeLootFound();
     return;
@@ -4382,12 +4493,6 @@ function handleTravelEventAction(action){
   }
 
   if(["side-discovery","side-retreat","side-inscription","side-trap","side-altar"].includes(ev.id)){
-    if(action==="side-perception"){
-      const c=runSkillCheck("perception",sideDiscoveryDc()),source=`side-discovery:${S.sideDiscoveryStratum??stratumIndex()}`,p=awardSkillPractice("perception",source,c.success?2:1),html=formatSkillCheck(c)+practiceText("perception",p);
-      if(c.success){ev.stage="found";ev.title="A passage behind the stone";ev.text="A narrow route turns away from the main descent. Something about the air beyond it feels wrong.";ev.rollHtml=html;travelLogAdd(`Perception reveals a <b>side passage</b>.`,"good");render();}
-      else{ev.stage="result";ev.title="Nothing you can prove";ev.text="You study the wall, find no safe opening, and move on. Whatever opportunity was here is gone.";ev.rollHtml=html;S.sideAreaResolved=true;render();}
-      return;
-    }
     if(action==="side-ignore"){S.sideAreaResolved=true;S.travelEvent=null;render();return;}
     if(action==="side-enter") return enterSideArea();
     if(action==="side-leave-found"||action==="side-continue"){S.sideAreaResolved=true;S.travelEvent=null;render();return;}
@@ -4399,7 +4504,7 @@ function handleTravelEventAction(action){
         S.sideArea.altarTranslationAttempted=true;
       }
       const source=action==="translate-wall"?`side-language:${S.sideArea.id}`:`side-altar-language:${S.sideArea.id}`,
-        dc=trapDc(action==="translate-wall"?12:13),c=runSkillCheck("translation",dc),p=awardSkillPractice("translation",source,c.success?2:1);
+        dc=trapDc(action==="translate-wall"?12:13),c=runSkillCheck("translation",dc),p=awardSkillPractice("translation",source,c);
       let html=formatSkillCheck(c)+practiceText("translation",p);
       if(c.success){
         const knownBefore=[...(S.languageKnown||[])],learned=learnLanguageWord();
@@ -4415,7 +4520,7 @@ function handleTravelEventAction(action){
     }
     if(action==="side-event-resume"){S.travelEvent=null;S.travelMode="side";S.travelSinceEvent=0;resumeBoonClock();render();return;}
     if(action==="trap-perception"){
-      const c=runSkillCheck("perception",trapDc(12)),p=awardSkillPractice("perception",`side-trap-sense:${S.sideArea.id}`,c.success?2:1),html=formatSkillCheck(c)+practiceText("perception",p);
+      const c=runSkillCheck("perception",trapDc(12)),p=awardSkillPractice("perception",`side-trap-sense:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("perception",p);
       if(c.success){ev.stage="found";ev.title="A loaded mechanism";ev.text="A line disappears into a crude spring assembly under the stone. The passage is too tight to simply walk around it.";ev.rollHtml=html;travelLogAdd(`Perception catches a <b>trap</b> before it catches you.`,"good");render();}
       else triggerTrap("You miss the loaded line until your boot finds it.");
       return;
@@ -4423,13 +4528,13 @@ function handleTravelEventAction(action){
     if(action==="trap-cross") return triggerTrap("You choose to cross without resolving the mechanism.");
     if(action==="trap-dismantle"){
       if(S.inventory.rogueTools<=0){ev.rollHtml=`<span class="bad">You do not have Rogue Tools. The mechanism is too fine to dismantle safely.</span>`;render();return;}
-      const c=runSkillCheck("sleight",trapDc(13),2),p=awardSkillPractice("sleight",`side-trap:${S.sideArea.id}`,c.success?2:1),html=formatSkillCheck(c)+practiceText("sleight",p);
+      const c=runSkillCheck("sleight",trapDc(13),2),p=awardSkillPractice("sleight",`side-trap:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("sleight",p);
       if(c.success){ev.stage="result";ev.title="Mechanism dismantled";ev.text="The loaded pieces come apart in your hands. The trap is permanently safe.";ev.rollHtml=html;travelLogAdd(`Sleight of Hand dismantles the trap cleanly.`,"good");render();}
       else triggerTrap("A pick slips. The mechanism fires and breaks itself in the same motion.");
       return;
     }
     if(action==="trap-destroy"){
-      const c=runSkillCheck("athletics",trapDc(12)),p=awardSkillPractice("athletics",`side-trap-force:${S.sideArea.id}`,c.success?2:1),html=formatSkillCheck(c)+practiceText("athletics",p);
+      const c=runSkillCheck("athletics",trapDc(12)),p=awardSkillPractice("athletics",`side-trap-force:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("athletics",p);
       if(c.success){ev.stage="result";ev.title="Mechanism smashed";ev.text="You break the loaded assembly before it can release. Nothing delicate remains, but the way is safe.";ev.rollHtml=html;travelLogAdd(`You destroy the trap mechanism.`,"good");render();}
       else triggerTrap("The blow lands on the wrong piece and releases the trap.");
       return;
@@ -4448,13 +4553,6 @@ function handleTravelEventAction(action){
     travelLogAdd(`You decide the glint is not worth leaving the route for.`,"note");
     S.travelEvent=null;render();return;
   }
-  if(action==="perception"&&ev.stage==="prompt"){
-    const check=runSkillCheck("perception",12,0),practice=awardSkillPractice("perception","glint"),rollHtml=formatSkillCheck(check)+practiceText("perception",practice);
-    if(check.success){ev.stage="noticed";ev.title="There — again.";ev.text="You stop chasing the shine and watch the shadows around it instead. A thin metal corner sits beneath the rubble, and the stones above it are badly settled. You now know where not to put your weight.";ev.rollHtml=rollHtml;travelLogAdd(`Perception reveals both the glint and the unstable rubble around it.`,"good");render();}
-    else{travelLogAdd(`You watch for the glint again, but nothing repeats.`,"note");setTravelEventResult("Perhaps nothing","You hold still and study the dark. Nothing flashes again. You must have imagined it — or whatever caught the light is gone now.",rollHtml,false);}
-    return;
-  }
-  if(action==="investigate"&&ev.stage==="prompt") return attemptGlintInvestigation(false);
   if(action==="investigate-informed"&&ev.stage==="noticed") return attemptGlintInvestigation(true);
   if(action==="leave"&&ev.stage==="noticed"){travelLogAdd(`You leave the unstable rubble undisturbed.`,"note");S.travelEvent=null;render();return;}
   if(action==="continue"&&ev.stage==="result"){
@@ -4514,6 +4612,7 @@ function runTravelTickCore(){
   }
 
   if(!tickBleeding()) return;
+  if(S.travelMode!=="stopped") tickConcealment();
   if(S.travelMode==="side") return sideTravelTick();
 
   if(S.travelMode==="descend" && !S.foe && !S.travelEvent && !S.sideDiscoveryAttempted && !S.sideAreaResolved &&
@@ -6495,7 +6594,7 @@ const LANG_DICT = {Cor:"I", amina:"want", mi:"one", mattra:"meat", keth:"open", 
 const ALTAR_SENTENCE = ["Cor","amina","mi","mattra"];
 
 const BOSS_PROFILE = {
-  id:"warren_boss", name:"prototype warren boss", unlock:0, hp:78, atk:9, xp:32, danger:3,
+  id:"warren_boss", name:"prototype warren boss", unlock:0, hp:78, atk:9, xp:32, danger:3, awareness:40,
   intents:{quick:30,heavy:25,dodge:10,guard:25,recover:10}, recoverAt:0.35,
   hurtIntents:{quick:20,heavy:50,dodge:5,guard:10,recover:15}, hurtAt:0.50,
   weakness:{id:"rage_opening",txt:"Its second wind becomes reckless. Heavy commitment is easier to punish once it is bloodied.",eff:{counterBonus:1.40,offBalanceBonus:1.40}}
@@ -6503,7 +6602,7 @@ const BOSS_PROFILE = {
 
 const UNARMED_WEAPON = Object.freeze({name:"Unarmed",stat:"STR",itemLevel:0,rarity:"Common",family:"unarmed",hands:1,unarmed:true,weaponContribution:1,desc:"No Main Hand weapon equipped."});
 function classDef(){ return CLASS_DEFS[S?.className] || CLASS_DEFS.Votary; }
-function classAbilityOrder(){ return S ? classDef().abilities : CLASS_DEFS.Votary.abilities; }
+function classAbilityOrder(){ const base=S ? classDef().abilities : CLASS_DEFS.Votary.abilities; return [...new Set([...base,...UNIVERSAL_ABILITY_IDS])]; }
 function proficiencyBonus(id){ return S?.proficiencies?.[id] || 0; }
 function equippedWeaponDef(){
   const hasEquipment=!!S?.equipment && Object.prototype.hasOwnProperty.call(S.equipment,"rightHand");
@@ -6529,8 +6628,8 @@ function weaponAttackBaseForEquipment(equipmentState=S?.equipment){
 }
 function sideAreaActive(){ return !!S?.sideArea && !S.sideArea.completed && !S.sideArea.abandoned; }
 function curseActive(){ return !!S?.curse && (S.curse.remaining || 0) > 0; }
-function trapDc(base=12){ return base + Math.floor((S?.depth || 0)/30); }
-function sideDiscoveryDc(){ return stratumIndex(S?.depth||0)===0 ? 8 : trapDc(12); }
+function trapDc(base=12){ return authoredChallenge(base); }
+function sideDiscoveryDc(){ return sideDiscoveryChallenge(); }
 function languageLine(){
   const known = new Set(S?.languageKnown || []);
   return ALTAR_SENTENCE.map(w => known.has(w) ? `<span class="known">${esc(LANG_DICT[w])}</span>` : esc(w)).join(" ");
@@ -6640,8 +6739,17 @@ function equipWeapon(id){
 
 // ----- side passage event engine -----
 function beginSideDiscovery(){
-  if(!S||S.sideDiscoveryAttempted||S.sideAreaResolved)return false;closePack();closeCharacterSheet();pauseBoonClock();S.sideDiscoveryAttempted=true;S.travelMode="stopped";S.travelSinceEvent=0;
-  S.travelEvent={id:"side-discovery",stage:"prompt",kind:"Something in the wall",title:"Did you notice anything?",text:"The downward route continues, but for a moment the lamplight seems to fall somewhere it should not.",rollHtml:""};travelLogAdd(`Something about the wall at <b>${formatDepth(S.depth)} fathoms</b> does not sit right.`,"beat");render();return true;
+  if(!S||S.sideDiscoveryAttempted||S.sideAreaResolved)return false;
+  closePack();closeCharacterSheet();S.sideDiscoveryAttempted=true;S.travelSinceEvent=0;
+  const challenge=sideDiscoveryChallenge(),c=runSkillCheck("perception",challenge),source=`side-discovery:${S.sideDiscoveryStratum??stratumIndex()}`,p=awardSkillPractice("perception",source,c),html=formatSkillCheck(c)+practiceText("perception",p);
+  if(!c.success){
+    S.sideAreaResolved=true;
+    travelLogAdd(`Something about the wall almost catches your attention, then the route carries you past it.${practiceText("perception",p)}`,"note");
+    render();return false;
+  }
+  pauseBoonClock();S.travelMode="stopped";
+  S.travelEvent={id:"side-discovery",stage:"found",kind:"Perception",title:"A passage behind the stone",text:"A narrow route turns away from the main descent. Something about the air beyond it feels wrong.",rollHtml:html};
+  travelLogAdd(`Perception passively reveals a <b>side passage</b>.`,"good");render();return true;
 }
 function createSideArea(){
   const sid=`side-${stratumIndex()}-${Math.floor(S.depth*10)}`;
@@ -6742,11 +6850,11 @@ function grantChestReward(){
   S.sideArea.chestOpened=true;travelLogAdd(`The chest yields <b>${esc(text)}</b>.`,"good");S.travelEvent={id:"side-altar",stage:"reward",kind:"Side passage complete",title:"The chest opens",text:`You recover ${text}. The route behind you is the only way back to the main descent.`,rollHtml:""};render();
 }
 function attemptChestLock(){
-  const a=S.sideArea;if(!a||a.lockAttempted)return;a.lockAttempted=true;const tool=S.inventory.rogueTools>0?2:0,check=runSkillCheck("sleight",trapDc(13),tool),practice=awardSkillPractice("sleight",`side-lock:${a.id}`,check.success?2:1);const html=formatSkillCheck(check)+practiceText("sleight",practice);
+  const a=S.sideArea;if(!a||a.lockAttempted)return;a.lockAttempted=true;const tool=S.inventory.rogueTools>0?2:0,check=runSkillCheck("sleight",trapDc(13),tool),practice=awardSkillPractice("sleight",`side-lock:${a.id}`,check);const html=formatSkillCheck(check)+practiceText("sleight",practice);
   if(check.success){S.travelEvent.rollHtml=html;grantChestReward();}else{S.travelEvent={id:"side-altar",stage:"jammed",kind:"Lock jammed",title:"The lock will not take another delicate attempt",text:"The pick slips and the old lock deforms. The mechanism is changed; you cannot repeat the same check.",rollHtml:html};render();}
 }
 function forceChest(){
-  const a=S.sideArea,check=runSkillCheck("athletics",trapDc(14),0),practice=awardSkillPractice("athletics",`side-force:${a.id}`,check.success?2:1),html=formatSkillCheck(check)+practiceText("athletics",practice);
+  const a=S.sideArea,check=runSkillCheck("athletics",trapDc(14),0),practice=awardSkillPractice("athletics",`side-force:${a.id}`,check),html=formatSkillCheck(check)+practiceText("athletics",practice);
   if(check.success){S.travelEvent.rollHtml=html;return grantChestReward();}
   const dmg=Math.max(1,ri(1,4));S.hp-=dmg;flashTravelDamage();
   travelLogAdd(`Forcing the chest costs <b>${dmg} HP</b>. The frame gives way badly and ruins the better contents.`,"danger");
@@ -6808,13 +6916,38 @@ function maybeSideKey(f){
    v0.080 — Session 7.5 QOL + feedback pass
    ============================================================ */
 
+function concealmentActive(){ return !!S?.concealment && (S.concealment.remainingMs||0)>0; }
+function formatEffectTime(ms){
+  const total=Math.max(0,Math.ceil((Number(ms)||0)/1000));
+  return `${Math.floor(total/60)}:${String(total%60).padStart(2,"0")}`;
+}
+function clearConcealment(reason=""){
+  if(!S?.concealment) return;
+  S.concealment=null;
+  if(reason) travelLogAdd(reason,"note");
+}
+function tickConcealment(){
+  if(!concealmentActive()) return false;
+  S.concealment.remainingMs=Math.max(0,S.concealment.remainingMs-TRAVEL_TICK_MS);
+  if(S.concealment.remainingMs<=0){clearConcealment(`<b>Concealment</b> fades. You are moving openly again.`);return true;}
+  return false;
+}
 function canFieldUseAbility(id){
   const sk=abilityState(id);
-  return !encounterWarningActive() && !over && !S?.foe && !!sk && sk.cur>0 && S.hp<S.hpMax && ["layonhands","mend"].includes(id);
+  if(encounterWarningActive() || over || S?.foe || !sk || sk.cur<=0) return false;
+  if(id==="concealment") return !concealmentActive() && !S?.travelEvent && !S?.activeHollow;
+  return S.hp<S.hpMax && ["layonhands","mend"].includes(id);
 }
 function useFieldAbility(id){
   if(encounterWarningActive() || !canFieldUseAbility(id)) return;
-  const sk=abilityState(id), amount=id==="layonhands"?15:12, before=S.hp;
+  const sk=abilityState(id);
+  if(id==="concealment"){
+    sk.cur--;
+    S.concealment={remainingMs:CONCEALMENT_DURATION_MS};
+    travelLogAdd(`<b>Concealment.</b> You soften your movement and travel hidden. Enemy Awareness will test your Stealth before combat.`,"good");
+    render();renderCharacterSheet();requestRunSave();return;
+  }
+  const amount=id==="layonhands"?15:12, before=S.hp;
   S.hp=Math.min(S.hpMax,S.hp+amount);
   const healed=S.hp-before;
   if(healed<=0) return;
@@ -6822,7 +6955,7 @@ function useFieldAbility(id){
   render();
   renderCharacterSheet();
   triggerHealFx(healed,["travel","character"]);
-  travelLogAdd(`<b>${esc(abilityDisplayName(id))}</b> restores <b>${healed} HP</b> outside combat.`,"good");
+  travelLogAdd(`<b>${esc(abilityDisplayName(id))}</b> restores <b>${healed} HP</b> outside combat.`,"good");requestRunSave();
 }
 function renderCharacterView(){
   document.querySelectorAll("[data-char-page]").forEach(page=>page.hidden=page.dataset.charPage!==charView);
@@ -6840,9 +6973,10 @@ function renderStatusEffects(){
   }
   if(curseActive()) rows.push(`<div class="char-status bad"><b>${esc(S.curse.name)}</b><span>${S.curse.remaining} completed encounters remaining · ${esc(S.curse.desc)}</span></div>`);
   if(S.hollowRespite?.remaining>0) rows.push(`<div class="char-status good"><b>Sheltered</b><span>${S.hollowRespite.remaining} completed encounters remaining · +1 Max Stamina.</span></div>`);
+  if(concealmentActive()) rows.push(`<div class="char-status good"><b>Concealment</b><span>${formatEffectTime(S.concealment.remainingMs)} active travel remaining · Stealth contests enemy Awareness before combat.</span></div>`);
   const boon=boonDef(); if(boon) rows.push(`<div class="char-status good"><b>${esc(boon.name)}</b><span>${formatBoonTime(boonRemainingMs())}${S.boon?.frozen?" · paused":""} · ${esc(boon.desc)}</span></div>`);
   root.innerHTML=rows.length?rows.join(""):`<div class="char-status empty"><b>No active conditions</b><span>No wounds, curses or temporary effects are currently affecting this delver.</span></div>`;
-  const count=(S.bleeding?1:0)+(curseActive()?1:0)+(S.hollowRespite?.remaining>0?1:0)+(boon?1:0);
+  const count=(S.bleeding?1:0)+(curseActive()?1:0)+(S.hollowRespite?.remaining>0?1:0)+(concealmentActive()?1:0)+(boon?1:0);
   if($("charStatusNavText")) $("charStatusNavText").textContent=count?`${count} active`:"none active";
 }
 
@@ -6853,6 +6987,7 @@ function renderTravelEffects(){
   if(S.bleeding) bits.push(`<span class="travel-effect bad">Bleeding</span>`);
   if(curseActive()) bits.push(`<span class="travel-effect bad">${esc(S.curse.name)} ${S.curse.remaining}</span>`);
   if(S.hollowRespite?.remaining>0) bits.push(`<span class="travel-effect good">Sheltered ${S.hollowRespite.remaining}</span>`);
+  if(concealmentActive()) bits.push(`<span class="travel-effect good">Concealed ${formatEffectTime(S.concealment.remainingMs)}</span>`);
   root.hidden=bits.length===0; root.innerHTML=bits.join("");
 }
 
@@ -6902,34 +7037,42 @@ function openLootFound(drops,f){
   if(!drops?.length) return;
   const rec=makeLootRecord(drops,f);
   if(rnd()>=.35){S.pendingLoot=null;return;}
-  S.pendingLoot={encounter:S.encounter,foeName:f?.name||"foe",drops:[...drops],searched:false,historyId:rec.id};
+  const encounter=S.encounter, challenge=authoredChallenge(11);
+  const sense=runSkillCheck("perception",challenge),practice=awardSkillPractice("perception",`loot-sense:${encounter}`,sense);
+  if(!sense.success){
+    if(practice.awarded) travelLogAdd(`You finish collecting the obvious salvage.${practiceText("perception",practice)}`,"note");
+    S.pendingLoot=null;return;
+  }
+  S.pendingLoot={encounter,foeName:f?.name||"foe",drops:[...drops],searched:false,historyId:rec.id,searchChallenge:authoredChallenge(12)};
   S.travelEvent={
-    id:"loot-found",stage:"bonus",kind:"Optional bonus search",title:"Something may have been overlooked",
-    text:`You already collected ${lootItemsText(drops)} from the ${S.pendingLoot.foeName}. Search the remains for a possible bonus find?`,rollHtml:""
+    id:"loot-found",stage:"bonus",kind:"Perception",title:"Something may have been overlooked",
+    text:`You already collected ${lootItemsText(drops)} from the ${S.pendingLoot.foeName}. Perception caught a detail worth investigating.`,
+    rollHtml:formatSkillCheck(sense)+practiceText("perception",practice)
   };
 }
-function resolveLootSearch(skill){
+function resolveLootSearch(skill="investigation"){
   const loot=S.pendingLoot;
   if(!loot||loot.searched) return;
   loot.searched=true;
-  const dc=11+Math.floor(S.depth/60),c=runSkillCheck(skill,dc),p=awardSkillPractice(skill,`loot-search:${loot.encounter}`);
+  const challenge=Number.isFinite(loot.searchChallenge)?loot.searchChallenge:authoredChallenge(12),c=runSkillCheck("investigation",challenge),p=awardSkillPractice("investigation",`loot-search:${loot.encounter}`,c);
   const rec=lootRecordById(loot.historyId);
   let found=null;
-  if(c.success&&rnd()<.55){
+  // Success quality: expertise above the challenge improves the chance that the careful search yields something worth carrying.
+  const qualityBonus=Math.max(0,c.normalizedGap);
+  const findChance=clamp(.55 + .10*qualityBonus,.55,.80);
+  if(c.success&&rnd()<findChance){
     found=rollExtraLoot();
     loot.drops.push(found);
     if(rec){rec.items.push(found);rec.bonusItems.push(found);refreshLootLogEntries(rec.id);}
   }
-  const practice=practiceText(skill,p);
+  const practice=practiceText("investigation",p),checkText=formatSkillCheck(c);
   const outcome=found
-    ? `<span class="good">Bonus search: ${esc(SKILL_DEFS[skill].name)} ${c.total} vs DC ${dc} · found <b>${esc(found)}</b>.</span>`
+    ? `<span class="good">Investigation found <b>${esc(found)}</b>.</span>`
     : c.success
-      ? `<span class="note">Bonus search: ${esc(SKILL_DEFS[skill].name)} ${c.total} vs DC ${dc} · success, but nothing else worth carrying.</span>`
-      : `<span class="note">Bonus search: ${esc(SKILL_DEFS[skill].name)} ${c.total} vs DC ${dc} · no additional find.</span>`;
-  travelLogAdd(`${outcome}${practice}`,found?"good":"note");
-  S.pendingLoot=null;
-  S.travelEvent=null;
-  render();
+      ? `<span class="note">Investigation succeeds, but nothing else here is worth carrying.</span>`
+      : `<span class="note">Investigation finds no additional salvage.</span>`;
+  travelLogAdd(`${outcome}<br>${checkText}${practice}`,found?"good":"note");
+  S.pendingLoot=null;S.travelEvent=null;render();
 }
 function closeLootFound(){
   S.pendingLoot=null;
@@ -6950,15 +7093,13 @@ function closeLootFound(){
    ============================================================ */
 
 // Check-choice literacy: show the actual current modifier before the player commits.
-function displayedCheckBonus(skillId, situational=0){
-  return skillCheckBonus(skillId) + situational;
-}
-function annotateCheckChoice(action, skillId, situational=0){
+function displayedCheckBonus(skillId, situational=0){ return skillRating(skillId,situational); }
+function annotateCheckChoice(action, skillId, challenge=authoredChallenge(12), situational=0){
   const b=document.querySelector(`[data-event-action="${action}"]`);
   if(!b) return;
   const span=b.querySelector("span");
   if(!span) return;
-  span.innerHTML=`<strong class="check-bonus">Current bonus ${signed(displayedCheckBonus(skillId,situational))}</strong> · ${span.innerHTML}`;
+  span.innerHTML=`${skillCheckPreview(skillId,challenge,situational)} · ${span.innerHTML.replace(/<strong class="check-bonus">.*?<\/strong> · /,"")}`;
 }
 
 // Known Weakness gets one full decision-turn of prominence after the first Read,
@@ -7318,6 +7459,29 @@ function renderEncounterWarningLocks(){
   const packNote=$("packNote");
   if(packNote&&!$("packSheet").hidden)packNote.textContent="Encounter approaching · browsing only. Recovery, item use and equipment changes are locked.";
 }
+function tryConcealedContact(profile,options,priorMode){
+  if(!concealmentActive() || options.mimic || options.skipStealth) return false;
+  if(options.boss){clearConcealment(`<b>Concealment</b> fails at the stratum gate. Whatever waits there is already watching the route.`);return false;}
+  const challenge=Number(profile?.awareness)||0;
+  const check=runSkillCheck("stealth",challenge,0);
+  const source=`stealth-contact:${++S.stealthOpportunitySeq}`;
+  const practice=awardSkillPractice("stealth",source,check);
+  if(!check.success){
+    clearConcealment();
+    travelLogAdd(`<b>${esc(cap(profile?.name||"Something"))}</b> turns directly toward you. It pierced your Concealment.<br>${formatSkillCheck(check)}${practiceText("stealth",practice)}`,"danger");
+    return false;
+  }
+  const storedOptions={...options};delete storedOptions.profile;
+  S.travelMode="stopped";
+  S.travelEvent={
+    id:"stealth-contact",stage:"choice",kind:"Concealed contact",title:"They haven't seen you.",
+    text:`${cap(article(profile.name))} moves through the dark without realizing you are there.`,
+    rollHtml:formatSkillCheck(check)+practiceText("stealth",practice),profileId:profile.id,encounterOptions:storedOptions,priorMode
+  };
+  travelLogAdd(`Your Stealth holds against the <b>${esc(profile.name)}</b>. You choose how this encounter begins.`,"good");
+  render();return true;
+}
+
 function queueEncounterWarning(options={}){
   if(!S||over||S.foe||encounterWarningActive())return false;
   // If an actual travel event is still unresolved, its own decision flow takes
@@ -7330,6 +7494,7 @@ function queueEncounterWarning(options={}){
   const priorMode=S.travelMode;
   S.travelMode="stopped";
   const profile=options.profile || (options.boss ? BOSS_PROFILE : chooseFoeProfile());
+  if(tryConcealedContact(profile,options,priorMode)) return true;
   const durationMs=encounterWarningDurationMs();
   encounterWarningState={
     options:{...options},profile,priorMode,durationMs,
@@ -7691,10 +7856,30 @@ function migrateSave3To4(snapshot){
   if(typeof next.ui.combatLogCollapsed!=="boolean") next.ui.combatLogCollapsed=true;
   return next;
 }
+function migrateSave4To5(snapshot){
+  const next=cloneForSave(snapshot);next.schema=5;
+  const state=next.state;
+  if(isSaveRecord(state)){
+    if(isSaveRecord(state.skills)) for(const st of Object.values(state.skills)){
+      if(!isSaveRecord(st)) continue;
+      const rank=Math.max(0,Number(st.rank)||0),oldNeed=3+rank*2,oldXp=Math.max(0,Number(st.xp)||0);
+      st.rank=Math.floor(rank);st.xp=Math.round(clamp(oldXp/Math.max(1,oldNeed),0,.999)*SKILL_XP_PER_RANK);
+    }
+    if(!Number.isInteger(state.stealthOpportunitySeq)) state.stealthOpportunitySeq=0;
+    if(!isSaveRecord(state.concealment)) state.concealment=null;
+    if(!isSaveRecord(state.abilities)) state.abilities={};
+    for(const id of UNIVERSAL_ABILITY_IDS){
+      const def=ABILITY_DEFS[id];
+      if(def && !isSaveRecord(state.abilities[id])) state.abilities[id]={cur:def.max,max:def.max,degree:def.degree};
+    }
+  }
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
-  3:migrateSave3To4
+  3:migrateSave3To4,
+  4:migrateSave4To5
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -7894,6 +8079,10 @@ function normalizeRestoredRun(){
   S.seenFoes=S.seenFoes||{};
   S.seenTravelEvents=S.seenTravelEvents||{};
   S.skillPracticeSources=S.skillPracticeSources||{};
+  S.stealthOpportunitySeq=Number.isInteger(S.stealthOpportunitySeq)?S.stealthOpportunitySeq:0;
+  S.concealment=(S.concealment&&Number(S.concealment.remainingMs)>0)?{remainingMs:Number(S.concealment.remainingMs)}:null;
+  S.abilities=S.abilities||{};
+  for(const id of UNIVERSAL_ABILITY_IDS){const def=ABILITY_DEFS[id];if(def&&!S.abilities[id])S.abilities[id]={cur:def.max,max:def.max,degree:def.degree};}
   S.lootHistory=Array.isArray(S.lootHistory)?S.lootHistory:[];
   S.combatLog=Array.isArray(S.combatLog)?S.combatLog:[];
   S.generatedItems=(S.generatedItems && typeof S.generatedItems==="object" && !Array.isArray(S.generatedItems))?S.generatedItems:{};
@@ -8098,7 +8287,7 @@ renderTravelLogCollapse();
    ============================================================ */
 const SIDE_FINALE_TYPES=["cache","mimic","puzzle"];
 const MIMIC_PROFILE={
-  id:"mimic",name:"hungry mimic",unlock:0,hp:58,atk:8,xp:22,danger:2,
+  id:"mimic",name:"hungry mimic",unlock:0,hp:58,atk:8,xp:22,danger:2,awareness:14,
   intents:{quick:30,heavy:25,dodge:5,guard:25,recover:15},recoverAt:.30,
   hurtIntents:{quick:20,heavy:45,dodge:5,guard:15,recover:15},hurtAt:.45,
   weakness:{id:"false_hinge",txt:"Its false hinges gape after committed attacks. Counters deal +45% damage.",eff:{counterBonus:1.45}}
@@ -8167,7 +8356,7 @@ function beginPuzzleFinale(){
 }
 function attemptPuzzleSkill(skill,baseDc,situational=0){
   const p=puzzleState(),step=puzzleCurrent();if(!p||!step||S.travelEvent.stage!=="puzzle-step")return;
-  const dc=trapDc(baseDc),c=runSkillCheck(skill,dc,situational),practice=awardSkillPractice(skill,`side-puzzle:${S.sideArea.id}:${p.step}`,c.success?2:1);
+  const dc=trapDc(baseDc),c=runSkillCheck(skill,dc,situational),practice=awardSkillPractice(skill,`side-puzzle:${S.sideArea.id}:${p.step}`,c);
   p.attempts++;if(c.success)p.successes++;
   p.lastSuccess=c.success;p.lastHtml=formatSkillCheck(c)+practiceText(skill,practice);
   S.travelEvent.stage="puzzle-result";S.travelEvent.rollHtml=p.lastHtml;S.travelEvent.title=c.success?"The seal settles":"The seal slips";

@@ -1,7 +1,7 @@
 # Fathom — Balance Reference
 
-**Build reference:** v0.085.0  
-**Session:** 9D — Procedural Equipment  
+**Build reference:** v0.086.0  
+**Session:** 9E — Skill Foundation  
 
 This file records the agreed balance spine so later item work does not need to re-open the same architecture. Constants are tuning targets, not promises that playtesting can never change them.
 
@@ -149,7 +149,7 @@ Named/themed/Unique equipment may violate ordinary slot rules intentionally.
 - **Provisional Session 9D price:** `+1 attribute = 8 normalized budget`. This is a playtest tuning constant, not a permanent promise.
 - Generic Max Stamina is **not rollable**. Exceptional named items may potentially grant +1 as a special property.
 - Generic Max HP is not part of the first item budget implementation.
-- Skill/check-bonus pricing is deferred until the Skill/DC progression curve is locked; fixed cheap check bonuses would eventually overwhelm a d20 system.
+- Skill/check-bonus item pricing remains deferred. Session 9E establishes the endless Skill rating curve, but the normalized-budget price of +Skill Rating has not yet been tuned against live runs.
 - Equipping CON later must not heal the player. Unequipping Max-HP-granting effects must clamp current HP to the new maximum, never below 1.
 
 ## 8. Rarity ladder
@@ -257,4 +257,166 @@ The purpose of the ongoing playtest is now to evaluate the real endless equipmen
 - crafting, durability and merchants;
 - character-level/stat equipment requirements;
 - class armor restrictions.
+
+## 12. Session 9E endless Skill foundation
+
+Session 9E replaces the old `d20 + attribute + Skill Rank + proficiency vs DC` prototype. The old formula could not survive endless attributes and endless Skill progression because the additive bonuses eventually dwarfed the die.
+
+### 12.1 Rank is a logarithmic expertise rating
+
+Displayed Skill Rank is an **Elo-like logarithmic rating**, not a literal flat bonus added to a die.
+
+```text
+rating gap d = Effective Skill Rating - Challenge Rating
+spread s = 30
+P(success) = 1 / (1 + 10^(-d / s))
+```
+
+`30` is the current playtest spread, not an untouchable constant.
+
+Reference probabilities:
+
+| Rating gap | Approx. success chance |
+|---:|---:|
+| +60 | 99% |
+| +30 | 91% |
+| +15 | 76% |
+| 0 | 50% |
+| -15 | 24% |
+| -30 | 9% |
+| -60 | 1% |
+
+This makes a +1 Rank increase preserve the same underlying proportional meaning at Rank 10, Rank 100 or Rank 1,000.
+
+### 12.2 Percentile resolution, not a larger swing die
+
+Only uncertain contests roll. The game uses a percentile roll internally because a d20 can only represent probability in 5-point steps.
+
+A 24% check succeeds on 24 of 100 possible percentile results; a 76% check succeeds on 76 of 100. The d100 therefore adds **resolution**, not extra volatility. The Skill/Challenge gap determines the probability.
+
+- At roughly 99% or higher: automatic success; no roll.
+- Below roughly 1%: automatic failure; no roll.
+- Between those bounds: percentile roll.
+
+Trivial old obstacles should stop consuming meaningful decisions. They may remain as scenery, free interaction, loot access or evidence of how far the delver has progressed.
+
+### 12.3 Effective Skill Rating and attributes
+
+Attributes remain relevant without becoming endless flat check modifiers.
+
+```text
+attribute aptitude = 8 × log2(effective attribute / 10)
+Effective Skill Rating = trained Skill Rank + aptitude + proficiency + circumstance
+```
+
+The aptitude coefficient `8` is provisional.
+
+Every doubling of the governing attribute adds the same amount of effective Skill Rating. This lets both training and attributes remain meaningful at extreme depth without either one automatically swallowing the other.
+
+Examples:
+
+| Governing attribute | Approx. aptitude |
+|---:|---:|
+| 10 | 0 |
+| 20 | +8 |
+| 40 | +16 |
+| 160 | +32 |
+| 2,400 | +63 |
+
+Attributes below 10 may contribute a small negative aptitude rather than being clamped to zero.
+
+### 12.4 Challenge identity is fixed to the content
+
+**Challenge Rating belongs to the thing being attempted, not automatically to fathom depth.**
+
+A particular rusty lock does not become harder merely because the same kind of lock appears at 30,000 fathoms. If the delver has outgrown it, it becomes automatic.
+
+Depth instead changes the **content mix**. Deeper regions should increasingly introduce new high-rated locks, creatures, materials, languages, hazards and other challenge identities, while some low-rated content continues to appear.
+
+Do not author Skill content as a multiplicative percentage of the player's current Rank. On a logarithmic rating scale, challenge distributions must use **additive rating gaps** around whatever benchmark is eventually observed.
+
+No expected-Skill-Rank-at-depth formula is locked in 9E. That benchmark must be derived from actual practice cadence and playtest data rather than guessed in advance.
+
+### 12.5 Learning-value Skill XP
+
+Skill Rank improves through meaningful learning rather than simple button use.
+
+Current prototype:
+
+```text
+XP to next Rank = 100, flat forever
+base meaningful success = 10 XP
+```
+
+The logarithmic Rank scale already supplies diminishing underlying returns, so the first prototype does not add a growing XP-to-Rank curve.
+
+Practice behavior:
+
+- automatic/trivial resolution: 0 XP;
+- comparable success: normal practice;
+- success against a stronger challenge: increased practice;
+- sufficiently extreme upset success: an **Against the Odds** bonus;
+- failure near the delver's competence: some practice;
+- failure far outside the meaningful learning band: little or no practice.
+
+Hard-success reward increases while hard-failure learning falls away. This preserves the excitement of hitting a rare 1–2% success without making repeated hopeless failure the optimal training strategy.
+
+Each authored opportunity still has a one-use practice identity so the same generated event cannot be farmed indefinitely.
+
+### 12.6 Perception is primarily passive
+
+Perception now establishes what the delver notices before the active decision is presented.
+
+Current proving interactions:
+
+- the exploration glint is passively detected by Perception;
+- side-passage discovery is passively detected by Perception;
+- post-combat bonus-search opportunities are passively surfaced by Perception, then actively examined with Investigation.
+
+A trivial Perception challenge auto-resolves and grants no practice. A near-level passive challenge can grant learning whether it succeeds or fails.
+
+Some deliberate inspection interactions may still use Perception where the player has already chosen to stop and actively scan a suspicious situation; Perception is **mostly passive**, not forbidden from every active context.
+
+### 12.7 Investigation proves active success quality
+
+Investigation remains an active choice. In the first 9E slice it handles deliberate examination and bonus salvage searches.
+
+A successful Investigation can become more productive when the delver's effective rating exceeds the challenge. This is the first prototype of the broader rule:
+
+> Skill progression should improve not only whether an action succeeds, but how well success converts into information, efficiency or reward.
+
+Detailed material-rank and crafting interactions remain future content work.
+
+### 12.8 Stealth vs enemy Awareness
+
+Creatures now have authored **Awareness** ratings. Awareness is content identity, not a universal depth multiplier.
+
+The first Stealth technique is **Concealment I**:
+
+- 2 uses;
+- 10 minutes of active travel per use;
+- timer freezes when travel is held or combat is active;
+- each normal enemy encounter compares Stealth Rating against that creature's Awareness;
+- successful concealment gives the player a choice to **Ambush** or **Let them pass**;
+- Ambush starts combat with a surprise opening and breaks Concealment;
+- Let them pass preserves Concealment but grants no combat XP or loot;
+- being detected breaks Concealment and proceeds to the normal encounter warning;
+- mandatory stratum bosses do not become bypassable through this prototype.
+
+For 9E playtesting, Concealment is available immediately so the Stealth/Awareness loop can actually be exercised. Its eventual Skill-Rank mastery unlock threshold is deliberately **not locked** until Rank cadence is observed.
+
+Studied Bestiary entries reveal a creature's Awareness rating so unusual detection ability can become part of enemy identity.
+
+### 12.9 Long-term Skill progression philosophy
+
+The endless rating is only one layer. Long-term Skill progression should combine:
+
+1. **endless Rank growth** — the number continues to rise;
+2. **automatic mastery of old problems** — former obstacles become beneath the delver;
+3. **sparse qualitative milestones** — new verbs, techniques, information or efficiencies rather than only percentage bonuses;
+4. **new deep content traits** — higher-rated content must increasingly behave differently, not merely carry a larger number.
+
+This prevents infinite progression from degrading into `Rank 1000 vs Challenge 1002` forever.
+
+Failure-quality improvements remain a good future mastery axis, but are deferred until the base success-quality and resolver loop has been playtested.
 
