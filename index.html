@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.088.8 — Skill Resolver Null-Roll Fix</title>
+<title>Lowfathom v0.088.9 — Session 9E Combat Opening Fixes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.088.8 Skill resolver null-roll fix + protected v0.088.7 percentile pair + v0.075 Smite FX
+   LOWFATHOM — v0.088.9 Session 9E combat opening fixes + protected v0.088.8 Skill resolver + v0.088.7 percentile pair + v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -132,6 +132,8 @@
    - v0.088.6: fixes the accidental third die by using Dice Box's native d100 percentile pair alone, restores the forced 1–100 debug result control, and changes the Fathom theme from glossy to matte black
    - v0.088.7: reads Dice Box's native d100 as one logical combined result (while it renders two physical dice), normalizes 00+0 to Fathom 100, and suppresses specular highlights for a truer matte-black finish
    - v0.088.8: fixes the Skill resolver treating its null roll override as a forced 1, restoring genuine hidden d100 rolls for passive checks and Dice Animation OFF while preserving physical percentile results when animation is on
+   - v0.088.9: Concealment Ambush now begins against an Unaware foe; the delver gets one normal opening action with no enemy response before the foe rolls its first real intent
+   - v0.088.9: fresh encounters can never open on Recover; recovery intents remain restricted to genuinely wounded foes
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9E replaces the finite d20 Skill modifier prototype with an endless rating resolver while preserving the equipment and combat spine from 9C–9D.
@@ -2312,6 +2314,11 @@ const INTENTS = {
     tell:"sucking air, giving ground",
     kind:"stance", mult:0, armour:0, heal:0.14
   },
+  unaware: {
+    label:"Unaware",
+    tell:"has not noticed you yet",
+    kind:"stance", mult:0, armour:0
+  },
   steady: {
     label:"Steady",
     tell:"planting its feet and recovering its balance",
@@ -2403,7 +2410,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.088.8";
+const BUILD_VERSION = "v0.088.9";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal"});
@@ -4476,13 +4483,13 @@ function spawnEncounter(options={}){
   }
 
   rollIntent();
-  if(options.surprise){S.foe.surprised=true;S.foe.intent="recover";}
+  if(options.surprise){S.foe.surprised=true;S.foe.intent="unaware";}
   if(S.foe.revealed){
     S.foe.weaknessManualOpen = null;
     S.foe.weaknessAutoOpenUntil = S.turn;
   }
   say(options.surprise
-    ? `<p class="said">You catch ${esc(article(S.foe.name))} before it can react.</p><p class="good">Surprise opening: its first intent is Recover.</p>`
+    ? `<p class="said">You catch ${esc(article(S.foe.name))} before it can react.</p><p class="good">Surprise opening: it is <b>Unaware</b>. Your first action gets no enemy response.</p>`
     : `<p class="said">${cap(article(S.foe.name))} comes out of the dark.</p>`);
   render();
   return true;
@@ -4866,6 +4873,9 @@ function travelTick(){
 function rollIntent(){
   const f = S.foe;
   const forceNonDodge = !!f?.forceNonDodge;
+  // A fresh foe cannot sensibly begin combat by recovering. Capture the opening
+  // state before rollOnce mutates f.intent so rerolls preserve the restriction.
+  const openingIntent = S.turn === 1 && f?.intent == null;
 
   const rollOnce = () => {
     // Off-Balance has its own mini-state machine. The foe cannot Guard, Dodge,
@@ -4886,8 +4896,10 @@ function rollIntent(){
     // The Scrounger changes personality once wounded: recovery becomes its puzzle.
     if(p.hurtIntents && frac <= p.hurtAt) weights = {...p.hurtIntents};
 
-    // Other profiles only add Recover when they are actually hurt enough to need it.
-    if(!p.hurtIntents && weights.recover && frac > (p.recoverAt ?? 0.30)) weights.recover = 0;
+    // Recover is never an opening intent, and no profile may Recover before its
+    // authored wound threshold. hurtIntents may change the weights, but they do
+    // not bypass the requirement that there is actually something to recover from.
+    if(weights.recover && (openingIntent || frac > (p.recoverAt ?? 0.30))) weights.recover = 0;
 
     // The Oldhand recognises a visible Heavy commitment and tries to slip it. Its
     // protected weakness is therefore valuable precisely because it is hard to land.
@@ -5752,7 +5764,12 @@ function takeTurn(key){
       out += `<p class="note">It lashed out instead of recovering its footing. It is still <b>Off-Balance</b>.</p>`;
     }
   } else {
-    out += `<p class="note">${I.label}: it did not attack.</p>`;
+    if(f.intent === "unaware"){
+      out += `<p class="good"><b>Unaware.</b> It does not react before your opening action resolves.</p>`;
+      f.surprised = false;
+    } else {
+      out += `<p class="note">${I.label}: it did not attack.</p>`;
+    }
 
     // Steady spends the enemy's entire action and clears Off-Balance only
     // after the player has had this turn to exploit the opening.
@@ -8934,7 +8951,7 @@ const ready=Promise.race([initAttempt,initTimeout]).then(()=>{
   window.fathomDiceBoxFailed=false;
   layer?.classList.remove("loading");
   if(status)status.textContent="Percentile dice ready";
-  console.info("Fathom percentile dice ready (v0.088.8 Skill resolver null-roll fix + v0.088.7 native d100 parser + matte obsidian theme)");
+  console.info("Fathom ready (v0.088.9 Session 9E combat opening fixes + v0.088.8 Skill resolver null-roll fix + v0.088.7 native d100 parser + matte obsidian theme)");
   return diceBox;
 }).catch(err=>{
   window.fathomDiceBoxReady=false;
