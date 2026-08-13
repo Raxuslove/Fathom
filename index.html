@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.090.2 — Merchant Camps & Route Landmarks</title>
+<title>Lowfathom v0.090.3 — Merchant Screen Refinement</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
@@ -466,6 +466,19 @@ button{
   height:min(81%,calc(100% - 150px));min-height:0;display:flex;flex-direction:column;overflow:hidden;
   background:var(--panel);border-top:1px solid var(--rule-hi);
 }
+.pack-sheet.merchant-mode{background:var(--deep)}
+.pack-sheet.merchant-mode .pack-scrim{display:none}
+.pack-sheet.merchant-mode .pack-panel{height:100%;background:var(--deep);border-top:none}
+.merchant-combat-head[hidden]{display:none}
+.merchant-combat-head .foe{padding-top:calc(10px + env(safe-area-inset-top));background:#11171c}
+.merchant-combat-head .sprite{flex-basis:98px;height:98px;font-size:34px;border-style:solid;border-color:#31414f;background:radial-gradient(circle at 50% 36%,rgba(95,130,189,.22),transparent 56%),#10161b;color:#5d86b7}
+.merchant-combat-head .sprite::before,.merchant-combat-head .sprite::after{display:none}
+.merchant-combat-head .tell{border-left-color:#8ab7f1;background:rgba(79,130,189,.09);color:#b8d4f6}
+.merchant-combat-head .tell em{color:#8ab7f1}
+.merchant-combat-head .intent{border-left-color:#8a7550;background:rgba(217,154,78,.10)}
+.merchant-combat-head .intent em{color:var(--dim)}
+.merchant-combat-head .intent b{font-size:17px}
+.merchant-combat-head .cname .lv{color:#8ab7f1}
 .pack-tabs{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
 .pack-tabs.merchant-tabs{grid-template-columns:repeat(3,1fr)}
 .currency-strip{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 11px;background:#0f1418;border-bottom:1px solid var(--rule);font-family:var(--cond);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
@@ -1959,6 +1972,18 @@ button{
   <div class="pack-sheet" id="packSheet" hidden>
     <div class="pack-scrim" id="packScrim"></div>
     <div class="pack-panel">
+      <section class="merchant-combat-head" id="merchantCombatHead" hidden aria-live="polite">
+        <div class="foe">
+          <div class="foe-top">
+            <div class="foe-id">
+              <div class="cname"><b id="merchantHeadName">Wayfarer</b><span class="lv" id="merchantHeadPurse">0 SC</span></div>
+              <div class="tell"><em>Merchant camp</em><span id="merchantHeadNote">A neutral trader waits beside the route.</span></div>
+            </div>
+            <div class="sprite" id="merchantHeadPortrait" aria-hidden="true">¤</div>
+          </div>
+        </div>
+        <div class="intent unknown" id="merchantHeadIntent"><em>Trade</em><b id="merchantHeadIntentText">Open trade — buy, sell, or move on.</b></div>
+      </section>
       <div class="pack-tabs" id="packTabs" role="tablist" aria-label="Inventory view">
         <button class="pack-tab active" id="btnPackTabBackpack" type="button" data-pack-tab="backpack" role="tab" aria-selected="true">Backpack</button>
         <button class="pack-tab" id="btnPackTabEquipment" type="button" data-pack-tab="equipment" role="tab" aria-selected="false">Equipment</button>
@@ -2451,7 +2476,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.090.2";
+const BUILD_VERSION = "v0.090.3";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal"});
@@ -4452,23 +4477,35 @@ function renderPack(rememberView=true){
     packClose.setAttribute("aria-label",returning?"Back to Character Equipment":combatPack?"Back to combat":"Back to the delve");
   }
 
-  const tabs=$("packTabs"), currencyLabel=$("packCurrencyLabel"), merchantStrip=$("merchantStrip");
+  const tabs=$("packTabs"), currencyLabel=$("packCurrencyLabel"), merchantStrip=$("merchantStrip"), merchantHead=$("merchantCombatHead"), packSheet=$("packSheet");
+  if(packSheet) packSheet.classList.toggle("merchant-mode", S.packMode==="merchant");
   if(S.packMode==="merchant"){
     tabs.classList.add("merchant-tabs");
     tabs.innerHTML=`<button class="pack-tab ${merchantView==="buy"?"active":""}" type="button" data-merchant-view="buy">Buy</button><button class="pack-tab ${merchantView==="sell-equipment"?"active":""}" type="button" data-merchant-view="sell-equipment">Sell Gear</button><button class="pack-tab ${merchantView==="sell-backpack"?"active":""}" type="button" data-merchant-view="sell-backpack">Sell Pack</button>`;
     if(currencyLabel) currencyLabel.textContent="Your purse";
     if($("packGold")) $("packGold").textContent=formatGold(S.gold||0);
     const m=currentMerchant();
-    if(merchantStrip){
-      merchantStrip.hidden=!m;
-      if(m) merchantStrip.innerHTML=`<div class="merchant-strip-main"><b>${esc(m.title)} ${esc(m.name)}</b><span>merchant camp</span></div><div class="merchant-strip-side"><span>merchant purse</span><b>${formatGold(m.purse)}</b></div>`;
+    if(merchantHead){
+      merchantHead.hidden=!m;
+      if(m){
+        $("merchantHeadName").textContent=`${m.title} ${m.name}`;
+        $("merchantHeadPurse").textContent=`Merchant Purse · ${formatGold(m.purse)}`;
+        $("merchantHeadNote").textContent=`Neutral trader · ${m.stock.filter(x=>(x.kind!=="supply")||x.qty>0).length} goods visible`;
+        $("merchantHeadIntentText").textContent = merchantView==="buy"
+          ? "Browse the stock — spend coins to purchase carried goods."
+          : merchantView==="sell-equipment"
+            ? "Sell gear — bundle equipment the merchant can afford."
+            : "Sell pack goods — trade away whole carried stacks.";
+      }
     }
+    if(merchantStrip){ merchantStrip.hidden=true; merchantStrip.innerHTML=""; }
   }else{
     tabs.classList.remove("merchant-tabs");
     tabs.innerHTML=`<button class="pack-tab ${packActiveTab==="backpack"?"active":""}" id="btnPackTabBackpack" type="button" data-pack-tab="backpack" role="tab" aria-selected="${packActiveTab==="backpack"?"true":"false"}">Backpack</button><button class="pack-tab ${packActiveTab==="equipment"?"active":""}" id="btnPackTabEquipment" type="button" data-pack-tab="equipment" role="tab" aria-selected="${packActiveTab==="equipment"?"true":"false"}">Equipment</button>`;
     if(currencyLabel) currencyLabel.textContent="Coins";
     if($("packGold")) $("packGold").textContent=formatGold(S.gold||0);
     if(merchantStrip){ merchantStrip.hidden=true; merchantStrip.innerHTML=""; }
+    if(merchantHead) merchantHead.hidden=true;
   }
   const filterBar=$("packFilterBar");
   const root=$("packDynamicItems");
