@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.088.9 — Session 9E Combat Opening Fixes</title>
+<title>Lowfathom v0.089.0 — Session 9E Skill Progression</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.088.9 Session 9E combat opening fixes + protected v0.088.8 Skill resolver + v0.088.7 percentile pair + v0.075 Smite FX
+   LOWFATHOM — v0.089.0 Session 9E Skill progression + combat/loot fixes + protected percentile foundation + v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -134,6 +134,9 @@
    - v0.088.8: fixes the Skill resolver treating its null roll override as a forced 1, restoring genuine hidden d100 rolls for passive checks and Dice Animation OFF while preserving physical percentile results when animation is on
    - v0.088.9: Concealment Ambush now begins against an Unaware foe; the delver gets one normal opening action with no enemy response before the foe rolls its first real intent
    - v0.088.9: fresh encounters can never open on Recover; recovery intents remain restricted to genuinely wounded foes
+   - v0.089.0: Skill Rank now uses a growing XP requirement, slowly rising practice rewards, 5% Against the Odds bonuses and temporary per-Skill diagnostics
+   - v0.089.0: Bleeding lasts 30 active seconds, ticks every 5 seconds, and advances through combat at roughly 5 seconds per two turns
+   - v0.089.0: Loot History emphasizes the loot over its source creature; side-cache and Mimic equipment rewards now enter the real Equipment inventory
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9E replaces the finite d20 Skill modifier prototype with an endless rating resolver while preserving the equipment and combat spine from 9C–9D.
@@ -1341,9 +1344,9 @@ button{
   padding:6px 8px;text-align:left;color:var(--bone);
 }
 .loot-log-btn:active{background:#20272d;border-color:var(--lamp-dim)}
-.loot-log-btn b{font-family:var(--slab);font-size:12.5px;color:var(--lamp);font-weight:600}
-.loot-log-btn span{display:block;margin-top:1px;font-family:var(--cond);font-size:9px;line-height:1.3;color:var(--dim)}
-.loot-log-btn .loot-log-items{color:#a9a397}
+.loot-log-btn .loot-log-source{display:block;margin-top:0;font-family:var(--cond);font-size:9px;line-height:1.3;color:var(--dim)}
+.loot-log-btn .loot-log-items{display:block;margin-top:2px;font-family:var(--slab);font-size:12.5px;line-height:1.3;color:var(--lamp);font-weight:600}
+.loot-log-btn .loot-log-note{display:block;margin-top:1px;font-family:var(--cond);font-size:9px;line-height:1.3;color:#59636e}
 .loot-history-sheet{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;justify-content:flex-end}
 .loot-history-sheet[hidden]{display:none}
 .loot-history-scrim{flex:1;min-height:0;background:transparent}
@@ -1358,9 +1361,9 @@ button{
 .loot-history-entry{padding:10px 13px;border-bottom:1px solid var(--rule);background:#141a20}
 .loot-history-entry.selected{box-shadow:inset 3px 0 0 var(--lamp-dim);background:#192129}
 .loot-history-entry-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.loot-history-entry b{font-family:var(--slab);font-size:14px;color:var(--bone)}
+.loot-history-entry .loot-history-foe{font-family:var(--cond);font-size:11px;color:#858b8f;font-weight:400}
 .loot-history-entry em{font-style:normal;font-family:var(--cond);font-size:9px;color:var(--dim);white-space:nowrap}
-.loot-history-entry p{margin:3px 0 0;font-size:11.5px;color:#a8a296}
+.loot-history-entry .loot-history-items{margin:4px 0 0;font-family:var(--slab);font-size:13.5px;color:var(--lamp);font-weight:600;letter-spacing:.01em}
 .loot-history-entry small{display:block;margin-top:3px;font-family:var(--cond);font-size:9.5px;color:var(--verdigris)}
 .loot-history-note{padding:8px 13px;background:#101418;border-top:1px solid var(--rule);font-size:10px;color:#59636e}
 .loot-history-close{width:100%;min-height:50px;border:none;border-top:1px solid var(--rule);background:#12181e;padding:12px 13px calc(12px + env(safe-area-inset-bottom));font-family:var(--cond);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
@@ -1474,6 +1477,11 @@ button{
 
 .settings-info-open{min-width:78px;border:1px solid var(--lamp-dim);background:#171d23;padding:8px 10px;font-family:var(--cond);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--lamp)}
 .settings-info-open:active{background:#20272d}
+.skill-diagnostics{display:grid;gap:5px;margin-top:9px}
+.skill-diagnostic-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,2fr);gap:8px;align-items:baseline;padding:6px 7px;border:1px solid var(--rule);background:#101418}
+.skill-diagnostic-row b{font-family:var(--slab);font-size:12px;color:var(--bone);font-weight:600}
+.skill-diagnostic-row span{font-family:var(--cond);font-size:9px;line-height:1.3;color:var(--dim);text-align:right}
+.skill-diagnostic-row em{font-style:normal;color:var(--verdigris)}
 
 /* ---------- v0.087.0: chaptered Info & Rules ---------- */
 .info-sheet{position:absolute;inset:0;z-index:45;display:flex;flex-direction:column;justify-content:flex-end}
@@ -1980,13 +1988,13 @@ button{
       <section class="char-page" data-char-page="status" hidden>
         <div class="char-section-head"><b>Status effects</b><span>active conditions</span></div>
         <div class="char-status-list" id="charStatuses"></div>
-        <div class="char-field-note">Encounter-based effects count down only when an encounter is completed. Bleeding lasts until treated.</div>
+        <div class="char-field-note">Encounter-based effects count down only when an encounter is completed. Bleeding runs for up to 30 active seconds and can still be stopped early with a Bandage, Rest or Camp.</div>
       </section>
 
       <section class="char-page" data-char-page="skills" hidden>
         <div class="char-section-head"><b>Skills</b><span>practice through use</span></div>
         <div class="char-field-skills" id="charSkills"></div>
-        <div class="char-field-note">Skill Rank is an endless expertise rating. Relevant attributes add logarithmic aptitude; class proficiency and circumstances add small rating shifts. Only uncertain contests roll percentile. Trivial challenges resolve automatically, and practice comes from genuine learning value rather than button use.</div>
+        <div class="char-field-note">Skill Rank is an endless expertise rating. Relevant attributes add logarithmic aptitude; class proficiency and circumstances add small rating shifts. Only uncertain contests roll percentile. Rank requirements grow over time, while meaningful practice rewards rise slowly with expertise. Trivial challenges resolve automatically and give no useful practice.</div>
       </section>
 
       <section class="char-page equipment-page" data-char-page="equipment" hidden>
@@ -2069,19 +2077,14 @@ button{
             <button class="settings-choice" type="button" data-dice-size="large">Large</button>
           </div>
         </div>
+      </section>
+      <section class="settings-section">
+        <div class="settings-section-title">9E Skill diagnostics · temporary</div>
         <div class="settings-row stack">
-          <div class="settings-copy"><b>Dice test <span style="color:var(--lamp)">· temporary</span></b><span>Rolls the real matte-black percentile pair at Need 51+. Dice Box presents two physical dice but returns their combined percentile value as one logical d100 result. Force result is a debug-only result test and does not pretend the physics landed on that chosen number.</span></div>
-          <div class="dice-test-tools">
-            <button class="dice-test-button" id="btnDiceTestRandom" type="button">Roll percentile dice</button>
-            <div class="dice-test-custom">
-              <div class="dice-test-field">
-                <label for="diceTestValue">Force result · 1–100</label>
-                <input id="diceTestValue" type="number" min="1" max="100" step="1" inputmode="numeric" value="100">
-              </div>
-              <button class="dice-test-button" id="btnDiceTestCustom" type="button">Test</button>
-            </div>
-          </div>
+          <div class="settings-copy"><b>Practice frequency</b><span>Counts unique Skill opportunities in this chronicle so progression can be tuned from real play without increasing encounter frequency. Automatic checks are included in Attempts but grant no XP.</span></div>
+          <div class="skill-diagnostics" id="skillDiagnostics"></div>
         </div>
+        <button class="settings-reset" id="btnResetSkillDiagnostics" type="button">Reset Skill diagnostics only</button>
       </section>
       <section class="settings-section">
         <div class="settings-section-title">Info &amp; Rules</div>
@@ -2410,7 +2413,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.088.9";
+const BUILD_VERSION = "v0.089.0";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal"});
@@ -2420,6 +2423,9 @@ let settings = {...DEFAULT_SETTINGS};
 
 const TRAVEL_TICK_MS = 500;
 const TRAVEL_STEP = 0.25;          // 0.5 fathom / second while Descending
+const BLEED_DURATION_MS = 30 * 1000;
+const BLEED_TICK_MS = 5 * 1000;
+const BLEED_COMBAT_TURN_MS = 2500;    // two completed combat turns ~= one 5-second bleed tick
 const TRAVEL_QUIET = 3;            // a short breathing stretch after an event
 const TRAVEL_FORCE_EVENT = 16;     // prototype anti-drought cap
 const TRAIL_BEHIND = 10;              // compact minimap: behind the delver
@@ -2625,9 +2631,11 @@ const SKILL_ORDER = ["perception","investigation","stealth","acrobatics","athlet
 const SKILL_RATING_SPREAD = 30;              // +30 rating => about 91% success; -30 => about 9%
 const SKILL_APTITUDE_PER_DOUBLING = 8;       // every doubling of the governing attribute contributes +8 effective rating
 const SKILL_CHALLENGE_STEP = 8;              // compatibility map for the existing 8–14 authored check scale
-const SKILL_XP_PER_RANK = 100;               // flat forever; the logarithmic rating already encodes diminishing returns
+const SKILL_XP_BASE = 100;                    // Rank 0 -> 1 begins at roughly ten balanced successes
+const SKILL_XP_PER_RANK_GROWTH = 10;          // each later Rank asks for a little more long-term practice
 const SKILL_BASE_PRACTICE = 10;
-const SKILL_AGAINST_ODDS_U = -1.5;
+const SKILL_PRACTICE_GROWTH_DIVISOR = 200;    // practice rewards rise slowly as expertise rises
+const SKILL_AGAINST_ODDS_PCT = 5;             // any successful check displayed at 5% or lower
 const SKILL_AUTO_SUCCESS_CHANCE = 0.99;
 const SKILL_AUTO_FAIL_CHANCE = 0.01;
 const CONCEALMENT_DURATION_MS = 10 * 60 * 1000;
@@ -2690,7 +2698,7 @@ let combatVictoryTimer = null;
 let combatLogCollapsed = true;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 5;
+const SAVE_SCHEMA = 6;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -2828,7 +2836,9 @@ function humanTraitsComplete(draft=creatorDraft){
 }
 
 function skillState(id){ return S?.skills?.[id] || null; }
-function skillXpNeeded(){ return SKILL_XP_PER_RANK; }
+function skillXpNeeded(rank=0){ return Math.max(1,Math.round(SKILL_XP_BASE + SKILL_XP_PER_RANK_GROWTH*Math.max(0,Number(rank)||0))); }
+function skillBasePractice(rank=0){ return SKILL_BASE_PRACTICE * (1 + Math.max(0,Number(rank)||0)/SKILL_PRACTICE_GROWTH_DIVISOR); }
+function skillAgainstOdds(result){ return !!(result?.success && !result?.automatic && Math.round((Number(result.chance)||0)*100)<=SKILL_AGAINST_ODDS_PCT); }
 function signed(n){ return n >= 0 ? `+${n}` : `${n}`; }
 function formatRating(n){
   const v=Math.round((Number(n)||0)*10)/10;
@@ -2962,15 +2972,40 @@ async function runActiveSkillCheck(id,challenge,situational=0){
 
 function skillPracticeAmount(result){
   if(!result || result.automatic) return 0;
-  const u=result.normalizedGap;
+  const rank=Math.max(0,Number(result.rank)||0),base=skillBasePractice(rank),u=Number(result.normalizedGap)||0;
   if(result.success){
-    let amount=SKILL_BASE_PRACTICE*(1+Math.min(2.5,Math.max(0,-u)));
-    if(u<=SKILL_AGAINST_ODDS_U) amount+=SKILL_BASE_PRACTICE;
+    // Balanced success is the anchor. Easier-but-still-uncertain work teaches less;
+    // harder success teaches more. The learning value grows slowly with Rank.
+    const multiplier=u>=0 ? clamp(1-u*.35,.25,1) : 1+Math.min(2.5,-u);
+    let amount=base*multiplier;
+    if(skillAgainstOdds(result)) amount=amount*2 + base*.5;
     return Math.max(1,Math.round(amount));
   }
-  // Failure can teach, but the learning value fades toward hopeless or trivial attempts.
-  const relevance=clamp(1-Math.abs(u)/2.5,0,1);
-  return Math.max(0,Math.round(SKILL_BASE_PRACTICE*0.4*relevance));
+  // Failure teaches most near an even contest and fades to zero near displayed
+  // 5%/95% extremes, so hopeless failure is never the optimal practice strategy.
+  const chance=clamp(Number(result.chance)||0,0,1),displayPct=Math.round(chance*100);
+  if(displayPct<=SKILL_AGAINST_ODDS_PCT || displayPct>=95) return 0;
+  const relevance=clamp(1-Math.abs(chance-.5)/.45,0,1);
+  return Math.max(0,Math.round(base*.4*relevance));
+}
+function ensureSkillDiagnostics(){
+  if(!S) return {};
+  if(!S.skillDiagnostics || typeof S.skillDiagnostics!=="object" || Array.isArray(S.skillDiagnostics)) S.skillDiagnostics={};
+  for(const id of SKILL_ORDER){
+    const d=S.skillDiagnostics[id];
+    S.skillDiagnostics[id]=(d&&typeof d==="object"&&!Array.isArray(d))?d:{attempts:0,successes:0,failures:0,automatic:0,xp:0,againstOdds:0};
+    for(const key of ["attempts","successes","failures","automatic","xp","againstOdds"]) S.skillDiagnostics[id][key]=Math.max(0,Number(S.skillDiagnostics[id][key])||0);
+  }
+  return S.skillDiagnostics;
+}
+function recordSkillDiagnostic(id,result,amount){
+  if(!S?.skills?.[id] || !result || typeof result!=="object") return;
+  const d=ensureSkillDiagnostics()[id];
+  d.attempts++;
+  if(result.success)d.successes++;else d.failures++;
+  if(result.automatic)d.automatic++;
+  d.xp+=Math.max(0,Number(amount)||0);
+  if(skillAgainstOdds(result))d.againstOdds++;
 }
 function awardSkillPractice(id, source, result=null){
   if(!S?.skills?.[id]) return {awarded:false,levelled:false};
@@ -2978,6 +3013,7 @@ function awardSkillPractice(id, source, result=null){
   if(S.skillPracticeSources[source][id]) return {awarded:false,levelled:false};
   S.skillPracticeSources[source][id]=true;
   const amount=typeof result==="number"?Math.max(0,Math.round(result)):skillPracticeAmount(result);
+  recordSkillDiagnostic(id,result,amount);
   const st=S.skills[id], beforeRank=st.rank;
   if(amount>0) st.xp+=amount;
   while(st.xp>=skillXpNeeded(st.rank)){
@@ -2986,7 +3022,7 @@ function awardSkillPractice(id, source, result=null){
   }
   const levelled=st.rank>beforeRank;
   if(levelled) markSkillRankNotice(id);
-  return {awarded:amount>0,amount,levelled,againstOdds:!!(result?.success && !result?.automatic && result.normalizedGap<=SKILL_AGAINST_ODDS_U),rank:st.rank,xp:st.xp,next:skillXpNeeded(st.rank)};
+  return {awarded:amount>0,amount,levelled,againstOdds:skillAgainstOdds(result),rank:st.rank,xp:st.xp,next:skillXpNeeded(st.rank)};
 }
 function practiceText(id, practice){
   if(!practice?.awarded) return "";
@@ -3033,7 +3069,7 @@ function newDelver(profile){
     loadout:cls === "Votary" ? (equipmentItemIsShield(startingEquipment.leftHand)?"shield":"sword") : cls === "Rogue" ? "rogue" : "staff",
     depth:0, encounter:0, seenFoes:{}, seenTravelEvents:{}, travelEvent:null,
     exploreActivity:0, exploreElapsedMs:0, exploreDepth:0,
-    skills:Object.fromEntries(SKILL_ORDER.map(id => [id,{rank:0,xp:0}])), skillPracticeSources:{},
+    skills:Object.fromEntries(SKILL_ORDER.map(id => [id,{rank:0,xp:0}])), skillPracticeSources:{}, skillDiagnostics:{},
     travelMode:"stopped", travelSinceEvent:0, travelLog:[], restRecovery:REST_RECOVERY_REQUIRED,
     inventory:{
       campSupplies:STARTING_CAMP_SUPPLIES, bandages:1, meat:0, rope:0, water:1,
@@ -3049,7 +3085,7 @@ function newDelver(profile){
     languageKnown:cls==="Wizard"?["Cor"]:[],
     sideArea:null, sideDiscoveryStratum:0, sideDiscoveryAt:ri(15,30), sideDiscoveryAttempted:false,
     sideAreaResolved:false, sideAreaHistory:[],
-    curse:null, bleeding:false, bleedTravel:0, bossDefeated:{}, packMode:null,
+    curse:null, bleeding:false, bleedRemainingMs:0, bleedAccumulatorMs:0, bleedCombatTurns:0, bossDefeated:{}, packMode:null,
     runAttemptStratum:0, runAttempts:0,
     descentXpMaxDepth:0, descentXpPending:0,
     lootHistory:[], pendingLoot:null, combatLog:[], concealment:null, stealthOpportunitySeq:0,
@@ -4277,7 +4313,7 @@ function campAtHollow(){
   pauseBoonClock();
   S.travelMode="stopped";
   S.pendingBoonChoice=true;
-  if(wasBleeding){S.bleeding=false;S.bleedTravel=0;}
+  if(wasBleeding)clearBleeding();
   travelLogAdd(`You make camp. <b>HP, Stamina and all ability uses fully restored.</b> Choose a boon for the next stretch.`,"good");
   if(healedHp>0) triggerHealFx(healedHp,["travel"]);
   render();
@@ -4308,8 +4344,7 @@ function takeRest(){
     travelLogAdd(`You rest and${recovered}.`,"good");
   }
   if(wasBleeding){
-    S.bleeding=false;
-    S.bleedTravel=0;
+    clearBleeding();
     travelLogAdd(`Rest also stopped the <b>Bleeding</b>.`,"good");
   }
   render();
@@ -4408,7 +4443,7 @@ function renderPack(rememberView=true){
     let status="";
     if(backpackFilter==="all"){
       if(curseActive()) status+=`<div class="pack-item compact"><div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain · ${esc(S.curse.desc)}</div></div>`;
-      if(S.bleeding) status+=`<div class="pack-item compact"><div class="curse-line"><b>Bleeding</b> · lose small amounts of HP during active travel.</div></div>`;
+      if(S.bleeding) status+=`<div class="pack-item compact"><div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s remain · 1 HP every 5s of active travel/combat.</div></div>`;
     }
     root.innerHTML=status+(visible.length?visible.map(row=>row.html).join(""):`<div class="pack-note">No carried items match this filter.</div>`);
     $("packNote").textContent=offer?"Choose one carried item to place on the altar. Equipment is unavailable while choosing an offering.":combatPack?"Combat Backpack · usable consumables spend your turn. Equipment changes are locked until the fight ends.":"Backpack categories: Consumables · Tools · Quest · Texts · Materials · Other.";
@@ -5553,6 +5588,9 @@ function useHoldFast(){
   }
   S.defenceChain = 0;
   S.strikeChain = 0;
+  const bleed=tickCombatBleeding();
+  if(!bleed.alive)return;
+  out+=bleed.html;
   S.turn++;
   S.abilityQuickUsed = false;
   rollIntent();
@@ -5790,6 +5828,9 @@ function takeTurn(key){
 
   // Base passive Stamina regeneration is intentionally 0. Guard/Parry is the
   // universal reset; later stat thresholds can earn passive regeneration.
+  const bleed=tickCombatBleeding();
+  if(!bleed.alive)return;
+  out+=bleed.html;
   S.turn++;
   S.abilityQuickUsed = false;
   rollIntent();
@@ -6203,8 +6244,8 @@ function renderTravel(){
     status.classList.toggle("moving",false);
     status.classList.toggle("exploring",S.travelMode==="side");
     if(!S.travelEvent) status.innerHTML=S.travelMode==="side"
-      ? `<b>Exploring passage<span class="passage-dots"></span></b> · <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> inside · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · until treated</div>`:""}`
-      : `<b>Held inside passage.</b> <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> explored · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · until treated</div>`:""}`;
+      ? `<b>Exploring passage<span class="passage-dots"></span></b> · <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> inside · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s remain</div>`:""}`
+      : `<b>Held inside passage.</b> <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> explored · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s remain</div>`:""}`;
     $("btnDescend").disabled=true;
     $("btnDescend").classList.remove("active");
     $("btnExplore").disabled=!!S.travelEvent;
@@ -6216,7 +6257,7 @@ function renderTravel(){
     $("btnExplore").querySelector("b").textContent="Explore";
     $("btnExplore").querySelector("span").textContent="hold this depth";
     if(curseActive()&&!S.travelEvent) status.innerHTML+=`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain · ${esc(S.curse.desc)}</div>`;
-    if(S.bleeding&&!S.travelEvent) status.innerHTML+=`<div class="curse-line"><b>Bleeding</b> · active travel slowly costs HP.</div>`;
+    if(S.bleeding&&!S.travelEvent) status.innerHTML+=`<div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s · 1 HP every 5s.</div>`;
   }
   $("packSub").textContent=`${S.inventory.campSupplies} Camp Supplies · ${S.inventory.bandages} Bandage${S.inventory.bandages===1?"":"s"}`;
   document.querySelectorAll(".passage-dots").forEach(el=>el.textContent=liveExploreDots());
@@ -6693,6 +6734,14 @@ function addGeneratedEquipment(item){
   addEquipmentToBag(item.id);
   return item.id;
 }
+function grantAuthoredEquipmentInstance(templateId){
+  const template=EQUIPMENT_ITEMS[templateId];
+  if(!S||!template)return null;
+  const id=generatedInstanceId(),item=cloneForSave(template);
+  item.id=id;item.generated=false;item.authoredReward=true;
+  S.generatedItems=S.generatedItems||{};S.generatedItems[id]=item;addEquipmentToBag(id);
+  return {id,name:item.name};
+}
 
 function equipmentItemDef(id){ return EQUIPMENT_ITEMS[id] || S?.generatedItems?.[id] || null; }
 function equipmentItemLevel(id){ return Number(equipmentItemDef(id)?.itemLevel)||0; }
@@ -6872,7 +6921,7 @@ function useNegateAbility(id, extraStamina=0){
   if(extraStamina) S.stamina=Math.min(S.staminaMax,S.stamina+extraStamina);
   const label=INTENTS[S.foe.intent].label;
   say(`<p class="good"><b>${esc(abilityDisplayName(id))}.</b> ${esc(label)} was completely negated.</p>${extraStamina?`<p class="note">Recovered <b>${extraStamina} Stamina</b> while slipping clear.</p>`:`<p class="note">No Stamina was restored and no counterattack was made.</p>`}`);
-  S.strikeChain=0;S.defenceChain=0;S.heavyCharge=0;S.turn++;S.abilityQuickUsed=false;rollIntent();render();
+  S.strikeChain=0;S.defenceChain=0;S.heavyCharge=0;const bleed=tickCombatBleeding();if(!bleed.alive)return;S.turn++;S.abilityQuickUsed=false;rollIntent();if(bleed.html)say(bleed.html);render();
 }
 ACTIONS.feint={
   label:"Feint I",sub:"0 stamina · DEX ability",cost:0,
@@ -6902,8 +6951,7 @@ function useBandage(){
     return;
   }
   S.inventory.bandages--;
-  S.bleeding=false;
-  S.bleedTravel=0;
+  clearBleeding();
   travelLogAdd(`Used a <b>Bandage</b>. Bleeding stopped.`,"good");
   renderPack();
   render();
@@ -6914,8 +6962,7 @@ ACTIONS.bandage={
   run(){
     if(!S.bleeding || S.inventory.bandages<=0) return `<p class="note">There is nothing to bandage.</p>`;
     S.inventory.bandages--;
-    S.bleeding=false;
-    S.bleedTravel=0;
+    clearBleeding();
     const abandonedHeavy=S.heavyCharge>0;
     S.heavyCharge=0;
     return `<p class="good">Bound the wound with a <b>Bandage</b>. <b>Bleeding stopped.</b></p>${abandonedHeavy?`<p class="note">The prepared Heavy was abandoned.</p>`:""}`;
@@ -6995,7 +7042,7 @@ function beginSideTrap(){
   const a=S.sideArea;if(!a||a.trapSeen)return;a.trapSeen=true;pauseBoonClock();S.travelMode="stopped";S.travelEvent={id:"side-trap",stage:"sense",kind:"Uneasy footing",title:"Did you notice anything?",text:"The passage narrows. Dust lies strangely across the floor ahead.",rollHtml:""};render();
 }
 function triggerTrap(reason="The mechanism fires before you can stop it."){
-  const dmg=Math.max(2,Math.round(3+S.depth/35+ri(0,3)));S.hp-=dmg;S.bleeding=true;S.bleedTravel=0;markCharacterNotice("status");flashTravelDamage();travelLogAdd(`A trap catches you for <b>${dmg} HP</b>. You are <b>Bleeding</b>.`,"danger");
+  const dmg=Math.max(2,Math.round(3+S.depth/35+ri(0,3)));S.hp-=dmg;startBleeding();markCharacterNotice("status");flashTravelDamage();travelLogAdd(`A trap catches you for <b>${dmg} HP</b>. You are <b>Bleeding</b> for up to 30 seconds unless treated.`,"danger");
   if(S.hp<=0){S.travelEvent=null;return die(`<p class="hurt">${esc(reason)} It tore through you for <b>${dmg}</b>.</p>`);}
   S.travelEvent={id:"side-trap",stage:"result",kind:"Trap triggered",title:"The mechanism is spent",text:`${reason} The trap is now broken or discharged; there is nothing left to farm or retry.`,rollHtml:`<span class="bad">Lost ${dmg} HP · Bleeding</span>`};render();
 }
@@ -7034,11 +7081,13 @@ function resolveOffering(kind){
 function openWardedChestDirect(){ if(!S.sideArea.wardCleared&&!curseActive())applyFrailty();S.travelEvent={id:"side-altar",stage:"chest",kind:"End chamber",title:"The chest remains",text:"Whatever guarded the altar has made its claim. Now only the lock stands between you and the contents.",rollHtml:""};render(); }
 function grantChestReward(){
   const roll=ri(1,100),cls=S.className;let text="";
-  if(roll<=30){const id=cls==="Votary"?"tempered_longsword":cls==="Rogue"?"balanced_dagger":"etched_wand";addWeapon(id);text=`${GEAR_ITEMS[id].name} (class primary weapon)`;}
-  else if(roll<=50){const n=cls==="Votary"?"Reinforced Buckler":cls==="Rogue"?"Throwing Knife Set":"Annotated Spellbook";addMisc(n,1);text=`${n} (class secondary)`;}
-  else if(roll<=60){const n=cls==="Votary"?"Riveted Mail":cls==="Rogue"?"Supple Leather":"Runed Cloth";addMisc(n,1);text=`${n} (preferred armour)`;}
-  else if(roll<=70){const n=pick(["Old Silver Ring","Bone Pendant","Verdigris Chain"]);addMisc(n,1);text=`${n} (jewelry)`;}
-  else {const choices=["bandage","meat","rope","water","offweapon","dust"],c=pick(choices);if(c==="bandage"){S.inventory.bandages+=2;text="2 Bandages";}else if(c==="meat"){S.inventory.meat+=2;text="2 Meat";}else if(c==="rope"){S.inventory.rope++;text="Rope";}else if(c==="water"){S.inventory.water++;text="Jug of Water";}else if(c==="offweapon"){const id=pick(["handaxe","hunting_bow"]);addWeapon(id);text=GEAR_ITEMS[id].name;}else{addMisc("Scroll Dust",1);text="a scroll that crumbled into dust";}}
+  const grantGear=(id,suffix="")=>{const item=grantAuthoredEquipmentInstance(id);if(!item)return false;text=`${item.name}${suffix}`;return true;};
+  if(roll<=30){grantGear(cls==="Votary"?"tempered_longsword":cls==="Rogue"?"balanced_dagger":"etched_wand"," (class primary weapon)");}
+  else if(roll<=50){grantGear(cls==="Votary"?"reinforced_buckler":cls==="Rogue"?"parrying_knife":"chalkbound_grimoire"," (class secondary)");}
+  else if(roll<=60){grantGear("ringmail_jack"," (protective equipment)");}
+  else if(roll<=70){grantGear(pick(["iron_signet","bone_ring","saints_pendant"])," (jewelry)");}
+  else {const choices=["bandage","meat","rope","water","offweapon","dust"],c=pick(choices);if(c==="bandage"){S.inventory.bandages+=2;text="2 Bandages";}else if(c==="meat"){S.inventory.meat+=2;text="2 Meat";}else if(c==="rope"){S.inventory.rope++;text="Rope";}else if(c==="water"){S.inventory.water++;text="Jug of Water";}else if(c==="offweapon"){grantGear(pick(["handaxe","hunting_bow"]));}else{addMisc("Scroll Dust",1);text="a scroll that crumbled into dust";}}
+  if(!text){addMisc("Scroll Dust",1);text="Scroll Dust";}
   S.sideArea.chestOpened=true;travelLogAdd(`The chest yields <b>${esc(text)}</b>.`,"good");S.travelEvent={id:"side-altar",stage:"reward",kind:"Side passage complete",title:"The chest opens",text:`You recover ${text}. The route behind you is the only way back to the main descent.`,rollHtml:""};render();
 }
 async function attemptChestLock(){
@@ -7057,8 +7106,47 @@ async function forceChest(){
 
 
 // ----- travel, trap attrition and boss gate -----
+function bleedSecondsRemaining(){ return Math.max(0,Math.ceil((Number(S?.bleedRemainingMs)||0)/1000)); }
+function startBleeding(){
+  if(!S)return;
+  S.bleeding=true;S.bleedRemainingMs=BLEED_DURATION_MS;S.bleedAccumulatorMs=0;S.bleedCombatTurns=0;
+}
+function clearBleeding(){
+  if(!S)return;
+  S.bleeding=false;S.bleedRemainingMs=0;S.bleedAccumulatorMs=0;S.bleedCombatTurns=0;
+}
+function advanceBleeding(ms,context="travel"){
+  if(!S?.bleeding)return {alive:true,damage:0,expired:false,html:""};
+  const dt=Math.max(0,Number(ms)||0);
+  S.bleedRemainingMs=Math.max(0,(Number(S.bleedRemainingMs)||BLEED_DURATION_MS)-dt);
+  S.bleedAccumulatorMs=(Number(S.bleedAccumulatorMs)||0)+dt;
+  let damage=0;
+  while(S.bleeding && S.bleedAccumulatorMs>=BLEED_TICK_MS){
+    S.bleedAccumulatorMs-=BLEED_TICK_MS;S.hp-=1;damage++;flashTravelDamage();
+    if(S.hp<=0){die(`<p class="hurt">The wound kept opening until there was nothing left to give.</p>`);return {alive:false,damage,expired:false,html:""};}
+  }
+  const expired=S.bleedRemainingMs<=0;
+  let html="";
+  if(damage>0){
+    if(context==="combat") html+=`<p class="hurt">Bleeding costs <b>${damage} HP</b>.</p>`;
+    else travelLogAdd(`Bleeding costs <b>${damage} HP</b>. <b>${bleedSecondsRemaining()}s</b> remain.`,"danger");
+  }
+  if(expired){
+    clearBleeding();
+    if(context==="combat") html+=`<p class="good">The bleeding finally slows and stops.</p>`;
+    else travelLogAdd(`The <b>Bleeding</b> finally slows and stops.`,"good");
+  }
+  return {alive:true,damage,expired,html};
+}
 function tickBleeding(){
-  if(!S?.bleeding||S.foe||S.travelEvent||S.travelMode==="stopped")return true;S.bleedTravel=(S.bleedTravel||0)+TRAVEL_STEP;if(S.bleedTravel<4)return true;S.bleedTravel=0;S.hp-=1;flashTravelDamage();travelLogAdd(`Bleeding costs <b>1 HP</b> while you move.`,"danger");if(S.hp<=0){die(`<p class="hurt">The wound kept opening as you moved.</p>`);return false;}return true;
+  if(!S?.bleeding||S.foe||S.travelEvent||S.travelMode==="stopped")return true;
+  return advanceBleeding(TRAVEL_TICK_MS,"travel").alive;
+}
+function tickCombatBleeding(){
+  if(!S?.bleeding)return {alive:true,html:""};
+  S.bleedCombatTurns=((Number(S.bleedCombatTurns)||0)+1)%2;
+  const result=advanceBleeding(BLEED_COMBAT_TURN_MS,"combat");
+  return result;
 }
 function sideTravelTick(){
   if(!S||over||!sideAreaActive()||S.travelMode!=="side"||S.foe||S.travelEvent)return;
@@ -7161,7 +7249,7 @@ function renderStatusEffects(){
     const bandageAction=S.inventory?.bandages>0
       ? `<div class="char-ability-actions"><button class="char-field-use" data-use-bandage ${bandageLocked?"disabled":""}>Use Bandage · ×${S.inventory.bandages}</button></div>`
       : "";
-    rows.push(`<div class="char-status bad"><b>Bleeding</b><span>Until treated · loses 1 HP about every 8 seconds of active travel · Bandage, Rest or Camp removes it.</span>${bandageAction}</div>`);
+    rows.push(`<div class="char-status bad"><b>Bleeding</b><span>${bleedSecondsRemaining()}s remain · loses 1 HP every 5 seconds of active travel/combat · Bandage, Rest or Camp removes it early.</span>${bandageAction}</div>`);
   }
   if(curseActive()) rows.push(`<div class="char-status bad"><b>${esc(S.curse.name)}</b><span>${S.curse.remaining} completed encounters remaining · ${esc(S.curse.desc)}</span></div>`);
   if(S.hollowRespite?.remaining>0) rows.push(`<div class="char-status good"><b>Sheltered</b><span>${S.hollowRespite.remaining} completed encounters remaining · +1 Max Stamina.</span></div>`);
@@ -7197,7 +7285,7 @@ function restAtEmptyHollow(){
   const h=S?.activeHollow; if(!h||S.inventory.campSupplies>0) return;
   cancelHollowAutoResume(); clearHollowTimer(); pauseBoonClock();
   const before=S.hp; S.hp=Math.min(S.hpMax,S.hp+restHealAmount()); const healed=S.hp-before;
-  S.restRecovery=0; S.bleeding=false; S.bleedTravel=0; S.hollowStates[h.key]="used"; S.activeHollow=null; S.travelMode="stopped";
+  S.restRecovery=0; clearBleeding(); S.hollowStates[h.key]="used"; S.activeHollow=null; S.travelMode="stopped";
   grantHollowRespite();
   if(healed>0) triggerHealFx(healed,["travel"]);
   if(abilitiesNeedRestoration()) S.pendingRestAbilityChoice=true;
@@ -7533,7 +7621,7 @@ function addLootLogEntry(rec){
   const row=document.createElement("div");
   row.className="travel-entry loot";
   row.dataset.lootHistory=rec.id;
-  row.innerHTML=`<span class="depth">${formatDepth(rec.depth)}f</span><p><button class="loot-log-btn" data-loot-history="${esc(rec.id)}"><b>Loot · ${esc(cap(rec.foeName))}</b><span class="loot-log-items">${esc(lootItemsText(rec.items))}</span><span>already collected · tap to review</span></button></p>`;
+  row.innerHTML=`<span class="depth">${formatDepth(rec.depth)}f</span><p><button class="loot-log-btn" data-loot-history="${esc(rec.id)}"><span class="loot-log-source">From ${esc(cap(rec.foeName))}</span><b class="loot-log-items">${esc(lootItemsText(rec.items))}</b><span class="loot-log-note">already collected · tap to review</span></button></p>`;
   r.appendChild(row);
   while(r.children.length>120)r.removeChild(r.firstChild);
   if(nearBottom)r.scrollTop=r.scrollHeight;
@@ -7554,7 +7642,7 @@ function renderLootHistory(){
   if((S.foe||S.travelEvent)&&!sheet.hidden){sheet.hidden=true;selectedLootHistoryId=null;return;}
   const history=ensureLootHistory();
   if(!history.length){list.innerHTML=`<div class="loot-history-entry"><p>No creature loot has been recorded yet.</p></div>`;return;}
-  list.innerHTML=[...history].reverse().map(rec=>`<div class="loot-history-entry ${String(rec.id)===String(selectedLootHistoryId)?"selected":""}"><div class="loot-history-entry-top"><b>${esc(cap(rec.foeName))}</b><em>${formatDepth(rec.depth)}f · encounter ${rec.encounter}</em></div><p>${esc(lootItemsText(rec.items))}</p>${rec.bonusItems?.length?`<small>Bonus search: ${esc(rec.bonusItems.join(" · "))}</small>`:""}</div>`).join("");
+  list.innerHTML=[...history].reverse().map(rec=>`<div class="loot-history-entry ${String(rec.id)===String(selectedLootHistoryId)?"selected":""}"><div class="loot-history-entry-top"><span class="loot-history-foe">${esc(cap(rec.foeName))}</span><em>${formatDepth(rec.depth)}f · encounter ${rec.encounter}</em></div><p class="loot-history-items">${esc(lootItemsText(rec.items))}</p>${rec.bonusItems?.length?`<small>Bonus search: ${esc(rec.bonusItems.join(" · "))}</small>`:""}</div>`).join("");
 }
 function openLootHistory(id){
   if(!S||S.foe||S.travelEvent)return;
@@ -7921,7 +8009,7 @@ const INFO_CHAPTERS = [
 let infoChapterId="skill-checks";
 function infoChapterHtml(id){
   if(id==="aptitude") return `<h3>Attributes &amp; aptitude</h3><p>Your governing attribute still matters, but enormous endless-game attributes are compressed before they touch a Skill check.</p><div class="info-step"><b>1. Find the governing attribute.</b><br>Investigation uses INT. Perception uses WIS. Stealth uses DEX, and so on.</div><div class="info-step"><b>2. Convert it into aptitude.</b><br>Every doubling of that attribute changes aptitude by about <b>${SKILL_APTITUDE_PER_DOUBLING} Rating</b>. Attribute 10 is about +0; 20 about +8; 40 about +16; 80 about +24.</div><div class="info-step"><b>3. Add aptitude to training.</b><br>Skill Rank remains the main expertise number. Class proficiency and special circumstances are added afterward.</div><div class="info-equation">Effective Rating = Skill Rank + attribute aptitude + proficiency + circumstance</div><p>This keeps attributes relevant without letting a future 2,000 INT become a ridiculous +2,000 on the die.</p>`;
-  if(id==="practice") return `<h3>Practice &amp; Rank</h3><p>Skills improve by facing meaningful situations, not by repeating a harmless button forever.</p><div class="info-step"><b>Meaningful challenge:</b> success gives Skill XP; failure can still teach a smaller amount.</div><div class="info-step"><b>Difficult success:</b> gives more practice because you learned from doing something above your comfort zone.</div><div class="info-step"><b>Against the Odds:</b> exceptionally difficult successes earn a special practice bonus and chronicle callout.</div><div class="info-step"><b>Trivial or effectively impossible:</b> gives little or no practice. The same generated opportunity cannot be farmed repeatedly.</div><div class="info-equation">Current prototype: ${SKILL_XP_PER_RANK} Skill XP per Rank</div><p>The Rank number can continue forever. Higher Rank lowers the roll you need against the same challenge until old obstacles become automatic.</p>`;
+  if(id==="practice") return `<h3>Practice &amp; Rank</h3><p>Skills are long-term expertise. They improve by facing meaningful situations, not by repeating a harmless button forever.</p><div class="info-step"><b>Growing Rank requirement:</b> Rank 0 starts at ${skillXpNeeded(0)} XP to advance. Each later Rank asks for ${SKILL_XP_PER_RANK_GROWTH} more XP than the previous one.</div><div class="info-step"><b>Balanced success:</b> begins around ${SKILL_BASE_PRACTICE} XP. Practice rewards rise slowly with Skill Rank so deep expertise still moves, but the requirement rises faster.</div><div class="info-step"><b>Difficult success:</b> gives more practice. Easier uncertain work gives less. Automatic/trivial checks give none.</div><div class="info-step"><b>Failure:</b> a credible failed attempt can teach a smaller amount, but failure XP fades toward zero at extreme odds so hopeless attempts are poor training.</div><div class="info-step"><b>Against the Odds:</b> a success shown at <b>${SKILL_AGAINST_ODDS_PCT}% or lower</b> earns roughly double that difficult success's XP plus a small extra bonus.</div><div class="info-step"><b>No reroll farming:</b> the same generated opportunity has one practice identity and cannot award practice repeatedly.</div><div class="info-equation">XP to next Rank = ${SKILL_XP_BASE} + (${SKILL_XP_PER_RANK_GROWTH} × current Rank)</div><p>The Rank number can continue forever. Higher Rank lowers the roll you need against the same challenge until old obstacles become automatic.</p>`;
   return `<h3>Skill checks</h3><p>Skill bonuses do not get added to the d100. They change <b>how low a number you need to roll</b>.</p><div class="info-step"><b>1. Build your Effective Rating.</b><br>Skill Rank + attribute aptitude + class proficiency + circumstances.</div><div class="info-step"><b>2. Compare it with the challenge.</b><br>The game compares your Effective Rating with that object's fixed Challenge Rating.</div><div class="info-step"><b>3. That comparison becomes a target.</b><br>More Rating means a better chance and therefore a lower <b>Need X+</b> number.</div><div class="info-step"><b>4. Roll d100.</b><br>Meet or beat the target to succeed. If it says <b>Need 47+</b>, 47–100 succeeds and 1–46 fails.</div><div class="info-example"><b>Example</b><br>Investigation Rank 20 + INT aptitude 16 = Rating 36. Against Challenge Rating 21, you are +15 ahead: about a 76% chance, shown as <b>Need 25+ on d100</b>.</div><div class="info-step"><b>Huge advantage?</b> Old trivial obstacles eventually auto-succeed with no die roll. Huge disadvantage can become an automatic failure.</div><details class="info-details"><summary>Under the hood</summary><p>Equal Rating is 50%. A +${SKILL_RATING_SPREAD} Rating gap is about 91%; −${SKILL_RATING_SPREAD} is about 9%. The exact probability curve is <code>P = 1 / (1 + 10^(-(Skill − Challenge)/${SKILL_RATING_SPREAD}))</code>. You never need to calculate it yourself.</p></details>`;
 }
 function renderInfoSheet(){
@@ -7938,6 +8026,21 @@ function openInfoSheet(){
 function closeInfoSheet(){
   const info=$("infoSheet");if(info)info.hidden=true;
 }
+function renderSkillDiagnostics(){
+  const root=$("skillDiagnostics"); if(!root) return;
+  if(!S){root.innerHTML=`<div class="settings-note">Start or load a delver to collect Skill diagnostics.</div>`;return;}
+  const d=ensureSkillDiagnostics();
+  root.innerHTML=SKILL_ORDER.map(id=>{
+    const x=d[id],name=SKILL_DEFS[id]?.name||id;
+    return `<div class="skill-diagnostic-row"><b>${esc(name)}</b><span>${x.attempts} attempts · ${x.successes} success · ${x.failures} fail · <em>${Math.round(x.xp)} XP</em>${x.automatic?` · ${x.automatic} auto`:""}${x.againstOdds?` · ${x.againstOdds} odds`:""}</span></div>`;
+  }).join("");
+}
+function resetSkillDiagnostics(){
+  if(!S) return;
+  if(!window.confirm("Reset only the temporary Skill diagnostics counters? Skill Rank and XP will not change.")) return;
+  S.skillDiagnostics={};ensureSkillDiagnostics();renderSkillDiagnostics();requestRunSave();
+}
+
 function renderSettingsSheet(){
   const sheet=$("settingsSheet");
   if(!sheet) return;
@@ -7967,6 +8070,7 @@ function renderSettingsSheet(){
   document.querySelectorAll("[data-dice-size]").forEach(btn=>{
     btn.classList.toggle("selected",btn.dataset.diceSize===settings.diceSize);
   });
+  renderSkillDiagnostics();
   renderCharacterSlots();
 }
 function openSettingsSheet(){
@@ -8110,7 +8214,7 @@ function migrateSave4To5(snapshot){
     if(isSaveRecord(state.skills)) for(const st of Object.values(state.skills)){
       if(!isSaveRecord(st)) continue;
       const rank=Math.max(0,Number(st.rank)||0),oldNeed=3+rank*2,oldXp=Math.max(0,Number(st.xp)||0);
-      st.rank=Math.floor(rank);st.xp=Math.round(clamp(oldXp/Math.max(1,oldNeed),0,.999)*SKILL_XP_PER_RANK);
+      st.rank=Math.floor(rank);st.xp=Math.round(clamp(oldXp/Math.max(1,oldNeed),0,.999)*100);
     }
     if(!Number.isInteger(state.stealthOpportunitySeq)) state.stealthOpportunitySeq=0;
     if(!isSaveRecord(state.concealment)) state.concealment=null;
@@ -8122,11 +8226,48 @@ function migrateSave4To5(snapshot){
   }
   return next;
 }
+function migrateSave5To6(snapshot){
+  const next=cloneForSave(snapshot);next.schema=6;
+  const state=next.state;
+  if(isSaveRecord(state)){
+    if(isSaveRecord(state.skills)) for(const st of Object.values(state.skills)){
+      if(!isSaveRecord(st))continue;
+      const rank=Math.max(0,Math.floor(Number(st.rank)||0)),oldXp=Math.max(0,Number(st.xp)||0);
+      st.rank=rank;
+      // v0.088.x used 100 XP at every Rank. Preserve the same percentage toward
+      // the next Rank when moving onto the growing 9E requirement.
+      st.xp=Math.round(clamp(oldXp/100,0,.999)*skillXpNeeded(rank));
+    }
+    state.skillDiagnostics={};
+    // Recover the exact known side-cache bug from v0.088.x: Reinforced Buckler
+    // was described as equipment but stored in misc inventory instead.
+    const misplacedBucklers=Math.max(0,Math.floor(Number(state.inventory?.misc?.["Reinforced Buckler"])||0));
+    if(misplacedBucklers && EQUIPMENT_ITEMS.reinforced_buckler){
+      if(!isSaveRecord(state.generatedItems))state.generatedItems={};
+      if(!Array.isArray(state.inventory.equipment))state.inventory.equipment=[];
+      for(let i=0;i<misplacedBucklers;i++){
+        state.generatedItemSeq=(Number(state.generatedItemSeq)||0)+1;
+        const id=`legacy_reward_${state.generatedItemSeq}_${i}`;
+        state.generatedItems[id]={...cloneForSave(EQUIPMENT_ITEMS.reinforced_buckler),id,generated:false,authoredReward:true};
+        state.inventory.equipment.push(id);
+      }
+      delete state.inventory.misc["Reinforced Buckler"];
+    }
+    if(state.bleeding){
+      state.bleedRemainingMs=BLEED_DURATION_MS;state.bleedAccumulatorMs=0;state.bleedCombatTurns=0;
+    }else{
+      state.bleedRemainingMs=0;state.bleedAccumulatorMs=0;state.bleedCombatTurns=0;
+    }
+    delete state.bleedTravel;
+  }
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
   3:migrateSave3To4,
-  4:migrateSave4To5
+  4:migrateSave4To5,
+  5:migrateSave5To6
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -8326,6 +8467,12 @@ function normalizeRestoredRun(){
   S.seenFoes=S.seenFoes||{};
   S.seenTravelEvents=S.seenTravelEvents||{};
   S.skillPracticeSources=S.skillPracticeSources||{};
+  ensureSkillDiagnostics();
+  if(S.bleeding){
+    S.bleedRemainingMs=Math.max(1,Number(S.bleedRemainingMs)||BLEED_DURATION_MS);
+    S.bleedAccumulatorMs=Math.max(0,Number(S.bleedAccumulatorMs)||0);
+    S.bleedCombatTurns=Math.max(0,Number(S.bleedCombatTurns)||0);
+  }else clearBleeding();
   S.stealthOpportunitySeq=Number.isInteger(S.stealthOpportunitySeq)?S.stealthOpportunitySeq:0;
   S.concealment=(S.concealment&&Number(S.concealment.remainingMs)>0)?{remainingMs:Number(S.concealment.remainingMs)}:null;
   S.abilities=S.abilities||{};
@@ -8562,12 +8709,13 @@ function grantDamagedSalvage(reason="The chest is ruined before you can claim it
   render();
 }
 function grantMimicReward(){
+  const grantGear=id=>grantAuthoredEquipmentInstance(id)?.name||null;
   const choices=[
-    ()=>{addMisc("Swallowed Silver Ring",1);return "Swallowed Silver Ring";},
+    ()=>grantGear("iron_signet")||"Iron Signet",
     ()=>{S.inventory.bandages+=2;return "2 Bandages";},
     ()=>{S.inventory.campSupplies++;return "Camp Supply";},
-    ()=>{addMisc("Gnawed Coin Chain",1);return "Gnawed Coin Chain";},
-    ()=>{const id=pick(["handaxe","hunting_bow"]);addWeapon(id);return GEAR_ITEMS[id].name;}
+    ()=>grantGear("saints_pendant")||"Saint's Pendant",
+    ()=>grantGear(pick(["handaxe","hunting_bow"]))||"Salvaged weapon"
   ];
   const item=pick(choices)();
   S.sideArea.mimicDefeated=true;S.sideArea.chestOpened=true;
@@ -8795,19 +8943,7 @@ $("diceSizeChoices").addEventListener("click", e => {
   const b=e.target.closest("[data-dice-size]");
   if(b) setDiceSize(b.dataset.diceSize);
 });
-$("btnDiceTestRandom").addEventListener("click", () => { testFathomDie(); });
-$("btnDiceTestCustom").addEventListener("click", () => {
-  const input=$("diceTestValue");
-  if(!input)return;
-  const value=Number(input.value);
-  if(!Number.isInteger(value)||value<1||value>100){input.focus();input.select();return;}
-  testFathomDieForced(value);
-});
-$("diceTestValue").addEventListener("keydown", e => {
-  if(e.key!=="Enter")return;
-  e.preventDefault();
-  $("btnDiceTestCustom").click();
-});
+$("btnResetSkillDiagnostics").addEventListener("click", resetSkillDiagnostics);
 $("btnOpenInfo").addEventListener("click", openInfoSheet);
 $("btnInfoBack").addEventListener("click", closeInfoSheet);
 $("infoScrim").addEventListener("click", closeInfoSheet);
