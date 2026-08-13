@@ -1,0 +1,20 @@
+{
+  "name": "Fathom Matte Obsidian",
+  "systemName": "fathomObsidian",
+  "author": "Lowfathom",
+  "version": 0.3,
+  "material": {
+    "type": "color",
+    "diffuseTexture": {
+      "light": "diffuse-light.png",
+      "dark": "diffuse-dark.png"
+    },
+    "diffuseLevel": 0.94,
+    "specularTexture": "specular-black.jpg",
+    "specularPower": 1
+  },
+  "diceAvailable": [
+    "d10",
+    "d100"
+  ]
+}

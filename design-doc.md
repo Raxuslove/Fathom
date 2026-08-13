@@ -295,3 +295,17 @@ Character selection screen, so you can choose to either make a new character + g
 3x character slots to begin with.
 
 Add optional HUD overlay for utility info. Clock: show current device time - high priority, browser safe. Battery: show battery percentage where supported; likely native only. Not reliable in PWAs. Put each as a separate toggle in settings.
+
+
+
+I do like his posture idea, though
+A persistent:
+Normal / Careful
+or something similar could eventually be excellent.
+Careful travel might actively employ Stealth and Perception more heavily at some cost.
+But I wouldn't lock “slower descent” yet, because our encounter cadence matters. If slowing descent also gives the interruption engine more time to spawn encounters before reaching a hollow, it could perversely make careful travel more dangerous.
+So:
+posture mechanic = worth keeping
+exact cost = needs designing around the travel engine
+
+AFter every 1000 Fathom you get 1 extra life, Does not stack. (Reason being it would suck if you're 10000 fathom deep and then die, that would be a Rage Quit moment for a game where you lose a dedicated player forever.) They revive but are -500 fathom back. This also gives them time to get themselves stronger or strategize. 

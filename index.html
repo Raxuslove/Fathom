@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.088.0 — Session 9E Offline Dice Foundation</title>
+<title>Lowfathom v0.088.7 — Percentile Result Fix</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.088.0 Session 9E offline Dice Box foundation + protected v0.075 Smite FX
+   LOWFATHOM — v0.088.7 percentile result fix + true matte obsidian pass + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -128,6 +128,9 @@
    - v0.087.4: replaces the flat CSS/SVG die with a true canvas-rendered icosahedron: 12 vertices, 20 faces, back-face culling, perspective, lighting, quaternion tumbling, face settling, embedded failure skull, and lamp-gold nat-100 fissures
    - v0.087.6: reverts the failed v0.087.5 bounce/skull pass and rebuilds the die presentation on the v0.087.4 base with actual z-height bounces, shadow-from-height, a larger size range, a projected grim skull texture beneath obsidian, and a richer pearlescent lamp-gold 100 effect
    - v0.087.7: replaces the homemade die renderer with a Dice Box 1.1.3 physics prototype using the supplied local Ammo/theme assets; Fathom still owns the authoritative d100 result while the physical d20 is presentation-only
+   - v0.088.5: abandons the renderer-rewrite experiments, restores the proven Dice Box path, rolls a native d100 tens die + d10 ones die, and gives the pair a polished obsidian theme; active animated checks now use the physical percentile result
+   - v0.088.6: fixes the accidental third die by using Dice Box's native d100 percentile pair alone, restores the forced 1–100 debug result control, and changes the Fathom theme from glossy to matte black
+   - v0.088.7: reads Dice Box's native d100 as one logical combined result (while it renders two physical dice), normalizes 00+0 to Fathom 100, and suppresses specular highlights for a truer matte-black finish
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9E replaces the finite d20 Skill modifier prototype with an endless rating resolver while preserving the equipment and combat spine from 9C–9D.
@@ -1499,7 +1502,7 @@ button{
 
 /* ---------- v0.087.7: Dice Box physics prototype ---------- */
 .fathom-dicebox-layer{position:absolute;inset:0;z-index:100;overflow:hidden;pointer-events:none;visibility:hidden;opacity:0;background:rgba(2,4,7,.025);transition:opacity .08s linear}
-.fathom-dicebox-layer.active{visibility:visible;opacity:1;pointer-events:none}
+.fathom-dicebox-layer.active{visibility:visible;opacity:1;pointer-events:auto}
 .fathom-dicebox-stage{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .fathom-dicebox-stage canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important;pointer-events:none!important}
 .fathom-roll-caption{position:absolute;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));z-index:3;transform:translateX(-50%);max-width:calc(100% - 28px);padding:6px 9px;border:1px solid var(--rule-hi);background:rgba(12,16,20,.94);font-family:var(--cond);font-size:9.5px;letter-spacing:.06em;text-align:center;color:#b6b2a8;white-space:nowrap;box-shadow:0 3px 14px rgba(0,0,0,.45)}
@@ -1740,7 +1743,7 @@ button{
 
   <div class="fathom-dicebox-layer" id="fathomDiceBoxLayer" aria-hidden="true">
     <div class="fathom-dicebox-stage" id="fathomDiceBoxStage"></div>
-    <div class="fathom-dicebox-status" id="fathomDiceBoxStatus">Preparing physical die…</div>
+    <div class="fathom-dicebox-status" id="fathomDiceBoxStatus">Preparing percentile dice…</div>
     <div class="fathom-roll-caption" id="fathomDieCaption"></div>
   </div>
 
@@ -2052,11 +2055,11 @@ button{
       <section class="settings-section">
         <div class="settings-section-title">Fathom Die</div>
         <div class="settings-row">
-          <div class="settings-copy"><b>Dice animation</b><span>v0.087.7 physics prototype: active Skill checks throw a real 3D d20 shell using Dice Box physics. Fathom still resolves the d100 result separately. Passive checks stay quiet.</span></div>
+          <div class="settings-copy"><b>Dice animation</b><span>Active Skill checks roll one native percentile pair: a tens die (00–90) and a ones die (0–9). Their physical result is the Skill roll. Passive checks stay quiet.</span></div>
           <button class="settings-toggle" id="btnSettingDice" type="button" aria-pressed="true">On</button>
         </div>
         <div class="settings-row stack">
-          <div class="settings-copy"><b>Dice size</b><span>Changes only the physical prototype die. The d100 roll and Skill mathematics are identical.</span></div>
+          <div class="settings-copy"><b>Dice size</b><span>Changes only the physical percentile pair. Skill chances and targets are unchanged.</span></div>
           <div class="settings-choice-grid" id="diceSizeChoices">
             <button class="settings-choice" type="button" data-dice-size="small">Small</button>
             <button class="settings-choice" type="button" data-dice-size="normal">Normal</button>
@@ -2064,15 +2067,15 @@ button{
           </div>
         </div>
         <div class="settings-row stack">
-          <div class="settings-copy"><b>Dice test <span style="color:var(--lamp)">· temporary</span></b><span>Physics test only. Uses Need 51+, throws the physical d20 shell, and does not affect the run, Skill XP, or any real check.</span></div>
+          <div class="settings-copy"><b>Dice test <span style="color:var(--lamp)">· temporary</span></b><span>Rolls the real matte-black percentile pair at Need 51+. Dice Box presents two physical dice but returns their combined percentile value as one logical d100 result. Force result is a debug-only result test and does not pretend the physics landed on that chosen number.</span></div>
           <div class="dice-test-tools">
-            <button class="dice-test-button" id="btnDiceTestRandom" type="button">Random roll</button>
+            <button class="dice-test-button" id="btnDiceTestRandom" type="button">Roll percentile dice</button>
             <div class="dice-test-custom">
               <div class="dice-test-field">
                 <label for="diceTestValue">Force result · 1–100</label>
-                <input id="diceTestValue" type="number" min="1" max="100" step="1" inputmode="numeric" placeholder="1–100">
+                <input id="diceTestValue" type="number" min="1" max="100" step="1" inputmode="numeric" value="100">
               </div>
-              <button class="dice-test-button" id="btnDiceTestCustom" type="button">Roll</button>
+              <button class="dice-test-button" id="btnDiceTestCustom" type="button">Test</button>
             </div>
           </div>
         </div>
@@ -2399,7 +2402,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.088.0";
+const BUILD_VERSION = "v0.088.7";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal"});
@@ -2856,14 +2859,18 @@ function percentileRollHighTarget(chance){
   const pct=Math.max(1,Math.min(99,Math.round((Number(chance)||0)*100)));
   return 101-pct;
 }
-function runSkillCheck(id, challenge, situational=0){
+function runSkillCheck(id, challenge, situational=0, rollOverride=null){
   const def=SKILL_DEFS[id], st=skillState(id), data=skillChanceData(id,challenge,situational);
   const threshold=Math.max(1,Math.min(99,Math.round(data.chance*100)));
   const target=percentileRollHighTarget(data.chance);
   let roll=null,success=false,automatic=false;
   if(data.autoSuccess){success=true;automatic=true;}
   else if(data.autoFail){success=false;automatic=true;}
-  else {roll=ri(1,100);success=roll>=target;}
+  else {
+    const supplied=Number(rollOverride);
+    roll=Number.isFinite(supplied)?Math.max(1,Math.min(100,Math.round(supplied))):ri(1,100);
+    success=roll>=target;
+  }
   return {...data,id,def,rank:st?.rank||0,aptitude:skillAptitude(id),proficiency:proficiencyBonus(id),threshold,target,roll,success,automatic};
 }
 function skillCheckPreview(id,challenge,situational=0){
@@ -2893,60 +2900,50 @@ function stopFathomDiePresentation(){
 }
 function fathomDieScaleSetting(){
   const size=settings?.diceSize;
-  return size==="small"?4.25:size==="large"?7.25:5.65;
+  // Two d10-shaped dice occupy more room than the old single d20.
+  return size==="small"?3.75:size==="large"?6.05:4.85;
 }
-function presentFathomDie(result,{force=false}={}){
-  if(!result||result.automatic||result.roll==null||(!force&&!settings?.diceAnimation))return;
-  const layer=$("fathomDiceBoxLayer"),caption=$("fathomDieCaption");
-  if(!layer||!caption)return;
-  if(fathomDiceBoxFallbackTimer){clearTimeout(fathomDiceBoxFallbackTimer);fathomDiceBoxFallbackTimer=null;}
-  layer.classList.add("active");layer.setAttribute("aria-hidden","false");
-  caption.className="fathom-roll-caption";
-  caption.innerHTML=`${esc(result.def?.name||"Skill check")} · Need <strong>${result.target}+</strong> on d100`;
-  const payload={
-    name:result.def?.name||"Skill check",
-    target:result.target,
-    roll:result.roll,
-    success:!!result.success,
-    scale:fathomDieScaleSetting()
-  };
-  if(window.fathomDiceBoxFailed){
-    layer.classList.remove("loading");
-    caption.classList.toggle("failure",!result.success);
-    caption.innerHTML=`Physical die unavailable · Need ${result.target}+ · rolled <strong>${result.roll}</strong> · ${result.success?"SUCCESS":"FAILURE"}`;
-    fathomDiceBoxFallbackTimer=setTimeout(stopFathomDiePresentation,1500);
-  }else if(typeof window.fathomDiceBoxRoll==="function"){
-    layer.classList.toggle("loading",!window.fathomDiceBoxReady);
-    window.fathomDiceBoxRoll(payload).catch(err=>{
-      console.error("Fathom Dice Box roll failed:",err);
-      layer.classList.remove("loading");
-      caption.classList.toggle("failure",!result.success);
-      caption.innerHTML=`Need ${result.target}+ · rolled <strong>${result.roll}</strong> · ${result.success?"SUCCESS":"FAILURE"}`;
-      fathomDiceBoxFallbackTimer=setTimeout(stopFathomDiePresentation,1400);
-    });
-  }else{
-    layer.classList.add("loading");
-    caption.innerHTML=`${esc(result.def?.name||"Skill check")} · Dice Box is still loading…`;
-    fathomDiceBoxFallbackTimer=setTimeout(()=>{
-      layer.classList.remove("loading");
-      caption.classList.toggle("failure",!result.success);
-      caption.innerHTML=`Need ${result.target}+ · rolled <strong>${result.roll}</strong> · ${result.success?"SUCCESS":"FAILURE"}`;
-      fathomDiceBoxFallbackTimer=setTimeout(stopFathomDiePresentation,1300);
-    },900);
+async function rollFathomPercentile({name="Skill check",target=51,force=false}={}){
+  if(!force&&!settings?.diceAnimation) return null;
+  if(typeof window.fathomDiceBoxRoll!=="function"||window.fathomDiceBoxFailed) return null;
+  try{
+    return await window.fathomDiceBoxRoll({name,target,scale:fathomDieScaleSetting()});
+  }catch(err){
+    console.error("Fathom percentile dice roll failed:",err);
+    return null;
   }
 }
-function makeFathomDieTestResult(roll){
-  const value=Math.max(1,Math.min(100,Math.round(Number(roll)||1)));
-  const target=51;
-  return {automatic:false,roll:value,target,success:value>=target,def:{name:"Dice test"}};
+async function testFathomDie(){
+  const physical=await rollFathomPercentile({name:"Dice test",target:51,force:true});
+  if(physical==null){
+    const fallback=ri(1,100),caption=$("fathomDieCaption"),layer=$("fathomDiceBoxLayer");
+    if(layer){layer.classList.add("active");layer.setAttribute("aria-hidden","false");}
+    if(caption){
+      caption.className=`fathom-roll-caption${fallback>=51?"":" failure"}`;
+      caption.innerHTML=`Physical dice unavailable · rolled <strong>${fallback}</strong> · ${fallback>=51?"SUCCESS":"FAILURE"}`;
+    }
+    fathomDiceBoxFallbackTimer=setTimeout(stopFathomDiePresentation,1500);
+  }
 }
-function testFathomDie(roll){
-  presentFathomDie(makeFathomDieTestResult(roll),{force:true});
+function testFathomDieForced(value){
+  const forced=Math.max(1,Math.min(100,Math.round(Number(value)||1)));
+  stopFathomDiePresentation();
+  const caption=$("fathomDieCaption"),layer=$("fathomDiceBoxLayer");
+  if(layer){layer.classList.add("active");layer.setAttribute("aria-hidden","false");}
+  if(caption){
+    caption.className=`fathom-roll-caption${forced>=51?"":" failure"}`;
+    caption.innerHTML=`Forced test <strong>${forced}</strong> · Need 51+ · ${forced>=51?"SUCCESS":"FAILURE"}`;
+  }
+  fathomDiceBoxFallbackTimer=setTimeout(stopFathomDiePresentation,1400);
 }
-function runActiveSkillCheck(id,challenge,situational=0){
-  const result=runSkillCheck(id,challenge,situational);
-  presentFathomDie(result);
-  return result;
+async function runActiveSkillCheck(id,challenge,situational=0){
+  const data=skillChanceData(id,challenge,situational);
+  // Automatic outcomes stay silent, exactly like passive checks.
+  if(data.autoSuccess||data.autoFail) return runSkillCheck(id,challenge,situational);
+  const target=percentileRollHighTarget(data.chance);
+  const physical=await rollFathomPercentile({name:SKILL_DEFS[id]?.name||"Skill check",target});
+  // If animation is disabled or 3D dice cannot load, preserve the normal d100 fallback.
+  return runSkillCheck(id,challenge,situational,physical);
 }
 
 function skillPracticeAmount(result){
@@ -4603,10 +4600,10 @@ function setTravelEventResult(title,text,rollHtml="",followupCombat=false){
   Object.assign(S.travelEvent,{stage:"result",title,text,rollHtml,followupCombat});
   render();
 }
-function attemptGlintInvestigation(informed=false){
+async function attemptGlintInvestigation(informed=false){
   if(!S?.travelEvent) return;
   const circumstance = informed ? 2 : 0;
-  const check = runActiveSkillCheck("investigation",authoredChallenge(13),circumstance);
+  const check = await runActiveSkillCheck("investigation",authoredChallenge(13),circumstance);
   const practice = awardSkillPractice("investigation","glint:investigation",check);
   const rollHtml = formatSkillCheck(check) + practiceText("investigation",practice);
   if(check.success){
@@ -4621,7 +4618,7 @@ function attemptGlintInvestigation(informed=false){
     setTravelEventResult("That was loud","Your hand shifts the wrong stone. Rubble clatters down the passage, and somewhere beyond your light something answers the noise.",rollHtml,true);
   }
 }
-function handleTravelEventAction(action){
+async function handleTravelEventAction(action){
   const ev=S?.travelEvent;
   if(!ev) return;
 
@@ -4675,7 +4672,7 @@ function handleTravelEventAction(action){
         S.sideArea.altarTranslationAttempted=true;
       }
       const source=action==="translate-wall"?`side-language:${S.sideArea.id}`:`side-altar-language:${S.sideArea.id}`,
-        dc=trapDc(action==="translate-wall"?12:13),c=runActiveSkillCheck("translation",dc),p=awardSkillPractice("translation",source,c);
+        dc=trapDc(action==="translate-wall"?12:13),c=await runActiveSkillCheck("translation",dc),p=awardSkillPractice("translation",source,c);
       let html=formatSkillCheck(c)+practiceText("translation",p);
       if(c.success){
         const knownBefore=[...(S.languageKnown||[])],learned=learnLanguageWord();
@@ -4691,7 +4688,7 @@ function handleTravelEventAction(action){
     }
     if(action==="side-event-resume"){S.travelEvent=null;S.travelMode="side";S.travelSinceEvent=0;resumeBoonClock();render();return;}
     if(action==="trap-perception"){
-      const c=runActiveSkillCheck("perception",trapDc(12)),p=awardSkillPractice("perception",`side-trap-sense:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("perception",p);
+      const c=await runActiveSkillCheck("perception",trapDc(12)),p=awardSkillPractice("perception",`side-trap-sense:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("perception",p);
       if(c.success){ev.stage="found";ev.title="A loaded mechanism";ev.text="A line disappears into a crude spring assembly under the stone. The passage is too tight to simply walk around it.";ev.rollHtml=html;travelLogAdd(`Perception catches a <b>trap</b> before it catches you.`,"good");render();}
       else triggerTrap("You miss the loaded line until your boot finds it.");
       return;
@@ -4699,13 +4696,13 @@ function handleTravelEventAction(action){
     if(action==="trap-cross") return triggerTrap("You choose to cross without resolving the mechanism.");
     if(action==="trap-dismantle"){
       if(S.inventory.rogueTools<=0){ev.rollHtml=`<span class="bad">You do not have Rogue Tools. The mechanism is too fine to dismantle safely.</span>`;render();return;}
-      const c=runActiveSkillCheck("sleight",trapDc(13),2),p=awardSkillPractice("sleight",`side-trap:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("sleight",p);
+      const c=await runActiveSkillCheck("sleight",trapDc(13),2),p=awardSkillPractice("sleight",`side-trap:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("sleight",p);
       if(c.success){ev.stage="result";ev.title="Mechanism dismantled";ev.text="The loaded pieces come apart in your hands. The trap is permanently safe.";ev.rollHtml=html;travelLogAdd(`Sleight of Hand dismantles the trap cleanly.`,"good");render();}
       else triggerTrap("A pick slips. The mechanism fires and breaks itself in the same motion.");
       return;
     }
     if(action==="trap-destroy"){
-      const c=runActiveSkillCheck("athletics",trapDc(12)),p=awardSkillPractice("athletics",`side-trap-force:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("athletics",p);
+      const c=await runActiveSkillCheck("athletics",trapDc(12)),p=awardSkillPractice("athletics",`side-trap-force:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("athletics",p);
       if(c.success){ev.stage="result";ev.title="Mechanism smashed";ev.text="You break the loaded assembly before it can release. Nothing delicate remains, but the way is safe.";ev.rollHtml=html;travelLogAdd(`You destroy the trap mechanism.`,"good");render();}
       else triggerTrap("The blow lands on the wrong piece and releases the trap.");
       return;
@@ -7020,12 +7017,12 @@ function grantChestReward(){
   else {const choices=["bandage","meat","rope","water","offweapon","dust"],c=pick(choices);if(c==="bandage"){S.inventory.bandages+=2;text="2 Bandages";}else if(c==="meat"){S.inventory.meat+=2;text="2 Meat";}else if(c==="rope"){S.inventory.rope++;text="Rope";}else if(c==="water"){S.inventory.water++;text="Jug of Water";}else if(c==="offweapon"){const id=pick(["handaxe","hunting_bow"]);addWeapon(id);text=GEAR_ITEMS[id].name;}else{addMisc("Scroll Dust",1);text="a scroll that crumbled into dust";}}
   S.sideArea.chestOpened=true;travelLogAdd(`The chest yields <b>${esc(text)}</b>.`,"good");S.travelEvent={id:"side-altar",stage:"reward",kind:"Side passage complete",title:"The chest opens",text:`You recover ${text}. The route behind you is the only way back to the main descent.`,rollHtml:""};render();
 }
-function attemptChestLock(){
-  const a=S.sideArea;if(!a||a.lockAttempted)return;a.lockAttempted=true;const tool=S.inventory.rogueTools>0?2:0,check=runActiveSkillCheck("sleight",trapDc(13),tool),practice=awardSkillPractice("sleight",`side-lock:${a.id}`,check);const html=formatSkillCheck(check)+practiceText("sleight",practice);
+async function attemptChestLock(){
+  const a=S.sideArea;if(!a||a.lockAttempted)return;a.lockAttempted=true;const tool=S.inventory.rogueTools>0?2:0,check=await runActiveSkillCheck("sleight",trapDc(13),tool),practice=awardSkillPractice("sleight",`side-lock:${a.id}`,check);const html=formatSkillCheck(check)+practiceText("sleight",practice);
   if(check.success){S.travelEvent.rollHtml=html;grantChestReward();}else{S.travelEvent={id:"side-altar",stage:"jammed",kind:"Lock jammed",title:"The lock will not take another delicate attempt",text:"The pick slips and the old lock deforms. The mechanism is changed; you cannot repeat the same check.",rollHtml:html};render();}
 }
-function forceChest(){
-  const a=S.sideArea,check=runActiveSkillCheck("athletics",trapDc(14),0),practice=awardSkillPractice("athletics",`side-force:${a.id}`,check),html=formatSkillCheck(check)+practiceText("athletics",practice);
+async function forceChest(){
+  const a=S.sideArea,check=await runActiveSkillCheck("athletics",trapDc(14),0),practice=awardSkillPractice("athletics",`side-force:${a.id}`,check),html=formatSkillCheck(check)+practiceText("athletics",practice);
   if(check.success){S.travelEvent.rollHtml=html;return grantChestReward();}
   const dmg=Math.max(1,ri(1,4));S.hp-=dmg;flashTravelDamage();
   travelLogAdd(`Forcing the chest costs <b>${dmg} HP</b>. The frame gives way badly and ruins the better contents.`,"danger");
@@ -7221,11 +7218,11 @@ function openLootFound(drops,f){
     rollHtml:formatSkillCheck(sense)+practiceText("perception",practice)
   };
 }
-function resolveLootSearch(skill="investigation"){
+async function resolveLootSearch(skill="investigation"){
   const loot=S.pendingLoot;
   if(!loot||loot.searched) return;
   loot.searched=true;
-  const challenge=Number.isFinite(loot.searchChallenge)?loot.searchChallenge:authoredChallenge(12),c=runActiveSkillCheck("investigation",challenge),p=awardSkillPractice("investigation",`loot-search:${loot.encounter}`,c);
+  const challenge=Number.isFinite(loot.searchChallenge)?loot.searchChallenge:authoredChallenge(12),c=await runActiveSkillCheck("investigation",challenge),p=awardSkillPractice("investigation",`loot-search:${loot.encounter}`,c);
   const rec=lootRecordById(loot.historyId);
   let found=null;
   // Success quality: expertise above the challenge improves the chance that the careful search yields something worth carrying.
@@ -8580,9 +8577,9 @@ function beginPuzzleFinale(){
   const p=puzzleState();p.step=0;p.successes=0;p.attempts=0;p.lastHtml="";
   S.travelEvent={id:"side-altar",stage:"puzzle-step",kind:"Arcane cache",title:PUZZLE_STEPS[0].name,text:PUZZLE_STEPS[0].text,rollHtml:""};render();
 }
-function attemptPuzzleSkill(skill,baseDc,situational=0){
+async function attemptPuzzleSkill(skill,baseDc,situational=0){
   const p=puzzleState(),step=puzzleCurrent();if(!p||!step||S.travelEvent.stage!=="puzzle-step")return;
-  const dc=trapDc(baseDc),c=runActiveSkillCheck(skill,dc,situational),practice=awardSkillPractice(skill,`side-puzzle:${S.sideArea.id}:${p.step}`,c);
+  const dc=trapDc(baseDc),c=await runActiveSkillCheck(skill,dc,situational),practice=awardSkillPractice(skill,`side-puzzle:${S.sideArea.id}:${p.step}`,c);
   p.attempts++;if(c.success)p.successes++;
   p.lastSuccess=c.success;p.lastHtml=formatSkillCheck(c)+practiceText(skill,practice);
   S.travelEvent.stage="puzzle-result";S.travelEvent.rollHtml=p.lastHtml;S.travelEvent.title=c.success?"The seal settles":"The seal slips";
@@ -8774,13 +8771,13 @@ $("diceSizeChoices").addEventListener("click", e => {
   const b=e.target.closest("[data-dice-size]");
   if(b) setDiceSize(b.dataset.diceSize);
 });
-$("btnDiceTestRandom").addEventListener("click", () => testFathomDie(ri(1,100)));
+$("btnDiceTestRandom").addEventListener("click", () => { testFathomDie(); });
 $("btnDiceTestCustom").addEventListener("click", () => {
   const input=$("diceTestValue");
   if(!input)return;
   const value=Number(input.value);
   if(!Number.isInteger(value)||value<1||value>100){input.focus();input.select();return;}
-  testFathomDie(value);
+  testFathomDieForced(value);
 });
 $("diceTestValue").addEventListener("keydown", e => {
   if(e.key!=="Enter")return;
@@ -8888,11 +8885,11 @@ import DiceBox from "https://unpkg.com/@3d-dice/dice-box@1.1.3/dist/dice-box.es.
 
 const layer=document.getElementById("fathomDiceBoxLayer");
 const caption=document.getElementById("fathomDieCaption");
-// Official Dice Box CDN mode: keep module, world scripts and static assets on one origin.
-// Do not combine the CDN module with Fathom's local asset tree in this prototype.
+const status=document.getElementById("fathomDiceBoxStatus");
 const CDN_ORIGIN="https://unpkg.com/@3d-dice/dice-box@1.1.3/dist/";
 const assetPath="assets/";
-let pending=null;
+const FATHOM_THEME="fathomObsidian";
+const fathomThemePath=new URL("./assets/fathom-die/obsidian/",document.baseURI).href;
 let hideTimer=null;
 let rollToken=0;
 
@@ -8900,10 +8897,11 @@ const diceBox=new DiceBox({
   container:"#fathomDiceBoxStage",
   assetPath,
   origin:CDN_ORIGIN,
-  theme:"default",
-  themeColor:"#171c27",
+  theme:FATHOM_THEME,
+  externalThemes:{[FATHOM_THEME]:fathomThemePath},
+  themeColor:"#040506",
   offscreen:false,
-  scale:5.65,
+  scale:4.85,
   gravity:1,
   mass:1.35,
   friction:.82,
@@ -8916,12 +8914,11 @@ const diceBox=new DiceBox({
   settleTimeout:4500,
   enableShadows:true,
   shadowTransparency:.72,
-  lightIntensity:.82
+  lightIntensity:.54
 });
 
 window.fathomDiceBoxReady=false;
 window.fathomDiceBoxFailed=false;
-const status=document.getElementById("fathomDiceBoxStatus");
 const INIT_TIMEOUT_MS=12000;
 const initAttempt=diceBox.init();
 const initTimeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error(`Dice Box init timed out after ${INIT_TIMEOUT_MS}ms`)),INIT_TIMEOUT_MS));
@@ -8929,40 +8926,54 @@ const ready=Promise.race([initAttempt,initTimeout]).then(()=>{
   window.fathomDiceBoxReady=true;
   window.fathomDiceBoxFailed=false;
   layer?.classList.remove("loading");
-  if(status)status.textContent="Physical die ready";
-  console.info("Fathom Dice Box ready (official CDN reference configuration)");
+  if(status)status.textContent="Percentile dice ready";
+  console.info("Fathom percentile dice ready (v0.088.7 native d100 parser + matte obsidian theme)");
   return diceBox;
 }).catch(err=>{
   window.fathomDiceBoxReady=false;
   window.fathomDiceBoxFailed=true;
   layer?.classList.remove("loading");
-  if(status)status.textContent="Physical die unavailable";
+  if(status)status.textContent="Physical dice unavailable";
   console.error("Fathom Dice Box initialization failed:",err);
   return null;
 });
 
-diceBox.onRollComplete=()=>{
-  if(!pending)return;
-  const {payload,token}=pending;
-  if(token!==rollToken)return;
-  layer?.classList.remove("loading");
-  if(caption){
-    caption.className=`fathom-roll-caption${payload.success?"":" failure"}`;
-    caption.innerHTML=`Need ${payload.target}+ · rolled <strong>${payload.roll}</strong> · ${payload.success?"SUCCESS":"FAILURE"}`;
+function percentileValue(results){
+  // Dice Box's native d100 is displayed as a percentile pair (tens + ones),
+  // but roll() resolves with one logical d100 entry whose value is already combined.
+  const list=Array.isArray(results)?results:[results];
+  const logical=list.find(item=>{
+    const type=String(item?.dieType||"").toLowerCase();
+    const sides=Number(item?.sides);
+    return type==="d100"||sides===100;
+  });
+  if(logical){
+    const value=Number(logical?.value ?? logical?.result);
+    if(Number.isFinite(value) && value>=0 && value<=100){
+      return {total:value===0?100:value,raw:list};
+    }
   }
-  clearTimeout(hideTimer);
-  hideTimer=setTimeout(()=>{
-    if(token!==rollToken)return;
-    diceBox.clear();
-    layer?.classList.remove("active","loading");
-    layer?.setAttribute("aria-hidden","true");
-    pending=null;
-  },payload.success?1150:1550);
-};
 
+  // Defensive compatibility path in case a future build exposes both physical dice.
+  const values=list.map(item=>({
+    type:String(item?.dieType||"").toLowerCase(),
+    sides:Number(item?.sides),
+    value:Number(item?.value ?? item?.result)
+  })).filter(item=>Number.isFinite(item.value));
+  const tensDie=values.find(item=>item.type==="d100"||item.sides===100||((item.value===0||item.value%10===0)&&item.value<=100));
+  const onesDie=values.find(item=>item!==tensDie&&(item.type==="d10"||item.sides===10||item.value<=10));
+  if(tensDie&&onesDie){
+    const tens=tensDie.value===100?0:tensDie.value;
+    const ones=onesDie.value===10?0:onesDie.value;
+    const combined=tens+ones;
+    return {total:combined===0?100:combined,raw:list};
+  }
+
+  console.error("Unexpected Dice Box d100 result:",results);
+  throw new Error("Percentile roll returned an unreadable result");
+}
 window.fathomDiceBoxClear=()=>{
   clearTimeout(hideTimer);
-  pending=null;
   try{diceBox.clear();}catch{}
 };
 
@@ -8971,16 +8982,36 @@ window.fathomDiceBoxRoll=async payload=>{
   clearTimeout(hideTimer);
   layer?.classList.add("active","loading");
   layer?.setAttribute("aria-hidden","false");
+  if(caption){
+    caption.className="fathom-roll-caption";
+    caption.innerHTML=`${payload?.name||"Skill check"} · Need <strong>${payload?.target||51}+</strong>`;
+  }
   const initialized=await ready;
-  if(token!==rollToken)return;
+  if(token!==rollToken)return null;
   if(!initialized)throw new Error("Dice Box unavailable after initialization attempt");
   layer?.classList.remove("loading");
   try{diceBox.clear();}catch{}
-  if(Number.isFinite(payload.scale)) diceBox.updateConfig({scale:payload.scale});
-  pending={payload,token};
-  // This prototype intentionally rolls a physical d20 only to judge Dice Box physics.
-  // Fathom's already-resolved d100 value remains authoritative and is revealed on settle.
-  await diceBox.roll("1d20");
+  if(Number.isFinite(payload?.scale)) await diceBox.updateConfig({scale:payload.scale});
+
+  // Dice Box's native 1d100 roll already creates the complete percentile pair.
+  // Do not add another d10 here: that would create an accidental third die.
+  const raw=await diceBox.roll("1d100",{theme:FATHOM_THEME,themeColor:"#040506"});
+  if(token!==rollToken)return null;
+  const result=percentileValue(raw);
+  const target=Math.max(1,Math.min(100,Math.round(Number(payload?.target)||51)));
+  const success=result.total>=target;
+  if(caption){
+    caption.className=`fathom-roll-caption${success?"":" failure"}`;
+    caption.innerHTML=`Rolled <strong>${result.total}</strong> · Need ${target}+ · ${success?"SUCCESS":"FAILURE"}`;
+  }
+  clearTimeout(hideTimer);
+  hideTimer=setTimeout(()=>{
+    if(token!==rollToken)return;
+    try{diceBox.clear();}catch{}
+    layer?.classList.remove("active","loading");
+    layer?.setAttribute("aria-hidden","true");
+  },success?1350:1650);
+  return result.total;
 };
 </script>
 </body>
