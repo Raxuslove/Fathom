@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.086.1 — Session 9E Roll-High Skill Checks</title>
+<title>Lowfathom v0.087.9 — Session 9E Dice Box Reference Config</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   LOWFATHOM — v0.086.1 Session 9E roll-high skill checks + protected v0.075 Smite FX
+   LOWFATHOM — v0.087.9 Session 9E Dice Box reference config + protected v0.075 Smite FX
    Session 5 adds recovery decisions to the active descent around the Session 3 combat slice.
    The player can now Rest between fights, discover one-use safe hollows, spend
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
@@ -121,6 +121,13 @@
    - v0.085.0: procedural equipment generation, live equipment attributes, 500+ Wondrous/Legendary access, Wizard INT counters, and collapsible combat history
    - v0.086.0: endless Elo-style Skill ratings, percentile uncertainty, logarithmic attribute aptitude, learning-value practice, passive Perception, enemy Awareness, and active Concealment
    - v0.086.1: percentile Skill checks use intuitive roll-high targets (Need X+), result text shows target before roll, and duplicate check previews are removed
+   - v0.087.0: active Skill checks gain the randomized obsidian Fathom Die, persistent dice animation/size settings, extreme-roll effects, and a chaptered Info & Rules reference
+   - v0.087.1: Fathom Die motion becomes a flat top-down tray ricochet, every failed check reveals the skull, and Settings gains temporary random/forced-roll test controls
+   - v0.087.2: the die is restyled as a faceted d20-like obsidian relic, the failure skull is made grimmer, and the nat 100 presentation becomes refined lamp-gold fissures
+   - v0.087.3: the Fathom Die is rebuilt as a more convincing 3D-styled d20 with perspective tumbling, stronger face structure, and calmer premium effects
+   - v0.087.4: replaces the flat CSS/SVG die with a true canvas-rendered icosahedron: 12 vertices, 20 faces, back-face culling, perspective, lighting, quaternion tumbling, face settling, embedded failure skull, and lamp-gold nat-100 fissures
+   - v0.087.6: reverts the failed v0.087.5 bounce/skull pass and rebuilds the die presentation on the v0.087.4 base with actual z-height bounces, shadow-from-height, a larger size range, a projected grim skull texture beneath obsidian, and a richer pearlescent lamp-gold 100 effect
+   - v0.087.7: replaces the homemade die renderer with a Dice Box 1.1.3 physics prototype using the supplied local Ammo/theme assets; Fathom still owns the authoritative d100 result while the physical d20 is presentation-only
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9E replaces the finite d20 Skill modifier prototype with an endless rating resolver while preserving the equipment and combat spine from 9C–9D.
@@ -1459,6 +1466,46 @@ button{
 .settings-reset{width:100%;min-height:44px;border:none;border-bottom:1px solid var(--rule);background:#141a20;padding:10px 13px;text-align:left;font-family:var(--cond);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#a87569}
 .settings-close{width:100%;min-height:52px;border:none;background:#12181e;padding:13px calc(13px + env(safe-area-inset-bottom));font-family:var(--cond);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 
+.settings-info-open{min-width:78px;border:1px solid var(--lamp-dim);background:#171d23;padding:8px 10px;font-family:var(--cond);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--lamp)}
+.settings-info-open:active{background:#20272d}
+
+/* ---------- v0.087.0: chaptered Info & Rules ---------- */
+.info-sheet{position:absolute;inset:0;z-index:45;display:flex;flex-direction:column;justify-content:flex-end}
+.info-sheet[hidden]{display:none}
+.info-scrim{flex:1;min-height:0;background:rgba(8,11,14,.80)}
+.info-panel{max-height:88%;overflow-y:auto;background:var(--panel);border-top:1px solid var(--lamp-dim)}
+.info-chapters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:9px 10px;background:#101418;border-bottom:1px solid var(--rule)}
+.info-chapter-btn{min-height:40px;border:1px solid var(--rule-hi);background:#11171c;padding:7px 6px;font-family:var(--cond);font-size:8.5px;line-height:1.2;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.info-chapter-btn.selected{border-color:var(--lamp-dim);background:#20272d;color:var(--lamp)}
+.info-article{padding:12px 13px 14px;background:#141a20;color:var(--bone)}
+.info-article h3{margin:0 0 4px;font-family:var(--slab);font-size:18px;color:var(--lamp)}
+.info-article>p{margin:0 0 10px;color:#a8a69d;line-height:1.5}
+.info-step{margin:7px 0;padding:8px 9px;border-left:2px solid var(--rule-hi);background:#11171c;color:#aaa99f;line-height:1.45}
+.info-step b{color:var(--bone)}
+.info-equation{margin:8px 0;padding:8px 9px;border:1px solid var(--rule);background:#0f1418;font-family:var(--mono);font-size:11px;color:#9fbdba;overflow-wrap:anywhere}
+.info-example{margin:9px 0;padding:9px 10px;border:1px solid var(--lamp-dim);background:#181a19;color:#c9c1ac;line-height:1.5}
+.info-example b{color:var(--lamp)}
+.info-details{margin-top:10px;border-top:1px solid var(--rule);padding-top:8px;color:var(--dim);font-size:10.5px}
+.info-details summary{cursor:pointer;color:#9c9588;font-family:var(--cond);letter-spacing:.07em;text-transform:uppercase}
+.info-details p{margin:7px 0 0;line-height:1.45}
+.dice-test-tools{display:grid;gap:7px;width:100%}
+.dice-test-custom{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:end}
+.dice-test-field{display:grid;gap:4px;min-width:0}
+.dice-test-field label{font-family:var(--cond);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.dice-test-field input{width:100%;min-width:0;height:36px;border:1px solid var(--rule-hi);background:#0e1419;color:var(--bone);padding:0 9px;font:inherit}
+.dice-test-field input:focus{border-color:var(--lamp-dim)}
+.dice-test-button{min-height:36px;border:1px solid var(--rule-hi);background:#11171c;padding:7px 10px;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone)}
+.dice-test-button:active{border-color:var(--lamp-dim);color:var(--lamp)}
+
+/* ---------- v0.087.7: Dice Box physics prototype ---------- */
+.fathom-dicebox-layer{position:absolute;inset:0;z-index:100;overflow:hidden;pointer-events:none;visibility:hidden;opacity:0;background:rgba(2,4,7,.025);transition:opacity .08s linear}
+.fathom-dicebox-layer.active{visibility:visible;opacity:1;pointer-events:none}
+.fathom-dicebox-stage{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.fathom-dicebox-stage canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important;pointer-events:none!important}
+.fathom-roll-caption{position:absolute;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));z-index:3;transform:translateX(-50%);max-width:calc(100% - 28px);padding:6px 9px;border:1px solid var(--rule-hi);background:rgba(12,16,20,.94);font-family:var(--cond);font-size:9.5px;letter-spacing:.06em;text-align:center;color:#b6b2a8;white-space:nowrap;box-shadow:0 3px 14px rgba(0,0,0,.45)}
+.fathom-roll-caption strong{color:var(--lamp);font-weight:600}.fathom-roll-caption.failure strong{color:#d8dddd}
+.fathom-dicebox-status{position:absolute;left:50%;top:calc(10px + env(safe-area-inset-top));z-index:3;transform:translateX(-50%);padding:4px 7px;border:1px solid rgba(149,134,95,.25);background:rgba(9,12,15,.82);font-family:var(--cond);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#827e73;white-space:nowrap;opacity:0;transition:opacity .12s}
+.fathom-dicebox-layer.loading .fathom-dicebox-status{opacity:1}
 /* ---------- Session 7: character creation ---------- */
 .creator{
   position:absolute;inset:0;z-index:30;background:var(--deep);
@@ -1690,6 +1737,12 @@ button{
   </aside>
 
   <div class="combat-transition" id="combatTransition" hidden aria-hidden="true"></div>
+
+  <div class="fathom-dicebox-layer" id="fathomDiceBoxLayer" aria-hidden="true">
+    <div class="fathom-dicebox-stage" id="fathomDiceBoxStage"></div>
+    <div class="fathom-dicebox-status" id="fathomDiceBoxStatus">Preparing physical die…</div>
+    <div class="fathom-roll-caption" id="fathomDieCaption"></div>
+  </div>
 
   <section class="creator" id="creator" aria-label="Create a delver">
     <div class="creator-head">
@@ -1997,6 +2050,41 @@ button{
         </div>
       </section>
       <section class="settings-section">
+        <div class="settings-section-title">Fathom Die</div>
+        <div class="settings-row">
+          <div class="settings-copy"><b>Dice animation</b><span>v0.087.7 physics prototype: active Skill checks throw a real 3D d20 shell using Dice Box physics. Fathom still resolves the d100 result separately. Passive checks stay quiet.</span></div>
+          <button class="settings-toggle" id="btnSettingDice" type="button" aria-pressed="true">On</button>
+        </div>
+        <div class="settings-row stack">
+          <div class="settings-copy"><b>Dice size</b><span>Changes only the physical prototype die. The d100 roll and Skill mathematics are identical.</span></div>
+          <div class="settings-choice-grid" id="diceSizeChoices">
+            <button class="settings-choice" type="button" data-dice-size="small">Small</button>
+            <button class="settings-choice" type="button" data-dice-size="normal">Normal</button>
+            <button class="settings-choice" type="button" data-dice-size="large">Large</button>
+          </div>
+        </div>
+        <div class="settings-row stack">
+          <div class="settings-copy"><b>Dice test <span style="color:var(--lamp)">· temporary</span></b><span>Physics test only. Uses Need 51+, throws the physical d20 shell, and does not affect the run, Skill XP, or any real check.</span></div>
+          <div class="dice-test-tools">
+            <button class="dice-test-button" id="btnDiceTestRandom" type="button">Random roll</button>
+            <div class="dice-test-custom">
+              <div class="dice-test-field">
+                <label for="diceTestValue">Force result · 1–100</label>
+                <input id="diceTestValue" type="number" min="1" max="100" step="1" inputmode="numeric" placeholder="1–100">
+              </div>
+              <button class="dice-test-button" id="btnDiceTestCustom" type="button">Roll</button>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="settings-section">
+        <div class="settings-section-title">Info &amp; Rules</div>
+        <div class="settings-row">
+          <div class="settings-copy"><b>How the numbers work</b><span>Open short chapters explaining Skill checks, attribute aptitude and Skill practice. More systems can be documented here as they are locked.</span></div>
+          <button class="settings-info-open" id="btnOpenInfo" type="button">Open info</button>
+        </div>
+      </section>
+      <section class="settings-section">
         <div class="settings-section-title">Character slots</div>
         <div class="settings-slot-list" id="characterSlotList"></div>
         <div class="settings-note">Three independent autosaved chronicles. Switching freezes the inactive delver exactly where they were; slots are not backup copies and permadeath still applies inside each chronicle.</div>
@@ -2005,6 +2093,16 @@ button{
       <button class="settings-reset" id="btnResetSettings" type="button">Reset settings to defaults</button>
       </div>
       <button class="settings-close" id="btnSettingsClose" type="button">Close settings</button>
+    </div>
+  </div>
+
+  <div class="info-sheet" id="infoSheet" hidden>
+    <div class="info-scrim" id="infoScrim"></div>
+    <div class="info-panel" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+      <div class="settings-head"><h2 id="infoTitle">Info &amp; Rules</h2><span>plain-language reference</span></div>
+      <div class="info-chapters" id="infoChapterList"></div>
+      <article class="info-article" id="infoChapterBody"></article>
+      <button class="settings-close" id="btnInfoBack" type="button">Back to settings</button>
     </div>
   </div>
 
@@ -2301,11 +2399,12 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.086.1";
+const BUILD_VERSION = "v0.087.0";
 const SETTINGS_KEY = "lowfathom:settings";
-const SETTINGS_SCHEMA = 1;
-const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15});
+const SETTINGS_SCHEMA = 2;
+const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal"});
 const ENCOUNTER_GRACE_OPTIONS = [5,15,30];
+const DICE_SIZE_OPTIONS = ["small","normal","large"];
 let settings = {...DEFAULT_SETTINGS};
 
 const TRAVEL_TICK_MS = 500;
@@ -2785,6 +2884,71 @@ function formatSkillCheck(result){
     : `Need <b>${result.target}+</b> on d100 · rolled <b>${result.roll}</b>`;
   return `<b>${esc(result.def.name)}</b>: ${resolution} · <span class="${result.success?"good":"bad"}">${result.success?"success":"failure"}</span>${result.automatic?"":` · ${esc(result.label)} (${pct}%)`}<br><span class="note">Rank ${result.rank} · ${result.def.stat} aptitude ${signed(formatRating(result.aptitude))}${result.proficiency?` · proficiency ${signed(result.proficiency)}`:""}${result.situational?` · circumstance ${signed(result.situational)}`:""} · effective Rating ${formatRating(result.rating)}</span>`;
 }
+let fathomDiceBoxFallbackTimer=null;
+function stopFathomDiePresentation(){
+  if(fathomDiceBoxFallbackTimer){clearTimeout(fathomDiceBoxFallbackTimer);fathomDiceBoxFallbackTimer=null;}
+  const layer=$("fathomDiceBoxLayer");
+  if(layer){layer.classList.remove("active","loading");layer.setAttribute("aria-hidden","true");}
+  if(typeof window.fathomDiceBoxClear==="function") window.fathomDiceBoxClear();
+}
+function fathomDieScaleSetting(){
+  const size=settings?.diceSize;
+  return size==="small"?4.25:size==="large"?7.25:5.65;
+}
+function presentFathomDie(result,{force=false}={}){
+  if(!result||result.automatic||result.roll==null||(!force&&!settings?.diceAnimation))return;
+  const layer=$("fathomDiceBoxLayer"),caption=$("fathomDieCaption");
+  if(!layer||!caption)return;
+  if(fathomDiceBoxFallbackTimer){clearTimeout(fathomDiceBoxFallbackTimer);fathomDiceBoxFallbackTimer=null;}
+  layer.classList.add("active");layer.setAttribute("aria-hidden","false");
+  caption.className="fathom-roll-caption";
+  caption.innerHTML=`${esc(result.def?.name||"Skill check")} · Need <strong>${result.target}+</strong> on d100`;
+  const payload={
+    name:result.def?.name||"Skill check",
+    target:result.target,
+    roll:result.roll,
+    success:!!result.success,
+    scale:fathomDieScaleSetting()
+  };
+  if(window.fathomDiceBoxFailed){
+    layer.classList.remove("loading");
+    caption.classList.toggle("failure",!result.success);
+    caption.innerHTML=`Physical die unavailable · Need ${result.target}+ · rolled <strong>${result.roll}</strong> · ${result.success?"SUCCESS":"FAILURE"}`;
+    fathomDiceBoxFallbackTimer=setTimeout(stopFathomDiePresentation,1500);
+  }else if(typeof window.fathomDiceBoxRoll==="function"){
+    layer.classList.toggle("loading",!window.fathomDiceBoxReady);
+    window.fathomDiceBoxRoll(payload).catch(err=>{
+      console.error("Fathom Dice Box roll failed:",err);
+      layer.classList.remove("loading");
+      caption.classList.toggle("failure",!result.success);
+      caption.innerHTML=`Need ${result.target}+ · rolled <strong>${result.roll}</strong> · ${result.success?"SUCCESS":"FAILURE"}`;
+      fathomDiceBoxFallbackTimer=setTimeout(stopFathomDiePresentation,1400);
+    });
+  }else{
+    layer.classList.add("loading");
+    caption.innerHTML=`${esc(result.def?.name||"Skill check")} · Dice Box is still loading…`;
+    fathomDiceBoxFallbackTimer=setTimeout(()=>{
+      layer.classList.remove("loading");
+      caption.classList.toggle("failure",!result.success);
+      caption.innerHTML=`Need ${result.target}+ · rolled <strong>${result.roll}</strong> · ${result.success?"SUCCESS":"FAILURE"}`;
+      fathomDiceBoxFallbackTimer=setTimeout(stopFathomDiePresentation,1300);
+    },900);
+  }
+}
+function makeFathomDieTestResult(roll){
+  const value=Math.max(1,Math.min(100,Math.round(Number(roll)||1)));
+  const target=51;
+  return {automatic:false,roll:value,target,success:value>=target,def:{name:"Dice test"}};
+}
+function testFathomDie(roll){
+  presentFathomDie(makeFathomDieTestResult(roll),{force:true});
+}
+function runActiveSkillCheck(id,challenge,situational=0){
+  const result=runSkillCheck(id,challenge,situational);
+  presentFathomDie(result);
+  return result;
+}
+
 function skillPracticeAmount(result){
   if(!result || result.automatic) return 0;
   const u=result.normalizedGap;
@@ -4442,7 +4606,7 @@ function setTravelEventResult(title,text,rollHtml="",followupCombat=false){
 function attemptGlintInvestigation(informed=false){
   if(!S?.travelEvent) return;
   const circumstance = informed ? 2 : 0;
-  const check = runSkillCheck("investigation",authoredChallenge(13),circumstance);
+  const check = runActiveSkillCheck("investigation",authoredChallenge(13),circumstance);
   const practice = awardSkillPractice("investigation","glint:investigation",check);
   const rollHtml = formatSkillCheck(check) + practiceText("investigation",practice);
   if(check.success){
@@ -4511,7 +4675,7 @@ function handleTravelEventAction(action){
         S.sideArea.altarTranslationAttempted=true;
       }
       const source=action==="translate-wall"?`side-language:${S.sideArea.id}`:`side-altar-language:${S.sideArea.id}`,
-        dc=trapDc(action==="translate-wall"?12:13),c=runSkillCheck("translation",dc),p=awardSkillPractice("translation",source,c);
+        dc=trapDc(action==="translate-wall"?12:13),c=runActiveSkillCheck("translation",dc),p=awardSkillPractice("translation",source,c);
       let html=formatSkillCheck(c)+practiceText("translation",p);
       if(c.success){
         const knownBefore=[...(S.languageKnown||[])],learned=learnLanguageWord();
@@ -4527,7 +4691,7 @@ function handleTravelEventAction(action){
     }
     if(action==="side-event-resume"){S.travelEvent=null;S.travelMode="side";S.travelSinceEvent=0;resumeBoonClock();render();return;}
     if(action==="trap-perception"){
-      const c=runSkillCheck("perception",trapDc(12)),p=awardSkillPractice("perception",`side-trap-sense:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("perception",p);
+      const c=runActiveSkillCheck("perception",trapDc(12)),p=awardSkillPractice("perception",`side-trap-sense:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("perception",p);
       if(c.success){ev.stage="found";ev.title="A loaded mechanism";ev.text="A line disappears into a crude spring assembly under the stone. The passage is too tight to simply walk around it.";ev.rollHtml=html;travelLogAdd(`Perception catches a <b>trap</b> before it catches you.`,"good");render();}
       else triggerTrap("You miss the loaded line until your boot finds it.");
       return;
@@ -4535,13 +4699,13 @@ function handleTravelEventAction(action){
     if(action==="trap-cross") return triggerTrap("You choose to cross without resolving the mechanism.");
     if(action==="trap-dismantle"){
       if(S.inventory.rogueTools<=0){ev.rollHtml=`<span class="bad">You do not have Rogue Tools. The mechanism is too fine to dismantle safely.</span>`;render();return;}
-      const c=runSkillCheck("sleight",trapDc(13),2),p=awardSkillPractice("sleight",`side-trap:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("sleight",p);
+      const c=runActiveSkillCheck("sleight",trapDc(13),2),p=awardSkillPractice("sleight",`side-trap:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("sleight",p);
       if(c.success){ev.stage="result";ev.title="Mechanism dismantled";ev.text="The loaded pieces come apart in your hands. The trap is permanently safe.";ev.rollHtml=html;travelLogAdd(`Sleight of Hand dismantles the trap cleanly.`,"good");render();}
       else triggerTrap("A pick slips. The mechanism fires and breaks itself in the same motion.");
       return;
     }
     if(action==="trap-destroy"){
-      const c=runSkillCheck("athletics",trapDc(12)),p=awardSkillPractice("athletics",`side-trap-force:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("athletics",p);
+      const c=runActiveSkillCheck("athletics",trapDc(12)),p=awardSkillPractice("athletics",`side-trap-force:${S.sideArea.id}`,c),html=formatSkillCheck(c)+practiceText("athletics",p);
       if(c.success){ev.stage="result";ev.title="Mechanism smashed";ev.text="You break the loaded assembly before it can release. Nothing delicate remains, but the way is safe.";ev.rollHtml=html;travelLogAdd(`You destroy the trap mechanism.`,"good");render();}
       else triggerTrap("The blow lands on the wrong piece and releases the trap.");
       return;
@@ -6857,11 +7021,11 @@ function grantChestReward(){
   S.sideArea.chestOpened=true;travelLogAdd(`The chest yields <b>${esc(text)}</b>.`,"good");S.travelEvent={id:"side-altar",stage:"reward",kind:"Side passage complete",title:"The chest opens",text:`You recover ${text}. The route behind you is the only way back to the main descent.`,rollHtml:""};render();
 }
 function attemptChestLock(){
-  const a=S.sideArea;if(!a||a.lockAttempted)return;a.lockAttempted=true;const tool=S.inventory.rogueTools>0?2:0,check=runSkillCheck("sleight",trapDc(13),tool),practice=awardSkillPractice("sleight",`side-lock:${a.id}`,check);const html=formatSkillCheck(check)+practiceText("sleight",practice);
+  const a=S.sideArea;if(!a||a.lockAttempted)return;a.lockAttempted=true;const tool=S.inventory.rogueTools>0?2:0,check=runActiveSkillCheck("sleight",trapDc(13),tool),practice=awardSkillPractice("sleight",`side-lock:${a.id}`,check);const html=formatSkillCheck(check)+practiceText("sleight",practice);
   if(check.success){S.travelEvent.rollHtml=html;grantChestReward();}else{S.travelEvent={id:"side-altar",stage:"jammed",kind:"Lock jammed",title:"The lock will not take another delicate attempt",text:"The pick slips and the old lock deforms. The mechanism is changed; you cannot repeat the same check.",rollHtml:html};render();}
 }
 function forceChest(){
-  const a=S.sideArea,check=runSkillCheck("athletics",trapDc(14),0),practice=awardSkillPractice("athletics",`side-force:${a.id}`,check),html=formatSkillCheck(check)+practiceText("athletics",practice);
+  const a=S.sideArea,check=runActiveSkillCheck("athletics",trapDc(14),0),practice=awardSkillPractice("athletics",`side-force:${a.id}`,check),html=formatSkillCheck(check)+practiceText("athletics",practice);
   if(check.success){S.travelEvent.rollHtml=html;return grantChestReward();}
   const dmg=Math.max(1,ri(1,4));S.hp-=dmg;flashTravelDamage();
   travelLogAdd(`Forcing the chest costs <b>${dmg} HP</b>. The frame gives way badly and ruins the better contents.`,"danger");
@@ -7061,7 +7225,7 @@ function resolveLootSearch(skill="investigation"){
   const loot=S.pendingLoot;
   if(!loot||loot.searched) return;
   loot.searched=true;
-  const challenge=Number.isFinite(loot.searchChallenge)?loot.searchChallenge:authoredChallenge(12),c=runSkillCheck("investigation",challenge),p=awardSkillPractice("investigation",`loot-search:${loot.encounter}`,c);
+  const challenge=Number.isFinite(loot.searchChallenge)?loot.searchChallenge:authoredChallenge(12),c=runActiveSkillCheck("investigation",challenge),p=awardSkillPractice("investigation",`loot-search:${loot.encounter}`,c);
   const rec=lootRecordById(loot.historyId);
   let found=null;
   // Success quality: expertise above the challenge improves the chance that the careful search yields something worth carrying.
@@ -7566,6 +7730,8 @@ function normalizeSettings(value){
     if(typeof value.characterIndicators==="boolean") next.characterIndicators=value.characterIndicators;
     const grace=Number(value.encounterGraceSeconds);
     if(ENCOUNTER_GRACE_OPTIONS.includes(grace)) next.encounterGraceSeconds=grace;
+    if(typeof value.diceAnimation==="boolean") next.diceAnimation=value.diceAnimation;
+    if(DICE_SIZE_OPTIONS.includes(value.diceSize)) next.diceSize=value.diceSize;
   }
   return next;
 }
@@ -7574,7 +7740,8 @@ function loadSettings(){
     const raw=localStorage.getItem(SETTINGS_KEY);
     if(!raw){settings={...DEFAULT_SETTINGS};return settings;}
     const data=JSON.parse(raw);
-    settings=normalizeSettings(data?.schema===SETTINGS_SCHEMA?data.settings:data);
+    const payload=data?.settings && typeof data.settings==="object" ? data.settings : data;
+    settings=normalizeSettings(payload);
   }catch(err){
     console.error("Lowfathom settings restore failed",err);
     settings={...DEFAULT_SETTINGS};
@@ -7608,6 +7775,18 @@ function setEncounterGrace(seconds){
   const value=Number(seconds);
   if(!ENCOUNTER_GRACE_OPTIONS.includes(value)) return;
   settings.encounterGraceSeconds=value;
+  saveSettingsNow();
+  renderSettingsSheet();
+}
+function setDiceAnimation(enabled){
+  settings.diceAnimation=!!enabled;
+  if(!settings.diceAnimation) stopFathomDiePresentation();
+  saveSettingsNow();
+  renderSettingsSheet();
+}
+function setDiceSize(size){
+  if(!DICE_SIZE_OPTIONS.includes(size)) return;
+  settings.diceSize=size;
   saveSettingsNow();
   renderSettingsSheet();
 }
@@ -7691,6 +7870,7 @@ function deleteCharacterSlot(slot){
 }
 
 function resetRuntimeForSlotChange(){
+  stopFathomDiePresentation();closeInfoSheet();
   stopEncounterWarningFrame();clearCombatTransitionTimers();clearCombatVictoryTimer();clearHollowTimer();stopLevelUpNoticeFrame();pauseBoonClock();
   closePack();closeCharacterSheet();closeSettingsSheet();closeLootHistory();closeEquipmentInspect();
   document.querySelectorAll(".dead,.save-integrity").forEach(n=>n.remove());
@@ -7712,6 +7892,31 @@ function switchCharacterSlot(slot){
   if(runSaveLoadIssue) showSaveLoadIssueScreen(runSaveLoadIssue);
   return true;
 }
+const INFO_CHAPTERS = [
+  {id:"skill-checks",title:"Skill checks"},
+  {id:"aptitude",title:"Attributes"},
+  {id:"practice",title:"Practice & Rank"}
+];
+let infoChapterId="skill-checks";
+function infoChapterHtml(id){
+  if(id==="aptitude") return `<h3>Attributes &amp; aptitude</h3><p>Your governing attribute still matters, but enormous endless-game attributes are compressed before they touch a Skill check.</p><div class="info-step"><b>1. Find the governing attribute.</b><br>Investigation uses INT. Perception uses WIS. Stealth uses DEX, and so on.</div><div class="info-step"><b>2. Convert it into aptitude.</b><br>Every doubling of that attribute changes aptitude by about <b>${SKILL_APTITUDE_PER_DOUBLING} Rating</b>. Attribute 10 is about +0; 20 about +8; 40 about +16; 80 about +24.</div><div class="info-step"><b>3. Add aptitude to training.</b><br>Skill Rank remains the main expertise number. Class proficiency and special circumstances are added afterward.</div><div class="info-equation">Effective Rating = Skill Rank + attribute aptitude + proficiency + circumstance</div><p>This keeps attributes relevant without letting a future 2,000 INT become a ridiculous +2,000 on the die.</p>`;
+  if(id==="practice") return `<h3>Practice &amp; Rank</h3><p>Skills improve by facing meaningful situations, not by repeating a harmless button forever.</p><div class="info-step"><b>Meaningful challenge:</b> success gives Skill XP; failure can still teach a smaller amount.</div><div class="info-step"><b>Difficult success:</b> gives more practice because you learned from doing something above your comfort zone.</div><div class="info-step"><b>Against the Odds:</b> exceptionally difficult successes earn a special practice bonus and chronicle callout.</div><div class="info-step"><b>Trivial or effectively impossible:</b> gives little or no practice. The same generated opportunity cannot be farmed repeatedly.</div><div class="info-equation">Current prototype: ${SKILL_XP_PER_RANK} Skill XP per Rank</div><p>The Rank number can continue forever. Higher Rank lowers the roll you need against the same challenge until old obstacles become automatic.</p>`;
+  return `<h3>Skill checks</h3><p>Skill bonuses do not get added to the d100. They change <b>how low a number you need to roll</b>.</p><div class="info-step"><b>1. Build your Effective Rating.</b><br>Skill Rank + attribute aptitude + class proficiency + circumstances.</div><div class="info-step"><b>2. Compare it with the challenge.</b><br>The game compares your Effective Rating with that object's fixed Challenge Rating.</div><div class="info-step"><b>3. That comparison becomes a target.</b><br>More Rating means a better chance and therefore a lower <b>Need X+</b> number.</div><div class="info-step"><b>4. Roll d100.</b><br>Meet or beat the target to succeed. If it says <b>Need 47+</b>, 47–100 succeeds and 1–46 fails.</div><div class="info-example"><b>Example</b><br>Investigation Rank 20 + INT aptitude 16 = Rating 36. Against Challenge Rating 21, you are +15 ahead: about a 76% chance, shown as <b>Need 25+ on d100</b>.</div><div class="info-step"><b>Huge advantage?</b> Old trivial obstacles eventually auto-succeed with no die roll. Huge disadvantage can become an automatic failure.</div><details class="info-details"><summary>Under the hood</summary><p>Equal Rating is 50%. A +${SKILL_RATING_SPREAD} Rating gap is about 91%; −${SKILL_RATING_SPREAD} is about 9%. The exact probability curve is <code>P = 1 / (1 + 10^(-(Skill − Challenge)/${SKILL_RATING_SPREAD}))</code>. You never need to calculate it yourself.</p></details>`;
+}
+function renderInfoSheet(){
+  const list=$("infoChapterList"),body=$("infoChapterBody");
+  if(!list||!body) return;
+  if(!INFO_CHAPTERS.some(ch=>ch.id===infoChapterId)) infoChapterId=INFO_CHAPTERS[0].id;
+  list.innerHTML=INFO_CHAPTERS.map(ch=>`<button class="info-chapter-btn${ch.id===infoChapterId?" selected":""}" type="button" data-info-chapter="${ch.id}">${esc(ch.title)}</button>`).join("");
+  body.innerHTML=infoChapterHtml(infoChapterId);
+}
+function openInfoSheet(){
+  const info=$("infoSheet");if(!info)return;
+  info.hidden=false;renderInfoSheet();
+}
+function closeInfoSheet(){
+  const info=$("infoSheet");if(info)info.hidden=true;
+}
 function renderSettingsSheet(){
   const sheet=$("settingsSheet");
   if(!sheet) return;
@@ -7731,6 +7936,16 @@ function renderSettingsSheet(){
   document.querySelectorAll("[data-encounter-grace]").forEach(btn=>{
     btn.classList.toggle("selected",Number(btn.dataset.encounterGrace)===settings.encounterGraceSeconds);
   });
+  const diceBtn=$("btnSettingDice");
+  if(diceBtn){
+    const on=!!settings.diceAnimation;
+    diceBtn.textContent=on?"On":"Off";
+    diceBtn.classList.toggle("on",on);
+    diceBtn.setAttribute("aria-pressed",String(on));
+  }
+  document.querySelectorAll("[data-dice-size]").forEach(btn=>{
+    btn.classList.toggle("selected",btn.dataset.diceSize===settings.diceSize);
+  });
   renderCharacterSlots();
 }
 function openSettingsSheet(){
@@ -7741,6 +7956,7 @@ function openSettingsSheet(){
   syncBrowseTravelUI();
 }
 function closeSettingsSheet(){
+  closeInfoSheet();
   const sheet=$("settingsSheet");
   if(sheet) sheet.hidden=true;
   syncBrowseTravelUI();
@@ -8366,7 +8582,7 @@ function beginPuzzleFinale(){
 }
 function attemptPuzzleSkill(skill,baseDc,situational=0){
   const p=puzzleState(),step=puzzleCurrent();if(!p||!step||S.travelEvent.stage!=="puzzle-step")return;
-  const dc=trapDc(baseDc),c=runSkillCheck(skill,dc,situational),practice=awardSkillPractice(skill,`side-puzzle:${S.sideArea.id}:${p.step}`,c);
+  const dc=trapDc(baseDc),c=runActiveSkillCheck(skill,dc,situational),practice=awardSkillPractice(skill,`side-puzzle:${S.sideArea.id}:${p.step}`,c);
   p.attempts++;if(c.success)p.successes++;
   p.lastSuccess=c.success;p.lastHtml=formatSkillCheck(c)+practiceText(skill,practice);
   S.travelEvent.stage="puzzle-result";S.travelEvent.rollHtml=p.lastHtml;S.travelEvent.title=c.success?"The seal settles":"The seal slips";
@@ -8553,6 +8769,31 @@ $("arena").addEventListener("click", e => {
   if(cog) openSettingsSheet();
 });
 $("btnSettingNotices").addEventListener("click", () => setCharacterIndicators(!settings.characterIndicators));
+$("btnSettingDice").addEventListener("click", () => setDiceAnimation(!settings.diceAnimation));
+$("diceSizeChoices").addEventListener("click", e => {
+  const b=e.target.closest("[data-dice-size]");
+  if(b) setDiceSize(b.dataset.diceSize);
+});
+$("btnDiceTestRandom").addEventListener("click", () => testFathomDie(ri(1,100)));
+$("btnDiceTestCustom").addEventListener("click", () => {
+  const input=$("diceTestValue");
+  if(!input)return;
+  const value=Number(input.value);
+  if(!Number.isInteger(value)||value<1||value>100){input.focus();input.select();return;}
+  testFathomDie(value);
+});
+$("diceTestValue").addEventListener("keydown", e => {
+  if(e.key!=="Enter")return;
+  e.preventDefault();
+  $("btnDiceTestCustom").click();
+});
+$("btnOpenInfo").addEventListener("click", openInfoSheet);
+$("btnInfoBack").addEventListener("click", closeInfoSheet);
+$("infoScrim").addEventListener("click", closeInfoSheet);
+$("infoChapterList").addEventListener("click", e => {
+  const b=e.target.closest("[data-info-chapter]");
+  if(!b)return;infoChapterId=b.dataset.infoChapter;renderInfoSheet();
+});
 $("encounterGraceChoices").addEventListener("click", e => {
   const b=e.target.closest("[data-encounter-grace]");
   if(b) setEncounterGrace(b.dataset.encounterGrace);
@@ -8640,6 +8881,107 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+</script>
+
+<script type="module">
+import DiceBox from "https://unpkg.com/@3d-dice/dice-box@1.1.3/dist/dice-box.es.min.js";
+
+const layer=document.getElementById("fathomDiceBoxLayer");
+const caption=document.getElementById("fathomDieCaption");
+// Official Dice Box CDN mode: keep module, world scripts and static assets on one origin.
+// Do not combine the CDN module with Fathom's local asset tree in this prototype.
+const CDN_ORIGIN="https://unpkg.com/@3d-dice/dice-box@1.1.3/dist/";
+const assetPath="assets/";
+let pending=null;
+let hideTimer=null;
+let rollToken=0;
+
+const diceBox=new DiceBox({
+  container:"#fathomDiceBoxStage",
+  assetPath,
+  origin:CDN_ORIGIN,
+  theme:"default",
+  themeColor:"#171c27",
+  offscreen:false,
+  scale:5.65,
+  gravity:1,
+  mass:1.35,
+  friction:.82,
+  restitution:.28,
+  angularDamping:.36,
+  linearDamping:.34,
+  spinForce:5.2,
+  throwForce:6.2,
+  startingHeight:8.5,
+  settleTimeout:4500,
+  enableShadows:true,
+  shadowTransparency:.72,
+  lightIntensity:.82
+});
+
+window.fathomDiceBoxReady=false;
+window.fathomDiceBoxFailed=false;
+const status=document.getElementById("fathomDiceBoxStatus");
+const INIT_TIMEOUT_MS=12000;
+const initAttempt=diceBox.init();
+const initTimeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error(`Dice Box init timed out after ${INIT_TIMEOUT_MS}ms`)),INIT_TIMEOUT_MS));
+const ready=Promise.race([initAttempt,initTimeout]).then(()=>{
+  window.fathomDiceBoxReady=true;
+  window.fathomDiceBoxFailed=false;
+  layer?.classList.remove("loading");
+  if(status)status.textContent="Physical die ready";
+  console.info("Fathom Dice Box ready (official CDN reference configuration)");
+  return diceBox;
+}).catch(err=>{
+  window.fathomDiceBoxReady=false;
+  window.fathomDiceBoxFailed=true;
+  layer?.classList.remove("loading");
+  if(status)status.textContent="Physical die unavailable";
+  console.error("Fathom Dice Box initialization failed:",err);
+  return null;
+});
+
+diceBox.onRollComplete=()=>{
+  if(!pending)return;
+  const {payload,token}=pending;
+  if(token!==rollToken)return;
+  layer?.classList.remove("loading");
+  if(caption){
+    caption.className=`fathom-roll-caption${payload.success?"":" failure"}`;
+    caption.innerHTML=`Need ${payload.target}+ · rolled <strong>${payload.roll}</strong> · ${payload.success?"SUCCESS":"FAILURE"}`;
+  }
+  clearTimeout(hideTimer);
+  hideTimer=setTimeout(()=>{
+    if(token!==rollToken)return;
+    diceBox.clear();
+    layer?.classList.remove("active","loading");
+    layer?.setAttribute("aria-hidden","true");
+    pending=null;
+  },payload.success?1150:1550);
+};
+
+window.fathomDiceBoxClear=()=>{
+  clearTimeout(hideTimer);
+  pending=null;
+  try{diceBox.clear();}catch{}
+};
+
+window.fathomDiceBoxRoll=async payload=>{
+  const token=++rollToken;
+  clearTimeout(hideTimer);
+  layer?.classList.add("active","loading");
+  layer?.setAttribute("aria-hidden","false");
+  const initialized=await ready;
+  if(token!==rollToken)return;
+  if(!initialized)throw new Error("Dice Box unavailable after initialization attempt");
+  layer?.classList.remove("loading");
+  try{diceBox.clear();}catch{}
+  if(Number.isFinite(payload.scale)) diceBox.updateConfig({scale:payload.scale});
+  pending={payload,token};
+  // This prototype intentionally rolls a physical d20 only to judge Dice Box physics.
+  // Fathom's already-resolved d100 value remains authoritative and is revealed on settle.
+  await diceBox.roll("1d20");
+};
 </script>
 </body>
 </html>
