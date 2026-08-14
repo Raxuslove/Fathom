@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.090.7 — Mobile Fixes + Coin Balance Revert</title>
+<title>Lowfathom v0.090.8 — Combat UI Pass</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
@@ -142,6 +142,7 @@
    - v0.090.0: Gold is persistent and visible in Character/Backpack/Equipment; existing generated gear migrates onto the new value scale without rerolling the item itself
    - v0.090.6: fixes merchant Equipped Gear scope, anchors route landmarks to the shaft, self-heals stalled mobile travel, and lets phone combat scroll as one full page
    - v0.090.7: preserves the v0.090.6 fixes and restores ordinary monster coin-drop chance from the accidental 72% change back to 58%
+   - v0.090.8: combat UI pass: latest-exchange readout + full history sheet, smaller stamina pips, clearer action preview, and counter text on actions
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
    Session 8 is complete. Session 9 returns to gameplay systems.
@@ -741,25 +742,25 @@ button{
   min-height:0;display:flex;flex-direction:column;background:var(--panel);
   border-bottom:1px solid var(--rule);
 }
-.combat-log-toggle{
-  flex:0 0 auto;width:100%;min-height:29px;border:0;border-bottom:1px solid var(--rule);
-  background:#151b21;padding:5px 13px;display:flex;align-items:center;gap:8px;text-align:left;
-  font-family:var(--cond);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
-  -webkit-appearance:none;appearance:none;border-radius:0;
+.combat-log-head{
+  display:flex;align-items:center;gap:10px;justify-content:space-between;
+  padding:6px 13px;border-bottom:1px solid var(--rule);background:#151b21;
 }
-.combat-log-toggle .combat-log-toggle-text{margin-left:auto;color:#59636e;letter-spacing:.08em}
-.combat-log-toggle i{font-style:normal;color:var(--lamp-dim);font-size:11px;transition:transform .16s}
-.combat-log-wrap:not(.collapsed) .combat-log-toggle i{transform:rotate(180deg)}
+.combat-log-head h2{
+  margin:0;font-family:var(--cond);font-size:8.5px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--dim);
+}
+.combat-log-open{
+  border:1px solid var(--rule);background:#10161b;padding:4px 8px;min-height:26px;
+  font-family:var(--cond);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--lamp-dim);
+}
 .readout{
-  min-height:0;overflow-y:auto;max-height:31vh;padding:9px 13px;background:var(--panel);overscroll-behavior:contain;
+  min-height:0;padding:8px 13px 9px;background:var(--panel);
 }
+.readout.latest{overflow:hidden}
 .combat-log-entry{padding:0 0 7px;margin:0 0 7px;border-bottom:1px solid rgba(46,57,68,.55)}
 .combat-log-entry:last-child{padding-bottom:0;margin-bottom:0;border-bottom:none}
-.combat-log-wrap.collapsed .readout{max-height:58px;overflow:hidden;padding:7px 13px 8px}
-.combat-log-wrap.collapsed .combat-log-entry{display:none}
-.combat-log-wrap.collapsed .combat-log-entry:last-child{display:block}
-.combat-log-wrap.collapsed .combat-log-entry:last-child p{display:none}
-.combat-log-wrap.collapsed .combat-log-entry:last-child p:first-child{display:block}
 .readout p{margin:0 0 5px}
 .readout p:last-child{margin-bottom:0}
 .readout .said{font-family:var(--slab);font-size:14.5px;color:var(--bone)}
@@ -767,8 +768,12 @@ button{
 .readout .good{color:var(--verdigris)}
 .readout .note{color:var(--dim);font-style:italic;font-size:12px}
 .readout b{font-weight:600;color:var(--bone)}
-.arena.combat-log-expanded{overflow-y:auto;overscroll-behavior-y:contain}
-.arena.combat-log-expanded .combat-log-wrap{max-height:46vh}
+.combat-history-list{
+  max-height:min(54vh,420px);overflow-y:auto;background:#141a20;
+}
+.combat-history-list .combat-log-entry{padding:10px 13px 9px;margin:0;border-bottom:1px solid var(--rule)}
+.combat-history-list .combat-log-entry:last-child{border-bottom:none}
+.combat-history-close{width:100%;min-height:50px;border:none;border-top:1px solid var(--rule);background:#12181e;padding:12px 13px calc(12px + env(safe-area-inset-bottom));font-family:var(--cond);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 
 /* ---------- 5. you ---------- */
 .hero{
@@ -783,10 +788,10 @@ button{
   font-family:var(--cond);font-size:10.5px;letter-spacing:.14em;
   text-transform:uppercase;color:var(--dim);flex:0 0 auto;
 }
-.pips{display:flex;gap:3px;flex:1}
-.pips i{flex:1;height:11px;background:#080b0e;border:1px solid var(--rule)}
-.pips i.on{background:var(--stamina);border-color:#e0b866}
-.staminarow .n{font-family:var(--cond);font-size:10.5px;color:var(--dim);flex:0 0 auto}
+.pips{display:flex;gap:4px;flex:0 0 auto;align-items:center;flex-wrap:wrap}
+.pips i{width:12px;height:8px;background:#080b0e;border:1px solid #2b3239;border-radius:999px;display:block}
+.pips i.on{background:var(--stamina);border-color:#e0b866;box-shadow:0 0 0 1px rgba(224,184,102,.12)}
+.staminarow .n{font-family:var(--cond);font-size:10.5px;color:var(--dim);flex:0 0 auto;margin-left:auto}
 
 .progressrow{
   display:flex;justify-content:space-between;gap:10px;align-items:baseline;
@@ -796,11 +801,15 @@ button{
 .progressrow .xp{white-space:nowrap;color:var(--lamp-dim)}
 
 /* ---------- 6. preview ---------- */
-.preview{padding:8px 13px 9px;background:var(--panel);border-bottom:1px solid var(--rule);min-height:56px}
+.preview{padding:8px 13px 9px;background:var(--panel);border-bottom:1px solid var(--rule);min-height:62px}
 .preview .ttl{
   font-family:var(--cond);font-size:9.5px;letter-spacing:.22em;
-  text-transform:uppercase;color:var(--lamp-dim);margin-bottom:2px;
+  text-transform:uppercase;color:var(--lamp-dim);margin-bottom:4px;
 }
+.preview .pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:4px}
+.preview .name{font-family:var(--slab);font-size:14px;font-weight:600;color:var(--bone)}
+.preview .commit{font-family:var(--cond);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--lamp)}
+.preview .pill{display:inline-flex;align-items:center;border:1px solid rgba(95,148,144,.45);padding:1px 6px;font-family:var(--cond);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--verdigris)}
 .preview .line{color:#a5a396;font-size:13px}
 .preview .cost{color:var(--stamina)}
 .preview .dmg{color:var(--warn)}
@@ -838,11 +847,6 @@ button{
 .act.armed{background:#243039;box-shadow:inset 0 0 0 2px var(--lamp)}
 .act.armed span{color:var(--lamp)}
 
-/* this action counters what the foe just declared */
-.act.counter::after{
-  content:'';position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;
-  background:var(--verdigris);box-shadow:0 0 7px var(--verdigris);
-}
 
 /* ---------- 7b. menu row ---------- */
 .pad2{
@@ -1732,17 +1736,16 @@ button{
   .intent{padding:6px 12px 7px}
   .intent b{font-size:18px;line-height:1.18}
   .battle-space{min-height:8px}
-  .combat-log-toggle{min-height:27px;padding:4px 12px}
-  .combat-log-wrap.collapsed .readout{max-height:52px;padding:6px 12px 7px}
-  .combat-log-wrap:not(.collapsed) .readout{max-height:40vh;padding:7px 12px}
-  .arena.combat-log-expanded .combat-log-wrap{max-height:48vh}
+  .combat-log-head{padding:5px 12px}
+  .combat-log-open{min-height:25px;padding:4px 7px}
+  .readout{padding:7px 12px 8px}
   .readout p{margin-bottom:4px}
   .hero{padding:6px 12px 7px}
   .hero .cname{margin-bottom:2px}
   .staminarow{margin-top:5px}
-  .pips i{height:10px}
+  .pips i{width:10px;height:7px}
   .progressrow{margin-top:4px}
-  .preview{padding:6px 12px 7px;min-height:48px}
+  .preview{padding:6px 12px 7px;min-height:58px}
   .mact{padding:9px 11px;min-height:52px}
   .botbtn{padding-top:9px;padding-bottom:calc(9px + env(safe-area-inset-bottom));min-height:50px}
 }
@@ -1758,18 +1761,16 @@ button{
   grid-template-rows:auto auto auto minmax(34px,auto) auto auto auto auto auto auto;
   align-content:start;-webkit-overflow-scrolling:touch;
 }
-.arena.combat-scroll .battle-space{min-height:34px;flex:none}
-.arena.combat-scroll .combat-log-wrap{max-height:none!important;overflow:visible}
-.arena.combat-scroll .combat-log-wrap:not(.collapsed) .readout{max-height:none!important;overflow:visible}
-.arena.combat-scroll .combat-log-toggle{min-height:34px;padding-top:7px;padding-bottom:7px}
-.arena.combat-scroll.combat-log-expanded{overflow-y:auto}
+.arena.combat-scroll .battle-space{min-height:18px;flex:none}
+.arena.combat-scroll .combat-log-wrap{overflow:hidden}
+.arena.combat-scroll .combat-log-head{padding-top:7px;padding-bottom:7px}
 @media (max-width:480px){
   .arena.combat-scroll .foe{padding:10px 12px 9px}
   .arena.combat-scroll .sprite{flex-basis:98px;height:98px}
   .arena.combat-scroll .intent{padding:8px 12px 9px}
   .arena.combat-scroll .intent b{font-size:18px;line-height:1.22}
   .arena.combat-scroll .hero{padding:8px 12px 9px}
-  .arena.combat-scroll .preview{min-height:54px;padding:8px 12px 9px}
+  .arena.combat-scroll .preview{min-height:60px;padding:8px 12px 9px}
   .arena.combat-scroll .mact{min-height:58px;padding:10px 11px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -2255,9 +2256,12 @@ button{
 
   <div class="battle-space" aria-hidden="true"></div>
 
-  <section class="combat-log-wrap collapsed" id="combatLogWrap" aria-label="Combat log">
-    <button class="combat-log-toggle" id="btnCombatLogToggle" type="button" aria-expanded="false"><span>Combat log</span><span class="combat-log-toggle-text">latest</span><i aria-hidden="true">▾</i></button>
-    <div class="readout" id="readout" role="log" aria-live="polite"></div>
+  <section class="combat-log-wrap" id="combatLogWrap" aria-label="Latest exchange">
+    <div class="combat-log-head">
+      <h2>Latest exchange</h2>
+      <button class="combat-log-open" id="btnCombatLogToggle" type="button" aria-expanded="false">History</button>
+    </div>
+    <div class="readout latest" id="readout" role="log" aria-live="polite"></div>
   </section>
 
   <section class="hero">
@@ -2335,6 +2339,19 @@ button{
         <button class="sheet-back" id="btnBack">Back to the fight</button>
         <button class="settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
       </div>
+    </div>
+  </div>
+
+  <div class="sheet" id="combatHistorySheet" hidden>
+    <div class="sheet-scrim" id="combatHistoryScrim"></div>
+    <div class="sheet-panel">
+      <div class="sheet-head">
+        <h2>Combat history</h2>
+        <span class="slots" id="combatHistoryMeta">0 entries</span>
+      </div>
+      <div class="combat-history-list" id="combatHistoryList"></div>
+      <div class="sheet-note">Full history for the current fight. The combat screen keeps only the latest exchange visible.</div>
+      <button class="combat-history-close" id="btnCombatHistoryBack" type="button">Back to the fight</button>
     </div>
   </div>
 
@@ -2512,7 +2529,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.090.7";
+const BUILD_VERSION = "v0.090.8";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal"});
@@ -2799,6 +2816,7 @@ let levelUpNoticeFrame = null;
 let combatVictoryPending = null;
 let combatVictoryTimer = null;
 let combatLogCollapsed = true;
+let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
 const SAVE_SCHEMA = 7;
@@ -6185,23 +6203,31 @@ function travelLogAdd(html, cls=""){
 }
 
 function renderCombatLog(){
-  const r=$("readout"); if(!r) return;
   const entries=Array.isArray(S?.combatLog)?S.combatLog:[];
-  r.innerHTML=entries.length?entries.map(html=>`<div class="combat-log-entry">${html}</div>`).join(""):`<div class="combat-log-entry"><p class="note">Nothing has happened yet.</p></div>`;
-  if(!combatLogCollapsed) r.scrollTop=r.scrollHeight; else r.scrollTop=0;
+  const latest=entries.length?entries[entries.length-1]:`<p class="note">Nothing has happened yet.</p>`;
+  const r=$("readout");
+  if(r) r.innerHTML=`<div class="combat-log-entry">${latest}</div>`;
+  const list=$("combatHistoryList");
+  if(list){
+    list.innerHTML=entries.length?entries.map(html=>`<div class="combat-log-entry">${html}</div>`).join(""):`<div class="combat-log-entry"><p class="note">Nothing has happened yet.</p></div>`;
+    list.scrollTop=list.scrollHeight;
+  }
+  const meta=$("combatHistoryMeta");
+  if(meta) meta.textContent=`${entries.length} entr${entries.length===1?"y":"ies"}`;
+}
+function setCombatHistoryOpen(open){
+  combatHistoryOpen=!!open;
+  const sheet=$("combatHistorySheet"),btn=$("btnCombatLogToggle");
+  if(sheet) sheet.hidden=!combatHistoryOpen;
+  if(btn) btn.setAttribute("aria-expanded",combatHistoryOpen?"true":"false");
+  if(combatHistoryOpen) renderCombatLog();
 }
 function renderCombatLogCollapse(){
-  const wrap=$("combatLogWrap"),btn=$("btnCombatLogToggle"),arena=$("arena");
-  if(!wrap||!btn) return;
-  wrap.classList.toggle("collapsed",combatLogCollapsed);
-  btn.setAttribute("aria-expanded",combatLogCollapsed?"false":"true");
-  const txt=btn.querySelector(".combat-log-toggle-text"); if(txt) txt.textContent=combatLogCollapsed?"latest":"history";
-  if(arena) arena.classList.toggle("combat-log-expanded",!combatLogCollapsed);
+  const btn=$("btnCombatLogToggle");
+  if(btn) btn.setAttribute("aria-expanded",combatHistoryOpen?"true":"false");
 }
 function toggleCombatLog(){
-  combatLogCollapsed=!combatLogCollapsed;
-  renderCombatLogCollapse();
-  renderCombatLog();
+  setCombatHistoryOpen(true);
 }
 function say(html){
   if(!S) return;
@@ -6618,6 +6644,7 @@ function render(){
   const f = S.foe;
   const arenaNode=$("arena");
   if(arenaNode) arenaNode.classList.toggle("combat-scroll",!!f&&!over);
+  if(!f && combatHistoryOpen) setCombatHistoryOpen(false);
   if(f){
     $("foeName").textContent = f.name;
     $("foeLv").textContent = "Lv. " + f.lv;
@@ -6745,9 +6772,13 @@ function renderPad(){
     const feintInvalid=k==="heavyfeint"&&(!S.foe||S.foe.intent!=="dodge"||S.heavyCharge<=0);
     const off=!S.foe||over||fullyDrawn||readLocked||recoverEmpty||feintInvalid||cost>S.stamina;
     const counters=S.foe&&actionCounters(k),isArmed=armed===k,baseSub=actionSub(k);
-    const sub=isArmed?"tap again to commit":(S.foe&&cost>S.stamina)?`${baseSub} — short`:baseSub;
+    let sub;
+    if(isArmed) sub="tap again to commit";
+    else if(S.foe&&cost>S.stamina) sub=`${baseSub} — short`;
+    else if(counters) sub=`counters intent · ${baseSub}`;
+    else sub=baseSub;
     const wide=S.heavyCharge>0&&order.length===3&&k==="guard"?"wide":"";
-    return `<button class="act ${k} ${wide} ${counters?"counter":""} ${isArmed?"armed":""}" data-k="${k}" ${off?"disabled":""}><b>${actionLabel(k)}</b><span>${sub}</span></button>`;
+    return `<button class="act ${k} ${wide} ${isArmed?"armed":""}" data-k="${k}" ${off?"disabled":""}><b>${actionLabel(k)}</b><span>${sub}</span></button>`;
   }).join("");
 }
 
@@ -6759,13 +6790,15 @@ function renderPreview(){
       : combatVictoryPending ? "The final blow lands. The foe is down."
       : S.heavyCharge >= 2 ? `Heavy fully drawn: Release it, or ${defenceName()} to abandon it.`
       : S.heavyCharge === 1 ? `Heavy prepared: Release it, Wind up further, or ${defenceName()} to abandon it.`
-      : "Tap an action to see what it costs.";
-    p.innerHTML = `<div class="ttl">If you commit to that</div>
+      : "Tap an action once to preview it, then tap again to commit.";
+    p.innerHTML = `<div class="ttl">Action preview</div>
                    <div class="line">${idleLine}</div>`;
     return;
   }
   p.classList.remove("idle");
-  p.innerHTML = `<div class="ttl">If you commit to that</div>
+  const counterBadge = actionCounters(armed) ? `<span class="pill">Counters intent</span>` : "";
+  p.innerHTML = `<div class="ttl">Action preview</div>
+                 <div class="pick"><span class="name">${esc(actionLabel(armed))}</span>${counterBadge}<span class="commit">tap again to commit</span></div>
                  <div class="line">${ACTIONS[armed].preview()}</div>`;
 }
 
@@ -9599,7 +9632,9 @@ function renderTravelLogCollapse(){
   if(travelLogExpanded){const log=$("travelLog");if(log)requestAnimationFrame(()=>{log.scrollTop=log.scrollHeight;});}
 }
 $("btnTravelLogToggle").addEventListener("click",()=>{travelLogExpanded=!travelLogExpanded;renderTravelLogCollapse();});
-$("btnCombatLogToggle").addEventListener("click",toggleCombatLog);
+$("btnCombatLogToggle").addEventListener("click",()=>setCombatHistoryOpen(true));
+$("btnCombatHistoryBack").addEventListener("click",()=>setCombatHistoryOpen(false));
+$("combatHistoryScrim").addEventListener("click",()=>setCombatHistoryOpen(false));
 $("btnFaceEncounter").addEventListener("click",beginEncounterTransition);
 renderTravelLogCollapse();
 
