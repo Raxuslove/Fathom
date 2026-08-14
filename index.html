@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.101.12 — Concept Finish</title>
+<title>Lowfathom v0.101.13 — Concept Finish</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -152,7 +152,7 @@
    - v0.101.9: pushes soft-sheet surfaces to the same near-black combat palette; rows now use only a faint elevation instead of the old blue-grey fill
    - v0.101.10: merges the framed descent presentation, restores the enlarged passage marker, and hardens PWA asset updates
    - v0.101.11: replaces hard inset-shadow vignettes with smooth feathered gradients on the map, descent panels and framed actions
-   - v0.101.12: restores recessed edge darkness with stronger feathered gradients while keeping panel centres clear and frame art crisp
+   - v0.101.13: replaces circular vignette falloff with rectangular edge feathering, deepening the frame-adjacent shade without a visible inner ring
    - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
@@ -285,15 +285,16 @@ button{
   background-repeat:no-repeat;
   border:none;border-radius:0;
 }
-/* v0.101.12: retain a genuinely feathered vignette, but restore the
-   deep recessed edge treatment that the first gradient pass made too faint.
-   closest-side keeps the clear centre broad while guaranteeing real darkness
-   at every edge; the separate frame layer remains untouched and crisp. */
+/* v0.101.13: rectangular edge feathering. Four directional gradients replace
+   the radial falloff, removing the visible inner ring while making the area
+   directly inside the gold frame substantially darker. */
 .trail-view::before{
   content:"";position:absolute;inset:0;z-index:5;pointer-events:none;
-  background:radial-gradient(ellipse closest-side at center,
-    rgba(1,4,6,0) 0%,rgba(1,4,6,0) 52%,rgba(1,4,6,.06) 68%,
-    rgba(1,4,6,.22) 80%,rgba(1,4,6,.50) 90%,rgba(1,4,6,.84) 100%);
+  background:
+    linear-gradient(90deg,rgba(1,4,6,.92) 0%,rgba(1,4,6,.62) 5%,rgba(1,4,6,.30) 12%,rgba(1,4,6,.10) 20%,rgba(1,4,6,0) 29%),
+    linear-gradient(270deg,rgba(1,4,6,.92) 0%,rgba(1,4,6,.62) 5%,rgba(1,4,6,.30) 12%,rgba(1,4,6,.10) 20%,rgba(1,4,6,0) 29%),
+    linear-gradient(180deg,rgba(1,4,6,.84) 0%,rgba(1,4,6,.52) 6%,rgba(1,4,6,.23) 14%,rgba(1,4,6,.07) 22%,rgba(1,4,6,0) 31%),
+    linear-gradient(0deg,rgba(1,4,6,.92) 0%,rgba(1,4,6,.60) 5%,rgba(1,4,6,.28) 12%,rgba(1,4,6,.09) 20%,rgba(1,4,6,0) 29%);
 }
 /* Keep the ornate frame on its own layer so the vignette never muddies it. */
 .trail-view::after{
@@ -304,9 +305,11 @@ button{
 .trail-view.mini{display:none}
 .trail-view.mini::after{border-width:9px;border-image-width:9px}
 .trail-view.mini::before{
-  background:radial-gradient(ellipse closest-side at center,
-    rgba(1,4,6,0) 0%,rgba(1,4,6,0) 48%,rgba(1,4,6,.06) 67%,
-    rgba(1,4,6,.24) 81%,rgba(1,4,6,.52) 92%,rgba(1,4,6,.82) 100%);
+  background:
+    linear-gradient(90deg,rgba(1,4,6,.90) 0%,rgba(1,4,6,.58) 6%,rgba(1,4,6,.26) 14%,rgba(1,4,6,.08) 23%,rgba(1,4,6,0) 33%),
+    linear-gradient(270deg,rgba(1,4,6,.90) 0%,rgba(1,4,6,.58) 6%,rgba(1,4,6,.26) 14%,rgba(1,4,6,.08) 23%,rgba(1,4,6,0) 33%),
+    linear-gradient(180deg,rgba(1,4,6,.82) 0%,rgba(1,4,6,.48) 7%,rgba(1,4,6,.20) 16%,rgba(1,4,6,.06) 25%,rgba(1,4,6,0) 35%),
+    linear-gradient(0deg,rgba(1,4,6,.88) 0%,rgba(1,4,6,.55) 6%,rgba(1,4,6,.24) 14%,rgba(1,4,6,.08) 23%,rgba(1,4,6,0) 33%);
 }
 .travel.browse-mini-map .trail-view.mini{display:block}
 .trail-view.large{min-height:0}
@@ -467,15 +470,17 @@ button{
   border:11px solid transparent;border-radius:0;
   border-image:url("./assets/ui/frame-panel.png") 30 fill / 11px / 0 stretch;
 }
-/* v0.101.12: panel centres remain readable, but the outer quarter now
-   feathers into a substantially darker edge so the gold frame feels recessed
-   rather than pasted onto a flat surface. */
+/* v0.101.13: panel shade follows the rectangular frame rather than forming
+   a circular halo. The last few pixels inside the border are deliberately
+   dark, then feather smoothly toward an untouched centre. */
 .travel-log-wrap::before,
 .travel-hero::before{
   content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse closest-side at center,
-    rgba(1,4,6,0) 0%,rgba(1,4,6,0) 50%,rgba(1,4,6,.04) 69%,
-    rgba(1,4,6,.15) 82%,rgba(1,4,6,.38) 92%,rgba(1,4,6,.68) 100%);
+  background:
+    linear-gradient(90deg,rgba(1,4,6,.76) 0%,rgba(1,4,6,.42) 7%,rgba(1,4,6,.15) 15%,rgba(1,4,6,.04) 23%,rgba(1,4,6,0) 31%),
+    linear-gradient(270deg,rgba(1,4,6,.76) 0%,rgba(1,4,6,.42) 7%,rgba(1,4,6,.15) 15%,rgba(1,4,6,.04) 23%,rgba(1,4,6,0) 31%),
+    linear-gradient(180deg,rgba(1,4,6,.68) 0%,rgba(1,4,6,.35) 8%,rgba(1,4,6,.12) 17%,rgba(1,4,6,.03) 25%,rgba(1,4,6,0) 34%),
+    linear-gradient(0deg,rgba(1,4,6,.76) 0%,rgba(1,4,6,.42) 7%,rgba(1,4,6,.15) 15%,rgba(1,4,6,.04) 23%,rgba(1,4,6,0) 31%);
 }
 .travel-log-wrap > *,
 .travel-hero > *{position:relative;z-index:1}
@@ -526,9 +531,11 @@ button{
 .arena.combat-mode .mact::before,
 .arena.combat-mode .botbtn::before{
   content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse closest-side at center,
-    rgba(1,4,6,0) 0%,rgba(1,4,6,0) 45%,rgba(1,4,6,.025) 67%,
-    rgba(1,4,6,.10) 81%,rgba(1,4,6,.27) 92%,rgba(1,4,6,.54) 100%);
+  background:
+    linear-gradient(90deg,rgba(1,4,6,.56) 0%,rgba(1,4,6,.25) 10%,rgba(1,4,6,.07) 22%,rgba(1,4,6,0) 34%),
+    linear-gradient(270deg,rgba(1,4,6,.56) 0%,rgba(1,4,6,.25) 10%,rgba(1,4,6,.07) 22%,rgba(1,4,6,0) 34%),
+    linear-gradient(180deg,rgba(1,4,6,.48) 0%,rgba(1,4,6,.20) 12%,rgba(1,4,6,.05) 25%,rgba(1,4,6,0) 38%),
+    linear-gradient(0deg,rgba(1,4,6,.58) 0%,rgba(1,4,6,.27) 10%,rgba(1,4,6,.08) 22%,rgba(1,4,6,0) 34%);
 }
 .travel-act > *{position:relative;z-index:1}
 .travel-act b{display:block;font-family:var(--cf-serif);font-size:17px;font-weight:600;line-height:1.08;color:var(--cf-cream)}
@@ -3284,7 +3291,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.101.12";
+const BUILD_VERSION = "v0.101.13";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
