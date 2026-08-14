@@ -4,7 +4,7 @@
   LOWFATHOM — app shell update hardening
   Bump CACHE_NAME whenever the shipped app shell changes.
 */
-const CACHE_NAME = "lowfathom-v0.100.21";
+const CACHE_NAME = "lowfathom-v0.101.9";
 
 const APP_SHELL = [
   "./",
@@ -14,14 +14,21 @@ const APP_SHELL = [
   "./icons/icon-512.png",
   "./assets/ui/bar-track-gold.png",
   "./assets/ui/bar-track-steel.png",
+  "./assets/ui/bg-strata-1-500.png",
+  "./assets/ui/boss-mark.png",
+  "./assets/ui/camp-mark.png",
+  "./assets/ui/cave-mark.png",
   "./assets/ui/divider-thin.png",
   "./assets/ui/frame-button-red.png",
   "./assets/ui/frame-button.png",
-  "./assets/ui/frame-intent.png",
-  "./assets/ui/frame-run.png",
   "./assets/ui/frame-chip-teal.png",
   "./assets/ui/frame-chip.png",
+  "./assets/ui/frame-gold-lit.png",
+  "./assets/ui/frame-gold.png",
+  "./assets/ui/frame-intent.png",
+  "./assets/ui/frame-map.png",
   "./assets/ui/frame-panel.png",
+  "./assets/ui/frame-run.png",
   "./assets/ui/frame-square.png",
   "./assets/ui/frame-teal-wide.png",
   "./assets/ui/frame-teal.png",
@@ -51,23 +58,16 @@ const APP_SHELL = [
   "./assets/ui/icon-sand.png",
   "./assets/ui/icon-skull.png",
   "./assets/ui/icon-strike.png",
+  "./assets/ui/lantern-hq.png",
   "./assets/ui/ornament-star.png",
   "./assets/ui/pip-off.png",
   "./assets/ui/pip-on.png",
+  "./assets/ui/portrait-frame.png",
   "./assets/ui/portrait-ring.png",
   "./assets/ui/tex-gold.png",
   "./assets/ui/tex-stone-teal.png",
   "./assets/ui/tex-stone.png",
-  "./assets/ui/bg-strata-1-500.png",
-  "./assets/ui/lantern-hq.png",
-  "./assets/ui/cave-mark.png",
-  "./assets/ui/boss-mark.png",
-  "./assets/ui/travel-merchant-mark.png",
-  "./assets/ui/camp-mark.png",
-  "./assets/fathom-die/obsidian/theme.config.json",
-  "./assets/fathom-die/obsidian/diffuse-dark.png",
-  "./assets/fathom-die/obsidian/diffuse-light.png",
-  "./assets/fathom-die/obsidian/specular-black.jpg"
+  "./assets/ui/travel-merchant-mark.png"
 ];
 
 self.addEventListener("install", event => {
