@@ -292,14 +292,15 @@ button{
 }
 .trail-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .trail-corridor{
-  fill:none;stroke:#151e25;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;
-  vector-effect:non-scaling-stroke;
+  fill:none;stroke:rgba(151,174,190,.18);stroke-width:18;stroke-linecap:round;stroke-linejoin:round;
+  vector-effect:non-scaling-stroke;opacity:.72;filter:drop-shadow(0 0 8px rgba(112,143,165,.12));
 }
 .trail-path{
-  fill:none;stroke:#3a4853;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;
-  vector-effect:non-scaling-stroke;
+  /* Reduced route brightness by 50%; geometry and thickness remain unchanged. */
+  fill:none;stroke:#abc7d8;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;
+  vector-effect:non-scaling-stroke;opacity:.475;filter:drop-shadow(0 0 3px rgba(188,221,241,.15));
 }
-.trail-tick{stroke:#42515d;stroke-width:1;vector-effect:non-scaling-stroke}
+.trail-tick{stroke:#6f8796;stroke-width:1.15;vector-effect:non-scaling-stroke}
 .trail-boundary{stroke:var(--lamp-dim);stroke-width:1;stroke-dasharray:3 4;opacity:.72;vector-effect:non-scaling-stroke}
 .trail-label{
   fill:#687580;font-family:var(--cond);font-size:9px;letter-spacing:.03em;
@@ -323,34 +324,52 @@ button{
 }
 .trail-html-label.major{color:var(--lamp-dim)}
 .trail-landmarks-layer{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:visible}
-.trail-landmark-html{position:absolute;transform:translate(-50%,-50%);width:9px;height:9px;filter:drop-shadow(0 0 3px rgba(0,0,0,.45));margin:0!important}
-.trail-landmark-html.visited{opacity:.48;filter:none}
-.trail-landmark-html.merchant{width:8px;height:8px;background:#5d95dc;border:1px solid #9bc6fb;transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 7px rgba(93,149,220,.48)}
-.trail-landmark-html.hollow,.trail-landmark-html.stage{width:8px;height:8px;border:1.5px solid #d9bf77;background:#4a3e1d;border-radius:1px}
-.trail-landmark-html.stage{border-color:#e0a36a;background:#59311e;box-shadow:0 0 5px rgba(224,163,106,.34)}
-.trail-landmark-html.side{width:10px;height:11px;color:#8fc5bf;font-family:var(--cond);font-size:11px;line-height:10px;font-weight:700;text-align:center;text-shadow:0 0 3px rgba(126,177,171,.48)}
-.trail-landmark-html.side::before{content:'Y'}
-.trail-landmark-html.boss{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid #d36a5c;filter:drop-shadow(0 0 4px rgba(211,106,92,.42));transform:translate(-50%,-58%)}
-.trail-landmark-html.boss::after{content:'';position:absolute;left:-1px;top:3px;width:2px;height:3px;background:#30100e;box-shadow:0 4px 0 #30100e}
+/* Asset-driven route markers. Their bottom point is anchored directly to the
+   generated route coordinate, so each marker sits on top of the shaft line
+   without changing any landmark/depth math. */
+.trail-landmark-html{
+  position:absolute;width:18px;height:25px;margin:0!important;
+  transform:translate(-50%,-100%);transform-origin:50% 100%;
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  background-position:center bottom!important;background-repeat:no-repeat!important;background-size:contain!important;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.68));
+}
+.trail-landmark-html.visited{opacity:.48;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.trail-landmark-html.side{background-image:url("./assets/ui/cave-mark.png")!important}
+.trail-landmark-html.boss{background-image:url("./assets/ui/boss-mark.png")!important}
+.trail-landmark-html.merchant{background-image:url("./assets/ui/travel-merchant-mark.png")!important}
+.trail-landmark-html.hollow,.trail-landmark-html.stage{background-image:url("./assets/ui/camp-mark.png")!important}
+.trail-landmark-html.side::before,.trail-landmark-html.boss::after{content:none!important;display:none!important}
+/* Give the large map a little more presence while keeping the compact map tidy. */
+.trail-view.large .trail-landmark-html{width:22px;height:31px}
+.trail-view.mini .trail-landmark-html{width:16px;height:22px}
+/* Merchant and camp markers are intentionally 50% larger than the other route landmarks. */
+.trail-landmark-html.merchant,.trail-landmark-html.hollow,.trail-landmark-html.stage{width:27px;height:37.5px}
+.trail-view.large .trail-landmark-html.merchant,.trail-view.large .trail-landmark-html.hollow,.trail-view.large .trail-landmark-html.stage{width:33px;height:46.5px}
+.trail-view.mini .trail-landmark-html.merchant,.trail-view.mini .trail-landmark-html.hollow,.trail-view.mini .trail-landmark-html.stage{width:24px;height:33px}
 .coin-gc{color:var(--lamp);white-space:nowrap}.coin-sc{color:#aeb5bc;white-space:nowrap}
 .coin-sep{display:inline-block;width:.35em}
 .trail-marker{
   position:absolute;left:0;top:50%;
-  /* Anchor the CENTER of the 8px delver dot to the route coordinate.
-     Do not center the whole dot+label group: that made the label width shift
-     the actual dot several fathoms left of where it belonged. */
-  transform:translate(-4px,-50%);
-  display:flex;align-items:center;gap:4px;z-index:5;will-change:left,top;
+  /* The marker box stays centered on the exact route coordinate so replacing
+     the old dot with artwork does not disturb the proven map/camera math. */
+  width:40px;height:40px;transform:translate(-50%,-50%);
+  display:block;z-index:5;will-change:left,top;pointer-events:none;
 }
 .trail-marker i{
-  width:8px;height:8px;border-radius:50%;background:var(--lamp);
-  box-shadow:0 0 11px 3px rgba(230,194,136,.48);
+  position:absolute;left:50%;top:50%;
+  width:62.5%;height:62.5%;transform:translate(-50%,-50%);
+  border-radius:0;background:center/contain no-repeat url("./assets/ui/lantern-hq.png");
+  box-shadow:none;filter:drop-shadow(0 0 4px rgba(255,214,120,.85)) drop-shadow(0 0 10px rgba(230,194,136,.62)) drop-shadow(0 0 18px rgba(185,127,32,.35));
 }
 .trail-marker span{
+  position:absolute;left:calc(50% + 16px);top:50%;transform:translateY(-50%);
   font-family:var(--cond);font-size:9.5px;letter-spacing:.04em;color:var(--lamp);
   white-space:nowrap;background:rgba(10,13,17,.86);padding:0 2px;
 }
-.trail-marker.exploring i{box-shadow:0 0 13px 4px rgba(95,148,144,.40);background:#9fbdba}
+.trail-marker.exploring i{
+  filter:drop-shadow(0 0 4px rgba(255,214,120,.88)) drop-shadow(0 0 11px rgba(230,194,136,.68)) drop-shadow(0 0 20px rgba(185,127,32,.38));
+}
 .trail-marker.exploring span{color:#9fbdba}
 
 .travel-middle{
