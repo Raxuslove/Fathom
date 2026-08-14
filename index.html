@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.101.14 — Concept Finish</title>
+<title>Lowfathom v0.101.16 — Concept Finish</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -154,6 +154,7 @@
    - v0.101.11: replaces hard inset-shadow vignettes with smooth feathered gradients on the map, descent panels and framed actions
    - v0.101.13: replaces circular vignette falloff with rectangular edge feathering, deepening the frame-adjacent shade without a visible inner ring
    - v0.101.15: darkens the ornate frame artwork itself while preserving the approved interior vignette falloff
+   - v0.101.16: active descent/explore travel modes gain a cyan held-state frame and glow for immediate mode feedback
    - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
@@ -232,7 +233,8 @@ button{
   padding:calc(12px + env(safe-area-inset-top)) 12px 18px;
 }
 .travel-info{min-width:0;display:flex;flex-direction:column;justify-content:space-between;padding:2px 0}
-.travel-band-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:2px}
+.travel-band-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:2px}
+.travel-band-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto}
 .travel-info em{
   display:block;font-style:normal;font-family:var(--cond);font-size:9px;
   letter-spacing:.18em;text-transform:uppercase;color:var(--dim);
@@ -259,7 +261,11 @@ button{
   font-family:var(--cond);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
 }
 .travel-mini-btn.descend{color:var(--lamp);border-color:var(--lamp-dim)}
-.travel-mini-btn.descend.active{background:var(--travel-surface);box-shadow:inset 0 0 0 1px rgba(230,194,136,.12)}
+.travel-mini-btn.descend.active{
+  background:#061316;border-color:#72cbd2;color:#a6e1e4;
+  box-shadow:inset 0 0 0 1px rgba(130,223,229,.28),0 0 9px rgba(92,196,205,.22);
+  text-shadow:0 0 6px rgba(112,217,224,.34);
+}
 .travel-mini-btn.stop{color:#8e99a3}
 .travel-mini-btn:disabled{background:var(--travel-bg);border-color:var(--rule);color:#39434e;cursor:not-allowed}
 .travel-status{
@@ -549,11 +555,24 @@ button{
 .travel-act.rest b{color:var(--stamina)}
 .travel-act.pack b{color:var(--bone)}
 .travel-act.rest,.travel-act.pack{min-height:52px;padding:9px 11px}
-.travel-bottom-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:6px;background:transparent}
+.travel-bottom-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr);gap:0;background:transparent}
 .travel-act.stop{grid-column:auto;min-height:48px;padding:4px 8px}
 .travel-act.stop b{font-size:13.5px;color:var(--dim)}
-.travel-act.active{background:var(--travel-surface);box-shadow:inset 0 0 0 1px var(--lamp-dim)}
-.travel-act.explore.active{box-shadow:inset 0 0 0 1px var(--verdigris)}
+/* The currently held travel mode uses the same teal visual language as an armed
+   combat action. This is purely state feedback; travel behaviour is unchanged. */
+.travel-act.active{
+  background:none;
+  border-image:url("./assets/ui/frame-teal.png") 30 fill / 9px / 0 stretch;
+  box-shadow:0 0 10px rgba(83,191,201,.24),0 0 20px rgba(62,157,170,.11);
+  filter:drop-shadow(0 0 4px rgba(112,216,223,.18));
+}
+.travel-act.active::after{
+  content:"";position:absolute;inset:5px;z-index:0;pointer-events:none;
+  border:1px solid rgba(119,216,222,.22);
+  box-shadow:inset 0 0 15px rgba(54,155,168,.10);
+}
+.travel-act.active b{text-shadow:0 0 8px rgba(111,218,224,.24)}
+.travel-act.active span{color:#91bfc3}
 .travel-act:disabled{opacity:.45;cursor:not-allowed}
 .travel-act:disabled b,.travel-act:disabled span{color:#39434e}
 
@@ -1998,6 +2017,16 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode .strip .settings-cog::before{content:none}
 .arena.combat-mode .combat-bottom-row{display:none}
 
+/* travel — move the cog to the top-right for parity with combat ---------- */
+.travel-top .settings-cog{
+  flex:0 0 auto;width:30px;height:30px;min-width:30px;min-height:30px;padding:0;border:none;border-radius:50%;
+  background:center/contain no-repeat url("./assets/ui/icon-gear.png");
+  box-shadow:none;color:transparent;font-size:0;
+}
+.travel-top .settings-cog::before{content:none}
+.travel-top .settings-cog:active{background:center/contain no-repeat url("./assets/ui/icon-gear.png");filter:brightness(1.08)}
+.travel-top .build-version{margin-top:6px}
+
 /* shared panel rhythm --------------------------------------------------------- */
 .arena.combat-mode .foe,
 .arena.combat-mode .combat-log-wrap{
@@ -2703,7 +2732,7 @@ body.font-slab{--cf-serif:var(--slab)}
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><span class="build-version" id="buildVersion">v0.086.1</span></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><div class="travel-band-actions"><span class="build-version" id="buildVersion">v0.086.1</span><button class="settings-cog travel-settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button></div></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -2778,7 +2807,6 @@ body.font-slab{--cf-serif:var(--slab)}
       <button class="travel-act pack" id="btnPack"><b>Backpack</b><span id="packSub">2 Camp Supplies</span></button>
       <div class="travel-bottom-row">
         <button class="travel-act stop" id="btnStopTravel" disabled><b>Stop</b><span>hold where you are</span></button>
-        <button class="settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
       </div>
     </div>
   </section>
@@ -3315,7 +3343,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.101.15";
+const BUILD_VERSION = "v0.101.17";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
