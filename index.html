@@ -403,7 +403,7 @@ button{
 .trail-marker.exploring span{color:#9fbdba}
 
 .travel-middle{
-  min-height:0;display:flex;flex-direction:column;justify-content:flex-start;
+  min-height:0;display:flex;flex-direction:column;justify-content:flex-start;overflow:hidden;
   background:var(--travel-bg);
 }
 .travel.browse-mini-map .travel-middle{justify-content:flex-end}
@@ -467,7 +467,7 @@ button{
 
 .travel-log-wrap{
   min-height:0;
-  min-height:132px;
+  min-height:96px;
   max-height:100%;
   flex:1 1 auto;
   position:relative;
@@ -632,6 +632,12 @@ button{
 .merchant-stock-tag{display:inline-block;margin-left:5px;padding:1px 5px;border:1px solid rgba(138,183,241,.35);font-family:var(--cond);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:#9fc3f0}
 .merchant-price-row{display:flex;justify-content:flex-end;align-items:baseline;gap:8px;margin-top:8px;padding-top:6px;border-top:1px solid rgba(46,57,68,.65);font-family:var(--cond);font-size:9px;color:var(--dim)}
 .merchant-price-row b{font-family:var(--slab);font-size:14px;font-weight:600}
+
+.merchant-qty{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.merchant-qty button{min-width:32px;height:30px;border:1px solid var(--rule-hi);background:#071116;padding:0 8px;font-family:var(--cond);font-size:12px;color:var(--bone)}
+.merchant-qty button:disabled{opacity:.32;cursor:not-allowed}
+.merchant-qty .merchant-qty-all{min-width:46px;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--lamp)}
+.merchant-qty-output{min-width:62px;height:30px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(110,180,176,.28);background:#020608;font-family:var(--cond);font-size:9px;letter-spacing:.08em;color:#9fd6d4;white-space:nowrap}
 .merchant-equip-warning{margin-top:7px;padding:6px 8px;border-left:2px solid var(--rust);background:rgba(180,85,60,.08);font-family:var(--cond);font-size:9.5px;line-height:1.35;color:#d28772}
 .merchant-scope{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule)}
 .merchant-scope button{border:0;background:#12181e;padding:8px 9px;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
@@ -3343,7 +3349,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.101.17";
+const BUILD_VERSION = "v0.101.18";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -4671,6 +4677,7 @@ let merchantView="buy";
 let merchantSellGearScope="backpack";
 let merchantPendingPurchase=null;
 let merchantSellSelection={equipment:new Set(),backpack:new Set()};
+let merchantSellQuantities={};
 function rememberEquipmentFilterScroll(){
   document.querySelectorAll(".equipment-filter-row[data-equipment-filter-context]").forEach(row=>{
     equipmentFilterScrollLeft[row.dataset.equipmentFilterContext]=row.scrollLeft;
@@ -5366,7 +5373,7 @@ function renderPack(rememberView=true){
           ? "Browse the stock — spend coins to purchase carried goods."
           : merchantView==="sell-equipment"
             ? "Sell gear — bundle equipment the merchant can afford."
-            : "Sell pack goods — trade away whole carried stacks.";
+            : "Sell pack goods — choose exactly how many units to trade.";
       }
     }
     if(merchantStrip){ merchantStrip.hidden=true; merchantStrip.innerHTML=""; }
@@ -5410,10 +5417,13 @@ function renderPack(rememberView=true){
       }).join("")+(()=>{ const total=merchantSelectedEquipmentPayout(), count=merchantSellSelection.equipment.size, afford=merchantCanAfford(total); return `<div class="merchant-summary"><b>${count} item${count===1?"":"s"} selected · ${formatGoldHtml(total)}</b><span>${afford?`Merchant can pay. Purse remaining after sale: ${formatGoldHtml((currentMerchant()?.purse||0)-total)}`:`Merchant cannot afford this bundle yet.`}</span><div class="pack-actions"><button class="pack-mini-btn good" ${count&&afford?"":"disabled"} data-merchant-sell-equipment>Sell selected</button></div></div>`; })():`<div class="pack-note">No sellable equipment matches this filter.</div>`;
       $("packNote").textContent="Select one or more equipped or backpack gear pieces, then sell them as a bundle if the merchant can afford the total.";
     }else{
-      filterBar.innerHTML=`<div class="merchant-note-quiet"><b>Sell Pack</b> selects whole carried stacks such as Bandages, Rope, Water, Camp Supplies and miscellaneous trade goods.</div>`;
+      filterBar.innerHTML=`<div class="merchant-note-quiet"><b>Sell Pack</b> Choose a quantity from each carried stack. Only the selected units are removed and paid for.</div>`;
       const rows=merchantBackpackSellRows();
-      root.innerHTML=rows.length?rows.map(row=>{ const selected=merchantSellSelection.backpack.has(row.key); return `<div class="pack-item compact"><div class="pack-item-top"><b>${esc(row.label)}</b><strong>×${row.count}</strong></div><div class="merchant-stock-meta"><span>Backpack stack</span></div><p>${esc(row.desc||"")}</p><div class="merchant-price-row"><span>Merchant offers</span><b>${formatGoldHtml(row.totalValue)}</b></div><div class="pack-actions"><button class="merchant-check ${selected?"on":""}" data-merchant-toggle-pack="${esc(row.key)}">${selected?"Selected":"Select"}</button></div></div>`; }).join("")+(()=>{ const total=merchantSelectedBackpackPayout(), count=merchantSellSelection.backpack.size, afford=merchantCanAfford(total); return `<div class="merchant-summary"><b>${count} stack${count===1?"":"s"} selected · ${formatGoldHtml(total)}</b><span>${afford?`Merchant can pay. Purse remaining after sale: ${formatGoldHtml((currentMerchant()?.purse||0)-total)}`:`Merchant cannot afford these goods yet.`}</span><div class="pack-actions"><button class="pack-mini-btn good" ${count&&afford?"":"disabled"} data-merchant-sell-backpack>Sell selected</button></div></div>`; })():`<div class="pack-note">No sellable backpack goods are currently carried.</div>`;
-      $("packNote").textContent="Selling backpack stacks removes the full carried stack. This keeps trading quick while the merchant system is still in its first live pass.";
+      root.innerHTML=rows.length?rows.map(row=>{
+        const qty=merchantBackpackSellQty(row.key,row.count), payout=merchantBackpackSellPayout(row.key,row.label,qty);
+        return `<div class="pack-item compact"><div class="pack-item-top"><b>${esc(row.label)}</b><strong>×${row.count}</strong></div><div class="merchant-stock-meta"><span>Backpack stack · ${formatGold(merchantBackpackSellPayout(row.key,row.label,1))} each</span></div><p>${esc(row.desc||"")}</p><div class="merchant-price-row"><span>Offer for ${qty} of ${row.count}</span><b>${formatGoldHtml(payout)}</b></div><div class="pack-actions"><div class="merchant-qty" role="group" aria-label="Quantity of ${esc(row.label)} to sell"><button type="button" data-merchant-pack-qty="${esc(row.key)}" data-merchant-qty-delta="-1" ${qty<=0?"disabled":""}>−</button><span class="merchant-qty-output">${qty} / ${row.count}</span><button type="button" data-merchant-pack-qty="${esc(row.key)}" data-merchant-qty-delta="1" ${qty>=row.count?"disabled":""}>+</button><button class="merchant-qty-all" type="button" data-merchant-pack-qty="${esc(row.key)}" data-merchant-qty-all="1" ${qty===row.count?"disabled":""}>All</button></div></div></div>`;
+      }).join("")+(()=>{ const total=merchantSelectedBackpackPayout(), units=merchantSelectedBackpackUnits(), afford=merchantCanAfford(total); return `<div class="merchant-summary"><b>${units} unit${units===1?"":"s"} selected · ${formatGoldHtml(total)}</b><span>${afford?`Merchant can pay. Purse remaining after sale: ${formatGoldHtml((currentMerchant()?.purse||0)-total)}`:`Merchant cannot afford these goods yet.`}</span><div class="pack-actions"><button class="pack-mini-btn good" ${units&&afford?"":"disabled"} data-merchant-sell-backpack>Sell selected quantities</button></div></div>`; })():`<div class="pack-note">No sellable backpack goods are currently carried.</div>`;
+      $("packNote").textContent="Set each quantity from 0 up to the amount carried. Payout and inventory removal use that exact quantity.";
     }
     restoreEquipmentFilterScroll();
     return;
@@ -7414,8 +7424,8 @@ function renderTravel(){
     status.classList.toggle("moving",false);
     status.classList.toggle("exploring",S.travelMode==="side");
     if(!S.travelEvent) status.innerHTML=S.travelMode==="side"
-      ? `<b>Exploring passage<span class="passage-dots"></span></b> · <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> inside · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} stages cleared</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s remain</div>`:""}`
-      : `<b>Held inside passage.</b> <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> explored · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} stages cleared</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s remain</div>`:""}`;
+      ? `<b>Exploring passage<span class="passage-dots"></span></b> · <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> inside · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} stages cleared</span>`
+      : `<b>Held inside passage.</b> <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> explored · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} stages cleared</span>`;
     $("btnDescend").disabled=true;
     $("btnDescend").classList.remove("active");
     $("btnExplore").disabled=!!S.travelEvent;
@@ -7426,8 +7436,7 @@ function renderTravel(){
   }else{
     $("btnExplore").querySelector("b").textContent="Explore";
     $("btnExplore").querySelector("span").textContent="hold this depth";
-    if(curseActive()&&!S.travelEvent) status.innerHTML+=`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain · ${esc(S.curse.desc)}</div>`;
-    if(S.bleeding&&!S.travelEvent) status.innerHTML+=`<div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s · 1 HP every 5s.</div>`;
+/* Active afflictions stay in the compact character-effect badges below so the travel header cannot squeeze the map/log column. */
   }
   $("packSub").textContent=`${S.inventory.campSupplies} Camp Supplies · ${S.inventory.bandages} Bandage${S.inventory.bandages===1?"":"s"}`;
   document.querySelectorAll(".passage-dots").forEach(el=>el.textContent=liveExploreDots());
@@ -8133,6 +8142,7 @@ function retireMerchant(){
   ensureMerchantState();
   merchantView="buy";merchantSellGearScope="backpack";merchantPendingPurchase=null;
   merchantSellSelection={equipment:new Set(),backpack:new Set()};
+  merchantSellQuantities={};
   if(S.pendingMerchant){
     S.merchantVisits=(Number(S.merchantVisits)||0)+1;
     S.merchantHistory.push({depth:Number(S.pendingMerchant.depth)||0,name:`${S.pendingMerchant.title} ${S.pendingMerchant.name}`});
@@ -8177,16 +8187,41 @@ function equipmentTypeLabel(def){
   const first=slots[0];
   return EQUIPMENT_SLOT_LABELS[first]||String(def.family||first||"Equipment");
 }
+function merchantBackpackSellPayout(key,label,qty){
+  const count=Math.max(0,Math.floor(Number(qty)||0));
+  if(count<=0) return 0;
+  const lookupKey=String(key||"").startsWith("misc:")?"misc":key;
+  return Math.max(1,Math.floor(count*merchantUnitValueForBackpackKey(lookupKey,label)*merchantBuyMultiplier()));
+}
+function merchantBackpackSellQty(key,maxCount){
+  const max=Math.max(0,Math.floor(Number(maxCount)||0));
+  return clamp(Math.floor(Number(merchantSellQuantities[key])||0),0,max);
+}
+function merchantSetBackpackSellQty(key,qty){
+  const row=merchantBackpackSellRows().find(x=>x.key===key);
+  if(!row) return;
+  const next=clamp(Math.floor(Number(qty)||0),0,row.count);
+  if(next<=0) delete merchantSellQuantities[key]; else merchantSellQuantities[key]=next;
+  renderPack(false);
+}
+function merchantAdjustBackpackSellQty(key,delta){
+  const row=merchantBackpackSellRows().find(x=>x.key===key);
+  if(!row) return;
+  merchantSetBackpackSellQty(key,merchantBackpackSellQty(key,row.count)+(Number(delta)||0));
+}
 function merchantBackpackSellRows(){
   const inv=S?.inventory||{}, rows=[];
-  const push=(key,label,count,desc)=>{ if(count>0) rows.push({key,label,count,desc,totalValue:Math.max(1,Math.floor(count*merchantUnitValueForBackpackKey(key,label)*merchantBuyMultiplier()))}); };
-  push("bandages","Bandages",Math.max(0,inv.bandages||0),"Sell your carried bandages as one stack.");
-  push("meat","Meat",Math.max(0,inv.meat||0),"Rations and scavenged cuts.");
-  push("rope","Rope",Math.max(0,inv.rope||0),"General delving rope.");
-  push("water","Water",Math.max(0,inv.water||0),"Waterskins or jugs.");
-  push("campSupplies","Camp Supplies",Math.max(0,inv.campSupplies||0),"Field bundles for full camps.");
-  push("rogueTools","Rogue Tools",Math.max(0,inv.rogueTools||0),"Fine picks and trap tools.");
-  for(const [name,count] of Object.entries(inv.misc||{})) if(count>0) rows.push({key:`misc:${name}`,label:name,count,desc:"Miscellaneous trade goods.",totalValue:Math.max(1,Math.floor(count*merchantUnitValueForBackpackKey("misc",name)*merchantBuyMultiplier()))});
+  const push=(key,label,count,desc)=>{
+    const held=Math.max(0,Math.floor(Number(count)||0));
+    if(held>0) rows.push({key,label,count:held,desc,totalValue:merchantBackpackSellPayout(key,label,held)});
+  };
+  push("bandages","Bandages",inv.bandages,"Stops Bleeding when used from the Backpack.");
+  push("meat","Meat",inv.meat,"Rations and scavenged cuts.");
+  push("rope","Rope",inv.rope,"General delving rope.");
+  push("water","Water",inv.water,"Waterskins or jugs.");
+  push("campSupplies","Camp Supplies",inv.campSupplies,"Field bundles for full camps.");
+  push("rogueTools","Rogue Tools",inv.rogueTools,"Fine picks and trap tools.");
+  for(const [name,count] of Object.entries(inv.misc||{})) push(`misc:${name}`,name,count,"Miscellaneous trade goods.");
   return rows;
 }
 function merchantSelectedEquipmentPayout(){
@@ -8195,10 +8230,15 @@ function merchantSelectedEquipmentPayout(){
   return total;
 }
 function merchantSelectedBackpackPayout(){
-  const rows=merchantBackpackSellRows();
   let total=0;
-  for(const row of rows) if(merchantSellSelection.backpack.has(row.key)) total+=row.totalValue;
+  for(const row of merchantBackpackSellRows()){
+    const qty=merchantBackpackSellQty(row.key,row.count);
+    total+=merchantBackpackSellPayout(row.key,row.label,qty);
+  }
   return total;
+}
+function merchantSelectedBackpackUnits(){
+  return merchantBackpackSellRows().reduce((sum,row)=>sum+merchantBackpackSellQty(row.key,row.count),0);
 }
 function merchantCanAfford(amount){ return (currentMerchant()?.purse||0) >= Math.max(0,amount||0); }
 function merchantAddSoldEquipmentToStock(itemId){
@@ -8268,22 +8308,27 @@ function merchantSellSelectedEquipment(){
 }
 function merchantSellSelectedBackpack(){
   const m=currentMerchant(); if(!m) return;
-  const rows=merchantBackpackSellRows().filter(row=>merchantSellSelection.backpack.has(row.key));
+  const rows=merchantBackpackSellRows().map(row=>({...row,qty:merchantBackpackSellQty(row.key,row.count)})).filter(row=>row.qty>0);
   if(!rows.length) return;
-  const total=rows.reduce((sum,row)=>sum+row.totalValue,0);
+  const total=rows.reduce((sum,row)=>sum+merchantBackpackSellPayout(row.key,row.label,row.qty),0);
   if(!merchantCanAfford(total)) return;
+  let units=0;
   for(const row of rows){
-    if(row.key==="bandages") S.inventory.bandages=0;
-    else if(row.key==="meat") S.inventory.meat=0;
-    else if(row.key==="rope") S.inventory.rope=0;
-    else if(row.key==="water") S.inventory.water=0;
-    else if(row.key==="campSupplies") S.inventory.campSupplies=0;
-    else if(row.key==="rogueTools") S.inventory.rogueTools=0;
-    else if(row.key.startsWith("misc:")) delete S.inventory.misc[row.label];
+    const qty=Math.min(row.count,row.qty); units+=qty;
+    if(row.key==="bandages") S.inventory.bandages=Math.max(0,(Number(S.inventory.bandages)||0)-qty);
+    else if(row.key==="meat") S.inventory.meat=Math.max(0,(Number(S.inventory.meat)||0)-qty);
+    else if(row.key==="rope") S.inventory.rope=Math.max(0,(Number(S.inventory.rope)||0)-qty);
+    else if(row.key==="water") S.inventory.water=Math.max(0,(Number(S.inventory.water)||0)-qty);
+    else if(row.key==="campSupplies") S.inventory.campSupplies=Math.max(0,(Number(S.inventory.campSupplies)||0)-qty);
+    else if(row.key==="rogueTools") S.inventory.rogueTools=Math.max(0,(Number(S.inventory.rogueTools)||0)-qty);
+    else if(row.key.startsWith("misc:")){
+      const left=Math.max(0,(Number(S.inventory.misc?.[row.label])||0)-qty);
+      if(left>0) S.inventory.misc[row.label]=left; else delete S.inventory.misc[row.label];
+    }
   }
   m.purse-=total; S.gold=(S.gold||0)+total;
-  merchantSellSelection.backpack.clear();
-  travelLogAdd(`Sold selected backpack goods for ${formatGold(total)}.`,"good");
+  merchantSellSelection.backpack.clear(); merchantSellQuantities={};
+  travelLogAdd(`Sold <b>${units}</b> backpack unit${units===1?"":"s"} for ${formatGold(total)}.`,"good");
   saveRunNow();
   renderPack(false); render();
 }
@@ -10778,7 +10823,12 @@ $("packDynamicItems").addEventListener("click", e => {
     }
     merchantToggleSellEquipment(merchantToggleEquip.dataset.merchantToggleEquip);return;
   }
-  const merchantTogglePack=e.target.closest("[data-merchant-toggle-pack]"); if(merchantTogglePack){merchantToggleSellBackpack(merchantTogglePack.dataset.merchantTogglePack);return;}
+  const merchantQty=e.target.closest("[data-merchant-pack-qty]"); if(merchantQty){
+    const key=merchantQty.dataset.merchantPackQty;
+    if(merchantQty.dataset.merchantQtyAll==="1"){ const row=merchantBackpackSellRows().find(x=>x.key===key); if(row) merchantSetBackpackSellQty(key,row.count); }
+    else merchantAdjustBackpackSellQty(key,Number(merchantQty.dataset.merchantQtyDelta)||0);
+    return;
+  }
   const merchantSellEquip=e.target.closest("[data-merchant-sell-equipment]"); if(merchantSellEquip){merchantSellSelectedEquipment();return;}
   const merchantSellPack=e.target.closest("[data-merchant-sell-backpack]"); if(merchantSellPack){merchantSellSelectedBackpack();return;}
 });
