@@ -4,7 +4,7 @@
   LOWFATHOM — app shell update hardening
   Bump CACHE_NAME whenever the shipped app shell changes.
 */
-const CACHE_NAME = "lowfathom-v0.090.3";
+const CACHE_NAME = "lowfathom-v0.090.4";
 
 const APP_SHELL = [
   "./",
