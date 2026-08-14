@@ -153,7 +153,7 @@
    - v0.101.10: merges the framed descent presentation, restores the enlarged passage marker, and hardens PWA asset updates
    - v0.101.11: replaces hard inset-shadow vignettes with smooth feathered gradients on the map, descent panels and framed actions
    - v0.101.13: replaces circular vignette falloff with rectangular edge feathering, deepening the frame-adjacent shade without a visible inner ring
-   - v0.101.14: darkens the ornate frame artwork itself while preserving the approved interior vignette falloff
+   - v0.101.15: darkens the ornate frame artwork itself while preserving the approved interior vignette falloff
    - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
@@ -384,7 +384,7 @@ button{
   position:absolute;left:50%;top:50%;
   width:62.5%;height:62.5%;transform:translate(-50%,-50%);
   border-radius:0;background:center/contain no-repeat url("./assets/ui/lantern-hq.png");
-  box-shadow:none;filter:drop-shadow(0 0 4px rgba(255,214,120,.85)) drop-shadow(0 0 10px rgba(230,194,136,.62)) drop-shadow(0 0 18px rgba(185,127,32,.35));
+  box-shadow:none;filter:drop-shadow(0 0 5px rgba(255,220,135,.92)) drop-shadow(0 0 14px rgba(240,202,124,.78)) drop-shadow(0 0 26px rgba(214,160,54,.52)) drop-shadow(0 0 42px rgba(168,113,28,.28));
 }
 .trail-marker span{
   position:absolute;left:calc(50% + 16px);top:50%;transform:translateY(-50%);
@@ -392,7 +392,7 @@ button{
   white-space:nowrap;background:rgba(10,13,17,.86);padding:0 2px;
 }
 .trail-marker.exploring i{
-  filter:drop-shadow(0 0 4px rgba(255,214,120,.88)) drop-shadow(0 0 11px rgba(230,194,136,.68)) drop-shadow(0 0 20px rgba(185,127,32,.38));
+  filter:drop-shadow(0 0 6px rgba(255,224,144,.96)) drop-shadow(0 0 16px rgba(242,206,129,.82)) drop-shadow(0 0 30px rgba(217,164,58,.58)) drop-shadow(0 0 48px rgba(171,117,29,.32));
 }
 .trail-marker.exploring span{color:#9fbdba}
 
@@ -3315,7 +3315,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.101.14";
+const BUILD_VERSION = "v0.101.15";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
