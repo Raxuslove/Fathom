@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.090.3 — Merchant Screen Refinement</title>
+<title>Lowfathom v0.090.5 — Riddle & Puzzle Hints</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
@@ -140,6 +140,7 @@
    - v0.090.0: Session 9F replaces abstract normalized item budget with Intrinsic Value, best-fit affix packages, appraised Gold value and updated accessory coefficients
    - v0.090.0: Crit, Boss Damage and Damage Reflect become bounded live equipment affixes; Lifesteal is fully supported but intentionally disabled from random generation
    - v0.090.0: Gold is persistent and visible in Character/Backpack/Equipment; existing generated gear migrates onto the new value scale without rerolling the item itself
+   - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
    Session 8 is complete. Session 9 returns to gameplay systems.
    Session 9F establishes Intrinsic Value, Gold appraisal and bounded procedural affixes while preserving the endless Skill resolver and combat spine from 9E.
@@ -299,12 +300,18 @@ button{
   white-space:nowrap;transform:translate(-50%,-100%);transform-origin:50% 100%;
 }
 .trail-html-label.major{color:var(--lamp-dim)}
-.trail-landmark{vector-effect:non-scaling-stroke}
-.trail-landmark.merchant{fill:#4f82bd;stroke:#8ab7f1;stroke-width:1.1;filter:drop-shadow(0 0 3px rgba(93,149,220,.55))}
-.trail-landmark.boss{fill:#5a1917;stroke:#d36a5c;stroke-width:1.1;filter:drop-shadow(0 0 3px rgba(211,106,92,.45))}
-.trail-landmark.hollow{fill:#4a3e1d;stroke:#d9bf77;stroke-width:1.05}
-.trail-landmark.stage{fill:#5a311d;stroke:#e0a36a;stroke-width:1.05}
-.trail-landmark.side{fill:none;stroke:#7eb1ab;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 2px rgba(126,177,171,.35))}
+.trail-landmarks-layer{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:visible}
+.trail-landmark-html{position:absolute;transform:translate(-50%,-50%);width:9px;height:9px;filter:drop-shadow(0 0 3px rgba(0,0,0,.45))}
+.trail-landmark-html.visited{opacity:.48;filter:none}
+.trail-landmark-html.merchant{width:8px;height:8px;background:#5d95dc;border:1px solid #9bc6fb;transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 7px rgba(93,149,220,.48)}
+.trail-landmark-html.hollow,.trail-landmark-html.stage{width:8px;height:8px;border:1.5px solid #d9bf77;background:#4a3e1d;border-radius:1px}
+.trail-landmark-html.stage{border-color:#e0a36a;background:#59311e;box-shadow:0 0 5px rgba(224,163,106,.34)}
+.trail-landmark-html.side{width:10px;height:11px;color:#8fc5bf;font-family:var(--cond);font-size:11px;line-height:10px;font-weight:700;text-align:center;text-shadow:0 0 3px rgba(126,177,171,.48)}
+.trail-landmark-html.side::before{content:'Y'}
+.trail-landmark-html.boss{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid #d36a5c;filter:drop-shadow(0 0 4px rgba(211,106,92,.42));transform:translate(-50%,-58%)}
+.trail-landmark-html.boss::after{content:'';position:absolute;left:-1px;top:3px;width:2px;height:3px;background:#30100e;box-shadow:0 4px 0 #30100e}
+.coin-gc{color:var(--lamp);white-space:nowrap}.coin-sc{color:#aeb5bc;white-space:nowrap}
+.coin-sep{display:inline-block;width:.35em}
 .trail-marker{
   position:absolute;left:0;top:50%;
   /* Anchor the CENTER of the 8px delver dot to the route coordinate.
@@ -501,6 +508,12 @@ button{
 .merchant-stock-meta{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-family:var(--cond);font-size:10px;color:var(--dim)}
 .merchant-stock-meta b{font-family:var(--slab);font-size:14px;color:var(--lamp);font-weight:600}
 .merchant-stock-tag{display:inline-block;margin-left:5px;padding:1px 5px;border:1px solid rgba(138,183,241,.35);font-family:var(--cond);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:#9fc3f0}
+.merchant-price-row{display:flex;justify-content:flex-end;align-items:baseline;gap:8px;margin-top:8px;padding-top:6px;border-top:1px solid rgba(46,57,68,.65);font-family:var(--cond);font-size:9px;color:var(--dim)}
+.merchant-price-row b{font-family:var(--slab);font-size:14px;font-weight:600}
+.merchant-equip-warning{margin-top:7px;padding:6px 8px;border-left:2px solid var(--rust);background:rgba(180,85,60,.08);font-family:var(--cond);font-size:9.5px;line-height:1.35;color:#d28772}
+.merchant-scope{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule)}
+.merchant-scope button{border:0;background:#12181e;padding:8px 9px;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.merchant-scope button.active{background:#1c2630;color:#b8d4f6;box-shadow:inset 0 -2px 0 #5d95dc}
 
 .item-value{color:var(--lamp-dim)!important;white-space:nowrap}
 .item-value::before{content:'Value ';color:var(--dim)}
@@ -2476,7 +2489,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.090.3";
+const BUILD_VERSION = "v0.090.5";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal"});
@@ -3152,10 +3165,10 @@ function newDelver(profile){
     languageKnown:cls==="Wizard"?["Cor"]:[],
     sideArea:null, sideDiscoveryStratum:0, sideDiscoveryAt:ri(15,30), sideDiscoveryAttempted:false,
     sideAreaResolved:false, sideAreaHistory:[],
-    curse:null, bleeding:false, bleedRemainingMs:0, bleedAccumulatorMs:0, bleedCombatTurns:0, bossDefeated:{}, packMode:null,
+    curse:null, bleeding:false, bleedRemainingMs:0, bleedAccumulatorMs:0, bleedCombatTurns:0, bossDefeated:{}, midBossDefeated:{}, packMode:null,
     runAttemptStratum:0, runAttempts:0,
     descentXpMaxDepth:0, descentXpPending:0,
-    lootHistory:[], pendingLoot:null, combatLog:[], concealment:null, stealthOpportunitySeq:0,
+    lootHistory:[], pendingLoot:null, combatLog:[], concealment:null, stealthOpportunitySeq:0,pendingMerchant:null,merchantVisits:0,merchantHistory:[],
     turn:1, foe:null
   };
 
@@ -3799,6 +3812,8 @@ const DUAL_WIELD_FAMILIES = new Set(["dagger"]);
 function equipmentFilterDef(id=equipmentFilter){ return EQUIPMENT_FILTERS.find(f=>f.id===id)||EQUIPMENT_FILTERS[0]; }
 const equipmentFilterScrollLeft = {equipment:0,pack:0};
 let merchantView="buy";
+let merchantSellGearScope="backpack";
+let merchantPendingPurchase=null;
 let merchantSellSelection={equipment:new Set(),backpack:new Set()};
 function rememberEquipmentFilterScroll(){
   document.querySelectorAll(".equipment-filter-row[data-equipment-filter-context]").forEach(row=>{
@@ -4121,7 +4136,7 @@ function renderEquipmentInfo(items){
     return m?`<div class="equipment-info-stat"><span>${esc(m[1].trim())}</span><strong>${esc(m[2])}</strong></div>`:`<div class="equipment-info-stat"><span>${esc(stat)}</span><strong>•</strong></div>`;
   }).join("");
   const compatible=S.inventory.equipment.filter(id=>compatibleEquipmentSlots(id).includes(slot)).length;
-  root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b class="${rarityClass(item.rarity)}">${esc(item.name)}</b><span class="equipment-info-meta"><span class="${rarityClass(item.rarity)}">${esc(item.rarity)}</span> · iLv ${item.ilvl}${item.twoHanded?" · two-handed":""}${equipmentItemDualWieldable(item.id)?" · dual-wieldable":""}</span><div class="equipment-economy"><span>Intrinsic ${Math.round(computedIntrinsicValue(item))}</span><b>${formatGold(computedItemGoldValue(item))}</b></div><div class="equipment-info-stats">${stats}</div><p class="info-note">${esc(item.desc||"")}</p><dl><div><dt>Backpack</dt><dd>${compatible} match${compatible===1?"":"es"}</dd></div></dl><button class="equipment-info-action" type="button" data-equipment-inline-unequip="${slot}">Remove</button>`;
+  root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b class="${rarityClass(item.rarity)}">${esc(item.name)}</b><span class="equipment-info-meta"><span class="${rarityClass(item.rarity)}">${esc(item.rarity)}</span> · iLv ${item.ilvl}${item.twoHanded?" · two-handed":""}${equipmentItemDualWieldable(item.id)?" · dual-wieldable":""}</span><div class="equipment-economy"><span>Intrinsic ${Math.round(computedIntrinsicValue(item))}</span><b>${formatGoldHtml(computedItemGoldValue(item))}</b></div><div class="equipment-info-stats">${stats}</div><p class="info-note">${esc(item.desc||"")}</p><dl><div><dt>Backpack</dt><dd>${compatible} match${compatible===1?"":"es"}</dd></div></dl><button class="equipment-info-action" type="button" data-equipment-inline-unequip="${slot}">Remove</button>`;
 }
 function renderEquipmentUI(){
   if(!S) return;
@@ -4152,7 +4167,7 @@ function renderEquipmentUI(){
     const bagHtml=bag.length?bag.map(id=>{
       const d=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentCompareHtml(id,target);
       const frame=rarityFrameClass(d.rarity);
-      return `<button class="equipment-compact-item equipment-backpack-item ${frame}" type="button" data-equipment-item="${id}" data-equipment-target="${target||""}"><small>Backpack · ${esc(EQUIPMENT_SLOT_LABELS[target]||d.slot)}</small><b class="${rarityClass(d.rarity)}">${esc(d.name)}</b><span class="compact-rarity-meta"><span class="${rarityClass(d.rarity)}">iLv ${d.itemLevel}</span> · <span class="${rarityClass(d.rarity)}">${esc(d.rarity)}</span> · ${formatGold(computedItemGoldValue(d))}</span><span class="equipment-compare">${cmp}</span>${raritySparkles(d.rarity,`bagcompact:${id}`)}</button>`;
+      return `<button class="equipment-compact-item equipment-backpack-item ${frame}" type="button" data-equipment-item="${id}" data-equipment-target="${target||""}"><small>Backpack · ${esc(EQUIPMENT_SLOT_LABELS[target]||d.slot)}</small><b class="${rarityClass(d.rarity)}">${esc(d.name)}</b><span class="compact-rarity-meta"><span class="${rarityClass(d.rarity)}">iLv ${d.itemLevel}</span> · <span class="${rarityClass(d.rarity)}">${esc(d.rarity)}</span> · ${formatGoldHtml(computedItemGoldValue(d))}</span><span class="equipment-compare">${cmp}</span>${raritySparkles(d.rarity,`bagcompact:${id}`)}</button>`;
     }).join(""):`<div class="equipment-filter-empty">No carried equipment matches this filter.</div>`;
     compact.innerHTML=`${equippedHtml}<div class="equipment-list-subhead">Backpack equipment · automatic comparison</div><div class="equipment-filter-row" data-equipment-filter-context="equipment">${equipmentFilterButtonsHtml()}</div>${bagHtml}`;
   }
@@ -4212,7 +4227,7 @@ function renderEquipmentInspect(){
     return `<div class="equipment-inspect-special"><b>Compared with ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}</b><br>${lines.join("<br>")}</div>`;
   })():"";
   const canUnequip=!candidate;
-  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName" class="${rarityClass(item.rarity)}">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity ${rarityClass(item.rarity)}">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>Gold value</span><b>${formatGold(computedItemGoldValue(item))}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9F</b><br>Intrinsic Value is the mechanical accounting unit. Slot-normalized finished value determines iLv. Appraised Gold Value then applies a restrained rarity scarcity premium; future merchant buy/sell margins and CHA can modify transaction prices without changing combat power.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
+  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName" class="${rarityClass(item.rarity)}">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity ${rarityClass(item.rarity)}">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>Gold value</span><b>${formatGoldHtml(computedItemGoldValue(item))}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9F</b><br>Intrinsic Value is the mechanical accounting unit. Slot-normalized finished value determines iLv. Appraised Gold Value then applies a restrained rarity scarcity premium; future merchant buy/sell margins and CHA can modify transaction prices without changing combat power.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
 }
 function toggleEquipmentList(){
   equipmentListExpanded=false;
@@ -4230,7 +4245,7 @@ function renderCharacterSheet(){
   playerHpClass($("charHpBar"),charHpFrac);
   $("charHpFill").style.width=`${charHpFrac*100}%`;
   $("charStamina").textContent=`${S.stamina} / ${S.staminaMax}`;
-  if($("charGold")) $("charGold").textContent=formatGold(S.gold||0);
+  if($("charGold")) $("charGold").innerHTML=formatGoldHtml(S.gold||0);
   renderCharacterStats();
   $("charFolkTrait").innerHTML=`<b>${esc(S.folk)} Folk trait</b> · ${formatFolkMods(S.folkMods)}`;
   if($("charSpecialization")) $("charSpecialization").textContent=S.specialization||"—";
@@ -4483,13 +4498,13 @@ function renderPack(rememberView=true){
     tabs.classList.add("merchant-tabs");
     tabs.innerHTML=`<button class="pack-tab ${merchantView==="buy"?"active":""}" type="button" data-merchant-view="buy">Buy</button><button class="pack-tab ${merchantView==="sell-equipment"?"active":""}" type="button" data-merchant-view="sell-equipment">Sell Gear</button><button class="pack-tab ${merchantView==="sell-backpack"?"active":""}" type="button" data-merchant-view="sell-backpack">Sell Pack</button>`;
     if(currencyLabel) currencyLabel.textContent="Your purse";
-    if($("packGold")) $("packGold").textContent=formatGold(S.gold||0);
+    if($("packGold")) $("packGold").innerHTML=formatGoldHtml(S.gold||0);
     const m=currentMerchant();
     if(merchantHead){
       merchantHead.hidden=!m;
       if(m){
         $("merchantHeadName").textContent=`${m.title} ${m.name}`;
-        $("merchantHeadPurse").textContent=`Merchant Purse · ${formatGold(m.purse)}`;
+        $("merchantHeadPurse").innerHTML=`Merchant Purse · ${formatGoldHtml(m.purse)}`;
         $("merchantHeadNote").textContent=`Neutral trader · ${m.stock.filter(x=>(x.kind!=="supply")||x.qty>0).length} goods visible`;
         $("merchantHeadIntentText").textContent = merchantView==="buy"
           ? "Browse the stock — spend coins to purchase carried goods."
@@ -4503,7 +4518,7 @@ function renderPack(rememberView=true){
     tabs.classList.remove("merchant-tabs");
     tabs.innerHTML=`<button class="pack-tab ${packActiveTab==="backpack"?"active":""}" id="btnPackTabBackpack" type="button" data-pack-tab="backpack" role="tab" aria-selected="${packActiveTab==="backpack"?"true":"false"}">Backpack</button><button class="pack-tab ${packActiveTab==="equipment"?"active":""}" id="btnPackTabEquipment" type="button" data-pack-tab="equipment" role="tab" aria-selected="${packActiveTab==="equipment"?"true":"false"}">Equipment</button>`;
     if(currencyLabel) currencyLabel.textContent="Coins";
-    if($("packGold")) $("packGold").textContent=formatGold(S.gold||0);
+    if($("packGold")) $("packGold").innerHTML=formatGoldHtml(S.gold||0);
     if(merchantStrip){ merchantStrip.hidden=true; merchantStrip.innerHTML=""; }
     if(merchantHead) merchantHead.hidden=true;
   }
@@ -4523,23 +4538,25 @@ function renderPack(rememberView=true){
         const price=merchantBuyPrice(row), afford=(S.gold||0)>=price;
         if(row.kind==="equipment"){
           const g=equipmentItemDef(row.itemId); const frame=rarityFrameClass(g?.rarity||"Common");
-          return `<div class="pack-item compact equipment-pack ${frame}">${g?raritySparkles(g.rarity,`merchant:${row.id}`):""}<div class="pack-item-top"><b class="${rarityClass(g?.rarity||"Common")}">${esc(g?.name||"Unknown item")}${row.kind==="equipment"&&row.resale?`<span class="merchant-stock-tag">resold</span>`:""}</b><strong class="${rarityClass(g?.rarity||"Common")}">iLv ${g?.itemLevel||0}</strong></div><div class="merchant-stock-meta"><span>${esc(g?.rarity||"Common")} · ${esc((g?.slots||[]).map(s=>EQUIPMENT_SLOT_LABELS[s]||s).join(" / "))}</span><b>${formatGold(price)}</b></div><p>${esc(g?.desc||"")}</p><div class="pack-actions"><button class="pack-mini-btn good" ${afford?"":"disabled"} data-merchant-buy="${row.id}">Buy</button></div></div>`;
+          const pending=merchantPendingPurchase===row.id;
+          return `<div class="pack-item compact equipment-pack ${frame}">${g?raritySparkles(g.rarity,`merchant:${row.id}`):""}<div class="pack-item-top"><b class="${rarityClass(g?.rarity||"Common")}">${esc(g?.name||"Unknown item")}${row.kind==="equipment"&&row.resale?`<span class="merchant-stock-tag">resold</span>`:""}</b><strong class="${rarityClass(g?.rarity||"Common")}">iLv ${g?.itemLevel||0}</strong></div><div class="merchant-stock-meta"><span>${esc(g?.rarity||"Common")} · ${esc(equipmentTypeLabel(g))}</span></div><p>${esc(g?.desc||"")}</p><div class="merchant-price-row"><span>Merchant price</span><b>${formatGoldHtml(price)}</b></div><div class="pack-actions">${pending?`<button class="pack-mini-btn good" data-merchant-confirm-buy="${row.id}">Confirm purchase</button><button class="pack-mini-btn" data-merchant-cancel-buy>Cancel</button>`:`<button class="pack-mini-btn good" ${afford?"":"disabled"} data-merchant-buy="${row.id}">Buy</button>`}</div></div>`;
         }
-        return `<div class="pack-item compact"><div class="pack-item-top"><b>${esc(row.label)}</b><strong>×${Math.max(0,row.qty||0)}</strong></div><div class="merchant-stock-meta"><span>Supply</span><b>${formatGold(price)}</b></div><p>${esc(row.desc||"")}</p><div class="pack-actions"><button class="pack-mini-btn good" ${afford?"":"disabled"} data-merchant-buy="${row.id}">Buy 1</button></div></div>`;
+        const pending=merchantPendingPurchase===row.id;
+        return `<div class="pack-item compact"><div class="pack-item-top"><b>${esc(row.label)}</b><strong>×${Math.max(0,row.qty||0)}</strong></div><div class="merchant-stock-meta"><span>Supply</span></div><p>${esc(row.desc||"")}</p><div class="merchant-price-row"><span>Merchant price</span><b>${formatGoldHtml(price)}</b></div><div class="pack-actions">${pending?`<button class="pack-mini-btn good" data-merchant-confirm-buy="${row.id}">Confirm purchase</button><button class="pack-mini-btn" data-merchant-cancel-buy>Cancel</button>`:`<button class="pack-mini-btn good" ${afford?"":"disabled"} data-merchant-buy="${row.id}">Buy 1</button>`}</div></div>`;
       }).join(""):`<div class="pack-note">This merchant has sold out.</div>`;
       $("packNote").textContent="Merchant stock is finite. Buying raises the merchant purse; if you later sell something back, the same merchant can afford more.";
     }else if(merchantView==="sell-equipment"){
-      filterBar.innerHTML=`<div class="equipment-filter-row" data-equipment-filter-context="pack">${equipmentFilterButtonsHtml()}</div>`;
+      filterBar.innerHTML=`<div class="merchant-scope"><button class="${merchantSellGearScope==="backpack"?"active":""}" data-merchant-gear-scope="backpack">Backpack Gear</button><button class="${merchantSellGearScope==="equipped"?"active":""}" data-merchant-gear-scope="equipped">Equipped Gear</button></div><div class="equipment-filter-row" data-equipment-filter-context="pack">${equipmentFilterButtonsHtml()}</div>`;
       const rows=merchantEquipmentSellRows();
       root.innerHTML=rows.length?rows.map(row=>{
         const g=equipmentItemDef(row.itemId), selected=merchantSellSelection.equipment.has(row.itemId), payout=merchantSellValueForEquipment(row.itemId), frame=rarityFrameClass(g?.rarity||"Common");
-        return `<div class="pack-item compact equipment-pack ${frame}">${g?raritySparkles(g.rarity,`sell:${row.itemId}`):""}<div class="pack-item-top"><b class="${rarityClass(g?.rarity||"Common")}">${esc(g?.name||row.itemId)}<span class="pack-tag">${esc(row.location)}</span></b><strong class="${rarityClass(g?.rarity||"Common")}">iLv ${g?.itemLevel||0}</strong></div><div class="merchant-stock-meta"><span>${esc(g?.rarity||"Common")} · ${esc(row.location)}</span><b>${formatGold(payout)}</b></div><p>${esc(g?.desc||"")}</p><div class="pack-actions"><button class="merchant-check ${selected?"on":""}" data-merchant-toggle-equip="${row.itemId}">${selected?"Selected":"Select"}</button></div></div>`;
-      }).join("")+(()=>{ const total=merchantSelectedEquipmentPayout(), count=merchantSellSelection.equipment.size, afford=merchantCanAfford(total); return `<div class="merchant-summary"><b>${count} item${count===1?"":"s"} selected · ${formatGold(total)}</b><span>${afford?`Merchant can pay. Purse remaining after sale: ${formatGold((currentMerchant()?.purse||0)-total)}`:`Merchant cannot afford this bundle yet.`}</span><div class="pack-actions"><button class="pack-mini-btn good" ${count&&afford?"":"disabled"} data-merchant-sell-equipment>Sell selected</button></div></div>`; })():`<div class="pack-note">No sellable equipment matches this filter.</div>`;
+        return `<div class="pack-item compact equipment-pack ${frame}">${g?raritySparkles(g.rarity,`sell:${row.itemId}`):""}<div class="pack-item-top"><b class="${rarityClass(g?.rarity||"Common")}">${esc(g?.name||row.itemId)}<span class="pack-tag ${row.equipped?"equipped":""}">${esc(row.location)}</span></b><strong class="${rarityClass(g?.rarity||"Common")}">iLv ${g?.itemLevel||0}</strong></div><div class="merchant-stock-meta"><span>${esc(g?.rarity||"Common")} · ${esc(equipmentTypeLabel(g))}</span></div><p>${esc(g?.desc||"")}</p>${row.equipped?`<div class="merchant-equip-warning"><b>Equipped item.</b> Selling this immediately removes it from your current loadout.</div>`:""}<div class="merchant-price-row"><span>Merchant offers</span><b>${formatGoldHtml(payout)}</b></div><div class="pack-actions"><button class="merchant-check ${selected?"on":""}" data-merchant-toggle-equip="${row.itemId}" data-equipped-warning="${row.equipped?"1":"0"}">${selected?"Selected":row.equipped?"Select equipped ⚠":"Select"}</button></div></div>`;
+      }).join("")+(()=>{ const total=merchantSelectedEquipmentPayout(), count=merchantSellSelection.equipment.size, afford=merchantCanAfford(total); return `<div class="merchant-summary"><b>${count} item${count===1?"":"s"} selected · ${formatGoldHtml(total)}</b><span>${afford?`Merchant can pay. Purse remaining after sale: ${formatGoldHtml((currentMerchant()?.purse||0)-total)}`:`Merchant cannot afford this bundle yet.`}</span><div class="pack-actions"><button class="pack-mini-btn good" ${count&&afford?"":"disabled"} data-merchant-sell-equipment>Sell selected</button></div></div>`; })():`<div class="pack-note">No sellable equipment matches this filter.</div>`;
       $("packNote").textContent="Select one or more equipped or backpack gear pieces, then sell them as a bundle if the merchant can afford the total.";
     }else{
       filterBar.innerHTML=`<div class="merchant-note-quiet"><b>Sell Pack</b> selects whole carried stacks such as Bandages, Rope, Water, Camp Supplies and miscellaneous trade goods.</div>`;
       const rows=merchantBackpackSellRows();
-      root.innerHTML=rows.length?rows.map(row=>{ const selected=merchantSellSelection.backpack.has(row.key); return `<div class="pack-item compact"><div class="pack-item-top"><b>${esc(row.label)}</b><strong>×${row.count}</strong></div><div class="merchant-stock-meta"><span>Backpack stack</span><b>${formatGold(row.totalValue)}</b></div><p>${esc(row.desc||"")}</p><div class="pack-actions"><button class="merchant-check ${selected?"on":""}" data-merchant-toggle-pack="${esc(row.key)}">${selected?"Selected":"Select"}</button></div></div>`; }).join("")+(()=>{ const total=merchantSelectedBackpackPayout(), count=merchantSellSelection.backpack.size, afford=merchantCanAfford(total); return `<div class="merchant-summary"><b>${count} stack${count===1?"":"s"} selected · ${formatGold(total)}</b><span>${afford?`Merchant can pay. Purse remaining after sale: ${formatGold((currentMerchant()?.purse||0)-total)}`:`Merchant cannot afford these goods yet.`}</span><div class="pack-actions"><button class="pack-mini-btn good" ${count&&afford?"":"disabled"} data-merchant-sell-backpack>Sell selected</button></div></div>`; })():`<div class="pack-note">No sellable backpack goods are currently carried.</div>`;
+      root.innerHTML=rows.length?rows.map(row=>{ const selected=merchantSellSelection.backpack.has(row.key); return `<div class="pack-item compact"><div class="pack-item-top"><b>${esc(row.label)}</b><strong>×${row.count}</strong></div><div class="merchant-stock-meta"><span>Backpack stack</span></div><p>${esc(row.desc||"")}</p><div class="merchant-price-row"><span>Merchant offers</span><b>${formatGoldHtml(row.totalValue)}</b></div><div class="pack-actions"><button class="merchant-check ${selected?"on":""}" data-merchant-toggle-pack="${esc(row.key)}">${selected?"Selected":"Select"}</button></div></div>`; }).join("")+(()=>{ const total=merchantSelectedBackpackPayout(), count=merchantSellSelection.backpack.size, afford=merchantCanAfford(total); return `<div class="merchant-summary"><b>${count} stack${count===1?"":"s"} selected · ${formatGoldHtml(total)}</b><span>${afford?`Merchant can pay. Purse remaining after sale: ${formatGoldHtml((currentMerchant()?.purse||0)-total)}`:`Merchant cannot afford these goods yet.`}</span><div class="pack-actions"><button class="pack-mini-btn good" ${count&&afford?"":"disabled"} data-merchant-sell-backpack>Sell selected</button></div></div>`; })():`<div class="pack-note">No sellable backpack goods are currently carried.</div>`;
       $("packNote").textContent="Selling backpack stacks removes the full carried stack. This keeps trading quick while the merchant system is still in its first live pass.";
     }
     restoreEquipmentFilterScroll();
@@ -4563,7 +4580,7 @@ function renderPack(rememberView=true){
       const affixConsequences=[["Crit","crit","pct"],["Boss","bossDamage","pct"],["Reflect","reflect","pct"],["Lifesteal","lifesteal","pct"]].map(([label,key,prop])=>{const d=(cmp.affixesAfter?.[key]?.[prop]||0)-(cmp.affixesBefore?.[key]?.[prop]||0);return d?`<span class="equipment-delta ${deltaClass(d)}">${label} ${deltaText(d)}%</span>`:"";}).join("");
       const consequences=`${Math.abs(armorDelta)>.001?`<span class="equipment-delta ${deltaClass(armorDelta)}">Armor ${deltaText(armorDelta)}</span>`:""}${attrConsequences}${Math.abs(strikeDelta)>.05?`<span class="equipment-delta ${deltaClass(strikeDelta)}">Strike ${deltaText(strikeDelta,1)}</span>`:""}${affixConsequences}`;
       const frame=rarityFrameClass(g.rarity);
-      return `<div class="pack-item compact equipment-pack ${frame}">${raritySparkles(g.rarity,`pack:${id}`)}<div class="pack-item-top"><b class="${rarityClass(g.rarity)}">${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span></b><strong class="${rarityClass(g.rarity)}">iLv ${g.itemLevel}</strong></div><div class="equipment-economy"><span>Intrinsic ${Math.round(computedIntrinsicValue(g))}</span><b>${formatGold(computedItemGoldValue(g))}</b></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta power">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta power">Gear ${deltaText(cmp.gearDelta,1)}</span><span class="equipment-delta power">Value ${deltaText(cmp.valueDelta||0)}</span>${consequences}</div><div class="pack-actions"><button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button></div></div>`;
+      return `<div class="pack-item compact equipment-pack ${frame}">${raritySparkles(g.rarity,`pack:${id}`)}<div class="pack-item-top"><b class="${rarityClass(g.rarity)}">${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span></b><strong class="${rarityClass(g.rarity)}">iLv ${g.itemLevel}</strong></div><div class="equipment-economy"><span>Intrinsic ${Math.round(computedIntrinsicValue(g))}</span><b>${formatGoldHtml(computedItemGoldValue(g))}</b></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta power">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta power">Gear ${deltaText(cmp.gearDelta,1)}</span><span class="equipment-delta power">Value ${deltaText(cmp.valueDelta||0)}</span>${consequences}</div><div class="pack-actions"><button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button></div></div>`;
     }).join(""):`<div class="pack-note">No carried equipment matches this filter.</div>`;
     $("packNote").textContent="Equipment is filtered by compatible slot and sorted by current iLv upgrade potential.";
   }else{
@@ -4646,12 +4663,16 @@ function spawnEncounter(options={}){
   }
   if(options.boss){
     const idx = options.bossStratum ?? Math.max(0,Math.floor(S.depth/FATHOMS_PER_STRATUM));
-    S.foe.boss = true;
-    S.foe.bossStratum = idx;
-    S.foe.key = BOSS_PROFILE.id;
-    S.foe.name = idx>0 ? `prototype ${stratumName(idx).replace(/^The /,"").toLowerCase()} boss` : BOSS_PROFILE.name;
-    S.seenFoes[BOSS_PROFILE.id] = true;
-    travelLogAdd(`<b>Prototype boss encounter.</b> Its intent weighting becomes much more Heavy-focused below half HP.`,"beat");
+    S.foe.boss = true;S.foe.bossStratum = idx;S.foe.midBoss=!!options.midBoss;S.foe.sideBoss=!!options.sideBoss;
+    if(options.midBoss||options.sideBoss){
+      S.foe.key=base.id;S.foe.name=base.name;S.seenFoes[base.id]=true;
+      travelLogAdd(options.sideBoss?`<b>Passage guardian.</b> The longest route has put something dangerous at its end.`:`<b>Mid-stratum boss.</b> A dangerous figure controls this stretch of the descent.`,"beat");
+    }else{
+      S.foe.key = BOSS_PROFILE.id;
+      S.foe.name = idx>0 ? `prototype ${stratumName(idx).replace(/^The /,"").toLowerCase()} boss` : BOSS_PROFILE.name;
+      S.seenFoes[BOSS_PROFILE.id] = true;
+      travelLogAdd(`<b>Stratum boss encounter.</b> Its intent weighting becomes much more Heavy-focused below half HP.`,"beat");
+    }
   }
   if(options.mimic){
     S.foe.mimic = true;
@@ -4709,6 +4730,18 @@ function renderTravelEvent(){
   }
 
   const a=S?.sideArea;
+  if(ev.id==="side-route-riddle"&&a){
+    const r=a.activeRiddle, hintAttempts=Math.max(0,Number(r?.hintAttempts)||0), hintSkill=r?.hintSkill||"investigation";
+    const answerButtons=(r?.answers||[]).map((answer,i)=>`<button class="travel-event-btn ${i===0?"skill":"investigate"}" data-event-action="side-riddle-${i}"><b>${esc(answer)}</b><span>choose this answer</span></button>`).join("");
+    const hintButton=hintAttempts<(r?.hints?.length||0)?`<button class="travel-event-btn wide skill" data-event-action="side-riddle-hint"><b>Ask for a hint</b><span>${skillCheckPreview(hintSkill,sideHintChallenge(hintAttempts))} · ${esc(SKILL_DEFS[hintSkill]?.name||"Investigation")} · hint ${hintAttempts+1}/${r.hints.length}${hintAttempts?" · harder than the last":""}</span></button>`:"";
+    actions.innerHTML=answerButtons+hintButton;
+    return;
+  }
+  if(ev.id==="side-route-puzzle"&&a){
+    const hp=a.activeRoutePuzzle||{}, hintAttempts=Math.max(0,Number(hp.hintAttempts)||0), hintButton=hintAttempts<(hp.hints?.length||0)?`<button class="travel-event-btn wide skill" data-event-action="side-route-puzzle-hint"><b>Ask for a hint</b><span>${skillCheckPreview("investigation",sideHintChallenge(hintAttempts))} · Investigation · hint ${hintAttempts+1}/${hp.hints.length}${hintAttempts?" · harder than the last":""}</span></button>`:"";
+    actions.innerHTML=`${hintButton}<button class="travel-event-btn skill" data-event-action="side-puzzle-investigate"><b>Work out the release</b><span>${skillCheckPreview("investigation",trapDc(12))} · Investigation</span></button><button class="travel-event-btn investigate" data-event-action="side-puzzle-force"><b>Force the release</b><span>${skillCheckPreview("athletics",trapDc(12))} · Athletics</span></button><button class="travel-event-btn ignore wide" data-event-action="side-puzzle-bypass"><b>Risk the crawlspace</b><span>no check · lose 5% Max HP squeezing through</span></button>`;
+    return;
+  }
   if(ev.id==="side-altar"&&a&&ev.stage==="salvage"){
     actions.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="finish-side"><b>Return to the descent</b><span>side passage complete</span></button>`;
     return;
@@ -4718,11 +4751,12 @@ function renderTravelEvent(){
     else if(ev.stage==="mimic-reward"||ev.stage==="reward") actions.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="finish-side"><b>Return to the descent</b><span>side passage complete</span></button>`;
     else if(ev.stage==="puzzle-warning") actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="puzzle-begin"><b>Attempt the five seals</b><span>need 3 successes · failure: 30% Max HP backlash</span></button><button class="travel-event-btn ignore" data-event-action="leave-side-end"><b>Leave it alone</b><span>return without risking the ward</span></button>`;
     else if(ev.stage==="puzzle-step"){
-      const p=puzzleState(),step=puzzleCurrent();
-      if(p.step===4) actions.innerHTML=`${S.inventory.water>0?`<button class="travel-event-btn skill" data-event-action="puzzle-water"><b>Use Water</b><span>consume 1 Jug of Water · guaranteed grounding success</span></button>`:""}<button class="travel-event-btn investigate" data-event-action="puzzle-athletics"><b>Ground it by force</b><span>${skillCheckPreview("athletics",trapDc(step.dc))} · STR · Athletics</span></button>`;
+      const p=puzzleState(),step=puzzleCurrent(),hintState=puzzleStepHintState(),hintSkill=step.hintSkill||"investigation";
+      const hintButton=hintState.attempts<(step.hints?.length||0)?`<button class="travel-event-btn wide skill" data-event-action="puzzle-hint"><b>Ask for a hint</b><span>${skillCheckPreview(hintSkill,sideHintChallenge(hintState.attempts))} · ${esc(SKILL_DEFS[hintSkill]?.name||"Investigation")} · hint ${hintState.attempts+1}/${step.hints.length}${hintState.attempts?" · harder than the last":""}</span></button>`:"";
+      if(p.step===4) actions.innerHTML=`${hintButton}${S.inventory.water>0?`<button class="travel-event-btn skill" data-event-action="puzzle-water"><b>Use Water</b><span>consume 1 Jug of Water · guaranteed grounding success</span></button>`:""}<button class="travel-event-btn investigate" data-event-action="puzzle-athletics"><b>Ground it by force</b><span>${skillCheckPreview("athletics",trapDc(step.dc))} · STR · Athletics</span></button>`;
       else{
         const situational=step.skill==="sleight"&&S.inventory.rogueTools>0?2:0,label=SKILL_DEFS[step.skill].name;
-        actions.innerHTML=`<button class="travel-event-btn skill wide" data-event-action="puzzle-skill"><b>Use ${esc(label)}</b><span>${skillCheckPreview(step.skill,trapDc(step.dc),situational)}${situational?" · Rogue Tools +2":""}</span></button>`;
+        actions.innerHTML=`${hintButton}<button class="travel-event-btn skill wide" data-event-action="puzzle-skill"><b>Use ${esc(label)}</b><span>${skillCheckPreview(step.skill,trapDc(step.dc),situational)}${situational?" · Rogue Tools +2":""}</span></button>`;
       }
     }else if(ev.stage==="puzzle-result") actions.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="puzzle-next"><b>${puzzleState().step>=4?"Resolve the ward":"Next seal"}</b><span>${puzzleState().successes}/3 successes needed · ${puzzleState().attempts}/5 attempted</span></button>`;
     return;
@@ -4825,8 +4859,8 @@ async function handleTravelEventAction(action){
     const options={...(ev.encounterOptions||{}),profile};
     if(action==="stealth-pass"){
       const resume=ev.priorMode||"descend";
-      S.travelEvent=null;S.travelMode=resume;resumeBoonClock();
-      travelLogAdd(`You let the <b>${esc(profile?.name||"creature")}</b> pass without revealing yourself. No combat reward is gained.`,"good");render();return;
+      S.travelEvent=null;S.travelMode=resume;if(S.concealment)S.concealment.autoPass=true;resumeBoonClock();
+      travelLogAdd(`You let the <b>${esc(profile?.name||"creature")}</b> pass without revealing yourself. Further successful concealed contacts will pass automatically until Concealment ends.`,"good");render();return;
     }
     if(action==="stealth-ambush"){
       clearConcealment();S.travelEvent=null;S.travelMode="stopped";pauseBoonClock();
@@ -4863,9 +4897,31 @@ async function handleTravelEventAction(action){
   }
 
   const a=S?.sideArea;
+  if(ev.id==="side-route-riddle"&&a){
+    if(action==="side-riddle-hint") return attemptSideRiddleHint();
+    const m=String(action||"").match(/^side-riddle-(\d+)$/);if(!m)return;
+    const chosen=Number(m[1]),r=a.activeRiddle,correct=chosen===Number(r?.correct);
+    if(correct){S.gold=(S.gold||0)+ri(1,4);completeSideRouteStage(`The answer is accepted. A hidden coin slot yields a few <b>sc</b>.`);}
+    else{const dmg=Math.max(1,Math.round(S.hpMax*.04));S.hp-=dmg;flashTravelDamage();completeSideRouteStage(`The wrong mark bites back for <b>${dmg} HP</b>, but the seal opens anyway.`);if(S.hp<=0)return die(`<p class="hurt">The passage riddle took the last of your strength.</p>`);}
+    a.activeRiddle=null;S.travelEvent=null;S.travelMode="side";resumeBoonClock();render();return;
+  }
+  if(ev.id==="side-route-puzzle"&&a){
+    if(action==="side-route-puzzle-hint") return attemptSideRoutePuzzleHint();
+    if(action==="side-puzzle-bypass"){
+      const dmg=Math.max(1,Math.round(S.hpMax*.05));S.hp-=dmg;flashTravelDamage();completeSideRouteStage(`You squeeze through the crawlspace and lose <b>${dmg} HP</b> to stone and rust.`);a.activeRoutePuzzle=null;S.travelEvent=null;if(S.hp<=0)return die(`<p class="hurt">The crawlspace closed around you.</p>`);S.travelMode="side";resumeBoonClock();render();return;
+    }
+    if(action==="side-puzzle-investigate"||action==="side-puzzle-force"){
+      const skill=action.endsWith("investigate")?"investigation":"athletics",check=await runActiveSkillCheck(skill,trapDc(12)),practice=awardSkillPractice(skill,`side-route-puzzle:${a.id}:${a.encountersDefeated}`,check);
+      if(check.success){S.gold=(S.gold||0)+ri(2,5);completeSideRouteStage(`The mechanism gives way cleanly, exposing a few old <b>sc</b> in the housing.`);}
+      else{const dmg=Math.max(1,Math.round(S.hpMax*.05));S.hp-=dmg;flashTravelDamage();completeSideRouteStage(`The mechanism snaps loose and costs <b>${dmg} HP</b>, but the way opens.`);if(S.hp<=0)return die(`<p class="hurt">The counterweight crushed the last of your strength.</p>`);}
+      a.activeRoutePuzzle=null;S.travelEvent=null;S.travelMode="side";resumeBoonClock();render();return;
+    }
+    return;
+  }
   if(ev.id==="side-altar"&&a&&sideFinaleType()!=="cache"){
     if(action==="mimic-approach") return startMimicFinale();
     if(action==="puzzle-begin") return beginPuzzleFinale();
+    if(action==="puzzle-hint") return attemptPuzzleHint();
     if(action==="puzzle-skill"){
       const step=puzzleCurrent(); if(!step?.skill) return;
       const situational=step.skill==="sleight"&&S.inventory.rogueTools>0?2:0;
@@ -5016,6 +5072,12 @@ function runTravelTickCore(){
 
   if(S.travelMode==="descend" && !S.foe && !S.travelEvent){
     const current=Math.max(0,Math.floor(S.depth/FATHOMS_PER_STRATUM));
+    const midpoint=midBossDepthForStratum(current);
+    if(!S.midBossDefeated?.[current] && S.depth<midpoint && S.depth+TRAVEL_STEP>=midpoint){
+      S.depth=midpoint-0.1;S.travelMode="stopped";pauseBoonClock();
+      travelLogAdd(`<b>Danger ahead.</b> A powerful foe has claimed the middle of this stratum.`,"danger");
+      return nextFoe({boss:true,midBoss:true,bossStratum:current,profile:current===0?MID_BOSS_PROFILE:{...MID_BOSS_PROFILE,name:`${stratumName(current).replace(/^The /,"")} depth-warden`}});
+    }
     const boundary=(current+1)*FATHOMS_PER_STRATUM;
     if(!S.bossDefeated?.[current] && S.depth<boundary && S.depth+TRAVEL_STEP>=boundary){
       S.depth=boundary-0.1;
@@ -5376,28 +5438,30 @@ function finishKill(out){
   if(wasSide && sideAreaActive()){
     S.sideArea.encountersDefeated++;
     S.sideArea.activity=0;
+    S.sideArea.routeNodeActive=false;
     S.travelSinceEvent=0;
-    travelLogAdd(`Side passage progress: <b>${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</b>.`,"beat");
+    travelLogAdd(`Side passage progress: <b>${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} stages cleared</b>.`,"beat");
     if(S.sideArea.encountersDefeated>=S.sideArea.encountersNeeded) S.sideArea.endReached=true;
   }
 
   if(wasBoss){
-    S.bossDefeated[bossStratum]=true;
-    const boundary=(bossStratum+1)*FATHOMS_PER_STRATUM;
-    S.depth=boundary;
-    S.exploreElapsedMs=0;
-    S.exploreDepth=boundary;
-    const trophy=`Prototype Stratum ${bossStratum+1} Trophy`;
-    addMisc(trophy,1);
-    S._lootFoundCurrent.push(trophy);
-    if(bossStratum===0){
-      const bossGear=stratumBossEquipmentReward(), bossDef=equipmentItemDef(bossGear);
-      if(bossDef && !ownsEquipmentItem(bossGear)){
-        addEquipmentToBag(bossGear);
-        S._lootFoundCurrent.push(`${bossDef.name} · ${bossDef.rarity} · iLv ${bossDef.itemLevel} · ${formatGold(computedItemGoldValue(bossDef))}`);
+    if(f.sideBoss){
+      travelLogAdd(`<b>Passage guardian defeated.</b> The reward chamber lies beyond.`,"beat");
+    }else if(f.midBoss){
+      S.midBossDefeated[bossStratum]=true;
+      const item=generateProceduralEquipment(S.depth+18,"mid-boss");if(item){addGeneratedEquipment(item);S._lootFoundCurrent.push(`${item.name} · ${item.rarity} · iLv ${item.itemLevel} · ${formatGold(computedItemGoldValue(item))}`);}
+      travelLogAdd(`<b>Mid-stratum boss defeated.</b> The route deeper is open again.`,"beat");
+    }else{
+      S.bossDefeated[bossStratum]=true;
+      const boundary=(bossStratum+1)*FATHOMS_PER_STRATUM;
+      S.depth=boundary;S.exploreElapsedMs=0;S.exploreDepth=boundary;
+      const trophy=`Prototype Stratum ${bossStratum+1} Trophy`;addMisc(trophy,1);S._lootFoundCurrent.push(trophy);
+      if(bossStratum===0){
+        const bossGear=stratumBossEquipmentReward(), bossDef=equipmentItemDef(bossGear);
+        if(bossDef && !ownsEquipmentItem(bossGear)){addEquipmentToBag(bossGear);S._lootFoundCurrent.push(`${bossDef.name} · ${bossDef.rarity} · iLv ${bossDef.itemLevel} · ${formatGold(computedItemGoldValue(bossDef))}`);}
       }
+      travelLogAdd(`The boundary opens. You cross into <b>${esc(stratumName(bossStratum+1))}</b>.`,"beat");
     }
-    travelLogAdd(`The boundary opens. You cross into <b>${esc(stratumName(bossStratum+1))}</b>.`,"beat");
   }
 
   const drops=[...S._lootFoundCurrent];
@@ -6180,7 +6244,10 @@ function trailStructureSignature(){
   const area=S?.sideArea;
   const activeProgress=active?sideAreaRouteProgress(area).toFixed(3):"-";
   const history=(S?.sideAreaHistory||[]).map(h=>`${Number(h.entryDepth||0).toFixed(2)}:${Number(h.progress??(h.completed?1:.5)).toFixed(2)}:${h.completed?1:0}`).join("|");
-  return `${active?1:0}:${activeProgress}:${area?.entryDepth??"-"}:${history}`;
+  const merchants=(S?.merchantHistory||[]).map(h=>Number(h.depth||0).toFixed(2)).join(",");
+  const currentMerchantDepth=currentMerchant()?.depth??"-";
+  const bosses=`${Object.keys(S?.midBossDefeated||{}).join(",")}/${Object.keys(S?.bossDefeated||{}).join(",")}`;
+  return `${active?1:0}:${activeProgress}:${area?.entryDepth??"-"}:${history}:${merchants}:${currentMerchantDepth}:${bosses}`;
 }
 
 function syncLargeTrailLabels(layerId,labelPositions){
@@ -6206,6 +6273,12 @@ function syncLargeTrailLabels(layerId,labelPositions){
   }
 }
 
+function syncTrailLandmarks(target,landmarks){
+  const world=$(target.world);if(!world)return;
+  let layer=world.querySelector('.trail-landmarks-layer');
+  if(!layer){layer=document.createElement('div');layer.className='trail-landmarks-layer';world.appendChild(layer);}
+  layer.innerHTML=landmarks.map((lm,i)=>`<span class="trail-landmark-html ${lm.type}${lm.visited?" visited":""}" style="left:${(lm.x/TRAIL_W*100).toFixed(3)}%;top:${(lm.y/TRAIL_H*100).toFixed(3)}%;margin-top:${lm.offsetY||0}px" title="${esc(lm.title||lm.type)}"></span>`).join('');
+}
 function rebuildTrailWorld(target,anchorDepth){
   const behind=target.behind ?? TRAIL_BEHIND;
   const ahead=target.ahead ?? TRAIL_AHEAD;
@@ -6237,37 +6310,28 @@ function rebuildTrailWorld(target,anchorDepth){
     const x=xOf(d);
     marks+=`<line class="trail-boundary" x1="${x.toFixed(2)}" y1="${(TRAIL_MARKER_Y-TRAIL_H).toFixed(2)}" x2="${x.toFixed(2)}" y2="${(TRAIL_MARKER_Y+TRAIL_H).toFixed(2)}"></line>`;
   }
-  const markerSvg=(type,x,y)=>{
-    if(type==="merchant") return `<polygon class="trail-landmark merchant" points="${x.toFixed(2)},${(y-7).toFixed(2)} ${(x+6).toFixed(2)},${y.toFixed(2)} ${x.toFixed(2)},${(y+7).toFixed(2)} ${(x-6).toFixed(2)},${y.toFixed(2)}"></polygon>`;
-    if(type==="boss") return `<polygon class="trail-landmark boss" points="${x.toFixed(2)},${(y-8).toFixed(2)} ${(x+7).toFixed(2)},${(y+7).toFixed(2)} ${(x-7).toFixed(2)},${(y+7).toFixed(2)}"></polygon>`;
-    if(type==="stage") return `<rect class="trail-landmark stage" x="${(x-5).toFixed(2)}" y="${(y-5).toFixed(2)}" width="10" height="10" rx="1.8"></rect>`;
-    if(type==="hollow") return `<rect class="trail-landmark hollow" x="${(x-4.5).toFixed(2)}" y="${(y-4.5).toFixed(2)}" width="9" height="9" rx="1.5"></rect>`;
-    if(type==="side") return `<path class="trail-landmark side" d="M${(x).toFixed(2)},${(y+6).toFixed(2)} L${(x).toFixed(2)},${(y-5).toFixed(2)} M${(x).toFixed(2)},${(y-1).toFixed(2)} L${(x-5).toFixed(2)},${(y-6).toFixed(2)} M${(x).toFixed(2)},${(y-1).toFixed(2)} L${(x+5).toFixed(2)},${(y-6).toFixed(2)}"></path>`;
-    return "";
-  };
   const landmarks=[];
-  const cm=currentMerchant();
-  if(cm && cm.depth>=worldFrom-.001 && cm.depth<=worldTo+.001) landmarks.push({type:"merchant",depth:cm.depth});
-  const firstBoss=Math.ceil(worldFrom/FATHOMS_PER_STRATUM)*FATHOMS_PER_STRATUM;
-  for(let d=firstBoss;d<=worldTo+.001;d+=FATHOMS_PER_STRATUM){
-    if(d<=0) continue;
-    const idx=Math.max(0,Math.floor((d-0.0001)/FATHOMS_PER_STRATUM));
-    if(!S.bossDefeated?.[idx] && d>=Math.max(S.depth,worldFrom-.001)) landmarks.push({type:"boss",depth:d});
-  }
-  const firstStratum=Math.max(0,Math.floor(worldFrom/FATHOMS_PER_STRATUM));
-  const lastStratum=Math.max(firstStratum,Math.floor(worldTo/FATHOMS_PER_STRATUM));
+  const addLandmark=(type,depth,visited=false,title="")=>{if(depth>=worldFrom-.001&&depth<=worldTo+.001)landmarks.push({type,depth,visited,title});};
+  const cm=currentMerchant();if(cm)addLandmark("merchant",cm.depth,false,`${cm.title} ${cm.name}`);
+  for(const h of (S.merchantHistory||[]))addLandmark("merchant",Number(h.depth)||0,true,h.name||"Merchant camp");
+  const firstStratum=Math.max(0,Math.floor(worldFrom/FATHOMS_PER_STRATUM)),lastStratum=Math.max(firstStratum,Math.floor(worldTo/FATHOMS_PER_STRATUM));
   for(let i=firstStratum;i<=lastStratum;i++){
-    for(const h of ordinaryHollowsForStratum(i)) if(!S.hollowStates?.[h.key] && h.depth>=worldFrom-.001 && h.depth<=worldTo+.001) landmarks.push({type:"hollow",depth:h.depth});
-    const sh=stageHollowInfo(i); if(!S.hollowStates?.[sh.key] && sh.depth>=worldFrom-.001 && sh.depth<=worldTo+.001) landmarks.push({type:"stage",depth:sh.depth});
+    const mid=midBossDepthForStratum(i),boundary=(i+1)*FATHOMS_PER_STRATUM;
+    addLandmark("boss",mid,!!S.midBossDefeated?.[i],"Mid-stratum boss");
+    addLandmark("boss",boundary,!!S.bossDefeated?.[i],"Stratum boss");
+    for(const h of ordinaryHollowsForStratum(i))addLandmark("hollow",h.depth,!!S.hollowStates?.[h.key],"Safe hollow");
+    const sh=stageHollowInfo(i);addLandmark("stage",sh.depth,!!S.hollowStates?.[sh.key],"Staging hollow");
   }
-  if(S.travelEvent?.id==="side-discovery" || sideAreaActive()){
-    const sd=sideAreaActive() ? Number(S.sideArea?.entryDepth||S.depth) : Number(S.depth||0);
-    if(sd>=worldFrom-.001 && sd<=worldTo+.001) landmarks.push({type:"side",depth:sd});
-  }
+  if(S.travelEvent?.id==="side-discovery"||sideAreaActive())addLandmark("side",sideAreaActive()?Number(S.sideArea?.entryDepth||S.depth):Number(S.depth||0),false,"Side passage");
+  for(const h of (S.sideAreaHistory||[]))addLandmark("side",Number(h.entryDepth)||0,true,"Side passage");
+  landmarks.sort((a,b)=>a.depth-b.depth);
+  let lastDepth=-999,cluster=0;
   for(const lm of landmarks){
-    const x=xOf(lm.depth), y=yOf(lm.depth);
-    marks+=markerSvg(lm.type,x,y);
+    if(Math.abs(lm.depth-lastDepth)<2.25)cluster++;else cluster=0;
+    lm.offsetY=cluster===0?0:(cluster%2? -11:11)*Math.ceil(cluster/2);lastDepth=lm.depth;
+    lm.x=xOf(lm.depth);lm.y=yOf(lm.depth);
   }
+  syncTrailLandmarks(target,landmarks);
   for(const h of (S.sideAreaHistory||[])){
     if(h.entryDepth<worldFrom-.001||h.entryDepth>worldTo+.001)continue;
     const hx=xOf(h.entryDepth),hy=yOf(h.entryDepth);
@@ -6478,8 +6542,8 @@ function renderTravel(){
     status.classList.toggle("moving",false);
     status.classList.toggle("exploring",S.travelMode==="side");
     if(!S.travelEvent) status.innerHTML=S.travelMode==="side"
-      ? `<b>Exploring passage<span class="passage-dots"></span></b> · <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> inside · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s remain</div>`:""}`
-      : `<b>Held inside passage.</b> <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> explored · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} encounters defeated</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s remain</div>`:""}`;
+      ? `<b>Exploring passage<span class="passage-dots"></span></b> · <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> inside · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} stages cleared</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s remain</div>`:""}`
+      : `<b>Held inside passage.</b> <span class="side-time">${formatExploreTime(S.sideArea.elapsedMs||0)}</span> explored · <span class="side-progress">${S.sideArea.encountersDefeated}/${S.sideArea.encountersNeeded} stages cleared</span>${curseActive()?`<div class="curse-line"><b>${esc(S.curse.name)}</b> · ${S.curse.remaining} completed encounters remain</div>`:""}${S.bleeding?`<div class="curse-line"><b>Bleeding</b> · ${bleedSecondsRemaining()}s remain</div>`:""}`;
     $("btnDescend").disabled=true;
     $("btnDescend").classList.remove("active");
     $("btnExplore").disabled=!!S.travelEvent;
@@ -6933,9 +6997,16 @@ function stampItemEconomy(def,{recalculateGeneratedIlvl=false}={}){
 function formatGold(value){
   const total=Math.max(0,Math.round(Number(value)||0));
   const gc=Math.floor(total/100), sc=total%100;
-  if(gc>0 && sc>0) return `${gc.toLocaleString()} GC ${String(sc).padStart(2,"0")} SC`;
-  if(gc>0) return `${gc.toLocaleString()} GC`;
-  return `${sc.toLocaleString()} SC`;
+  if(gc>0 && sc>0) return `${gc.toLocaleString()} gc ${String(sc).padStart(2,"0")} sc`;
+  if(gc>0) return `${gc.toLocaleString()} gc`;
+  return `${sc.toLocaleString()} sc`;
+}
+function formatGoldHtml(value){
+  const total=Math.max(0,Math.round(Number(value)||0));
+  const gc=Math.floor(total/100), sc=total%100, bits=[];
+  if(gc>0) bits.push(`<span class="coin-gc">${gc.toLocaleString()} gc</span>`);
+  if(sc>0 || gc===0) bits.push(`<span class="coin-sc">${sc.toLocaleString()} sc</span>`);
+  return bits.join('<span class="coin-sep"></span>');
 }
 function roundQuarter(n){ return Math.round((Number(n)||0)*4)/4; }
 const MERCHANT_NAMES=Object.freeze(["Mora Vell","Brass-Lantern Nesk","Old Tallow Hedd","Tarn Seln","Blue-Clasp Rook","Jori Flint","Pale Aster Merrow"]);
@@ -6944,6 +7015,7 @@ function ensureMerchantState(){
   if(!S) return;
   if(!S.pendingMerchant || typeof S.pendingMerchant!=="object" || Array.isArray(S.pendingMerchant)) S.pendingMerchant=null;
   if(!Number.isInteger(S.merchantVisits)) S.merchantVisits=0;
+  if(!Array.isArray(S.merchantHistory)) S.merchantHistory=[];
 }
 function merchantEncounterRange(){
   ensureMerchantState();
@@ -7009,12 +7081,38 @@ function generateMerchantForDepth(depth){
   for(const row of stock) purse+=Math.round(merchantBuyPrice(row)*0.22);
   return {id,name,title,depth:roundQuarter(d),purse,stock};
 }
+function midBossDepthForStratum(stratum){ return stratum*FATHOMS_PER_STRATUM + FATHOMS_PER_STRATUM/2; }
+function routeReservedDepthsAround(depth){
+  const d=Math.max(0,Number(depth)||0),first=Math.max(0,Math.floor((d-90)/FATHOMS_PER_STRATUM)),last=Math.max(first,Math.floor((d+90)/FATHOMS_PER_STRATUM));
+  const out=[];
+  for(let i=first;i<=last;i++){
+    out.push(midBossDepthForStratum(i),(i+1)*FATHOMS_PER_STRATUM,stageHollowInfo(i).depth);
+    for(const h of ordinaryHollowsForStratum(i)) out.push(h.depth);
+  }
+  if(Number.isFinite(Number(S?.sideDiscoveryAt))) out.push(Number(S.sideDiscoveryAt));
+  for(const h of (S?.sideAreaHistory||[])) out.push(Number(h.entryDepth)||0);
+  for(const h of (S?.merchantHistory||[])) out.push(Number(h.depth)||0);
+  return out;
+}
+function routeDepthClear(depth,minGap=5){ return routeReservedDepthsAround(depth).every(other=>Math.abs(other-depth)>=minGap); }
+function findClearMerchantDepth(desired){
+  let d=roundQuarter(Math.max((Number(S?.depth)||0)+6,Number(desired)||0));
+  for(let i=0;i<80;i++){
+    if(routeDepthClear(d,5)) return d;
+    d=roundQuarter(d+.75);
+  }
+  return d;
+}
+function nudgePendingMerchantFromDepth(depth,minGap=5){
+  const m=currentMerchant(); if(!m || Math.abs(m.depth-depth)>=minGap) return;
+  m.depth=findClearMerchantDepth(depth+minGap+2);
+}
 function maybeScheduleMerchant(){
   if(!S || sideAreaActive()) return;
   ensureMerchantState();
   if(S.pendingMerchant) return;
   const [mn,mx]=merchantEncounterRange();
-  const depth=roundQuarter((Number(S.depth)||0)+ri(mn,mx));
+  const depth=findClearMerchantDepth((Number(S.depth)||0)+ri(mn,mx));
   S.pendingMerchant=generateMerchantForDepth(depth);
 }
 function currentMerchant(){ ensureMerchantState(); return S?.pendingMerchant||null; }
@@ -7035,9 +7133,13 @@ function beginMerchantEncounter(){
 }
 function retireMerchant(){
   ensureMerchantState();
-  merchantView="buy";
+  merchantView="buy";merchantSellGearScope="backpack";merchantPendingPurchase=null;
   merchantSellSelection={equipment:new Set(),backpack:new Set()};
-  if(S.pendingMerchant) S.merchantVisits=(Number(S.merchantVisits)||0)+1;
+  if(S.pendingMerchant){
+    S.merchantVisits=(Number(S.merchantVisits)||0)+1;
+    S.merchantHistory.push({depth:Number(S.pendingMerchant.depth)||0,name:`${S.pendingMerchant.title} ${S.pendingMerchant.name}`});
+    if(S.merchantHistory.length>80) S.merchantHistory.shift();
+  }
   S.pendingMerchant=null;
   maybeScheduleMerchant();
 }
@@ -7058,14 +7160,24 @@ function merchantEquipmentSellRows(){
   ensureEquipmentState();
   const out=[];
   const seen=new Set();
-  for(const slot of EQUIPMENT_SLOT_ORDER){
-    const id=S?.equipment?.[slot];
-    if(!id || seen.has(id)) continue;
-    seen.add(id);
-    out.push({itemId:id,location:`Equipped · ${EQUIPMENT_SLOT_LABELS[slot]||slot}`,equipped:true,slot});
+  if(merchantSellGearScope==="equipped"){
+    for(const slot of EQUIPMENT_SLOT_ORDER){
+      const id=S?.equipment?.[slot];
+      if(!id || seen.has(id)) continue;
+      seen.add(id);
+      out.push({itemId:id,location:`Equipped · ${EQUIPMENT_SLOT_LABELS[slot]||slot}`,equipped:true,slot});
+    }
+  }else{
+    for(const id of sortedBackpackEquipment(equipmentFilter)) if(!seen.has(id)) out.push({itemId:id,location:"Backpack",equipped:false});
   }
-  for(const id of sortedBackpackEquipment(equipmentFilter)) if(!seen.has(id)) out.push({itemId:id,location:"Backpack",equipped:false});
   return out;
+}
+function equipmentTypeLabel(def){
+  if(!def) return "Equipment";
+  if(Number(def.hands||1)===2 && def.slot==="rightHand") return `Main Hand · two-handed ${def.family||"weapon"}`;
+  const slots=def.slots||[def.slot];
+  const first=slots[0];
+  return EQUIPMENT_SLOT_LABELS[first]||String(def.family||first||"Equipment");
 }
 function merchantBackpackSellRows(){
   const inv=S?.inventory||{}, rows=[];
@@ -7105,11 +7217,13 @@ function removeEquippedItemEverywhere(itemId){
   syncVotaryLoadoutFromHands();
   syncEquipmentHpCeiling();
 }
-function merchantBuyStock(stockId){
+function merchantBuyStock(stockId,confirmed=false){
   const m=currentMerchant(); if(!m) return;
   const idx=m.stock.findIndex(row=>row.id===stockId); if(idx<0) return;
   const row=m.stock[idx], price=merchantBuyPrice(row);
   if(price<=0 || (S.gold||0) < price) return;
+  if(!confirmed){ merchantPendingPurchase=stockId; renderPack(false); return; }
+  merchantPendingPurchase=null;
   S.gold-=price; m.purse+=price;
   if(row.kind==="equipment"){
     addEquipmentToBag(row.itemId);
@@ -7125,6 +7239,7 @@ function merchantBuyStock(stockId){
   saveRunNow();
   renderPack(false); render();
 }
+function cancelMerchantPurchase(){ merchantPendingPurchase=null; renderPack(false); }
 function merchantToggleSellEquipment(itemId){
   const set=merchantSellSelection.equipment;
   if(set.has(itemId)) set.delete(itemId); else set.add(itemId);
@@ -7141,6 +7256,8 @@ function merchantSellSelectedEquipment(){
   if(!ids.length) return;
   const total=ids.reduce((sum,id)=>sum+merchantSellValueForEquipment(id),0);
   if(!merchantCanAfford(total)) return;
+  const equippedIds=new Set(Object.values(S.equipment||{}).filter(Boolean));
+  if(ids.some(id=>equippedIds.has(id)) && !confirm("This sale includes equipped gear. Confirm selling it and removing it from your current loadout?")) return;
   for(const id of ids){
     removeEquippedItemEverywhere(id);
     merchantAddSoldEquipmentToStock(id);
@@ -7486,6 +7603,12 @@ const BOSS_PROFILE = {
   hurtIntents:{quick:20,heavy:50,dodge:5,guard:10,recover:15}, hurtAt:0.50,
   weakness:{id:"rage_opening",txt:"Its second wind becomes reckless. Heavy commitment is easier to punish once it is bloodied.",eff:{counterBonus:1.40,offBalanceBonus:1.40}}
 };
+const MID_BOSS_PROFILE={
+  id:"warren_shaman",name:"goblin depth-shaman",unlock:0,hp:62,atk:8,xp:26,danger:3,awareness:32,
+  intents:{quick:18,heavy:22,dodge:12,guard:14,recover:34},recoverAt:.62,
+  hurtIntents:{quick:24,heavy:32,dodge:8,guard:12,recover:24},hurtAt:.5,
+  weakness:{id:"broken_ritual",txt:"Pressure interrupts its ritual recovery and leaves it exposed.",eff:{counterBonus:1.25}}
+};
 
 const UNARMED_WEAPON = Object.freeze({name:"Unarmed",stat:"STR",itemLevel:0,rarity:"Common",family:"unarmed",hands:1,unarmed:true,weaponContribution:1,desc:"No Main Hand weapon equipped."});
 function classDef(){ return CLASS_DEFS[S?.className] || CLASS_DEFS.Votary; }
@@ -7625,6 +7748,7 @@ function equipWeapon(id){
 // ----- side passage event engine -----
 function beginSideDiscovery(){
   if(!S||S.sideDiscoveryAttempted||S.sideAreaResolved)return false;
+  nudgePendingMerchantFromDepth(S.depth,5);
   closePack();closeCharacterSheet();S.sideDiscoveryAttempted=true;S.travelSinceEvent=0;
   const challenge=sideDiscoveryChallenge(),c=runSkillCheck("perception",challenge),source=`side-discovery:${S.sideDiscoveryStratum??stratumIndex()}`,p=awardSkillPractice("perception",source,c),html=formatSkillCheck(c)+practiceText("perception",p);
   if(!c.success){
@@ -7636,16 +7760,24 @@ function beginSideDiscovery(){
   S.travelEvent={id:"side-discovery",stage:"found",kind:"Perception",title:"A passage behind the stone",text:"A narrow route turns away from the main descent. Something about the air beyond it feels wrong.",rollHtml:html};
   travelLogAdd(`Perception passively reveals a <b>side passage</b>.`,"good");render();return true;
 }
+function rollSidePassageLength(){
+  const r=rnd();
+  if(r<.15)return 1;
+  if(r<.45)return 2;
+  if(r<.75)return 3;
+  if(r<.95)return 4;
+  return 5;
+}
 function createSideArea(){
-  const sid=`side-${stratumIndex()}-${Math.floor(S.depth*10)}`;
+  const sid=`side-${stratumIndex()}-${Math.floor(S.depth*10)}`,length=rollSidePassageLength();
   return {
     id:sid,name:"Cursed Side Passage",theme:"Cursed",entryDepth:S.depth,
-    encountersNeeded:4,encountersDefeated:0,activity:0,elapsedMs:0,
-    inscriptionSeen:false,trapSeen:false,endReached:false,keyDropped:false,
+    encountersNeeded:length,encountersDefeated:0,activity:0,elapsedMs:0,variedRoute:true,routeNodeActive:false,
+    inscriptionSeen:true,trapSeen:true,endReached:false,keyDropped:false,
     keyId:`${sid}-key`,keyName:"Old Passage Key",completed:false,abandoned:false,
     wardCleared:false,lockAttempted:false,chestOpened:false,
     routeOffsets:generateSideRouteOffsets(),altarTranslationAttempted:false,altarTranslationResult:null,
-    finaleType:pick(SIDE_FINALE_TYPES),puzzle:null,mimicStarted:false,mimicDefeated:false,damagedSalvageClaimed:false
+    finaleType:length===5?"cache":pick(SIDE_FINALE_TYPES),puzzle:null,mimicStarted:false,mimicDefeated:false,damagedSalvageClaimed:false
   };
 }
 function enterSideArea(){
@@ -7726,13 +7858,16 @@ function resolveOffering(kind){
 }
 function openWardedChestDirect(){ if(!S.sideArea.wardCleared&&!curseActive())applyFrailty();S.travelEvent={id:"side-altar",stage:"chest",kind:"End chamber",title:"The chest remains",text:"Whatever guarded the altar has made its claim. Now only the lock stands between you and the contents.",rollHtml:""};render(); }
 function grantChestReward(){
-  const roll=ri(1,100),cls=S.className;let text="";
-  const grantGear=(id,suffix="")=>{const item=grantAuthoredEquipmentInstance(id);if(!item)return false;text=`${item.name}${suffix}`;return true;};
-  if(roll<=30){grantGear(cls==="Votary"?"tempered_longsword":cls==="Rogue"?"balanced_dagger":"etched_wand"," (class primary weapon)");}
-  else if(roll<=50){grantGear(cls==="Votary"?"reinforced_buckler":cls==="Rogue"?"parrying_knife":"chalkbound_grimoire"," (class secondary)");}
-  else if(roll<=60){grantGear("ringmail_jack"," (protective equipment)");}
-  else if(roll<=70){grantGear(pick(["iron_signet","bone_ring","saints_pendant"])," (jewelry)");}
-  else {const choices=["bandage","meat","rope","water","offweapon","dust"],c=pick(choices);if(c==="bandage"){S.inventory.bandages+=2;text="2 Bandages";}else if(c==="meat"){S.inventory.meat+=2;text="2 Meat";}else if(c==="rope"){S.inventory.rope++;text="Rope";}else if(c==="water"){S.inventory.water++;text="Jug of Water";}else if(c==="offweapon"){grantGear(pick(["handaxe","hunting_bow"]));}else{addMisc("Scroll Dust",1);text="a scroll that crumbled into dust";}}
+  const roll=ri(1,100);let text="";
+  const grantDepthGear=(suffix="")=>{
+    const rewardDepth=Math.max(0,Number(S.sideArea?.entryDepth??S.depth)+20),item=generateProceduralEquipment(rewardDepth,"side-cache");
+    if(!item)return false;addGeneratedEquipment(item);text=`${item.name}${suffix} · iLv ${item.itemLevel}`;return true;
+  };
+  if(roll<=30){grantDepthGear(" (weapon or equipment cache)");}
+  else if(roll<=50){grantDepthGear(" (specialized equipment)");}
+  else if(roll<=60){grantDepthGear(" (protective equipment)");}
+  else if(roll<=70){grantDepthGear(" (trinket cache)");}
+  else {const choices=["bandage","meat","rope","water","offweapon","dust"],c=pick(choices);if(c==="bandage"){S.inventory.bandages+=2;text="2 Bandages";}else if(c==="meat"){S.inventory.meat+=2;text="2 Meat";}else if(c==="rope"){S.inventory.rope++;text="Rope";}else if(c==="water"){S.inventory.water++;text="Jug of Water";}else if(c==="offweapon"){grantDepthGear(" (weapon cache)");}else{addMisc("Scroll Dust",1);text="a scroll that crumbled into dust";}}
   if(!text){addMisc("Scroll Dust",1);text="Scroll Dust";}
   S.sideArea.chestOpened=true;travelLogAdd(`The chest yields <b>${esc(text)}</b>.`,"good");S.travelEvent={id:"side-altar",stage:"reward",kind:"Side passage complete",title:"The chest opens",text:`You recover ${text}. The route behind you is the only way back to the main descent.`,rollHtml:""};render();
 }
@@ -7794,9 +7929,82 @@ function tickCombatBleeding(){
   const result=advanceBleeding(BLEED_COMBAT_TURN_MS,"combat");
   return result;
 }
+function sideHintChallenge(attempts=0){ return trapDc(11+Math.min(2,Math.max(0,Number(attempts)||0))); }
+const SIDE_RIDDLES=Object.freeze([
+  Object.freeze({q:"I have a mouth but never eat, a bed but never sleep, and I run without feet. What am I?",answers:["A river","A tunnel","A bell"],correct:0,hintSkill:"investigation",hints:["The answer can move constantly without having limbs.","Its ‘bed’ is a place it lies in rather than somewhere it sleeps.","Its mouth is where it empties into something larger."]}),
+  Object.freeze({q:"The more of me you take, the more you leave behind. What am I?",answers:["Gold","Footsteps","Breath"],correct:1,hintSkill:"investigation",hints:["Think about what taking repeated steps creates behind you.","The thing left behind is evidence of movement, not an object you carried.","A trail can be made of these without anyone deliberately placing them."]}),
+  Object.freeze({q:"An old-tongue inscription reads: ‘I grow smaller every time I work, yet without me the dark wins.’ What am I?",answers:["A candle","A blade","A rope"],correct:0,hintSkill:"translation",hints:["The old verb translated as ‘work’ also means ‘to spend oneself in service.’","The word rendered as ‘smaller’ carries the sense of being consumed from one end.","The final phrase uses ‘dark wins’ literally: the object exists to make light."]})
+]);
+async function attemptSideRiddleHint(){
+  const a=S?.sideArea,r=a?.activeRiddle,ev=S?.travelEvent;if(!a||!r||ev?.id!=="side-route-riddle")return;
+  r.hintAttempts=Math.max(0,Number(r.hintAttempts)||0);r.hintLog=Array.isArray(r.hintLog)?r.hintLog:[];
+  if(r.hintAttempts>=(r.hints?.length||0))return;
+  const idx=r.hintAttempts,skill=r.hintSkill||"investigation",challenge=sideHintChallenge(idx);
+  const check=await runActiveSkillCheck(skill,challenge),practice=awardSkillPractice(skill,`side-riddle-hint:${a.id}:${a.encountersDefeated}:${idx}`,check);
+  r.hintAttempts++;
+  const result=formatSkillCheck(check)+practiceText(skill,practice);
+  if(check.success){
+    const hint=r.hints[idx];r.hintLog.push(`<span class="good"><b>Hint ${idx+1}:</b> ${esc(hint)}</span>`);
+    ev.rollHtml=`${r.hintLog.join("<br>")}<br>${result}`;
+  }else{
+    r.hintLog.push(`<span class="note"><b>Hint ${idx+1}:</b> You cannot pull a trustworthy clue from it.</span>`);
+    ev.rollHtml=`${r.hintLog.join("<br>")}<br>${result}`;
+  }
+  render();
+}
+async function attemptSideRoutePuzzleHint(){
+  const a=S?.sideArea,h=a?.activeRoutePuzzle,ev=S?.travelEvent;if(!a||!h||ev?.id!=="side-route-puzzle")return;
+  h.hintAttempts=Math.max(0,Number(h.hintAttempts)||0);h.hintLog=Array.isArray(h.hintLog)?h.hintLog:[];
+  if(h.hintAttempts>=(h.hints?.length||0))return;
+  const idx=h.hintAttempts,challenge=sideHintChallenge(idx),check=await runActiveSkillCheck("investigation",challenge),practice=awardSkillPractice("investigation",`side-route-mechanism-hint:${a.id}:${a.encountersDefeated}:${idx}`,check);
+  h.hintAttempts++;
+  const result=formatSkillCheck(check)+practiceText("investigation",practice);
+  if(check.success)h.hintLog.push(`<span class="good"><b>Hint ${idx+1}:</b> ${esc(h.hints[idx])}</span>`);
+  else h.hintLog.push(`<span class="note"><b>Hint ${idx+1}:</b> The mechanism does not give up another useful clue.</span>`);
+  ev.rollHtml=`${h.hintLog.join("<br>")}<br>${result}`;render();
+}
+const SIDE_SHAMAN_PROFILE={id:"side_shaman",name:"goblin hex-shaman",unlock:0,hp:56,atk:8,xp:24,danger:3,awareness:24,intents:{quick:20,heavy:24,dodge:14,guard:12,recover:30},recoverAt:.6,weakness:{id:"ritual_break",txt:"Its hexes collapse when pressure denies it time to recover.",eff:{recoverPenalty:.4}}};
+const SIDE_GUARDIAN_MIMIC={id:"side_guardian_mimic",name:"corridor mimic",unlock:0,hp:66,atk:9,xp:27,danger:3,awareness:18,intents:{quick:30,heavy:35,dodge:5,guard:20,recover:10},recoverAt:.3,weakness:{id:"hinge_tell",txt:"The false stone flexes at one seam before it lunges.",eff:{counterBonus:1.25}}};
+function completeSideRouteStage(note=""){
+  const a=S?.sideArea;if(!a)return;
+  a.encountersDefeated=Math.min(a.encountersNeeded,(a.encountersDefeated||0)+1);a.activity=0;a.routeNodeActive=false;S.travelSinceEvent=0;
+  if(note) travelLogAdd(note,"good");
+  travelLogAdd(`Side passage progress: <b>${a.encountersDefeated}/${a.encountersNeeded} stages cleared</b>.`,"beat");
+  if(a.encountersDefeated>=a.encountersNeeded)a.endReached=true;
+}
+function beginSideRiddle(){
+  const a=S?.sideArea;if(!a)return;
+  a.routeNodeActive=true;pauseBoonClock();S.travelMode="stopped";
+  const r=pick(SIDE_RIDDLES);a.activeRiddle={q:r.q,answers:[...r.answers],correct:r.correct,hintSkill:r.hintSkill||"investigation",hints:[...(r.hints||[])],hintAttempts:0,hintLog:[]};
+  S.travelEvent={id:"side-route-riddle",kind:"Passage riddle",title:"Three marks around a sealed door",text:r.q,rollHtml:"The scratches are fresh enough to be deliberate."};render();
+}
+function beginSidePuzzle(){
+  const a=S?.sideArea;if(!a)return;
+  a.routeNodeActive=true;pauseBoonClock();S.travelMode="stopped";
+  a.activeRoutePuzzle={hintAttempts:0,hintLog:[],hints:["The counterweight is still carrying most of the slab's weight; the gate itself is not truly jammed.","The iron teeth form a ratchet. They are meant to lift in sequence rather than all at once.","The release can be worked from the protected side of the housing, avoiding the full load of the slab."]};
+  S.travelEvent={id:"side-route-puzzle",kind:"Passage mechanism",title:"A counterweighted stone gate",text:"A slab blocks the passage. Its counterweight is intact, but the release is buried behind old iron teeth.",rollHtml:"Force it, understand it, or manipulate the mechanism. Hints are optional and do not resolve the gate."};render();
+}
+function beginSideRouteNode(){
+  const a=S?.sideArea;if(!a||a.routeNodeActive)return;
+  const next=(a.encountersDefeated||0)+1;
+  a.routeNodeActive=true;a.activity=0;
+  if(a.encountersNeeded===5 && next===5){
+    const profile=rnd()<.55?SIDE_SHAMAN_PROFILE:SIDE_GUARDIAN_MIMIC;
+    return nextFoe({side:true,boss:true,sideBoss:true,profile,bossStratum:stratumIndex(a.entryDepth)});
+  }
+  const r=rnd();
+  if(r<.58) return nextFoe({side:true});
+  if(r<.80) return beginSideRiddle();
+  return beginSidePuzzle();
+}
 function sideTravelTick(){
   if(!S||over||!sideAreaActive()||S.travelMode!=="side"||S.foe||S.travelEvent)return;
   checkBoonExpiry();S.travelSinceEvent+=TRAVEL_STEP;S.restRecovery=Math.min(REST_RECOVERY_REQUIRED,S.restRecovery+TRAVEL_STEP);S.sideArea.activity+=TRAVEL_STEP;S.sideArea.elapsedMs=(S.sideArea.elapsedMs||0)+TRAVEL_TICK_MS;
+  if(S.sideArea.variedRoute){
+    if(S.sideArea.encountersDefeated>=S.sideArea.encountersNeeded){S.sideArea.endReached=true;return beginSideAltar();}
+    if(!S.sideArea.routeNodeActive && S.sideArea.activity>=1.1) return beginSideRouteNode();
+    renderTravel();renderCombatHeader();return;
+  }
   if(!S.sideArea.inscriptionSeen&&S.sideArea.activity>=.75)return beginSideInscription();
   if(!S.sideArea.trapSeen&&S.sideArea.activity>=2.0)return beginSideTrap();
   if(S.sideArea.encountersDefeated>=S.sideArea.encountersNeeded){S.sideArea.endReached=true;return beginSideAltar();}
@@ -7805,8 +8013,19 @@ function sideTravelTick(){
 }
 
 // ----- foe variants, loot, side progress, curse duration and boss resolution -----
+function awardMonsterCoins(f){
+  if(!S||!f)return 0;
+  let amount=0;
+  if(f.boss) amount=ri(f.midBoss||f.sideBoss?12:24,f.midBoss||f.sideBoss?28:48)+Math.floor(depthGrowth(S.depth)*.6);
+  else if(f.mimic) amount=ri(10,24)+Math.floor(depthGrowth(S.depth)*.35);
+  else if(rnd()<.58) amount=ri(1,5)+Math.max(0,Math.floor((Number(f.profile?.danger||f.danger||1)-1)*1.5))+Math.floor(depthGrowth(S.depth)/18);
+  amount=Math.max(0,Math.round(amount));
+  if(amount>0){S.gold=(S.gold||0)+amount;S._lootFoundCurrent.push(formatGold(amount));}
+  return amount;
+}
 function maybeMonsterLoot(f){
   const drops=[];
+  awardMonsterCoins(f);
   if(f.key==="scrounger"&&S.inventory.rogueTools<=0&&rnd()<.12){S.inventory.rogueTools=1;drops.push("Rogue Tools");}
   if(rnd()<.34){
     const r=rnd();
@@ -7869,7 +8088,7 @@ function useFieldAbility(id){
   const sk=abilityState(id);
   if(id==="concealment"){
     sk.cur--;
-    S.concealment={remainingMs:CONCEALMENT_DURATION_MS};
+    S.concealment={remainingMs:CONCEALMENT_DURATION_MS,autoPass:false};
     travelLogAdd(`<b>Concealment.</b> You soften your movement and travel hidden. Enemy Awareness will test your Stealth before combat.`,"good");
     render();renderCharacterSheet();requestRunSave();return;
   }
@@ -8339,6 +8558,8 @@ let travelLogExpanded=false;
 function encounterWarningActive(){ return !!encounterWarningState; }
 function encounterWarningLabel(state=encounterWarningState){
   if(!state) return {kicker:"You have been noticed",title:"Something is closing in."};
+  if(state.options?.sideBoss) return {kicker:"The passage narrows",title:"A guardian waits ahead."};
+  if(state.options?.midBoss) return {kicker:"Danger on the route",title:"A powerful foe holds the descent."};
   if(state.options?.boss) return {kicker:"The way is barred",title:"Something waits at the sill."};
   const raw=state.profile?.name || "foe";
   const name=state.options?.side ? `cursed ${raw}` : raw;
@@ -8390,7 +8611,7 @@ function renderEncounterWarningLocks(){
 }
 function tryConcealedContact(profile,options,priorMode){
   if(!concealmentActive() || options.mimic || options.skipStealth) return false;
-  if(options.boss){clearConcealment(`<b>Concealment</b> fails at the stratum gate. Whatever waits there is already watching the route.`);return false;}
+  if(options.boss){clearConcealment(`<b>Concealment</b> fails against a boss. Whatever waits there already controls the route.`);return false;}
   const challenge=Number(profile?.awareness)||0;
   const check=runSkillCheck("stealth",challenge,0);
   const source=`stealth-contact:${++S.stealthOpportunitySeq}`;
@@ -8399,6 +8620,10 @@ function tryConcealedContact(profile,options,priorMode){
     clearConcealment();
     travelLogAdd(`<b>${esc(cap(profile?.name||"Something"))}</b> turns directly toward you. It pierced your Concealment.<br>${formatSkillCheck(check)}${practiceText("stealth",practice)}`,"danger");
     return false;
+  }
+  if(S.concealment?.autoPass){
+    travelLogAdd(`You remain hidden and let the <b>${esc(profile.name)}</b> pass without stopping.`,"note");
+    resumeBoonClock();S.travelMode=priorMode;return true;
   }
   const storedOptions={...options};delete storedOptions.profile;
   S.travelMode="stopped";
@@ -8431,7 +8656,11 @@ function queueEncounterWarning(options={}){
     variantIndex:ri(0,2)
   };
   armed=null;
-  travelLogAdd(options.boss
+  travelLogAdd(options.sideBoss
+    ? `<b>A passage guardian waits ahead.</b> Combat is imminent.`
+    : options.midBoss
+      ? `<b>A mid-stratum boss blocks the route.</b> Combat is imminent.`
+      : options.boss
     ? `<b>Something is waiting at the boundary.</b> Combat is imminent.`
     : `<b>${esc(cap(article(options.side?`cursed ${profile.name}`:profile.name)))}</b> is closing in.`,"danger");
   render();
@@ -8655,7 +8884,7 @@ const INFO_CHAPTERS = [
 ];
 let infoChapterId="skill-checks";
 function infoChapterHtml(id){
-  if(id==="item-value") return `<h3>Items, iLv &amp; Gold</h3><p>Fathom sets the expected power of the world. Rarity shifts a generated item's target, but the <b>finished properties</b> decide its real Item Level.</p><div class="info-step"><b>Intrinsic Value:</b> the internal mechanical cost of the properties actually on the item. On a full 1.0 slot, roughly 1 Intrinsic Value corresponds to 1 iLv.</div><div class="info-step"><b>Slot coefficients:</b> smaller slots carry less raw power. A Ring/Earring uses 0.40; Cape/Belt/Light/Pendant 0.50; Hat/Gloves/Boots 0.60; Bottoms 0.80; full hand/Top slots 1.00. Two-handed weapons use two hand slots.</div><div class="info-step"><b>Best-fit generation:</b> the generator combines legitimate slot-native properties near its target instead of rounding one large stat and repeatedly landing on the same iLv shelf.</div><div class="info-step"><b>Gold Value:</b> appraisal starts from actual Intrinsic Value, then applies a restrained rarity/scarcity premium. A future merchant may offer less or charge more; CHA/haggling will modify the transaction, not the item's combat power.</div><div class="info-step"><b>Bounded percentages:</b> effects such as Crit, Boss Damage, Reflect and future Lifesteal carry item-stamped caps. Old gear cannot become infinitely strong just because your future damage or stats become enormous.</div><div class="info-example"><b>Current live generated affixes</b><br>Critical Strike · Boss Damage · Damage Reflect. Lifesteal is fully supported by the combat/value engine but intentionally switched off in ordinary generation while recovery pressure is being tested.</div>`;
+  if(id==="item-value") return `<h3>Items, iLv &amp; Coinage</h3><p>Fathom sets the expected power of the world. Rarity shifts a generated item's target, but the <b>finished properties</b> decide its real Item Level.</p><div class="info-step"><b>Intrinsic Value:</b> the internal mechanical cost of the properties actually on the item. On a full 1.0 slot, roughly 1 Intrinsic Value corresponds to 1 iLv.</div><div class="info-step"><b>Slot coefficients:</b> smaller slots carry less raw power. A Ring/Earring uses 0.40; Cape/Belt/Light/Pendant 0.50; Hat/Gloves/Boots 0.60; Bottoms 0.80; full hand/Top slots 1.00. Two-handed weapons use two hand slots.</div><div class="info-step"><b>Best-fit generation:</b> the generator combines legitimate slot-native properties near its target instead of rounding one large stat and repeatedly landing on the same iLv shelf.</div><div class="info-step"><b>Appraised coin value:</b> appraisal starts from actual Intrinsic Value, then applies a restrained rarity/scarcity premium. A future merchant may offer less or charge more; CHA/haggling will modify the transaction, not the item's combat power.</div><div class="info-step"><b>Bounded percentages:</b> effects such as Crit, Boss Damage, Reflect and future Lifesteal carry item-stamped caps. Old gear cannot become infinitely strong just because your future damage or stats become enormous.</div><div class="info-example"><b>Current live generated affixes</b><br>Critical Strike · Boss Damage · Damage Reflect. Lifesteal is fully supported by the combat/value engine but intentionally switched off in ordinary generation while recovery pressure is being tested.</div>`;
   if(id==="aptitude") return `<h3>Attributes &amp; aptitude</h3><p>Your governing attribute still matters, but enormous endless-game attributes are compressed before they touch a Skill check.</p><div class="info-step"><b>1. Find the governing attribute.</b><br>Investigation uses INT. Perception uses WIS. Stealth uses DEX, and so on.</div><div class="info-step"><b>2. Convert it into aptitude.</b><br>Every doubling of that attribute changes aptitude by about <b>${SKILL_APTITUDE_PER_DOUBLING} Rating</b>. Attribute 10 is about +0; 20 about +8; 40 about +16; 80 about +24.</div><div class="info-step"><b>3. Add aptitude to training.</b><br>Skill Rank remains the main expertise number. Class proficiency and special circumstances are added afterward.</div><div class="info-equation">Effective Rating = Skill Rank + attribute aptitude + proficiency + circumstance</div><p>This keeps attributes relevant without letting a future 2,000 INT become a ridiculous +2,000 on the die.</p>`;
   if(id==="practice") return `<h3>Practice &amp; Rank</h3><p>Skills are long-term expertise. They improve by facing meaningful situations, not by repeating a harmless button forever.</p><div class="info-step"><b>Growing Rank requirement:</b> Rank 0 starts at ${skillXpNeeded(0)} XP to advance. Each later Rank asks for ${SKILL_XP_PER_RANK_GROWTH} more XP than the previous one.</div><div class="info-step"><b>Balanced success:</b> begins around ${SKILL_BASE_PRACTICE} XP. Practice rewards rise slowly with Skill Rank so deep expertise still moves, but the requirement rises faster.</div><div class="info-step"><b>Difficult success:</b> gives more practice. Easier uncertain work gives less. Automatic/trivial checks give none.</div><div class="info-step"><b>Failure:</b> a credible failed attempt can teach a smaller amount, but failure XP fades toward zero at extreme odds so hopeless attempts are poor training.</div><div class="info-step"><b>Against the Odds:</b> a success shown at <b>${SKILL_AGAINST_ODDS_PCT}% or lower</b> earns roughly double that difficult success's XP plus a small extra bonus.</div><div class="info-step"><b>No reroll farming:</b> the same generated opportunity has one practice identity and cannot award practice repeatedly.</div><div class="info-equation">XP to next Rank = ${SKILL_XP_BASE} + (${SKILL_XP_PER_RANK_GROWTH} × current Rank)</div><p>The Rank number can continue forever. Higher Rank lowers the roll you need against the same challenge until old obstacles become automatic.</p>`;
   return `<h3>Skill checks</h3><p>Skill bonuses do not get added to the d100. They change <b>how low a number you need to roll</b>.</p><div class="info-step"><b>1. Build your Effective Rating.</b><br>Skill Rank + attribute aptitude + class proficiency + circumstances.</div><div class="info-step"><b>2. Compare it with the challenge.</b><br>The game compares your Effective Rating with that object's fixed Challenge Rating.</div><div class="info-step"><b>3. That comparison becomes a target.</b><br>More Rating means a better chance and therefore a lower <b>Need X+</b> number.</div><div class="info-step"><b>4. Roll d100.</b><br>Meet or beat the target to succeed. If it says <b>Need 47+</b>, 47–100 succeeds and 1–46 fails.</div><div class="info-example"><b>Example</b><br>Investigation Rank 20 + INT aptitude 16 = Rating 36. Against Challenge Rating 21, you are +15 ahead: about a 76% chance, shown as <b>Need 25+ on d100</b>.</div><div class="info-step"><b>Huge advantage?</b> Old trivial obstacles eventually auto-succeed with no die roll. Huge disadvantage can become an automatic failure.</div><details class="info-details"><summary>Under the hood</summary><p>Equal Rating is 50%. A +${SKILL_RATING_SPREAD} Rating gap is about 91%; −${SKILL_RATING_SPREAD} is about 9%. The exact probability curve is <code>P = 1 / (1 + 10^(-(Skill − Challenge)/${SKILL_RATING_SPREAD}))</code>. You never need to calculate it yourself.</p></details>`;
@@ -8829,7 +9058,7 @@ function migrateSave2To3(snapshot){
     // Bestiary knowledge and combat resources remain untouched.
     state.hollowStates={};
     state.activeHollow=null;
-    state.bossDefeated={};
+    state.bossDefeated={};state.midBossDefeated={};
     state.runAttemptStratum=null;
     state.runAttempts=0;
     if(!state.sideArea || state.sideArea.completed || state.sideArea.abandoned){
@@ -9128,7 +9357,7 @@ function normalizeRestoredRun(){
   S.charNotices=S.charNotices||{overview:false,status:false,skills:false,equipment:false,bestiary:false,abilities:false};
   S.skillRankNotices=S.skillRankNotices||{};
   S.hollowStates=S.hollowStates||{};
-  S.bossDefeated=S.bossDefeated||{};
+  S.bossDefeated=S.bossDefeated||{};S.midBossDefeated=S.midBossDefeated||{};
   S.seenFoes=S.seenFoes||{};
   S.seenTravelEvents=S.seenTravelEvents||{};
   S.skillPracticeSources=S.skillPracticeSources||{};
@@ -9139,7 +9368,7 @@ function normalizeRestoredRun(){
     S.bleedCombatTurns=Math.max(0,Number(S.bleedCombatTurns)||0);
   }else clearBleeding();
   S.stealthOpportunitySeq=Number.isInteger(S.stealthOpportunitySeq)?S.stealthOpportunitySeq:0;
-  S.concealment=(S.concealment&&Number(S.concealment.remainingMs)>0)?{remainingMs:Number(S.concealment.remainingMs)}:null;
+  S.concealment=(S.concealment&&Number(S.concealment.remainingMs)>0)?{remainingMs:Number(S.concealment.remainingMs),autoPass:!!S.concealment.autoPass}:null;ensureMerchantState();
   S.abilities=S.abilities||{};
   for(const id of UNIVERSAL_ABILITY_IDS){const def=ABILITY_DEFS[id];if(def&&!S.abilities[id])S.abilities[id]={cur:def.max,max:def.max,degree:def.degree};}
   S.lootHistory=Array.isArray(S.lootHistory)?S.lootHistory:[];
@@ -9401,19 +9630,35 @@ function startMimicFinale(){
 
 function puzzleState(){
   const a=S?.sideArea;if(!a)return null;
-  if(!a.puzzle)a.puzzle={step:0,successes:0,attempts:0,lastHtml:"",lastSuccess:false};
+  if(!a.puzzle)a.puzzle={step:0,successes:0,attempts:0,lastHtml:"",lastSuccess:false,hintsByStep:{}};
+  if(!a.puzzle.hintsByStep||typeof a.puzzle.hintsByStep!=="object")a.puzzle.hintsByStep={};
   return a.puzzle;
 }
 const PUZZLE_STEPS=[
-  {name:"First seal · Words",skill:"translation",dc:11,text:"The outer ring is covered in the same language found elsewhere in the passage."},
-  {name:"Second seal · Mechanism",skill:"investigation",dc:12,text:"Tiny channels beneath the second ring shift when the first settles."},
-  {name:"Third seal · Pulse",skill:"perception",dc:12,text:"The third seal brightens in a repeating rhythm. Acting on the wrong beat may destabilize it."},
-  {name:"Fourth seal · Delicate catch",skill:"sleight",dc:12,text:"A physical catch turns beneath the magic. Fine control may hold it in place."},
-  {name:"Fifth seal · Grounding",skill:null,dc:13,text:"Heat gathers in the final ring. Something must draw the charge away before it releases."}
+  {name:"First seal · Words",skill:"translation",hintSkill:"translation",dc:11,text:"The outer ring is covered in the same language found elsewhere in the passage.",hints:["The repeated verb is imperative: the seal is giving an instruction, not describing itself.","The final word shares a root with the passage word for ‘still’ or ‘rest.’","Read as an instruction, the phrase tells you to stop the ring on the quiet glyph."]},
+  {name:"Second seal · Mechanism",skill:"investigation",hintSkill:"investigation",dc:12,text:"Tiny channels beneath the second ring shift when the first settles.",hints:["The channels do not all carry force; one is only a guide track.","Wear marks show the inner channel completes its movement before the outer one.","The mechanism wants the inner ring settled first, then the outer ring brought against it."]},
+  {name:"Third seal · Pulse",skill:"perception",hintSkill:"perception",dc:12,text:"The third seal brightens in a repeating rhythm. Acting on the wrong beat may destabilize it.",hints:["The pulse is not random: every fourth beat is slightly longer.","The long beat is followed by a brief dim interval.","The safest moment to act is the dim interval immediately after the fourth pulse."]},
+  {name:"Fourth seal · Delicate catch",skill:"sleight",hintSkill:"investigation",dc:12,text:"A physical catch turns beneath the magic. Fine control may hold it in place.",hints:["The catch has two worn faces, but only one is load-bearing.","Pressure on the bright edge makes the opposite side loosen.","Hold the bright edge down while turning the loose side rather than forcing both together."]},
+  {name:"Fifth seal · Grounding",skill:null,hintSkill:"investigation",dc:13,text:"Heat gathers in the final ring. Something must draw the charge away before it releases.",hints:["The charge is looking for a path away from the metal rather than another lock to open.","The grooves around the seal lead outward like drainage channels.","A conductive or cooling medium through those channels would ground the stored charge."]}
 ];
+function puzzleStepHintState(){
+  const p=puzzleState();if(!p)return {attempts:0,log:[]};
+  const key=String(p.step);if(!p.hintsByStep[key])p.hintsByStep[key]={attempts:0,log:[]};
+  const h=p.hintsByStep[key];h.attempts=Math.max(0,Number(h.attempts)||0);h.log=Array.isArray(h.log)?h.log:[];return h;
+}
+async function attemptPuzzleHint(){
+  const p=puzzleState(),step=puzzleCurrent(),h=puzzleStepHintState(),ev=S?.travelEvent;if(!p||!step||ev?.stage!=="puzzle-step")return;
+  if(h.attempts>=(step.hints?.length||0))return;
+  const idx=h.attempts,skill=step.hintSkill||"investigation",challenge=sideHintChallenge(idx),check=await runActiveSkillCheck(skill,challenge),practice=awardSkillPractice(skill,`side-final-puzzle-hint:${S.sideArea.id}:${p.step}:${idx}`,check);
+  h.attempts++;
+  const result=formatSkillCheck(check)+practiceText(skill,practice);
+  if(check.success)h.log.push(`<span class="good"><b>Hint ${idx+1}:</b> ${esc(step.hints[idx])}</span>`);
+  else h.log.push(`<span class="note"><b>Hint ${idx+1}:</b> You cannot extract another reliable clue from this seal.</span>`);
+  ev.rollHtml=`${h.log.join("<br>")}<br>${result}`;render();
+}
 function puzzleCurrent(){const p=puzzleState();return p?PUZZLE_STEPS[p.step]||null:null;}
 function beginPuzzleFinale(){
-  const p=puzzleState();p.step=0;p.successes=0;p.attempts=0;p.lastHtml="";
+  const p=puzzleState();p.step=0;p.successes=0;p.attempts=0;p.lastHtml="";p.hintsByStep={};
   S.travelEvent={id:"side-altar",stage:"puzzle-step",kind:"Arcane cache",title:PUZZLE_STEPS[0].name,text:PUZZLE_STEPS[0].text,rollHtml:""};render();
 }
 async function attemptPuzzleSkill(skill,baseDc,situational=0){
@@ -9508,8 +9753,16 @@ $("packDynamicItems").addEventListener("click", e => {
   const weapon=e.target.closest("[data-equip-weapon]"); if(weapon){equipWeapon(weapon.dataset.equipWeapon);return;}
   const equipment=e.target.closest("[data-equip-equipment]"); if(equipment){equipEquipmentItem(equipment.dataset.equipEquipment,equipment.dataset.equipmentTarget||null);return;}
   const offer=e.target.closest("[data-offer-item]"); if(offer){resolveOffering(offer.dataset.offerItem);return;}
-  const merchantBuy=e.target.closest("[data-merchant-buy]"); if(merchantBuy){merchantBuyStock(merchantBuy.dataset.merchantBuy);return;}
-  const merchantToggleEquip=e.target.closest("[data-merchant-toggle-equip]"); if(merchantToggleEquip){merchantToggleSellEquipment(merchantToggleEquip.dataset.merchantToggleEquip);return;}
+  const merchantBuy=e.target.closest("[data-merchant-buy]"); if(merchantBuy){merchantBuyStock(merchantBuy.dataset.merchantBuy,false);return;}
+  const merchantConfirm=e.target.closest("[data-merchant-confirm-buy]"); if(merchantConfirm){merchantBuyStock(merchantConfirm.dataset.merchantConfirmBuy,true);return;}
+  const merchantCancel=e.target.closest("[data-merchant-cancel-buy]"); if(merchantCancel){cancelMerchantPurchase();return;}
+  const merchantScope=e.target.closest("[data-merchant-gear-scope]"); if(merchantScope){merchantSellGearScope=merchantScope.dataset.merchantGearScope;merchantSellSelection.equipment.clear();renderPack(false);return;}
+  const merchantToggleEquip=e.target.closest("[data-merchant-toggle-equip]"); if(merchantToggleEquip){
+    if(merchantToggleEquip.dataset.equippedWarning==="1" && !merchantSellSelection.equipment.has(merchantToggleEquip.dataset.merchantToggleEquip)){
+      if(!confirm("This item is currently equipped. Select it for sale anyway? Selling it will remove it from your loadout."))return;
+    }
+    merchantToggleSellEquipment(merchantToggleEquip.dataset.merchantToggleEquip);return;
+  }
   const merchantTogglePack=e.target.closest("[data-merchant-toggle-pack]"); if(merchantTogglePack){merchantToggleSellBackpack(merchantTogglePack.dataset.merchantTogglePack);return;}
   const merchantSellEquip=e.target.closest("[data-merchant-sell-equipment]"); if(merchantSellEquip){merchantSellSelectedEquipment();return;}
   const merchantSellPack=e.target.closest("[data-merchant-sell-backpack]"); if(merchantSellPack){merchantSellSelectedBackpack();return;}
