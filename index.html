@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.090.6 — Mobile Combat & Travel Stability</title>
+<title>Lowfathom v0.090.7 — Mobile Fixes + Coin Balance Revert</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
@@ -141,6 +141,7 @@
    - v0.090.0: Crit, Boss Damage and Damage Reflect become bounded live equipment affixes; Lifesteal is fully supported but intentionally disabled from random generation
    - v0.090.0: Gold is persistent and visible in Character/Backpack/Equipment; existing generated gear migrates onto the new value scale without rerolling the item itself
    - v0.090.6: fixes merchant Equipped Gear scope, anchors route landmarks to the shaft, self-heals stalled mobile travel, and lets phone combat scroll as one full page
+   - v0.090.7: preserves the v0.090.6 fixes and restores ordinary monster coin-drop chance from the accidental 72% change back to 58%
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
    Session 8 is complete. Session 9 returns to gameplay systems.
@@ -2511,7 +2512,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.090.6";
+const BUILD_VERSION = "v0.090.7";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal"});
@@ -8054,7 +8055,7 @@ function awardMonsterCoins(f){
   let amount=0;
   if(f.boss) amount=ri(f.midBoss||f.sideBoss?12:24,f.midBoss||f.sideBoss?28:48)+Math.floor(depthGrowth(S.depth)*.6);
   else if(f.mimic) amount=ri(10,24)+Math.floor(depthGrowth(S.depth)*.35);
-  else if(rnd()<.72) amount=ri(1,5)+Math.max(0,Math.floor((Number(f.profile?.danger||f.danger||1)-1)*1.5))+Math.floor(depthGrowth(S.depth)/18);
+  else if(rnd()<.58) amount=ri(1,5)+Math.max(0,Math.floor((Number(f.profile?.danger||f.danger||1)-1)*1.5))+Math.floor(depthGrowth(S.depth)/18);
   amount=Math.max(0,Math.round(amount));
   if(amount>0){S.gold=(S.gold||0)+amount;S._lootFoundCurrent.push(formatGold(amount));}
   return amount;
