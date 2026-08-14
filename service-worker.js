@@ -3,15 +3,22 @@
 /*
   LOWFATHOM — app shell update hardening
   Bump CACHE_NAME whenever the shipped app shell changes.
-*/
-const CACHE_NAME = "lowfathom-v0.101.9";
 
-const APP_SHELL = [
+  Core files remain mandatory. Art assets are cached independently so one
+  forgotten/optional image cannot abort the entire service-worker install and
+  strand the installed PWA on an older cache.
+*/
+const CACHE_NAME = "lowfathom-v0.101.10";
+
+const CORE_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icons/icon-192.png",
-  "./icons/icon-512.png",
+  "./icons/icon-512.png"
+];
+
+const APP_ASSETS = [
   "./assets/ui/bar-track-gold.png",
   "./assets/ui/bar-track-steel.png",
   "./assets/ui/bg-strata-1-500.png",
@@ -23,8 +30,6 @@ const APP_SHELL = [
   "./assets/ui/frame-button.png",
   "./assets/ui/frame-chip-teal.png",
   "./assets/ui/frame-chip.png",
-  "./assets/ui/frame-gold-lit.png",
-  "./assets/ui/frame-gold.png",
   "./assets/ui/frame-intent.png",
   "./assets/ui/frame-map.png",
   "./assets/ui/frame-panel.png",
@@ -67,22 +72,33 @@ const APP_SHELL = [
   "./assets/ui/tex-gold.png",
   "./assets/ui/tex-stone-teal.png",
   "./assets/ui/tex-stone.png",
-  "./assets/ui/travel-merchant-mark.png"
+  "./assets/ui/travel-merchant-mark.png",
+  "./assets/fathom-die/obsidian/theme.config.json",
+  "./assets/fathom-die/obsidian/diffuse-dark.png",
+  "./assets/fathom-die/obsidian/diffuse-light.png",
+  "./assets/fathom-die/obsidian/specular-black.jpg"
 ];
 
+function reloadRequest(path) {
+  return new Request(new URL(path, self.location).href, {cache:"reload"});
+}
+
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        // Bypass the browser HTTP cache while installing a new app shell so a
-        // newly-versioned worker cannot seed itself with an older index.html.
-        const requests = APP_SHELL.map(path =>
-          new Request(new URL(path, self.location).href, {cache:"reload"})
-        );
-        return cache.addAll(requests);
-      })
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+
+    // The actual app shell is mandatory: if index/manifest/icons are missing,
+    // do not install a broken offline build.
+    await cache.addAll(CORE_SHELL.map(reloadRequest));
+
+    // Artwork is independent. A missing optional/stale art file should not
+    // cancel the whole worker update. Successfully fetched files are cached.
+    await Promise.allSettled(
+      APP_ASSETS.map(path => cache.add(reloadRequest(path)))
+    );
+
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", event => {
@@ -143,7 +159,7 @@ self.addEventListener("fetch", event => {
         return response;
       })
       .catch(() =>
-        caches.match(request, { ignoreSearch: true })
+        caches.match(request, {ignoreSearch:true})
       )
   );
 });
