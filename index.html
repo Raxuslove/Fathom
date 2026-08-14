@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.100.7 — Concept Finish</title>
+<title>Lowfathom v0.100.19 — Concept Finish</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -147,7 +147,10 @@
    - v0.100.4: combat concept rebuild: rebuilt the combat layout around the concept mockup with tighter action cards, thinner stamina pips, left-side foe portrait, and more faithful iconography
    - v0.100.5: bottom command row polish: concept-faithful icon/text stacking, non-truncated labels, tighter card spacing, and two-line Run telemetry
    - v0.100.6: command-row refinement: smaller headings, extra Backpack breathing room, and explicit negative Run HP cost
-   - v0.100.7: visually balances the Abilities glyph by enlarging only its artwork footprint
+   - v0.100.17: visually balances the Abilities glyph by enlarging only its artwork footprint
+   - v0.100.18: darkens Backpack, Character, Abilities, Loot History and Settings sheets so their surfaces match the new combat presentation better
+   - v0.100.19: pushes soft-sheet surfaces to the same near-black combat palette; rows now use only a faint elevation instead of the old blue-grey fill
+   - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
    Session 8 is complete. Session 9 returns to gameplay systems.
@@ -1825,7 +1828,7 @@ button{
 .act.heavyfeint b{color:#d28b58}
 
 
-/* ---------- v0.100.7: edited-concept layout ----------
+/* ---------- v0.100.17: edited-concept layout ----------
    The chrome steps back so the information can step forward. One loud frame on the
    Intent (that is the thing you read every turn); thin rules everywhere else.
    Asset pack still does the work — bare glyphs on the pad, medallions on the Intent
@@ -1851,11 +1854,26 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode{
   grid-template-rows:none;grid-auto-rows:auto;align-content:start;overflow-y:auto;
   background:
-    radial-gradient(120% 50% at 50% 0%,rgba(20,48,60,.24) 0%,rgba(4,9,12,0) 55%),
-    linear-gradient(180deg,#070f13 0%,#04090c 100%);
+    radial-gradient(120% 40% at 50% 0%,rgba(16,36,46,.07) 0%,rgba(2,5,7,0) 55%),
+    linear-gradient(180deg,#020608 0%,#010406 100%);
 }
 .arena.combat-mode::before{content:none}
-.arena.combat-mode > *{position:relative;z-index:1}
+/* Panels get a stacking context so the framed boxes layer predictably, but
+   this is an allow-list, not `> *`. A `.a.b > *` selector outranks a plain
+   `.sheet` rule, so a blanket version silently collapsed EVERY overlay to
+   z-index:1 — all six sheets, the level-up prompt, the encounter warning, the
+   dice layer and the combat transition — letting the hero panel (z-index:2)
+   paint over them. New combat panels go in this list; overlays never do. */
+.arena.combat-mode > .strip,
+.arena.combat-mode > .foe,
+.arena.combat-mode > .intent,
+.arena.combat-mode > .battle-space,
+.arena.combat-mode > .hero,
+.arena.combat-mode > .pad,
+.arena.combat-mode > .preview,
+.arena.combat-mode > .pad2,
+.arena.combat-mode > .combat-log-wrap,
+.arena.combat-mode > .combat-bottom-row{position:relative;z-index:1}
 .arena.combat-mode .battle-space{display:none}
 .arena.combat-mode .ui-icon{display:inline-flex;align-items:center;justify-content:center}
 .arena.combat-mode .ui-icon svg{width:100%;height:100%;display:block}
@@ -1891,15 +1909,16 @@ body.font-slab{--cf-serif:var(--slab)}
 /* shared panel rhythm --------------------------------------------------------- */
 .arena.combat-mode .foe,
 .arena.combat-mode .combat-log-wrap{
-  margin:0 12px;padding:11px 0;border:none;border-radius:0;
+  margin:0 12px;padding:6px 0;border:none;border-radius:0;
   border-bottom:1px solid var(--cf-rule);
   background:none;box-shadow:none;clip-path:none;
 }
 .arena.combat-mode .hero{
   position:relative;z-index:2;
-  margin:9px 12px 0;padding:9px 11px 11px;border:1px solid rgba(120,142,148,.22);
-  border-radius:4px;background:linear-gradient(180deg,#0c1519,#070f13);
-  box-shadow:none;clip-path:none;
+  margin:4px 12px 0;padding:3px 6px 5px;
+  border:9px solid transparent;border-radius:0;
+  border-image:url("./assets/ui/frame-button.png") 30 fill / 9px / 0 stretch;
+  background:none;box-shadow:none;clip-path:none;
 }
 
 /* hp lines — number sits under the bar, right aligned, with its unit ---------- */
@@ -1950,7 +1969,7 @@ body.font-slab{--cf-serif:var(--slab)}
    ------------------------------------------------------------------------- */
 .arena.combat-mode .intent{
   position:relative;display:flex;align-items:center;justify-content:center;
-  margin:11px 12px;padding:0;height:96px;overflow:hidden;box-sizing:border-box;
+  margin:5px 12px 0;padding:0;height:96px;overflow:hidden;box-sizing:border-box;
   border:11px solid transparent;
   border-image:url("./assets/ui/frame-intent.png") 30 fill / 11px / 0 stretch;
   border-radius:0;background:none;box-shadow:none;clip-path:none;text-align:center;
@@ -2045,7 +2064,7 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode .progressrow .xp{color:#d59b3f;text-align:right}
 
 /* the action pad ---------------------------------------------------------------- */
-.arena.combat-mode .pad{padding:11px 12px 0;background:transparent;border:none;gap:8px;grid-template-columns:1fr 1fr;grid-auto-rows:1fr}
+.arena.combat-mode .pad{padding:4px 12px 0;background:transparent;border:none;gap:5px;grid-template-columns:1fr 1fr;grid-auto-rows:1fr}
 .arena.combat-mode .act{
   position:relative;display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center;
   text-align:right;padding:2px 5px;min-height:62px;border-radius:0;clip-path:none;box-shadow:none;
@@ -2093,9 +2112,9 @@ body.font-slab{--cf-serif:var(--slab)}
 /* selected action — earns its space by carrying hit chance and damage ---------- */
 .arena.combat-mode .preview{
   position:relative;display:flex;flex-direction:column;height:146px;overflow:hidden;
-  margin:9px 12px 0;padding:7px 9px 8px;border-radius:0;clip-path:none;box-shadow:none;
-  border:10px solid transparent;
-  border-image:url("./assets/ui/frame-intent.png") 30 fill / 10px / 0 stretch;
+  margin:4px 12px 0;padding:5px 9px 6px;border-radius:0;clip-path:none;box-shadow:none;
+  border:9px solid transparent;
+  border-image:url("./assets/ui/frame-button.png") 30 fill / 9px / 0 stretch;
   background:none;
 }
 .arena.combat-mode .preview .ttl{display:none}
@@ -2140,7 +2159,7 @@ body.font-slab{--cf-serif:var(--slab)}
    emblem on the left; title + status stacked together on the right. */
 .arena.combat-mode .pad2{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;
-  padding:9px 12px calc(12px + env(safe-area-inset-bottom));
+  padding:4px 12px calc(10px + env(safe-area-inset-bottom));
   background:transparent;border:none;margin:0;
 }
 .arena.combat-mode .mact,
@@ -2213,6 +2232,243 @@ body.font-slab{--cf-serif:var(--slab)}
   .arena.combat-mode .mact > b,.arena.combat-mode .botbtn > b{font-size:11.5px;letter-spacing:.01em}
   .arena.combat-mode .mact > span:not(.mact-icon),.arena.combat-mode .botbtn > span:not(.mact-icon){font-size:8px;letter-spacing:.055em}
 }
+
+/* ---------- v0.100.19: soft-sheet near-black unification ----------
+   Match the visible combat backdrop instead of merely darkening the legacy
+   blue-grey menu palette. The sheet itself is now the same near-black family
+   as combat; rows use only a faint lift so rules/text provide the hierarchy.
+   --------------------------------------------------------------------- */
+:root{
+  --sheet-deep:#010406;
+  --sheet-surface:#020608;
+  --sheet-surface-2:#03080b;
+  --sheet-surface-3:#050c10;
+  --sheet-control:#071116;
+  --sheet-press:#0b181d;
+}
+.pack-panel,
+.char-panel,
+.loot-history-panel,
+.settings-panel,
+.sheet-panel{
+  background:
+    radial-gradient(120% 42% at 50% 0%,rgba(16,36,46,.055) 0%,rgba(2,5,7,0) 56%),
+    linear-gradient(180deg,#020608 0%,#010406 100%);
+}
+.pack-scroll,
+.loot-history-list,
+.settings-scroll,
+.char-panel>.char-page:not([hidden]),
+.sheet-panel,
+.equipment-page{
+  background:linear-gradient(180deg,#020608 0%,#010406 100%);
+}
+/* Main list/card surfaces: intentionally only a hair above the sheet. */
+.pack-item,
+.loot-history-entry,
+.skill,
+.char-skill,
+.char-status,
+.char-field-skill,
+.settings-row,
+.char-vitals>div,
+.char-stat,
+.skill-wrap,
+.equipment-slot,
+.item-compare,
+.pack-row{
+  background:var(--sheet-surface-3);
+}
+/* Headers / tabs / footer controls remain distinct without returning to blue-grey. */
+.pack-tab,
+.merchant-scope button,
+.char-head,
+.char-close,
+.loot-history-head,
+.loot-history-close,
+.settings-head,
+.settings-close,
+.sheet-head,
+.sheet-back,
+.pack-close,
+.currency-strip,
+.merchant-strip,
+.equipment-summary,
+.levelup-head,
+.bottom-sheet-row,
+.char-nav-btn,
+.settings-choice,
+.settings-toggle,
+.equipment-filter,
+.pack-mini-btn,
+.settings-slot-btn{
+  background:var(--sheet-control);
+}
+.pack-filter-bar,
+.pack-note,
+.merchant-note-quiet,
+.merchant-summary,
+.char-folk-trait,
+.char-field-note,
+.char-section-head,
+.char-note,
+.char-overview-note,
+.char-status-list,
+.settings-section-title,
+.settings-note,
+.loot-history-note,
+.sheet-note,
+.skill-detail,
+.char-stat-allocation,
+.equipment-compare,
+.equipment-filter-row,
+.equipment-grid-wrap,
+.equipment-slot-wrap,
+.equipment-slot-note,
+.item-detail,
+.levelup-track,
+.boonpick-note,
+.restskillpick-note,
+.pack-equipment-head,
+.equipment-list,
+.equipment-list-subhead,
+.equipment-prototype-note,
+.equipment-stage{
+  background:var(--sheet-surface);
+}
+.pack-tab.active,
+.merchant-scope button.active,
+.char-nav-btn.active,
+.equipment-filter.selected,
+.settings-choice.selected,
+.equipment-expand.open,
+.settings-toggle.on,
+.levelup-actions button:active,
+.skill-more:active,
+.loot-log-btn:active,
+.char-stat-step:active,
+.pack-close:active,
+.sheet-back:active,
+.settings-close:active,
+.loot-history-close:active,
+.char-close:active{
+  background:var(--sheet-press);
+}
+.skill:disabled,
+.pack-tab:disabled,
+.char-stat-step:disabled,
+.settings-toggle:disabled,
+.pack-close:disabled,
+.sheet-back:disabled,
+.settings-close:disabled,
+.loot-history-close:disabled,
+.char-close:disabled,
+.equipment-slot.empty,
+.equipment-slot.blocked{
+  background:#02070a;
+}
+
+
+/* ---------- v0.100.20: exact near-black menu palette ---------- */
+:root{
+  --menu-surface-top:#020608;
+  --menu-surface-bottom:#010406;
+  --menu-surface-solid:#010406;
+  --menu-surface-elev:#040b10;
+  --menu-surface-elev-2:#061017;
+  --menu-surface-active:#0a141a;
+}
+
+.pack-panel,
+.char-panel,
+.loot-history-panel,
+.sheet-panel,
+.settings-panel,
+.pack-scroll,
+.equipment-page,
+.equipment-list,
+.equipment-inspect-panel{
+  background:linear-gradient(180deg,var(--menu-surface-top) 0%,var(--menu-surface-bottom) 100%) !important;
+}
+
+.pack-sheet.merchant-mode .pack-panel,
+.pack-sheet.merchant-mode{background:var(--menu-surface-solid) !important}
+
+.currency-strip,
+.merchant-note-quiet,
+.merchant-summary,
+.pack-filter-bar,
+.pack-note,
+.char-folk-trait,
+.char-stat-allocation,
+.char-field-note,
+.char-section-head,
+.loot-history-note,
+.sheet-note,
+.settings-section-title,
+.equipment-list-subhead,
+.equipment-list-head,
+.equipment-inspect-head,
+.equipment-inspect-meta div,
+.equipment-inspect-stats{
+  background:var(--menu-surface-solid) !important;
+}
+
+.pack-tab,
+.merchant-strip,
+.merchant-scope button,
+.pack-close,
+.sheet-head,
+.sheet-back,
+.char-head,
+.char-vitals>div,
+.char-stat,
+.char-field-skill,
+.loot-history-head,
+.loot-history-entry,
+.skill,
+.settings-head,
+.settings-row,
+.equipment-compact-item,
+.equipment-inspect-meta div,
+.equipment-inspect-stats,
+.restskill-opt{
+  background:linear-gradient(180deg,var(--menu-surface-elev) 0%,var(--menu-surface-solid) 100%) !important;
+}
+
+.pack-tab.active,
+.merchant-scope button.active,
+.loot-history-entry.selected,
+.skill:active,
+.settings-toggle.on,
+.equipment-compact-item:active,
+.equipment-expand.open,
+.equipment-slot:active,
+.equipment-slot.selected,
+.char-stat-confirm,
+.char-stat-step,
+.merchant-check.on{
+  background:linear-gradient(180deg,var(--menu-surface-active) 0%,var(--menu-surface-elev-2) 100%) !important;
+}
+
+.settings-toggle,
+.merchant-check,
+.char-stat-step:disabled,
+.skill:disabled,
+.pack-tab:disabled{
+  background:var(--menu-surface-solid) !important;
+}
+
+.char-vitals,
+.char-stats,
+.char-field-skills,
+.pack-tabs,
+.merchant-scope,
+.equipment-compact-grid,
+.equipment-inspect-meta,
+.bottom-sheet-row,
+.levelup-actions{background:var(--rule) !important}
+
 </style>
 </head>
 <body>
@@ -2932,7 +3188,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.100.7";
+const BUILD_VERSION = "v0.100.19";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
