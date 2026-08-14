@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.090.5 — Riddle & Puzzle Hints</title>
+<title>Lowfathom v0.090.6 — Mobile Combat & Travel Stability</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
@@ -140,6 +140,7 @@
    - v0.090.0: Session 9F replaces abstract normalized item budget with Intrinsic Value, best-fit affix packages, appraised Gold value and updated accessory coefficients
    - v0.090.0: Crit, Boss Damage and Damage Reflect become bounded live equipment affixes; Lifesteal is fully supported but intentionally disabled from random generation
    - v0.090.0: Gold is persistent and visible in Character/Backpack/Equipment; existing generated gear migrates onto the new value scale without rerolling the item itself
+   - v0.090.6: fixes merchant Equipped Gear scope, anchors route landmarks to the shaft, self-heals stalled mobile travel, and lets phone combat scroll as one full page
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
    Session 8 is complete. Session 9 returns to gameplay systems.
@@ -301,7 +302,7 @@ button{
 }
 .trail-html-label.major{color:var(--lamp-dim)}
 .trail-landmarks-layer{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:visible}
-.trail-landmark-html{position:absolute;transform:translate(-50%,-50%);width:9px;height:9px;filter:drop-shadow(0 0 3px rgba(0,0,0,.45))}
+.trail-landmark-html{position:absolute;transform:translate(-50%,-50%);width:9px;height:9px;filter:drop-shadow(0 0 3px rgba(0,0,0,.45));margin:0!important}
 .trail-landmark-html.visited{opacity:.48;filter:none}
 .trail-landmark-html.merchant{width:8px;height:8px;background:#5d95dc;border:1px solid #9bc6fb;transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 7px rgba(93,149,220,.48)}
 .trail-landmark-html.hollow,.trail-landmark-html.stage{width:8px;height:8px;border:1.5px solid #d9bf77;background:#4a3e1d;border-radius:1px}
@@ -1749,6 +1750,27 @@ button{
   body{background:#0a0d11}
   .arena{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
 }
+/* v0.090.6: combat on phones scrolls as one document instead of squeezing every
+   section into a fixed viewport. Expanded history becomes part of that page. */
+.arena.combat-scroll{
+  overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;
+  grid-template-rows:auto auto auto minmax(34px,auto) auto auto auto auto auto auto;
+  align-content:start;-webkit-overflow-scrolling:touch;
+}
+.arena.combat-scroll .battle-space{min-height:34px;flex:none}
+.arena.combat-scroll .combat-log-wrap{max-height:none!important;overflow:visible}
+.arena.combat-scroll .combat-log-wrap:not(.collapsed) .readout{max-height:none!important;overflow:visible}
+.arena.combat-scroll .combat-log-toggle{min-height:34px;padding-top:7px;padding-bottom:7px}
+.arena.combat-scroll.combat-log-expanded{overflow-y:auto}
+@media (max-width:480px){
+  .arena.combat-scroll .foe{padding:10px 12px 9px}
+  .arena.combat-scroll .sprite{flex-basis:98px;height:98px}
+  .arena.combat-scroll .intent{padding:8px 12px 9px}
+  .arena.combat-scroll .intent b{font-size:18px;line-height:1.22}
+  .arena.combat-scroll .hero{padding:8px 12px 9px}
+  .arena.combat-scroll .preview{min-height:54px;padding:8px 12px 9px}
+  .arena.combat-scroll .mact{min-height:58px;padding:10px 11px}
+}
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important}
   .rarity-sparkle{animation:none!important;opacity:.16!important;transform:translate(-50%,-50%) scale(.7)!important}
@@ -2489,7 +2511,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.090.5";
+const BUILD_VERSION = "v0.090.6";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal"});
@@ -5133,7 +5155,12 @@ function runTravelTickCore(){
 }
 
 function travelTick(){
-  if(appSuspended || document.hidden) return;
+  if(document.hidden) return;
+  // Some mobile/PWA lifecycle paths can deliver pagehide without the matching
+  // resume event promptly. If the document is visibly active, never allow the
+  // travel loop to remain permanently suspended.
+  if(appSuspended) resumeRuntime();
+  if(appSuspended) return;
   const result=runTravelTickCore();
   recordDescentXpProgress();
   requestRunSave();
@@ -6246,8 +6273,10 @@ function trailStructureSignature(){
   const history=(S?.sideAreaHistory||[]).map(h=>`${Number(h.entryDepth||0).toFixed(2)}:${Number(h.progress??(h.completed?1:.5)).toFixed(2)}:${h.completed?1:0}`).join("|");
   const merchants=(S?.merchantHistory||[]).map(h=>Number(h.depth||0).toFixed(2)).join(",");
   const currentMerchantDepth=currentMerchant()?.depth??"-";
-  const bosses=`${Object.keys(S?.midBossDefeated||{}).join(",")}/${Object.keys(S?.bossDefeated||{}).join(",")}`;
-  return `${active?1:0}:${activeProgress}:${area?.entryDepth??"-"}:${history}:${merchants}:${currentMerchantDepth}:${bosses}`;
+  const bosses=`${Object.entries(S?.midBossDefeated||{}).filter(([,v])=>v).map(([k])=>k).join(",")}/${Object.entries(S?.bossDefeated||{}).filter(([,v])=>v).map(([k])=>k).join(",")}`;
+  const hollows=Object.entries(S?.hollowStates||{}).map(([k,v])=>`${k}:${v}`).join(",");
+  const sideDiscovery=`${S?.sideDiscoveryAttempted?1:0}:${Number(S?.sideDiscoveryAt||0).toFixed(2)}`;
+  return `${active?1:0}:${activeProgress}:${area?.entryDepth??"-"}:${history}:${merchants}:${currentMerchantDepth}:${bosses}:${hollows}:${sideDiscovery}`;
 }
 
 function syncLargeTrailLabels(layerId,labelPositions){
@@ -6277,7 +6306,7 @@ function syncTrailLandmarks(target,landmarks){
   const world=$(target.world);if(!world)return;
   let layer=world.querySelector('.trail-landmarks-layer');
   if(!layer){layer=document.createElement('div');layer.className='trail-landmarks-layer';world.appendChild(layer);}
-  layer.innerHTML=landmarks.map((lm,i)=>`<span class="trail-landmark-html ${lm.type}${lm.visited?" visited":""}" style="left:${(lm.x/TRAIL_W*100).toFixed(3)}%;top:${(lm.y/TRAIL_H*100).toFixed(3)}%;margin-top:${lm.offsetY||0}px" title="${esc(lm.title||lm.type)}"></span>`).join('');
+  layer.innerHTML=landmarks.map((lm,i)=>`<span class="trail-landmark-html ${lm.type}${lm.visited?" visited":""}" style="left:${(lm.x/TRAIL_W*100).toFixed(3)}%;top:${(lm.y/TRAIL_H*100).toFixed(3)}%" title="${esc(lm.title||lm.type)}"></span>`).join('');
 }
 function rebuildTrailWorld(target,anchorDepth){
   const behind=target.behind ?? TRAIL_BEHIND;
@@ -6325,10 +6354,10 @@ function rebuildTrailWorld(target,anchorDepth){
   if(S.travelEvent?.id==="side-discovery"||sideAreaActive())addLandmark("side",sideAreaActive()?Number(S.sideArea?.entryDepth||S.depth):Number(S.depth||0),false,"Side passage");
   for(const h of (S.sideAreaHistory||[]))addLandmark("side",Number(h.entryDepth)||0,true,"Side passage");
   landmarks.sort((a,b)=>a.depth-b.depth);
-  let lastDepth=-999,cluster=0;
   for(const lm of landmarks){
-    if(Math.abs(lm.depth-lastDepth)<2.25)cluster++;else cluster=0;
-    lm.offsetY=cluster===0?0:(cluster%2? -11:11)*Math.ceil(cluster/2);lastDepth=lm.depth;
+    // Landmarks belong on the shaft itself. Generation keeps live events apart;
+    // never float an icon above/below the route merely to avoid a collision.
+    lm.offsetY=0;
     lm.x=xOf(lm.depth);lm.y=yOf(lm.depth);
   }
   syncTrailLandmarks(target,landmarks);
@@ -6586,6 +6615,8 @@ function render(){
   $("staminaN").textContent = `${S.stamina} / ${S.staminaMax}`;
 
   const f = S.foe;
+  const arenaNode=$("arena");
+  if(arenaNode) arenaNode.classList.toggle("combat-scroll",!!f&&!over);
   if(f){
     $("foeName").textContent = f.name;
     $("foeLv").textContent = "Lv. " + f.lv;
@@ -7107,10 +7138,15 @@ function nudgePendingMerchantFromDepth(depth,minGap=5){
   const m=currentMerchant(); if(!m || Math.abs(m.depth-depth)>=minGap) return;
   m.depth=findClearMerchantDepth(depth+minGap+2);
 }
+function normalizePendingMerchantDepth(){
+  const m=S?.pendingMerchant;
+  if(!m || m.depth<=Number(S.depth||0)+TRAVEL_STEP) return;
+  if(!routeDepthClear(m.depth,5)) m.depth=findClearMerchantDepth(Math.max(Number(S.depth||0)+6,m.depth));
+}
 function maybeScheduleMerchant(){
   if(!S || sideAreaActive()) return;
   ensureMerchantState();
-  if(S.pendingMerchant) return;
+  if(S.pendingMerchant){normalizePendingMerchantDepth();return;}
   const [mn,mx]=merchantEncounterRange();
   const depth=findClearMerchantDepth((Number(S.depth)||0)+ri(mn,mx));
   S.pendingMerchant=generateMerchantForDepth(depth);
@@ -8018,7 +8054,7 @@ function awardMonsterCoins(f){
   let amount=0;
   if(f.boss) amount=ri(f.midBoss||f.sideBoss?12:24,f.midBoss||f.sideBoss?28:48)+Math.floor(depthGrowth(S.depth)*.6);
   else if(f.mimic) amount=ri(10,24)+Math.floor(depthGrowth(S.depth)*.35);
-  else if(rnd()<.58) amount=ri(1,5)+Math.max(0,Math.floor((Number(f.profile?.danger||f.danger||1)-1)*1.5))+Math.floor(depthGrowth(S.depth)/18);
+  else if(rnd()<.72) amount=ri(1,5)+Math.max(0,Math.floor((Number(f.profile?.danger||f.danger||1)-1)*1.5))+Math.floor(depthGrowth(S.depth)/18);
   amount=Math.max(0,Math.round(amount));
   if(amount>0){S.gold=(S.gold||0)+amount;S._lootFoundCurrent.push(formatGold(amount));}
   return amount;
@@ -9742,6 +9778,8 @@ $("packTabs").addEventListener("click", e => {
   if(tab && !tab.disabled) setPackTab(tab.dataset.packTab);
 });
 $("packFilterBar").addEventListener("click", e => {
+  const merchantScope=e.target.closest("[data-merchant-gear-scope]");
+  if(merchantScope){merchantSellGearScope=merchantScope.dataset.merchantGearScope;merchantSellSelection.equipment.clear();renderPack(false);return;}
   const equipment=e.target.closest("[data-equipment-filter]");
   if(equipment){setEquipmentFilter(equipment.dataset.equipmentFilter);return;}
   const backpack=e.target.closest("[data-backpack-filter]");
@@ -9756,7 +9794,6 @@ $("packDynamicItems").addEventListener("click", e => {
   const merchantBuy=e.target.closest("[data-merchant-buy]"); if(merchantBuy){merchantBuyStock(merchantBuy.dataset.merchantBuy,false);return;}
   const merchantConfirm=e.target.closest("[data-merchant-confirm-buy]"); if(merchantConfirm){merchantBuyStock(merchantConfirm.dataset.merchantConfirmBuy,true);return;}
   const merchantCancel=e.target.closest("[data-merchant-cancel-buy]"); if(merchantCancel){cancelMerchantPurchase();return;}
-  const merchantScope=e.target.closest("[data-merchant-gear-scope]"); if(merchantScope){merchantSellGearScope=merchantScope.dataset.merchantGearScope;merchantSellSelection.equipment.clear();renderPack(false);return;}
   const merchantToggleEquip=e.target.closest("[data-merchant-toggle-equip]"); if(merchantToggleEquip){
     if(merchantToggleEquip.dataset.equippedWarning==="1" && !merchantSellSelection.equipment.has(merchantToggleEquip.dataset.merchantToggleEquip)){
       if(!confirm("This item is currently equipped. Select it for sale anyway? Selling it will remove it from your loadout."))return;
