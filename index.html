@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.101.13 — Concept Finish</title>
+<title>Lowfathom v0.101.14 — Concept Finish</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -153,6 +153,7 @@
    - v0.101.10: merges the framed descent presentation, restores the enlarged passage marker, and hardens PWA asset updates
    - v0.101.11: replaces hard inset-shadow vignettes with smooth feathered gradients on the map, descent panels and framed actions
    - v0.101.13: replaces circular vignette falloff with rectangular edge feathering, deepening the frame-adjacent shade without a visible inner ring
+   - v0.101.14: darkens the ornate frame artwork itself while preserving the approved interior vignette falloff
    - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
@@ -2572,6 +2573,29 @@ body.font-slab{--cf-serif:var(--slab)}
 .bottom-sheet-row,
 .levelup-actions{background:var(--rule) !important}
 
+
+/* ---------- v0.101.14: darker ornate frame edges ----------
+   Keep the approved v0.101.13 interior gradients untouched. This pass only
+   reduces the luminance of the actual frame/border region so the gold reads
+   aged and recessed instead of bright yellow-orange. */
+.trail-view::after{
+  filter:brightness(.62) saturate(.82);
+}
+.travel-log-wrap::after,
+.travel-hero::after{
+  content:"";position:absolute;inset:-11px;z-index:2;pointer-events:none;
+  border:11px solid rgba(1,4,6,.36);
+}
+.travel-act::after,
+.arena.combat-mode .act::after,
+.arena.combat-mode .mact::after,
+.arena.combat-mode .botbtn::after,
+.arena.combat-mode .preview::after,
+.arena.combat-mode .hero::after{
+  content:"";position:absolute;inset:-9px;z-index:2;pointer-events:none;
+  border:9px solid rgba(1,4,6,.34);
+}
+
 </style>
 </head>
 <body>
@@ -3291,7 +3315,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.101.13";
+const BUILD_VERSION = "v0.101.14";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
