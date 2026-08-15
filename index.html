@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.101.19 — Merchant Stat Visibility</title>
+<title>Lowfathom v0.101.20 — Drop & Recovery Balance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -373,10 +373,10 @@ button{
 /* Give the large map a little more presence while keeping the compact map tidy. */
 .trail-view.large .trail-landmark-html{width:22px;height:31px}
 .trail-view.mini .trail-landmark-html{width:16px;height:22px}
-/* Merchant, camp and cave/passage markers are intentionally 50% larger than the other route landmarks. */
-.trail-landmark-html.merchant,.trail-landmark-html.hollow,.trail-landmark-html.stage,.trail-landmark-html.side{width:27px;height:37.5px}
-.trail-view.large .trail-landmark-html.merchant,.trail-view.large .trail-landmark-html.hollow,.trail-view.large .trail-landmark-html.stage,.trail-view.large .trail-landmark-html.side{width:33px;height:46.5px}
-.trail-view.mini .trail-landmark-html.merchant,.trail-view.mini .trail-landmark-html.hollow,.trail-view.mini .trail-landmark-html.stage,.trail-view.mini .trail-landmark-html.side{width:24px;height:33px}
+/* Merchant, camp, cave/passage and boss markers are intentionally 50% larger than the base route landmarks. */
+.trail-landmark-html.merchant,.trail-landmark-html.hollow,.trail-landmark-html.stage,.trail-landmark-html.side,.trail-landmark-html.boss{width:27px;height:37.5px}
+.trail-view.large .trail-landmark-html.merchant,.trail-view.large .trail-landmark-html.hollow,.trail-view.large .trail-landmark-html.stage,.trail-view.large .trail-landmark-html.side,.trail-view.large .trail-landmark-html.boss{width:33px;height:46.5px}
+.trail-view.mini .trail-landmark-html.merchant,.trail-view.mini .trail-landmark-html.hollow,.trail-view.mini .trail-landmark-html.stage,.trail-view.mini .trail-landmark-html.side,.trail-view.mini .trail-landmark-html.boss{width:24px;height:33px}
 .coin-gc{color:var(--lamp);white-space:nowrap}.coin-sc{color:#aeb5bc;white-space:nowrap}
 .coin-sep{display:inline-block;width:.35em}
 .trail-marker{
@@ -3357,7 +3357,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.101.19";
+const BUILD_VERSION = "v0.101.20";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -3490,7 +3490,7 @@ const BOONS = {
   },
   poultice:{
     id:"poultice", name:"Poultice",
-    desc:"After each kill, recover 6% of Max HP."
+    desc:"After each kill, recover 5% of Max HP."
   },
   keptwatch:{
     id:"keptwatch", name:"Kept Watch",
@@ -4260,7 +4260,7 @@ function guardRestoreAmount(){
   return boonActive("setfeet") ? 5 : 3;
 }
 function poulticeHealAmount(){
-  return Math.max(1, Math.round(S.hpMax * 0.06));
+  return Math.max(1, Math.round(S.hpMax * 0.05));
 }
 function renderBoonChoice(){
   const picker = $("boonPick");
@@ -8634,7 +8634,7 @@ function ownsEquipmentItem(id){
 function maybeEquipmentLoot(f){
   if(!S||!f||f.boss||f.mimic) return null;
   const key=f.key||f.profile?.id;
-  const chance=key==="oldhand"?.18:key==="shieldback"||key==="mauler"?.15:.12;
+  const chance=key==="oldhand"?.36:key==="shieldback"||key==="mauler"?.30:.24;
   if(rnd()>=chance) return null;
   const item=generateProceduralEquipment(S.depth,key);
   if(!item) return null;
@@ -9323,10 +9323,10 @@ function weaknessCollapsed(f=S?.foe){
 // when it is actually attacking. It intentionally does not stack its heal yet.
 ACTIONS.recover={
   label:"Recover",
-  sub(){return "+3 stamina · +2 HP";},
+  sub(){return "+2 stamina · +2 HP";},
   cost:0,
   preview(){
-    const stam=Math.min(3,Math.max(0,S.staminaMax-S.stamina));
+    const stam=Math.min(2,Math.max(0,S.staminaMax-S.stamina));
     const heal=Math.min(2,Math.max(0,S.hpMax-S.hp));
     const back=incoming();
     let t=`Recover <span class="cost">${stam} stamina</span> and <span class="dmg">${heal} HP</span> · consumes your turn`;
@@ -9336,7 +9336,7 @@ ACTIONS.recover={
   },
   run(){
     const beforeHp=S.hp,beforeSt=S.stamina;
-    S.stamina=Math.min(S.staminaMax,S.stamina+3);
+    S.stamina=Math.min(S.staminaMax,S.stamina+2);
     S.hp=Math.min(S.hpMax,S.hp+2);
     const healed=S.hp-beforeHp,restored=S.stamina-beforeSt;
     if(healed>0)triggerHealFx(healed,["combat"]);
