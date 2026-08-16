@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.105.1 — Post-Combat Loot Resolution</title>
+<title>Lowfathom v0.105.3 — Faster Post-Combat Reveal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -164,7 +164,9 @@
    - v0.104.0: Town Phase 3 core services — Market reuses merchant buy/sell with better town rates, Tavern fully recovers the delver, Herbalist sells Bandages, Guild Hall remains reserved for quests
    - v0.104.1: Grey Lantern town-map trim — reduced the map shell height slightly and nudged the map art upward to crop unused top/bottom space
    - v0.105.0: Town Phase 4 quest engine — persistent quest instances, Character Quests + Journal pages, quest-bound Backpack items, active/inactive/completed states, proportional quota turn-ins, and combat/Explore quest drops
-   - v0.105.1: post-combat resolution pass — defeated encounters collapse intent/actions, surface collected loot and optional Investigation immediately, then wait for Continue
+   - v0.105.1: post-combat resolution pass — defeated encounters collapse combat actions/intent, surface collected loot and optional Investigation immediately, then wait for Continue
+   - v0.105.2: post-combat reveal timing — lethal results linger for 3 seconds, obsolete turn UI fades away, then Recovered enters as the resolution panel
+   - v0.105.3: faster post-combat reveal — turn UI begins fading at 1.5 seconds and Recovered appears at 2.0 seconds
    - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
@@ -2309,7 +2311,12 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode .intent.unknown b{color:#8fa0a6;font-size:19px;white-space:normal;line-height:1.2}
 
 /* v0.105.1 — defeated encounters become a post-combat resolution screen. */
-.arena.combat-mode .combat-loot-panel{position:relative;margin:7px 12px 0;padding:5px 7px 7px;border:10px solid transparent;border-radius:0;border-image:url("./assets/ui/frame-panel.png") 30 fill / 10px / 0 stretch;background:none;box-shadow:none;clip-path:none}
+.arena.combat-mode .combat-loot-panel{
+  position:relative;margin:7px 12px 0;padding:5px 7px 7px;
+  border:10px solid transparent;border-radius:0;
+  border-image:url("./assets/ui/frame-panel.png") 30 fill / 10px / 0 stretch;
+  background:none;box-shadow:none;clip-path:none;
+}
 .arena.combat-mode .combat-loot-panel[hidden]{display:none}
 .combat-loot-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 2px 7px;border-bottom:1px solid rgba(190,150,80,.20)}
 .combat-loot-head em{font-style:normal;font-family:var(--cond);font-size:8.5px;letter-spacing:.20em;text-transform:uppercase;color:var(--lamp-dim)}
@@ -2324,16 +2331,49 @@ body.font-slab{--cf-serif:var(--slab)}
 .combat-loot-search b{display:block;font-family:var(--cf-serif);font-size:14px;color:#a5d7d1}
 .combat-loot-search span{display:block;margin-top:2px;font-family:var(--cond);font-size:8.5px;line-height:1.35;color:#789b99}
 .combat-loot-result{margin:6px 2px 2px;padding:6px 8px;border-left:2px solid var(--verdigris);background:rgba(5,16,19,.68);font-family:var(--cond);font-size:9.5px;line-height:1.35;color:#9fc8c3}
-.combat-loot-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:7px 2px 0}.combat-loot-actions.single{grid-template-columns:1fr}
+.combat-loot-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:7px 2px 0}
+.combat-loot-actions.single{grid-template-columns:1fr}
 .combat-loot-btn{min-height:43px;border:1px solid var(--rule-hi);background:#071015;padding:7px 9px;text-align:left;font-family:var(--cond);font-size:8.5px;letter-spacing:.10em;text-transform:uppercase;color:#86949a}
 .combat-loot-btn b{display:block;font-family:var(--cf-serif);font-size:14px;letter-spacing:0;text-transform:none;color:var(--cf-cream)}
 .combat-loot-btn span{display:block;margin-top:1px;font-size:8px;line-height:1.25;color:#718087}
-.combat-loot-btn.investigate{border-color:rgba(110,180,176,.46);color:#91c8c3;background:#081619}.combat-loot-btn.investigate b{color:#a9ddd7}
-.combat-loot-btn.continue{border-color:var(--lamp-dim);background:#12130f}.combat-loot-btn.continue b{color:var(--cf-gold-hi)}
-.arena.combat-mode.post-combat-mode > .intent,.arena.combat-mode.post-combat-mode > .pad,.arena.combat-mode.post-combat-mode > .preview{display:none!important}
+.combat-loot-btn.investigate{border-color:rgba(110,180,176,.46);color:#91c8c3;background:#081619}
+.combat-loot-btn.investigate b{color:#a9ddd7}
+.combat-loot-btn.continue{border-color:var(--lamp-dim);background:#12130f}
+.combat-loot-btn.continue b{color:var(--cf-gold-hi)}
+
+/* v0.105.3: quicker post-combat cadence. The lethal result remains readable, then
+   obsolete turn UI begins fading at 1.5 seconds and is replaced by Recovered at
+   2.0 seconds total. Controls remain inert immediately after the kill. */
+.arena.combat-mode.post-combat-pending > .intent,
+.arena.combat-mode.post-combat-pending > .pad,
+.arena.combat-mode.post-combat-pending > .preview{
+  pointer-events:none;
+  transition:opacity .5s ease,transform .5s ease,filter .5s ease;
+}
+.arena.combat-mode.post-combat-fading > .intent,
+.arena.combat-mode.post-combat-fading > .pad,
+.arena.combat-mode.post-combat-fading > .preview{
+  opacity:0;transform:translateY(-5px);filter:saturate(.55) brightness(.72);
+}
+/* Once the reveal delay completes, turn-selection UI has no semantic value. The
+   loot panel takes that space, followed by the player's vitals and utility row. */
+.arena.combat-mode.post-combat-mode > .intent,
+.arena.combat-mode.post-combat-mode > .pad,
+.arena.combat-mode.post-combat-mode > .preview{display:none!important}
 .arena.combat-mode.post-combat-mode > .hero{margin-top:7px}
-.arena.combat-mode.post-combat-mode .pad2 .botbtn:disabled{filter:grayscale(.78);opacity:.44;background:#091014!important;color:#536067;box-shadow:none!important}
-.arena.combat-mode.post-combat-mode .pad2 .botbtn:disabled b,.arena.combat-mode.post-combat-mode .pad2 .botbtn:disabled span{color:#59656a!important;text-shadow:none!important}
+.arena.combat-mode.post-combat-mode .combat-loot-panel:not([hidden]){
+  animation:combatLootReveal .34s cubic-bezier(.2,.78,.28,1) both;
+}
+@keyframes combatLootReveal{
+  from{opacity:0;transform:translateY(-8px) scale(.985);filter:brightness(.76)}
+  to{opacity:1;transform:translateY(0) scale(1);filter:brightness(1)}
+}
+.arena.combat-mode.post-combat-mode .pad2 .botbtn:disabled{
+  filter:grayscale(.78);opacity:.44;background:#091014!important;border-image:none!important;
+  color:#536067;box-shadow:none!important;
+}
+.arena.combat-mode.post-combat-mode .pad2 .botbtn:disabled b,
+.arena.combat-mode.post-combat-mode .pad2 .botbtn:disabled span{color:#59656a!important;text-shadow:none!important}
 
 /* latest exchange — one unframed line ---------------------------------------- */
 .arena.combat-mode .combat-log-wrap{
@@ -3615,7 +3655,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.105.1";
+const BUILD_VERSION = "v0.105.3";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -3916,6 +3956,8 @@ const SIDE_PASSAGE_CADENCE_FATHOMS = 60;// side opportunities remain frequent in
 const HOLLOW_AUTO_RESUME_MS = 15000;    // ordinary hollow only
 const LEVELUP_NOTICE_MS = 15000;         // informational only; does not pause the delve
 const COMBAT_RESULT_LINGER_MS = 1500;    // legacy timing constant; post-combat now waits for explicit Continue
+const POST_COMBAT_REVEAL_DELAY_MS = 2000;
+const POST_COMBAT_FADE_START_MS = 1500;
 const STARTING_CAMP_SUPPLIES = 2;
 const BOON_DURATION_MS = 10 * 60 * 1000; // prototype: active delve time; frozen whenever travel is held/interrupted
 const BOONS = {
@@ -4087,6 +4129,7 @@ let levelUpNoticeDeadline = 0;
 let levelUpNoticeFrame = null;
 let combatVictoryPending = null;
 let combatVictoryTimer = null;
+let combatVictoryFadeTimer = null;
 let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
@@ -6944,6 +6987,33 @@ function awardKill(f){
 
 function clearCombatVictoryTimer(){
   if(combatVictoryTimer!==null){ clearTimeout(combatVictoryTimer); combatVictoryTimer=null; }
+  if(combatVictoryFadeTimer!==null){ clearTimeout(combatVictoryFadeTimer); combatVictoryFadeTimer=null; }
+}
+function postCombatPhase(f=S?.foe,now=Date.now()){
+  if(!f?.defeated) return "combat";
+  const revealAt=Number(f.postCombatRevealAt)||0;
+  const fadeAt=Number(f.postCombatFadeAt)||0;
+  // Old defeated saves from v0.105.1 have no timing fields; reveal those immediately.
+  if(!revealAt||now>=revealAt) return "revealed";
+  if(fadeAt&&now>=fadeAt) return "fading";
+  return "hold";
+}
+function schedulePostCombatReveal(f=S?.foe){
+  clearCombatVictoryTimer();
+  if(!f?.defeated||S?.foe!==f) return;
+  const now=Date.now(), fadeAt=Number(f.postCombatFadeAt)||0, revealAt=Number(f.postCombatRevealAt)||0;
+  if(fadeAt>now){
+    combatVictoryFadeTimer=setTimeout(()=>{
+      combatVictoryFadeTimer=null;
+      if(S?.foe===f&&f.defeated) render();
+    },Math.max(0,fadeAt-now));
+  }
+  if(revealAt>now){
+    combatVictoryTimer=setTimeout(()=>{
+      combatVictoryTimer=null;
+      if(S?.foe===f&&f.defeated) render();
+    },Math.max(0,revealAt-now));
+  }
 }
 function finalizeCombatVictory(foe){
   if(combatVictoryPending!==foe) return;
@@ -6976,6 +7046,9 @@ function finishKill(out){
   say(out+`<p class="said">The ${esc(f.name)} went down and stayed down.</p>`+reward+sustain);
   f.hp=0;
   f.defeated=true;
+  const postCombatNow=Date.now();
+  f.postCombatFadeAt=postCombatNow+POST_COMBAT_FADE_START_MS;
+  f.postCombatRevealAt=postCombatNow+POST_COMBAT_REVEAL_DELAY_MS;
   combatVictoryPending=f;
   clearCombatVictoryTimer();
   S.heavyCharge=0;
@@ -8157,17 +8230,25 @@ function combatLootRecordForFoe(f=S?.foe){
   if(!f||!Array.isArray(S?.lootHistory)) return null;
   for(let i=S.lootHistory.length-1;i>=0;i--){
     const rec=S.lootHistory[i];
-    if(Number(rec?.encounter)===Number(S.encounter)&&String(rec?.foeName||"")===String(f.name||"")) return rec;
+    if(Number(rec?.encounter)===Number(S.encounter) && String(rec?.foeName||"")===String(f.name||"")) return rec;
   }
   return null;
 }
 function renderCombatLootPanel(){
   const panel=$("combatLootPanel");if(!panel)return;
-  const f=S?.foe,post=!!f?.defeated;panel.hidden=!post;if(!post){panel.innerHTML="";return;}
-  const rec=combatLootRecordForFoe(f),items=rec?.items||[];
-  const itemHtml=items.length?items.map(item=>`<div class="combat-loot-item"><b>${esc(item)}</b><span>${rec?.bonusItems?.includes(item)?"Investigation":"Collected"}</span></div>`).join(""):`<div class="combat-loot-empty">Nothing worth carrying was recovered from this foe.</div>`;
-  const loot=S.pendingLoot&&Number(S.pendingLoot.encounter)===Number(S.encounter)?S.pendingLoot:null,canSearch=!!loot&&!loot.searched;
-  const search=canSearch?`<div class="combat-loot-search"><b>Something may have been overlooked.</b><span>Perception caught a detail worth checking carefully. ${skillCheckPreview("investigation",Number.isFinite(loot.searchChallenge)?loot.searchChallenge:authoredChallenge(12))}</span></div>`:rec?.searchResult?`<div class="combat-loot-result">${esc(rec.searchResult)}</div>`:"";
+  const f=S?.foe,post=postCombatPhase(f)==="revealed";
+  panel.hidden=!post;
+  if(!post){panel.innerHTML="";return;}
+  const rec=combatLootRecordForFoe(f);
+  const items=rec?.items||[];
+  const itemHtml=items.length
+    ? items.map((item,i)=>`<div class="combat-loot-item"><b>${esc(item)}</b><span>${rec?.bonusItems?.includes(item)?"Investigation":"Collected"}</span></div>`).join("")
+    : `<div class="combat-loot-empty">Nothing worth carrying was recovered from this foe.</div>`;
+  const loot=S.pendingLoot && Number(S.pendingLoot.encounter)===Number(S.encounter)?S.pendingLoot:null;
+  const canSearch=!!loot&&!loot.searched;
+  const search=canSearch
+    ? `<div class="combat-loot-search"><b>Something may have been overlooked.</b><span>Perception caught a detail worth checking carefully. ${skillCheckPreview("investigation",Number.isFinite(loot.searchChallenge)?loot.searchChallenge:authoredChallenge(12))}</span></div>`
+    : rec?.searchResult?`<div class="combat-loot-result">${esc(rec.searchResult)}</div>`:"";
   const investigate=canSearch?`<button class="combat-loot-btn investigate" type="button" data-combat-loot-investigate><b>Investigate</b><span>Search for one possible additional find</span></button>`:"";
   panel.innerHTML=`<div class="combat-loot-head"><div><em>Encounter resolved</em><b>Recovered</b></div><span>${items.length} find${items.length===1?"":"s"}</span></div><div class="combat-loot-items">${itemHtml}</div>${search}<div class="combat-loot-actions ${canSearch?"":"single"}">${investigate}<button class="combat-loot-btn continue" type="button" data-combat-loot-continue><b>Continue</b><span>Leave the defeated foe behind</span></button></div>`;
 }
@@ -8199,7 +8280,13 @@ function render(){
   const arenaNode=$("arena");
   if(arenaNode) arenaNode.classList.toggle("combat-scroll",!!f&&!over);
   if(arenaNode) arenaNode.classList.toggle("combat-mode",!!f);
-  if(arenaNode) arenaNode.classList.toggle("post-combat-mode",!!f?.defeated);
+  const resolutionPhase=postCombatPhase(f);
+  if(arenaNode){
+    arenaNode.classList.toggle("post-combat-pending",resolutionPhase==="hold"||resolutionPhase==="fading");
+    arenaNode.classList.toggle("post-combat-fading",resolutionPhase==="fading");
+    arenaNode.classList.toggle("post-combat-mode",resolutionPhase==="revealed");
+  }
+  if(f?.defeated) schedulePostCombatReveal(f); else clearCombatVictoryTimer();
   if(!f && combatHistoryOpen) setCombatHistoryOpen(false);
   const sprite = $("foeSprite");
   if(f){
@@ -8261,12 +8348,18 @@ function render(){
 
   $("btnRun").hidden = !f || over;
   if(f){
-    const c=runCost(),fatal=c>=S.hp,btn=$("btnRun"),defeated=!!f.defeated;
-    btn.disabled=defeated||S.heavyCharge>0;
+    const c = runCost(), fatal = c>=S.hp, btn = $("btnRun"), defeated=!!f.defeated;
+    btn.disabled = defeated||S.heavyCharge>0;
     btn.classList.toggle("fatal",!defeated&&fatal&&S.heavyCharge===0);
     btn.classList.toggle("armed",!defeated&&armed==="run");
-    btn.querySelector("b").textContent="Run";
-    $("runSub").textContent=defeated?"FOE DEFEATED\nNO ESCAPE NEEDED":S.heavyCharge>0?`HEAVY PREPARED\nRELEASE OR ${defenceName().toUpperCase()}`:armed==="run"?"TAP AGAIN\nTO BREAK CONTACT":fatal?`COSTS ${c} HP\nTHAT KILLS YOU`:c===0?"WILL NOT FOLLOW\nNO HP COST":`COSTS ${c} HP\nON SUCCESS`;
+    btn.querySelector("b").textContent = "Run";
+    $("runSub").textContent = defeated
+      ? "FOE DEFEATED\nNO ESCAPE NEEDED"
+      : S.heavyCharge>0 ? `HEAVY PREPARED\nRELEASE OR ${defenceName().toUpperCase()}`
+      : armed==="run" ? "TAP AGAIN\nTO BREAK CONTACT"
+      : fatal ? `COSTS ${c} HP\nTHAT KILLS YOU`
+      : c===0 ? "WILL NOT FOLLOW\nNO HP COST"
+      : `COSTS ${c} HP\nON SUCCESS`;
   }
 
   const w = equippedWeaponDef();
@@ -9996,6 +10089,8 @@ function openLootFound(drops,f){
     S.pendingLoot=null;return;
   }
   S.pendingLoot={encounter,foeName:f?.name||"foe",drops:[...drops],searched:false,historyId:rec.id,searchChallenge:authoredChallenge(12),perceptionText:formatSkillCheck(sense)+practiceText("perception",practice)};
+  // v0.105.1: do not defer this into a travel event. The defeated-combat loot
+  // panel surfaces the optional Investigation before the player leaves combat.
   if(S.travelEvent?.id==="loot-found") S.travelEvent=null;
 }
 async function resolveLootSearch(skill="investigation"){
@@ -11799,13 +11894,9 @@ $("restAbilityOptions").addEventListener("click", e => {
 });
 $("combatLootPanel")?.addEventListener("click", async e => {
   const investigate=e.target.closest("[data-combat-loot-investigate]");
-  if(investigate){
-    e.currentTarget.querySelectorAll("button").forEach(btn=>btn.disabled=true);
-    await resolveLootSearch("investigation");
-    return;
-  }
+  if(investigate){investigate.disabled=true;await resolveLootSearch("investigation");return;}
   const cont=e.target.closest("[data-combat-loot-continue]");
-  if(cont&&combatVictoryPending)finalizeCombatVictory(combatVictoryPending);
+  if(cont && combatVictoryPending) finalizeCombatVictory(combatVictoryPending);
 });
 $("btnCombatPack").addEventListener("click", () => {
   if(!S || over || !S.foe) return;
