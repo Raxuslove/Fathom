@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.103.7 — Town Marker Placement Pass</title>
+<title>Lowfathom v0.105.1 — Post-Combat Loot Resolution</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -161,6 +161,10 @@
    - v0.103.4: Town Phase 2 portrait fit — Grey Lantern map shell made taller without widening it, tuned for the replacement town art; inn renamed to Tavern
    - v0.103.5: Town Phase 2 footer actions — replaced the static town footer note with Character and Backpack access while inside town
    - v0.103.7: Town Phase 2 placement pass — corrected town footer HP source, matched the town Character button frame to Backpack, and repositioned Grey Lantern location markers
+   - v0.104.0: Town Phase 3 core services — Market reuses merchant buy/sell with better town rates, Tavern fully recovers the delver, Herbalist sells Bandages, Guild Hall remains reserved for quests
+   - v0.104.1: Grey Lantern town-map trim — reduced the map shell height slightly and nudged the map art upward to crop unused top/bottom space
+   - v0.105.0: Town Phase 4 quest engine — persistent quest instances, Character Quests + Journal pages, quest-bound Backpack items, active/inactive/completed states, proportional quota turn-ins, and combat/Explore quest drops
+   - v0.105.1: post-combat resolution pass — defeated encounters collapse intent/actions, surface collected loot and optional Investigation immediately, then wait for Continue
    - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
@@ -376,6 +380,14 @@ button{
 .trail-landmark-html.merchant{background-image:url("./assets/ui/travel-merchant-mark.png")!important}
 .trail-landmark-html.hollow,.trail-landmark-html.stage{background-image:url("./assets/ui/camp-mark.png")!important}
 .trail-landmark-html.side::before,.trail-landmark-html.boss::after{content:none!important;display:none!important}
+
+/* v0.105.0: quest destinations use a lightweight authored-style route marker.
+   No new image asset is required; the point remains anchored to the exact quest depth. */
+.trail-landmark-html.quest{width:28px!important;height:34px!important;background:none!important;filter:drop-shadow(0 2px 4px rgba(0,0,0,.72))!important}
+.trail-landmark-html.quest::before{content:""!important;display:block!important;position:absolute;left:50%;top:58%;width:16px;height:16px;transform:translate(-50%,-50%) rotate(45deg);background:#071015;border:1px solid var(--lamp);box-shadow:0 0 8px rgba(230,194,136,.28)}
+.trail-landmark-html.quest::after{content:"!"!important;display:block!important;position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font-family:var(--slab);font-size:14px;font-weight:700;line-height:1;color:var(--lamp)}
+.trail-view.large .trail-landmark-html.quest{width:34px!important;height:42px!important}
+.trail-view.mini .trail-landmark-html.quest{width:24px!important;height:30px!important}
 /* Give the large map a little more presence while keeping the compact map tidy. */
 .trail-view.large .trail-landmark-html{width:22px;height:31px}
 .trail-view.mini .trail-landmark-html{width:16px;height:22px}
@@ -582,7 +594,7 @@ button{
 .travel-act:disabled{opacity:.45;cursor:not-allowed}
 .travel-act:disabled b,.travel-act:disabled span{color:#39434e}
 
-/* ---------- v0.103.7: Town Phase 2 placement-and-footer pass ---------- */
+/* ---------- v0.104.1: Town map height-trim pass ---------- */
 .town-screen{
   position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
   background:#010406;color:var(--bone);
@@ -603,7 +615,7 @@ button{
 .town-head em{display:block;font-style:normal;font-family:var(--cond);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
 .town-head h1{margin:2px 0 0;font-family:var(--slab);font-size:23px;line-height:1.05;font-weight:600;color:var(--lamp)}
 .town-head p{margin:5px 0 0;max-width:48ch;font-size:10.5px;line-height:1.35;color:#87919a}
-.town-map-wrap{flex:0 0 auto;padding:10px 12px 8px;display:block;overflow:visible}
+.town-map-wrap{flex:0 0 auto;padding:8px 12px 6px;display:block;overflow:visible}
 .town-map-shell{
   position:relative;width:100%;max-width:100%;aspect-ratio:4/5;min-height:0;display:block;overflow:hidden;
   border:11px solid transparent;border-image:url("./assets/ui/frame-map.png") 22 / 11px / 0 stretch;
@@ -748,6 +760,7 @@ button{
 .merchant-combat-head .cname .lv{color:#8ab7f1}
 .pack-tabs{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
 .pack-tabs.merchant-tabs{grid-template-columns:repeat(3,1fr)}
+.pack-tabs.merchant-tabs.buy-only{grid-template-columns:1fr}
 .currency-strip{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 11px;background:#0f1418;border-bottom:1px solid var(--rule);font-family:var(--cond);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
 .currency-strip b{font-family:var(--slab);font-size:14px;letter-spacing:0;text-transform:none;color:var(--lamp);font-weight:600}
 .merchant-strip{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:9px 11px;background:#12181e;border-bottom:1px solid var(--rule)}
@@ -1637,7 +1650,7 @@ button{
 }
 
 /* ---------- v0.080: Session 7.5 QOL ---------- */
-.char-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
+.char-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
 .char-nav-btn{min-height:46px;border:none;background:#12181e;padding:7px 8px;text-align:left}
 .char-nav-btn b{display:block;font-family:var(--slab);font-size:13px;color:var(--bone)}
 .char-nav-btn span{display:block;margin-top:1px;font-family:var(--cond);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
@@ -1708,6 +1721,22 @@ button{
 .loot-history-note{padding:8px 13px;background:#101418;border-top:1px solid var(--rule);font-size:10px;color:#59636e}
 .loot-history-close{width:100%;min-height:50px;border:none;border-top:1px solid var(--rule);background:#12181e;padding:12px 13px calc(12px + env(safe-area-inset-bottom));font-family:var(--cond);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 
+/* ---------- v0.105.0: Character Quest / Journal pages ---------- */
+.quest-page-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border-bottom:1px solid var(--rule)}
+.quest-page-tab{min-height:40px;border:0;background:#12181e;padding:7px 8px;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.quest-page-tab.active{background:#20272d;color:var(--lamp);box-shadow:inset 0 -2px 0 var(--lamp-dim)}
+.quest-entry{background:#141a20;border-bottom:1px solid var(--rule)}
+.quest-entry.inactive{border-left:3px solid #59636e}.quest-entry.completed{border-left:3px solid var(--verdigris)}
+.quest-entry-main{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 12px}
+.quest-entry-copy{min-width:0}.quest-entry-copy b{display:block;font-family:var(--slab);font-size:15px;font-weight:600;color:var(--bone)}
+.quest-entry-copy p{margin:2px 0 0;font-family:var(--cond);font-size:9.5px;line-height:1.35;color:var(--dim)}
+.quest-entry-side{text-align:right;white-space:nowrap}.quest-entry-side strong{display:block;font-family:var(--cond);font-size:9px;color:var(--lamp-dim);font-weight:600}.quest-entry-side span{display:block;margin-top:2px;font-family:var(--cond);font-size:8.5px;color:var(--dim)}
+.quest-entry-actions{display:flex;gap:6px;padding:0 12px 9px}.quest-entry-actions button{border:1px solid var(--rule-hi);background:#101418;padding:6px 8px;font-family:var(--cond);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.quest-entry-actions .warn{border-color:#754132;color:#c96d56;background:#181313}.quest-entry-actions .more{color:var(--verdigris);border-color:#456e6b}
+.quest-detail{padding:9px 12px 11px;border-top:1px solid rgba(46,57,68,.65);background:#101418;font-size:10.5px;line-height:1.45;color:#969fa5}
+.quest-detail[hidden]{display:none}.quest-detail-grid{display:grid;grid-template-columns:88px minmax(0,1fr);gap:5px 9px}.quest-detail-grid b{font-family:var(--cond);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--lamp-dim);font-weight:600}.quest-detail .quest-lore{margin:9px 0 0;padding:8px 9px;border-left:2px solid var(--rule-hi);background:#0e1418;color:#858f97;font-family:var(--slab);font-size:12px;line-height:1.4}
+.quest-empty,.journal-empty{padding:15px 13px;background:#101418;border-bottom:1px solid var(--rule);font-size:10.5px;line-height:1.45;color:#59636e}
+.quest-pack-bind{display:block;margin-top:4px;font-family:var(--cond);font-size:9px;line-height:1.3;color:var(--lamp-dim)}
 /* ---------- the abilities sheet ---------- */
 .sheet{
   position:absolute;left:0;right:0;top:0;bottom:0;
@@ -2130,6 +2159,7 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode > .strip,
 .arena.combat-mode > .foe,
 .arena.combat-mode > .intent,
+.arena.combat-mode > .combat-loot-panel,
 .arena.combat-mode > .battle-space,
 .arena.combat-mode > .hero,
 .arena.combat-mode > .pad,
@@ -2277,6 +2307,33 @@ body.font-slab{--cf-serif:var(--slab)}
 }
 .arena.combat-mode .intent .intent-note{display:none}
 .arena.combat-mode .intent.unknown b{color:#8fa0a6;font-size:19px;white-space:normal;line-height:1.2}
+
+/* v0.105.1 — defeated encounters become a post-combat resolution screen. */
+.arena.combat-mode .combat-loot-panel{position:relative;margin:7px 12px 0;padding:5px 7px 7px;border:10px solid transparent;border-radius:0;border-image:url("./assets/ui/frame-panel.png") 30 fill / 10px / 0 stretch;background:none;box-shadow:none;clip-path:none}
+.arena.combat-mode .combat-loot-panel[hidden]{display:none}
+.combat-loot-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 2px 7px;border-bottom:1px solid rgba(190,150,80,.20)}
+.combat-loot-head em{font-style:normal;font-family:var(--cond);font-size:8.5px;letter-spacing:.20em;text-transform:uppercase;color:var(--lamp-dim)}
+.combat-loot-head b{font-family:var(--cf-serif);font-size:17px;font-weight:600;color:var(--cf-cream)}
+.combat-loot-head span{font-family:var(--cond);font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:#708087;white-space:nowrap}
+.combat-loot-items{display:grid;gap:4px;padding:8px 2px 3px}
+.combat-loot-item{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:6px 8px;border-left:2px solid rgba(215,158,88,.55);background:rgba(5,14,17,.72)}
+.combat-loot-item b{font-family:var(--cf-serif);font-size:14px;font-weight:600;color:var(--cf-gold-hi)}
+.combat-loot-item span{font-family:var(--cond);font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:#718087;white-space:nowrap}
+.combat-loot-empty{padding:9px 4px 5px;font-family:var(--cf-serif);font-size:13px;font-style:italic;color:#7e8b90}
+.combat-loot-search{margin:6px 2px 2px;padding:7px 8px;border:1px solid rgba(110,180,176,.28);background:rgba(8,25,28,.58)}
+.combat-loot-search b{display:block;font-family:var(--cf-serif);font-size:14px;color:#a5d7d1}
+.combat-loot-search span{display:block;margin-top:2px;font-family:var(--cond);font-size:8.5px;line-height:1.35;color:#789b99}
+.combat-loot-result{margin:6px 2px 2px;padding:6px 8px;border-left:2px solid var(--verdigris);background:rgba(5,16,19,.68);font-family:var(--cond);font-size:9.5px;line-height:1.35;color:#9fc8c3}
+.combat-loot-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:7px 2px 0}.combat-loot-actions.single{grid-template-columns:1fr}
+.combat-loot-btn{min-height:43px;border:1px solid var(--rule-hi);background:#071015;padding:7px 9px;text-align:left;font-family:var(--cond);font-size:8.5px;letter-spacing:.10em;text-transform:uppercase;color:#86949a}
+.combat-loot-btn b{display:block;font-family:var(--cf-serif);font-size:14px;letter-spacing:0;text-transform:none;color:var(--cf-cream)}
+.combat-loot-btn span{display:block;margin-top:1px;font-size:8px;line-height:1.25;color:#718087}
+.combat-loot-btn.investigate{border-color:rgba(110,180,176,.46);color:#91c8c3;background:#081619}.combat-loot-btn.investigate b{color:#a9ddd7}
+.combat-loot-btn.continue{border-color:var(--lamp-dim);background:#12130f}.combat-loot-btn.continue b{color:var(--cf-gold-hi)}
+.arena.combat-mode.post-combat-mode > .intent,.arena.combat-mode.post-combat-mode > .pad,.arena.combat-mode.post-combat-mode > .preview{display:none!important}
+.arena.combat-mode.post-combat-mode > .hero{margin-top:7px}
+.arena.combat-mode.post-combat-mode .pad2 .botbtn:disabled{filter:grayscale(.78);opacity:.44;background:#091014!important;color:#536067;box-shadow:none!important}
+.arena.combat-mode.post-combat-mode .pad2 .botbtn:disabled b,.arena.combat-mode.post-combat-mode .pad2 .botbtn:disabled span{color:#59656a!important;text-shadow:none!important}
 
 /* latest exchange — one unframed line ---------------------------------------- */
 .arena.combat-mode .combat-log-wrap{
@@ -3014,7 +3071,7 @@ body.font-slab{--cf-serif:var(--slab)}
           <div class="foe-top">
             <div class="foe-id">
               <div class="cname"><b id="merchantHeadName">Wayfarer</b><span class="lv" id="merchantHeadPurse">0 SC</span></div>
-              <div class="tell"><em>Merchant camp</em><span id="merchantHeadNote">A neutral trader waits beside the route.</span></div>
+              <div class="tell"><em id="merchantHeadKind">Merchant camp</em><span id="merchantHeadNote">A neutral trader waits beside the route.</span></div>
             </div>
             <div class="sprite" id="merchantHeadPortrait" aria-hidden="true">¤</div>
           </div>
@@ -3071,6 +3128,8 @@ body.font-slab{--cf-serif:var(--slab)}
         <button class="char-nav-btn" data-char-view="equipment"><b>Equipment</b><span id="charEquipmentSummary">17 slots</span></button>
         <button class="char-nav-btn" data-char-view="bestiary"><b>Bestiary</b><span>knowledge</span></button>
         <button class="char-nav-btn" data-char-view="abilities"><b>Abilities</b><span id="charAbilitySummary">—</span></button>
+        <button class="char-nav-btn" data-char-view="quests"><b>Quests</b><span id="charQuestSummary">none active</span></button>
+        <button class="char-nav-btn" data-char-view="journal"><b>Journal</b><span>chronicle</span></button>
       </div>
 
       <section class="char-page" data-char-page="overview">
@@ -3125,6 +3184,22 @@ body.font-slab{--cf-serif:var(--slab)}
         <div class="char-section-head"><b>Abilities</b><span>combat + field use</span></div>
         <div class="char-abilities" id="charAbilities"></div>
         <div class="char-note">Some abilities can be used outside combat. For now, Lay On Hands and Mending Spark support field use.</div>
+      </section>
+
+      <section class="char-page" data-char-page="quests" hidden>
+        <div class="char-section-head"><b>Quests</b><span>contracts + objectives</span></div>
+        <div class="quest-page-tabs" id="questPageTabs">
+          <button class="quest-page-tab active" type="button" data-quest-list-view="active">Active</button>
+          <button class="quest-page-tab" type="button" data-quest-list-view="inactive">Inactive</button>
+          <button class="quest-page-tab" type="button" data-quest-list-view="completed">Completed</button>
+        </div>
+        <div id="charQuests"></div>
+        <div class="char-field-note">Quest-bound items remain real Backpack items. Their quest-instance ID prevents one contract's gathered items from satisfying a later contract. Quota contracts pay for the amount actually delivered.</div>
+      </section>
+
+      <section class="char-page" data-char-page="journal" hidden>
+        <div class="char-section-head"><b>Journal</b><span>chronicle + lore</span></div>
+        <div class="journal-empty">The Journal is intentionally empty in this phase. It is reserved for narrative discoveries, places, people and longer-form chronicle entries rather than mechanical quest tracking.</div>
       </section>
 
       <div class="bottom-sheet-row">
@@ -3266,6 +3341,8 @@ body.font-slab{--cf-serif:var(--slab)}
   </div>
 
   <div class="battle-space" aria-hidden="true"></div>
+
+  <section class="combat-loot-panel" id="combatLootPanel" hidden aria-live="polite"></section>
 
   <section class="hero">
     <div class="cname"><b id="heroName">—</b><span class="lv" id="heroLv"></span></div>
@@ -3538,7 +3615,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.103.7";
+const BUILD_VERSION = "v0.105.1";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -3563,22 +3640,162 @@ const TRAIL_H = 154;
 const TRAIL_MARKER_Y = 77;             // visually centered while the route slopes downward
 const TRAIL_VERTICAL_ZOOM = 0.80;      // compact minimap route height
 
-/* v0.103.7 Town Phase 2 placement pass. Grey Lantern remains at 50 fathoms only for rapid
+/* v0.104.1 Town trim pass. Grey Lantern remains at 50 fathoms only for rapid
    testing; later it can move to ~200 by changing this one authored depth.
-   Locations are data-driven so later towns/cities can reuse the same map engine. */
+   Town defs can now also tune their map framing with a custom aspect ratio and vertical focal point. */
 const TOWN_DEFS = Object.freeze([
   Object.freeze({
     id:"grey-lantern",name:"Grey Lantern",kind:"town",depth:50,
-    image:"./assets/ui/town-grey-lantern.png",aspectRatio:"4 / 5",
+    image:"./assets/ui/town-grey-lantern.png",aspectRatio:"4 / 4.55",focusY:"43%",
     locations:Object.freeze([
-      Object.freeze({id:"market",name:"Market",type:"Trade",x:49.0,y:44.0,description:"The central market district.",status:"Trading opens in Town Phase 3."}),
-      Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"Grey Lantern's tavern and rest house.",status:"Town recovery opens in Town Phase 3."}),
-      Object.freeze({id:"apothecary",name:"Apothecary",type:"Medicine",x:70.0,y:45.0,description:"The apothecary and healer's quarter.",status:"Medical services open in Town Phase 3."}),
-      Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:80.0,y:28.5,description:"A hall used by delvers, guards, and local employers.",status:"Quest interaction opens with the quest phase."}),
+      Object.freeze({id:"market",name:"Market",type:"Trade",x:49.0,y:44.0,description:"The central market district.",service:"market"}),
+      Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"Grey Lantern's tavern and rest house.",service:"tavern"}),
+      Object.freeze({id:"herbalist",name:"Herbalist",type:"Medicine",x:70.0,y:45.0,description:"The herbalist's shop and treatment room.",service:"herbalist"}),
+      Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:80.0,y:28.5,description:"A hall used by delvers, guards, and local employers.",service:"guild"}),
       Object.freeze({id:"lower-gate",name:"Lower Gate",type:"Departure",x:48.5,y:83.0,description:"The road out of Grey Lantern continues deeper.",status:"Departure is permanent; you cannot travel back to this town.",departure:true})
     ])
   })
 ]);
+/* ============================================================
+   v0.105.0 — TOWN PHASE 4 QUEST ENGINE
+   Definitions are immutable authored recipes. A save stores only accepted
+   quest instances, their resolved destination/reward, and real quest-bound
+   Backpack items. This keeps later balance edits from mutating old contracts.
+   ============================================================ */
+const QUEST_DEFS = Object.freeze([
+  Object.freeze({
+    id:"grey-lantern-cave-mushrooms",title:"Cave Mushroom Samples",kind:"quota-delivery",
+    giverTownId:"grey-lantern",giverLocationId:"guild",giverName:"Grey Lantern Guild Hall",
+    targetName:"Lower Guild Relay",targetOffset:60,repeatable:false,
+    summary:"Gather up to 5 cave mushrooms during the descent and deliver what you recover to the lower Guild relay.",
+    details:"The Guild pays by usable sample rather than requiring a perfect set. The contract resolves at the lower relay even if you arrive with fewer than five.",
+    lore:"A practical field order from Grey Lantern: bring back what survives the road. The relay will not hold the descent open for missing samples.",
+    objectives:Object.freeze([Object.freeze({
+      id:"mushrooms",type:"quota-item",required:5,
+      item:Object.freeze({id:"quest-cave-mushroom",name:"Cave Mushroom",desc:"A cave mushroom gathered under this specific Guild contract.",onAbandon:"convert",mundaneName:"Cave Mushroom"}),
+      sources:Object.freeze(["combat","explore"]),combatChance:.36,exploreChance:.55,exploreInterval:1.25
+    })]),
+    reward:Object.freeze({goldPerUnit:10,maxGold:50})
+  })
+]);
+function questDefById(id){return QUEST_DEFS.find(q=>q.id===id)||null;}
+function ensureQuestState(){
+  if(!S)return null;
+  if(!S.quests||typeof S.quests!=="object"||Array.isArray(S.quests))S.quests={instances:[],nextSerial:1,exploreAccumulator:0};
+  S.quests.instances=Array.isArray(S.quests.instances)?S.quests.instances:[];
+  S.quests.nextSerial=Math.max(1,Math.floor(Number(S.quests.nextSerial)||1));
+  S.quests.exploreAccumulator=Math.max(0,Number(S.quests.exploreAccumulator)||0);
+  S.inventory=S.inventory||{};
+  S.inventory.questItems=Array.isArray(S.inventory.questItems)?S.inventory.questItems:[];
+  return S.quests;
+}
+function questInstanceById(id){return ensureQuestState()?.instances.find(q=>q.instanceId===id)||null;}
+function questInstances(status=null){const all=ensureQuestState()?.instances||[];return status?all.filter(q=>q.status===status):all;}
+function questInstanceForDefinition(defId){return questInstances().find(q=>q.definitionId===defId)||null;}
+function activeQuestForDefinition(defId){return questInstances("active").find(q=>q.definitionId===defId)||null;}
+function questObjectiveDef(inst,objectiveId){const def=questDefById(inst?.definitionId);return def?.objectives?.find(o=>o.id===objectiveId)||null;}
+function questItemCount(instanceId,objectiveId=null){return (S?.inventory?.questItems||[]).reduce((n,row)=>n+(row.questInstanceId===instanceId&&(!objectiveId||row.objectiveId===objectiveId)?Math.max(0,Math.floor(Number(row.qty)||0)):0),0);}
+function syncQuestObjectiveProgress(inst){
+  if(!inst)return;const def=questDefById(inst.definitionId);inst.objectives=inst.objectives||{};
+  for(const obj of def?.objectives||[]){
+    const state=inst.objectives[obj.id]||(inst.objectives[obj.id]={current:0,required:obj.required||1});
+    if(obj.type==="quota-item"||obj.type==="delivery-item")state.current=questItemCount(inst.instanceId,obj.id);
+    state.required=Math.max(1,Number(obj.required)||1);
+  }
+}
+function addQuestItem(inst,obj,qty=1,source="quest"){
+  ensureQuestState();if(!inst||!obj||inst.status!=="active")return 0;syncQuestObjectiveProgress(inst);
+  const state=inst.objectives[obj.id],room=Math.max(0,state.required-state.current),add=Math.min(room,Math.max(0,Math.floor(Number(qty)||0)));if(!add)return 0;
+  let row=S.inventory.questItems.find(x=>x.questInstanceId===inst.instanceId&&x.objectiveId===obj.id&&x.itemId===obj.item.id);
+  if(!row){row={itemId:obj.item.id,name:obj.item.name,desc:obj.item.desc||"",qty:0,questInstanceId:inst.instanceId,objectiveId:obj.id,source,acquiredAtDepth:Number(S.depth)||0};S.inventory.questItems.push(row);}
+  row.qty+=add;state.current+=add;markCharacterNotice("quests");requestRunSave();return add;
+}
+function removeQuestItems(instanceId,objectiveId=null,qty=Infinity){
+  ensureQuestState();let remaining=Number.isFinite(qty)?Math.max(0,Math.floor(qty)):Infinity,removed=0,next=[];
+  for(const row of S.inventory.questItems){
+    if(row.questInstanceId!==instanceId||(objectiveId&&row.objectiveId!==objectiveId)||remaining<=0){next.push(row);continue;}
+    const take=Math.min(Math.max(0,row.qty||0),remaining);removed+=take;if(Number.isFinite(remaining))remaining-=take;row.qty-=take;if(row.qty>0)next.push(row);
+  }
+  S.inventory.questItems=next;const inst=questInstanceById(instanceId);if(inst)syncQuestObjectiveProgress(inst);return removed;
+}
+function releaseQuestItems(inst){
+  if(!inst)return 0;const def=questDefById(inst.definitionId);let released=0;
+  for(const obj of def?.objectives||[]){
+    const count=questItemCount(inst.instanceId,obj.id);if(!count)continue;
+    removeQuestItems(inst.instanceId,obj.id);released+=count;
+    if(obj.item?.onAbandon==="convert"){addMisc(obj.item.mundaneName||obj.item.name,count);}
+  }
+  return released;
+}
+function questPromisedRewardText(inst){
+  const r=inst?.promisedRewards||{};if(r.goldPerUnit)return `${formatGold(r.goldPerUnit)} each · up to ${formatGold(r.maxGold||0)}`;
+  if(r.gold)return formatGold(r.gold);return "—";
+}
+function questProgressText(inst){
+  const def=questDefById(inst?.definitionId);if(!def)return "";syncQuestObjectiveProgress(inst);
+  const obj=def.objectives?.[0],state=inst.objectives?.[obj?.id];
+  if(obj?.type==="quota-item")return `${state?.current||0} / ${state?.required||obj.required} ${obj.item.name}${(state?.required||obj.required)===1?"":"s"}`;
+  return state?`${state.current||0} / ${state.required||1}`:"";
+}
+function questAtTownLocation(townId,locationId){return QUEST_DEFS.find(q=>q.giverTownId===townId&&q.giverLocationId===locationId)||null;}
+function findClearQuestDepth(desired){
+  let d=roundQuarter(Math.max((Number(S?.depth)||0)+8,Number(desired)||0));
+  for(let i=0;i<100;i++){
+    const otherQuestClear=questInstances("active").every(q=>Math.abs(Number(q.targetDepth||0)-d)>=5);
+    if(routeDepthClear(d,5)&&otherQuestClear)return d;d=roundQuarter(d+.75);
+  }return d;
+}
+function acceptQuest(defId){
+  ensureQuestState();const def=questDefById(defId);if(!def)return false;
+  if(questInstanceForDefinition(defId)&&!def.repeatable)return false;
+  const serial=S.quests.nextSerial++,instanceId=`q-${def.id}-${serial}`;
+  const originDepth=Number(S.depth)||Number(townDefById(def.giverTownId)?.depth)||0,targetDepth=findClearQuestDepth(originDepth+Number(def.targetOffset||0));
+  const objectives={};for(const obj of def.objectives||[])objectives[obj.id]={current:0,required:Math.max(1,Number(obj.required)||1)};
+  const inst={instanceId,definitionId:def.id,status:"active",acceptedAt:Date.now(),acceptedAtDepth:originDepth,acceptedTownId:def.giverTownId,targetDepth,objectives,promisedRewards:{...(def.reward||{})},result:null,inactiveReason:null};
+  S.quests.instances.push(inst);
+  for(const obj of def.objectives||[])if(obj.type==="delivery-item"&&obj.issuedQty)addQuestItem(inst,obj,obj.issuedQty,"issued");
+  nudgePendingMerchantFromDepth(targetDepth,5);markCharacterNotice("quests");travelLogAdd(`<b>Quest accepted:</b> ${esc(def.title)} · destination ${formatDepth(targetDepth)} fathoms.`,"beat");saveRunNow();renderTown();renderCharacterSheet();renderTrail();return true;
+}
+function eligibleQuestDropObjectives(source){
+  const rows=[];for(const inst of questInstances("active")){const def=questDefById(inst.definitionId);syncQuestObjectiveProgress(inst);for(const obj of def?.objectives||[]){if(obj.type!=="quota-item"||!obj.sources?.includes(source))continue;const st=inst.objectives[obj.id];if((st?.current||0)<(st?.required||obj.required||1))rows.push({inst,obj});}}return rows;
+}
+function maybeQuestCombatDrop(f){
+  const eligible=eligibleQuestDropObjectives("combat");if(!eligible.length)return null;const pickRow=pick(eligible),chance=clamp(Number(pickRow.obj.combatChance)||0,0,1);if(rnd()>=chance)return null;
+  const added=addQuestItem(pickRow.inst,pickRow.obj,1,"combat");if(!added)return null;syncQuestObjectiveProgress(pickRow.inst);const st=pickRow.inst.objectives[pickRow.obj.id],label=`${pickRow.obj.item.name} · Quest ${st.current}/${st.required}`;S._lootFoundCurrent?.push(label);return label;
+}
+function maybeQuestExploreDrop(){
+  const eligible=eligibleQuestDropObjectives("explore");if(!eligible.length){if(S?.quests)S.quests.exploreAccumulator=0;return null;}
+  const interval=Math.max(.5,Math.min(...eligible.map(x=>Number(x.obj.exploreInterval)||1.25)));S.quests.exploreAccumulator=(S.quests.exploreAccumulator||0)+TRAVEL_STEP;if(S.quests.exploreAccumulator<interval)return null;S.quests.exploreAccumulator-=interval;
+  const pickRow=pick(eligible),chance=clamp(Number(pickRow.obj.exploreChance)||0,0,1);if(rnd()>=chance)return null;const added=addQuestItem(pickRow.inst,pickRow.obj,1,"explore");if(!added)return null;
+  syncQuestObjectiveProgress(pickRow.inst);const st=pickRow.inst.objectives[pickRow.obj.id];travelLogAdd(`Exploring turns up <b>${esc(pickRow.obj.item.name)}</b> for <b>${esc(questDefById(pickRow.inst.definitionId)?.title||"your quest")}</b> · ${st.current}/${st.required}.`,"good");return pickRow.obj.item.name;
+}
+function crossedActiveQuestTarget(beforeDepth,afterDepth){return questInstances("active").filter(q=>Number(q.targetDepth)>beforeDepth+.0001&&Number(q.targetDepth)<=afterDepth+.0001).sort((a,b)=>a.targetDepth-b.targetDepth)[0]||null;}
+function beginQuestTurnIn(inst){
+  if(!inst||inst.status!=="active")return false;const def=questDefById(inst.definitionId);S.depth=Number(inst.targetDepth)||S.depth;S.exploreDepth=S.depth;S.exploreElapsedMs=0;const prior=S.travelMode||"descend";S.travelMode="stopped";pauseBoonClock();syncQuestObjectiveProgress(inst);
+  const obj=def?.objectives?.[0],count=obj?questItemCount(inst.instanceId,obj.id):0;const payout=Math.min(Number(inst.promisedRewards?.maxGold)||Infinity,count*(Number(inst.promisedRewards?.goldPerUnit)||0));
+  S.travelEvent={id:"quest-turnin",kind:"Quest",title:def?.targetName||"Quest destination",questInstanceId:inst.instanceId,priorMode:prior,text:`${def?.title||"Contract"} can be resolved here.`,rollHtml:`<b>Carried:</b> ${count}/${obj?.required||0} ${esc(obj?.item?.name||"quest item")}${count===1?"":"s"}<br><b>Payment now:</b> ${formatGold(payout)}`};
+  travelLogAdd(`<b>Quest destination reached.</b> ${esc(def?.targetName||"The hand-in point")} waits at ${formatDepth(S.depth)} fathoms.`,"beat");render();return true;
+}
+function completeQuestTurnIn(instanceId){
+  const inst=questInstanceById(instanceId);if(!inst||inst.status!=="active")return false;const def=questDefById(inst.definitionId),obj=def?.objectives?.[0];if(!obj)return false;syncQuestObjectiveProgress(inst);const count=questItemCount(inst.instanceId,obj.id);if(count<=0)return false;
+  const delivered=removeQuestItems(inst.instanceId,obj.id,count),reward=Math.min(Number(inst.promisedRewards?.maxGold)||Infinity,delivered*(Number(inst.promisedRewards?.goldPerUnit)||0));S.gold=(S.gold||0)+reward;inst.status="completed";inst.completedAt=Date.now();inst.result={delivered,required:obj.required,reward,full:delivered>=obj.required};inst.inactiveReason=null;
+  const resume=S.travelEvent?.priorMode||"descend";S.travelEvent=null;S.travelMode=resume==="explore"?"stopped":resume;resumeBoonClock();markCharacterNotice("quests");travelLogAdd(`<b>${esc(def.title)} completed${delivered<obj.required?" partially":""}.</b> Delivered ${delivered}/${obj.required} · received ${formatGold(reward)}.`,"good");saveRunNow();render();return true;
+}
+function makeQuestInactive(instanceId,reason="Destination missed"){
+  const inst=questInstanceById(instanceId);if(!inst||inst.status!=="active")return false;inst.status="inactive";inst.inactiveReason=reason;inst.inactiveAt=Date.now();markCharacterNotice("quests");requestRunSave();return true;
+}
+function passQuestTurnIn(instanceId){
+  const inst=questInstanceById(instanceId);if(!inst)return false;const def=questDefById(inst.definitionId),resume=S.travelEvent?.priorMode||"descend";makeQuestInactive(instanceId,"Delivery point passed");S.travelEvent=null;S.travelMode=resume==="explore"?"stopped":resume;resumeBoonClock();travelLogAdd(`<b>${esc(def?.title||"Quest")} becomes inactive.</b> The delivery point has been left behind.`,"note");saveRunNow();render();return true;
+}
+function deleteInactiveQuest(instanceId){
+  const inst=questInstanceById(instanceId);if(!inst||inst.status!=="inactive")return false;const def=questDefById(inst.definitionId),held=questItemCount(inst.instanceId);if(!confirm(`Delete ${def?.title||"this quest"}? ${held?`${held} bound quest item${held===1?"":"s"} will be released from the contract.`:"This cannot be undone."}`))return false;
+  const released=releaseQuestItems(inst);S.quests.instances=S.quests.instances.filter(q=>q.instanceId!==instanceId);travelLogAdd(`Inactive quest <b>${esc(def?.title||"quest")}</b> removed.${released?` ${released} gathered item${released===1?"":"s"} became ordinary inventory.`:""}`,"note");saveRunNow();renderCharacterSheet();renderPack(false);renderTrail();return true;
+}
+function normalizeQuestState(){
+  ensureQuestState();for(const inst of S.quests.instances){if(!questDefById(inst.definitionId)){inst.status="inactive";inst.inactiveReason="Quest definition unavailable";}syncQuestObjectiveProgress(inst);if(inst.status==="active"&&Number(S.depth)>Number(inst.targetDepth)+TRAVEL_STEP&&S.travelEvent?.questInstanceId!==inst.instanceId){inst.status="inactive";inst.inactiveReason="Delivery point missed";}}
+}
+function activeQuestDestinationLandmarks(){return questInstances("active").map(inst=>({depth:Number(inst.targetDepth)||0,title:questDefById(inst.definitionId)?.targetName||"Quest destination"}));}
+
 function townDefById(id){ return TOWN_DEFS.find(t=>t.id===id)||null; }
 function townLocationById(def,id){ return def?.locations?.find(loc=>loc.id===id)||null; }
 function ensureTownState(){
@@ -3587,6 +3804,7 @@ function ensureTownState(){
   state.currentId=typeof state.currentId==="string"?state.currentId:null;
   state.visited=(state.visited&&typeof state.visited==="object"&&!Array.isArray(state.visited))?state.visited:{};
   state.departed=(state.departed&&typeof state.departed==="object"&&!Array.isArray(state.departed))?state.departed:{};
+  state.services=(state.services&&typeof state.services==="object"&&!Array.isArray(state.services))?state.services:{};
   if(state.currentId&&!townDefById(state.currentId)) state.currentId=null;
   S.townState=state;
   return state;
@@ -3697,7 +3915,7 @@ const RUN_PRESSURE_RESET_FATHOMS = 60;  // Run pressure is encounter pacing, not
 const SIDE_PASSAGE_CADENCE_FATHOMS = 60;// side opportunities remain frequent inside a 500-fathom biome
 const HOLLOW_AUTO_RESUME_MS = 15000;    // ordinary hollow only
 const LEVELUP_NOTICE_MS = 15000;         // informational only; does not pause the delve
-const COMBAT_RESULT_LINGER_MS = 1500;    // keep the lethal hit / 0 HP result readable before returning to travel
+const COMBAT_RESULT_LINGER_MS = 1500;    // legacy timing constant; post-combat now waits for explicit Continue
 const STARTING_CAMP_SUPPLIES = 2;
 const BOON_DURATION_MS = 10 * 60 * 1000; // prototype: active delve time; frozen whenever travel is held/interrupted
 const BOONS = {
@@ -3775,7 +3993,7 @@ const FOLK_OPTIONS = Object.keys(FOLK_TRAITS);
 const TRADE_OPTIONS = [
   "Smith's Apprentice",
   "Merchant's Clerk",
-  "Apothecary's Hand",
+  "Herbalist's Hand",
   "Scribe's Apprentice",
   "Hunter's Hand",
   "Mason's Apprentice",
@@ -3873,7 +4091,7 @@ let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 8;
+const SAVE_SCHEMA = 9;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -4233,7 +4451,7 @@ function newDelver(profile){
 
   S = {
     name:chosen.name, folk:chosen.folk, trade:chosen.trade, origin:chosen.origin,
-    charNotices:{overview:false,status:false,skills:false,equipment:false,bestiary:false,abilities:false},
+    charNotices:{overview:false,status:false,skills:false,equipment:false,bestiary:false,abilities:false,quests:false,journal:false},
     skillRankNotices:{},
     folkChoices:chosen.folk === "Human" ? {plus2:chosen.humanPlus2,plus1:chosen.humanPlus1,minus2:chosen.humanMinus2} : null,
     folkMods:{...startingFolkMods},
@@ -4249,7 +4467,7 @@ function newDelver(profile){
     inventory:{
       campSupplies:STARTING_CAMP_SUPPLIES, bandages:1, meat:0, rope:0, water:1,
       rogueTools:cls==="Rogue"?1:0, lexicon:cls==="Wizard"?1:0, reliquary:cls==="Votary"?1:0,
-      misc:{}, weapons:[startingEquipment.rightHand].filter(Boolean), equipment:[...startingEquipmentBag], passageKey:null
+      misc:{}, questItems:[], weapons:[startingEquipment.rightHand].filter(Boolean), equipment:[...startingEquipmentBag], passageKey:null
     },
     generatedItems:{},
     equipment:{...startingEquipment},
@@ -4264,7 +4482,8 @@ function newDelver(profile){
     runAttemptStratum:0, runAttempts:0,
     descentXpMaxDepth:0, descentXpPending:0,
     lootHistory:[], pendingLoot:null, combatLog:[], concealment:null, stealthOpportunitySeq:0,pendingMerchant:null,merchantVisits:0,merchantHistory:[],
-    townState:{currentId:null,visited:{},departed:{}},
+    townState:{currentId:null,visited:{},departed:{},services:{}},
+    quests:{instances:[],nextSerial:1,exploreAccumulator:0},
     turn:1, foe:null
   };
 
@@ -4608,7 +4827,7 @@ function renderAbilitySheet(){
   $("sheetSlots").textContent=`${combatAbilityUsesReady()} / ${combatAbilityUsesMax()} uses ready`;
   $("abilitySummary").textContent=`${combatAbilityUsesReady()} / ${combatAbilityUsesMax()} ready`;
   list.innerHTML=combatAbilityOrder().map(id=>{
-    const def=ABILITY_DEFS[id],sk=abilityState(id),unusable=classAbilityDisabled(id),open=combatExpandedAbility===id;
+    const def=ABILITY_DEFS[id],sk=abilityState(id),unusable=!!combatVictoryPending||classAbilityDisabled(id),open=combatExpandedAbility===id;
     let meta=`${sk.cur}/${sk.max} uses ready`;
     if(["layonhands","mend"].includes(id)&&S.hp>=S.hpMax) meta+=` · full HP`;
     if(["layonhands","mend"].includes(id)&&S.abilityQuickUsed) meta+=` · once per turn`;
@@ -4695,7 +4914,7 @@ function confirmStatPointDraft(){
 }
 function ensureCharacterNotices(){
   if(!S) return null;
-  const defaults={overview:false,status:false,skills:false,equipment:false,bestiary:false,abilities:false};
+  const defaults={overview:false,status:false,skills:false,equipment:false,bestiary:false,abilities:false,quests:false,journal:false};
   if(!S.charNotices) S.charNotices={...defaults};
   for(const key of Object.keys(defaults)) if(typeof S.charNotices[key]!=="boolean") S.charNotices[key]=false;
   return S.charNotices;
@@ -5333,6 +5552,22 @@ function toggleEquipmentList(){
   openPack(null,"equipment","characterEquipment");
 }
 
+let questListView="active";
+let charExpandedQuest=null;
+function questStatusLabel(inst){if(inst.status==="completed")return inst.result?.full?"Completed":"Partial completion";if(inst.status==="inactive")return inst.inactiveReason||"Inactive";return "Active";}
+function renderQuestPage(){
+  const root=$("charQuests");if(!root||!S)return;normalizeQuestState();
+  const activeCount=questInstances("active").length;if($("charQuestSummary"))$("charQuestSummary").textContent=activeCount?`${activeCount} active`:"none active";
+  document.querySelectorAll("[data-quest-list-view]").forEach(btn=>btn.classList.toggle("active",btn.dataset.questListView===questListView));
+  const list=questInstances(questListView);
+  root.innerHTML=list.length?list.map(inst=>{
+    const def=questDefById(inst.definitionId);syncQuestObjectiveProgress(inst);const progress=questProgressText(inst),open=charExpandedQuest===inst.instanceId;
+    const reward=inst.status==="completed"?`${formatGold(inst.result?.reward||0)} received`:questPromisedRewardText(inst);
+    const obj=def?.objectives?.[0],held=obj?questItemCount(inst.instanceId,obj.id):0;
+    const detail=`<div class="quest-detail" ${open?"":"hidden"}><div class="quest-detail-grid"><b>Given by</b><span>${esc(def?.giverName||"—")}</span><b>Destination</b><span>${formatDepth(inst.targetDepth)} fathoms · ${esc(def?.targetName||"—")}</span><b>Objective</b><span>${esc(def?.details||def?.summary||"—")}</span><b>Progress</b><span>${esc(progress)}</span><b>Quest items</b><span>${held} bound to this contract instance</span><b>Promised</b><span>${esc(questPromisedRewardText(inst))}</span>${inst.status==="completed"?`<b>Result</b><span>${inst.result?.delivered||0}/${inst.result?.required||0} delivered · ${formatGold(inst.result?.reward||0)} paid</span>`:""}${inst.status==="inactive"?`<b>Status</b><span>${esc(inst.inactiveReason||"Inactive")}</span>`:""}</div>${def?.lore?`<p class="quest-lore">${esc(def.lore)}</p>`:""}</div>`;
+    return `<div class="quest-entry ${inst.status}"><div class="quest-entry-main"><div class="quest-entry-copy"><b>${esc(def?.title||inst.definitionId)}</b><p>${esc(def?.summary||"")}</p></div><div class="quest-entry-side"><strong>${esc(questStatusLabel(inst))}</strong><span>${esc(progress)}</span><span>${esc(reward)}</span></div></div><div class="quest-entry-actions"><button class="more" type="button" data-quest-more="${esc(inst.instanceId)}">${open?"Hide details":"See more"}</button>${inst.status==="inactive"?`<button class="warn" type="button" data-quest-delete="${esc(inst.instanceId)}">Delete</button>`:""}</div>${detail}</div>`;
+  }).join(""):`<div class="quest-empty">${questListView==="active"?"No active quests.":questListView==="inactive"?"No inactive quests.":"No completed quests yet."}</div>`;
+}
 function renderCharacterSheet(){
   if(!S || !$("charSheet")) return;
   $("charName").textContent=S.name;
@@ -5361,6 +5596,7 @@ function renderCharacterSheet(){
     return `<div class="char-field-skill bestiary"><div><b>${esc(cap(f.name))}</b><p>${reads?`${cap(tier)} · ${reads}/6 knowledge${awarenessText}`:"Encountered · not yet Read"}${dropText}</p></div><div class="char-field-progress"><strong>${reads>=6?"Mastered":reads>=3?"Studied":reads?"Known":"Unknown"}</strong><span>${reads>=3?"drops + Awareness known":"study to learn drops"}</span></div></div>`;
   }).join(""):`<div class="char-field-note">No archetypes recorded yet.</div>`;
 
+  renderQuestPage();
   renderStatusEffects();
   $("charAbilitySummary").textContent=`${abilityUsesReady()} / ${abilityUsesMax()} uses ready`;
   $("charAbilities").innerHTML=classAbilityOrder().map(id=>{
@@ -5585,25 +5821,32 @@ function renderPack(rememberView=true){
   if(offer||combatPack) packActiveTab="backpack";
   const packClose=$("btnPackClose");
   if(packClose){
-    const returning=packReturnTarget==="characterEquipment";
-    packClose.textContent=returning?"← Back to Character":combatPack?"Back to combat":"Back to the delve";
-    packClose.setAttribute("aria-label",returning?"Back to Character Equipment":combatPack?"Back to combat":"Back to the delve");
+    const returning=packReturnTarget==="characterEquipment",inTown=!!currentTown();
+    packClose.textContent=returning?"← Back to Character":combatPack?"Back to combat":inTown?"Back to town":"Back to the delve";
+    packClose.setAttribute("aria-label",returning?"Back to Character Equipment":combatPack?"Back to combat":inTown?"Back to town":"Back to the delve");
   }
 
   const tabs=$("packTabs"), currencyLabel=$("packCurrencyLabel"), merchantStrip=$("merchantStrip"), merchantHead=$("merchantCombatHead"), packSheet=$("packSheet");
   if(packSheet) packSheet.classList.toggle("merchant-mode", S.packMode==="merchant");
   if(S.packMode==="merchant"){
+    const m=currentMerchant(),buyOnly=!!m?.buyOnly;
+    if(buyOnly) merchantView="buy";
     tabs.classList.add("merchant-tabs");
-    tabs.innerHTML=`<button class="pack-tab ${merchantView==="buy"?"active":""}" type="button" data-merchant-view="buy">Buy</button><button class="pack-tab ${merchantView==="sell-equipment"?"active":""}" type="button" data-merchant-view="sell-equipment">Sell Gear</button><button class="pack-tab ${merchantView==="sell-backpack"?"active":""}" type="button" data-merchant-view="sell-backpack">Sell Pack</button>`;
+    tabs.classList.toggle("buy-only",buyOnly);
+    tabs.innerHTML=buyOnly
+      ? `<button class="pack-tab active" type="button" data-merchant-view="buy">Buy</button>`
+      : `<button class="pack-tab ${merchantView==="buy"?"active":""}" type="button" data-merchant-view="buy">Buy</button><button class="pack-tab ${merchantView==="sell-equipment"?"active":""}" type="button" data-merchant-view="sell-equipment">Sell Gear</button><button class="pack-tab ${merchantView==="sell-backpack"?"active":""}" type="button" data-merchant-view="sell-backpack">Sell Pack</button>`;
     if(currencyLabel) currencyLabel.textContent="Your purse";
     if($("packGold")) $("packGold").innerHTML=formatGoldHtml(S.gold||0);
-    const m=currentMerchant();
     if(merchantHead){
       merchantHead.hidden=!m;
       if(m){
-        $("merchantHeadName").textContent=`${m.title} ${m.name}`;
-        $("merchantHeadPurse").innerHTML=`Merchant Purse · ${formatGoldHtml(m.purse)}`;
-        $("merchantHeadNote").textContent=`Neutral trader · ${m.stock.filter(x=>(x.kind!=="supply")||x.qty>0).length} goods visible`;
+        $("merchantHeadName").textContent=merchantDisplayName(m);
+        $("merchantHeadPurse").innerHTML=`${m.context==="town"?"Shop purse":"Merchant Purse"} · ${formatGoldHtml(m.purse)}`;
+        if($("merchantHeadKind")) $("merchantHeadKind").textContent=m.context==="town"?(m.serviceId==="herbalist"?"Herbalist":"Town market"):"Merchant camp";
+        $("merchantHeadNote").textContent=m.context==="town"
+          ? `${m.serviceId==="herbalist"?"Town medicine":"Town market"} · better rates than the road · ${m.stock.filter(x=>(x.kind!=="supply")||x.qty>0).length} goods visible`
+          : `Neutral trader · ${m.stock.filter(x=>(x.kind!=="supply")||x.qty>0).length} goods visible`;
         $("merchantHeadIntentText").textContent = merchantView==="buy"
           ? "Browse the stock — spend coins to purchase carried goods."
           : merchantView==="sell-equipment"
@@ -5613,6 +5856,7 @@ function renderPack(rememberView=true){
     }
     if(merchantStrip){ merchantStrip.hidden=true; merchantStrip.innerHTML=""; }
   }else{
+    tabs.classList.remove("buy-only");
     tabs.classList.remove("merchant-tabs");
     tabs.innerHTML=`<button class="pack-tab ${packActiveTab==="backpack"?"active":""}" id="btnPackTabBackpack" type="button" data-pack-tab="backpack" role="tab" aria-selected="${packActiveTab==="backpack"?"true":"false"}">Backpack</button><button class="pack-tab ${packActiveTab==="equipment"?"active":""}" id="btnPackTabEquipment" type="button" data-pack-tab="equipment" role="tab" aria-selected="${packActiveTab==="equipment"?"true":"false"}">Equipment</button>`;
     if(currencyLabel) currencyLabel.textContent="Coins";
@@ -5626,11 +5870,12 @@ function renderPack(rememberView=true){
   const itemRow=(name,count,desc,actions="")=>`<div class="pack-item compact"><div class="pack-item-top"><b>${esc(name)}</b><strong>×${count}</strong></div><p>${esc(desc)}</p>${actions?`<div class="pack-actions">${actions}</div>`:""}</div>`;
 
   if(S.packMode==="merchant"){
-    packClose.textContent="Leave merchant";
-    packClose.setAttribute("aria-label","Leave merchant and continue descending");
+    const m=currentMerchant(),townTrade=m?.context==="town";
+    packClose.textContent=townTrade?"Back to town":"Leave merchant";
+    packClose.setAttribute("aria-label",townTrade?"Close trade and return to town":"Leave merchant and continue descending");
     if(merchantView==="buy"){
-      filterBar.innerHTML=`<div class="merchant-note-quiet"><b>Buy</b> from the merchant's current stock. Purchased goods enter your Backpack; what you buy increases the merchant's purse.</div>`;
       const m=currentMerchant();
+      filterBar.innerHTML=`<div class="merchant-note-quiet"><b>Buy</b> from ${esc(merchantDisplayName(m))}. Purchased goods enter your Backpack; what you buy increases the shop purse.</div>`;
       const rows=(m?.stock||[]).filter(row=>row.kind!=="supply" || row.qty>0);
       root.innerHTML=rows.length?rows.map(row=>{
         const price=merchantBuyPrice(row), afford=(S.gold||0)>=price;
@@ -5642,7 +5887,7 @@ function renderPack(rememberView=true){
         const pending=merchantPendingPurchase===row.id;
         return `<div class="pack-item compact"><div class="pack-item-top"><b>${esc(row.label)}</b><strong>×${Math.max(0,row.qty||0)}</strong></div><div class="merchant-stock-meta"><span>Supply</span></div><p>${esc(row.desc||"")}</p><div class="merchant-price-row"><span>Merchant price</span><b>${formatGoldHtml(price)}</b></div><div class="pack-actions">${pending?`<button class="pack-mini-btn good" data-merchant-confirm-buy="${row.id}">Confirm purchase</button><button class="pack-mini-btn" data-merchant-cancel-buy>Cancel</button>`:`<button class="pack-mini-btn good" ${afford?"":"disabled"} data-merchant-buy="${row.id}">Buy 1</button>`}</div></div>`;
       }).join(""):`<div class="pack-note">This merchant has sold out.</div>`;
-      $("packNote").textContent="Merchant stock is finite. Buying raises the merchant purse; if you later sell something back, the same merchant can afford more.";
+      $("packNote").textContent=currentMerchant()?.context==="town"?"Town stock persists for this visit. Market prices are better than wandering-merchant rates.":"Merchant stock is finite. Buying raises the merchant purse; if you later sell something back, the same merchant can afford more.";
     }else if(merchantView==="sell-equipment"){
       filterBar.innerHTML=`<div class="merchant-scope"><button class="${merchantSellGearScope==="backpack"?"active":""}" data-merchant-gear-scope="backpack">Backpack Gear</button><button class="${merchantSellGearScope==="equipped"?"active":""}" data-merchant-gear-scope="equipped">Equipped Gear</button></div><div class="equipment-filter-row" data-equipment-filter-context="pack">${equipmentFilterButtonsHtml()}</div>`;
       const rows=merchantEquipmentSellRows();
@@ -5698,6 +5943,10 @@ function renderPack(rememberView=true){
     add("consumables",itemRow("Water",S.inventory.water,"A carried jug/flask; can turn up in searched loot and caches. No dedicated use in this slice yet.",offerBtn("water","Water",S.inventory.water)));
     add("tools",itemRow("Rogue Tools",S.inventory.rogueTools,"Reusable lockpick and trap tools. Any class can use them. Goblin Scroungers are a known possible source."));
     if(S.inventory.passageKey) add("quest",itemRow(S.inventory.passageKey.name,1,"A unique key tied to the current side passage. It disappears when that passage ends."));
+    for(const row of (S.inventory.questItems||[])){
+      if((row.qty||0)<=0)continue;const inst=questInstanceById(row.questInstanceId),def=questDefById(inst?.definitionId),obj=questObjectiveDef(inst,row.objectiveId),required=obj?.required||inst?.objectives?.[row.objectiveId]?.required||row.qty;
+      add("quest",`<div class="pack-item compact"><div class="pack-item-top"><b>${esc(row.name)}<span class="pack-tag">Quest</span></b><strong>×${row.qty}</strong></div><p>${esc(row.desc||"Quest-bound item.")}</p><span class="quest-pack-bind">For: ${esc(def?.title||"Unknown contract")} · ${questItemCount(row.questInstanceId,row.objectiveId)}/${required} · cannot be sold while bound</span></div>`);
+    }
     for(const [name,count] of Object.entries(S.inventory.misc||{})) if(count>0) add(backpackMiscCategory(name),itemRow(name,count,"Prototype loot / secondary item.",offerBtn(`misc:${name}`,name,count)));
 
     const visible=backpackFilter==="all"?rows:rows.filter(row=>row.category===backpackFilter);
@@ -5810,6 +6059,14 @@ function renderTravelEvent(){
   const roll=$("travelEventRoll"),actions=$("travelEventActions");
   roll.hidden=!ev.rollHtml;
   roll.innerHTML=ev.rollHtml||"";
+
+  if(ev.id==="quest-turnin"){
+    const inst=questInstanceById(ev.questInstanceId),def=questDefById(inst?.definitionId),obj=def?.objectives?.[0],count=obj?questItemCount(inst.instanceId,obj.id):0;
+    const reward=Math.min(Number(inst?.promisedRewards?.maxGold)||Infinity,count*(Number(inst?.promisedRewards?.goldPerUnit)||0));
+    roll.hidden=false;roll.innerHTML=`<b>Carried:</b> ${count}/${obj?.required||0} ${esc(obj?.item?.name||"quest item")}${count===1?"":"s"}<br><b>Payment now:</b> ${formatGold(reward)}`;
+    actions.innerHTML=`${count>0?`<button class="travel-event-btn skill" data-event-action="quest-deliver"><b>Deliver ${count}</b><span>complete ${count>=Number(obj?.required||0)?"the full order":"partially"} · receive ${formatGold(reward)}</span></button>`:""}<button class="travel-event-btn ignore ${count>0?"":"wide"}" data-event-action="quest-pass"><b>Pass the relay</b><span>quest becomes inactive · bound items remain until deleted</span></button>`;
+    return;
+  }
 
   if(ev.id==="loot-found"){
     roll.hidden=!ev.rollHtml; roll.innerHTML=ev.rollHtml||"";
@@ -5971,6 +6228,12 @@ async function handleTravelEventAction(action){
     return;
   }
 
+  if(ev.id==="quest-turnin"){
+    if(action==="quest-deliver")return completeQuestTurnIn(ev.questInstanceId);
+    if(action==="quest-pass")return passQuestTurnIn(ev.questInstanceId);
+    return;
+  }
+
   if(ev.id==="loot-found"){
     if(action==="loot-investigation") return resolveLootSearch("investigation");
     if(action==="loot-continue") return closeLootFound();
@@ -6105,6 +6368,7 @@ async function handleTravelEventAction(action){
 
 let townDepartureArmed=false;
 let townLocationOpenId=null;
+let townMerchantServiceId=null;
 function closeTownBlockingSheets(){
   if($("packSheet")) $("packSheet").hidden=true;
   if($("sheet")) $("sheet").hidden=true;
@@ -6116,6 +6380,7 @@ function closeTownBlockingSheets(){
   selectedLootHistoryId=null;
   townDepartureArmed=false;
   townLocationOpenId=null;
+  townMerchantServiceId=null;
 }
 function enterTown(def){
   if(!S||!def||over||S.foe||S.travelEvent||S.activeHollow) return false;
@@ -6148,11 +6413,90 @@ function departCurrentTown(){
   const def=currentTown();if(!S||!def)return false;
   const state=ensureTownState();
   state.visited[def.id]=true;state.departed[def.id]=true;state.currentId=null;
-  townDepartureArmed=false;townLocationOpenId=null;
+  townDepartureArmed=false;townLocationOpenId=null;townMerchantServiceId=null;
   S.travelMode="stopped";S.travelSinceEvent=0;
   travelLogAdd(`You leave <b>${esc(def.name)}</b> through the lower gate. There is no road back for you.`,"beat");
   render();saveRunNow();
   return true;
+}
+
+function townServiceBucket(def=currentTown()){
+  if(!S||!def) return null;
+  const state=ensureTownState();
+  if(!state.services[def.id] || typeof state.services[def.id]!=="object" || Array.isArray(state.services[def.id])) state.services[def.id]={};
+  return state.services[def.id];
+}
+function ensureTownMerchantService(serviceId){
+  const def=currentTown(),bucket=townServiceBucket(def);
+  if(!def||!bucket||!["market","herbalist"].includes(serviceId)) return null;
+  const key=`${serviceId}Merchant`;
+  if(!bucket[key] || typeof bucket[key]!=="object" || Array.isArray(bucket[key])) bucket[key]=generateTownMerchantForService(def,serviceId);
+  return bucket[key];
+}
+function townRecoveryNeeded(){
+  return !!S && (S.hp<S.hpMax || S.stamina<S.staminaMax || abilitiesNeedRestoration() || !!S.bleeding || !restReady());
+}
+function restAtTownTavern(){
+  const def=currentTown();
+  if(!S||!def||over||!townRecoveryNeeded()) return false;
+  const beforeHp=S.hp,beforeStamina=S.stamina,beforeUses=abilityUsesReady(),wasBleeding=!!S.bleeding;
+  S.hp=S.hpMax;
+  S.stamina=S.staminaMax;
+  S.heavyCharge=0;S.strikeChain=0;S.defenceChain=0;S.abilityQuickUsed=false;
+  restoreAllAbilities();
+  S.restRecovery=REST_RECOVERY_REQUIRED;
+  S.pendingRestAbilityChoice=false;
+  if(wasBleeding) clearBleeding();
+  const healed=Math.max(0,S.hp-beforeHp),stamina=Math.max(0,S.stamina-beforeStamina),uses=Math.max(0,abilityUsesReady()-beforeUses);
+  const gains=[];
+  if(healed) gains.push(`${healed} HP`);
+  if(stamina) gains.push(`${stamina} Stamina`);
+  if(uses) gains.push(`${uses} ability use${uses===1?"":"s"}`);
+  if(wasBleeding) gains.push("Bleeding stopped");
+  travelLogAdd(`You rest at <b>${esc(def.name)}</b>'s tavern. <b>${esc(gains.length?gains.join(" · "):"Fully recovered")}</b>.`,"good");
+  if(healed>0) triggerHealFx(healed,["travel"]);
+  saveRunNow();
+  render();
+  return true;
+}
+function openTownMerchantService(serviceId){
+  if(!currentTown()||!["market","herbalist"].includes(serviceId)) return false;
+  townMerchantServiceId=serviceId;
+  const m=ensureTownMerchantService(serviceId);
+  if(!m){townMerchantServiceId=null;return false;}
+  merchantView="buy";merchantSellGearScope="backpack";merchantPendingPurchase=null;
+  merchantSellSelection={equipment:new Set(),backpack:new Set()};merchantSellQuantities={};
+  openPack("merchant","backpack");
+  return true;
+}
+function townLocationStatusText(loc){
+  if(!loc) return "";
+  if(loc.service==="market") return "Town market rates are better than wandering trade: buy prices are about 8% lower and sale offers about 10% higher.";
+  if(loc.service==="tavern") return townRecoveryNeeded()?`Recovery available · HP ${S.hp}/${S.hpMax} · Stamina ${S.stamina}/${S.staminaMax} · ${abilityUsesReady()}/${abilityUsesMax()} ability uses ready.`:"You are fully recovered and ready to leave town.";
+  if(loc.service==="herbalist") return "Bandages are available now. Direct healer services are reserved for a later town-service hook.";
+  if(loc.service==="guild"){
+    const def=questAtTownLocation(currentTown()?.id,loc.id),inst=def?questInstanceForDefinition(def.id):null;
+    if(!def)return "No contracts are posted here yet.";
+    if(inst?.status==="active")return `${def.title} is active · ${questProgressText(inst)} · deliver at ${formatDepth(inst.targetDepth)} fathoms.`;
+    if(inst?.status==="completed")return `${def.title} has already been resolved.`;
+    if(inst?.status==="inactive")return `${def.title} is no longer active. Review or delete it from Character → Quests.`;
+    return `${def.title} is available · ${def.summary}`;
+  }
+  return loc.status||"";
+}
+function townLocationActionsHtml(loc){
+  if(!loc) return "";
+  if(loc.departure) return `<button class="town-location-action primary" id="btnTownLocationLeave" type="button">Leave through the lower gate</button>`;
+  if(loc.service==="market") return `<button class="town-location-action primary" type="button" data-town-service="market">Open Market</button>`;
+  if(loc.service==="tavern") return `<button class="town-location-action primary" type="button" data-town-service="tavern-rest" ${townRecoveryNeeded()?"":"disabled"}>${townRecoveryNeeded()?"Rest and recover fully":"Fully rested"}</button>`;
+  if(loc.service==="herbalist") return `<button class="town-location-action primary" type="button" data-town-service="herbalist">Buy Bandages</button><button class="town-location-action" type="button" disabled>Healer services · later phase</button>`;
+  if(loc.service==="guild"){
+    const def=questAtTownLocation(currentTown()?.id,loc.id),inst=def?questInstanceForDefinition(def.id):null;
+    if(!def)return `<button class="town-location-action" type="button" disabled>No contracts posted</button>`;
+    if(inst)return `<button class="town-location-action" type="button" disabled>${inst.status==="active"?"Contract active":inst.status==="completed"?"Contract completed":"Contract inactive"}</button>`;
+    return `<button class="town-location-action primary" type="button" data-town-service="quest-accept" data-quest-def="${esc(def.id)}">Accept · ${esc(def.title)}</button>`;
+  }
+  return `<button class="town-location-action" type="button" disabled>Service unavailable</button>`;
 }
 function renderTown(){
   const screen=$("townScreen");if(!screen)return;
@@ -6164,7 +6508,11 @@ function renderTown(){
   const art=$("townMapArtboard");
   const shell=$("townMapShell");
   if(shell)shell.style.aspectRatio=def.aspectRatio||"4 / 3";
-  if(art){art.style.backgroundImage=`url("${def.image}")`;art.style.aspectRatio=def.aspectRatio||"4 / 3";}
+  if(art){
+    art.style.backgroundImage=`url("${def.image}")`;
+    art.style.aspectRatio=def.aspectRatio||"4 / 3";
+    art.style.backgroundPosition=`center ${def.focusY||"50%"}`;
+  }
   const loc=townLocationById(def,townLocationOpenId);
   if(townLocationOpenId&&!loc){townLocationOpenId=null;townDepartureArmed=false;}
   const active=townLocationById(def,townLocationOpenId);
@@ -6178,13 +6526,9 @@ function renderTown(){
     $("townLocationType").textContent=active.type||"Location";
     $("townLocationName").textContent=active.name;
     $("townLocationDescription").textContent=active.description||"";
-    $("townLocationStatus").textContent=active.status||"";
+    $("townLocationStatus").textContent=townLocationStatusText(active);
     const actions=$("townLocationActions");
-    if(actions){
-      actions.innerHTML=active.departure
-        ? `<button class="town-location-action primary" id="btnTownLocationLeave" type="button">Leave through the lower gate</button>`
-        : `<button class="town-location-action" type="button" disabled>Service opens in a later phase</button>`;
-    }
+    if(actions) actions.innerHTML=townLocationActionsHtml(active);
   }
   const confirm=$("townDepartConfirm");if(confirm)confirm.hidden=!townDepartureArmed;
   const actionLeave=$("btnTownLocationLeave");if(actionLeave)actionLeave.hidden=townDepartureArmed;
@@ -6266,6 +6610,11 @@ function runTravelTickCore(){
   if(S.travelMode!=="stopped") tickConcealment();
   if(S.travelMode==="side") return sideTravelTick();
 
+  if(S.travelMode==="descend" && !S.foe && !S.travelEvent){
+    const questTarget=crossedActiveQuestTarget(S.depth,S.depth+TRAVEL_STEP);
+    if(questTarget)return beginQuestTurnIn(questTarget);
+  }
+
   if(S.travelMode==="descend" && !S.foe && !S.travelEvent && currentMerchant() && S.depth<currentMerchant().depth && S.depth+TRAVEL_STEP>=currentMerchant().depth){
     return beginMerchantEncounter();
   }
@@ -6328,6 +6677,7 @@ function runTravelTickCore(){
     }
     S.exploreElapsedMs=(S.exploreElapsedMs||0)+TRAVEL_TICK_MS;
     S.exploreActivity=(S.exploreActivity||0)+TRAVEL_STEP;
+    maybeQuestExploreDrop();
     if(!S.seenTravelEvents.glint && S.exploreActivity>=GLINT_EVENT_TRIGGER){
       beginGlintEvent();
       return;
@@ -6598,6 +6948,8 @@ function clearCombatVictoryTimer(){
 function finalizeCombatVictory(foe){
   if(combatVictoryPending!==foe) return;
   clearCombatVictoryTimer();
+  if(S?.travelEvent?.id==="loot-found") S.travelEvent=null;
+  S.pendingLoot=null;
   if(S?.foe===foe) S.foe=null;
   combatVictoryPending=null;
   render();
@@ -6626,7 +6978,6 @@ function finishKill(out){
   f.defeated=true;
   combatVictoryPending=f;
   clearCombatVictoryTimer();
-  combatVictoryTimer=setTimeout(()=>finalizeCombatVictory(f),COMBAT_RESULT_LINGER_MS);
   S.heavyCharge=0;
   S.strikeChain=0;
   S.defenceChain=0;
@@ -6634,6 +6985,7 @@ function finishKill(out){
   armed=null;
 
   maybeMonsterLoot(f);
+  maybeQuestCombatDrop(f);
   if(wasSide) maybeSideKey(f);
 
   if(curseActive()){
@@ -7476,7 +7828,8 @@ function trailStructureSignature(){
   const sideDiscovery=`${S?.sideDiscoveryAttempted?1:0}:${Number(S?.sideDiscoveryAt||0).toFixed(2)}`;
   const ts=ensureTownState();
   const towns=TOWN_DEFS.map(t=>`${t.id}:${ts?.visited?.[t.id]?1:0}:${ts?.departed?.[t.id]?1:0}:${ts?.currentId===t.id?1:0}`).join("|");
-  return `${active?1:0}:${activeProgress}:${area?.entryDepth??"-"}:${history}:${merchants}:${currentMerchantDepth}:${bosses}:${hollows}:${sideDiscovery}:${towns}`;
+  const quests=questInstances().map(q=>`${q.instanceId}:${q.status}:${Number(q.targetDepth||0).toFixed(2)}`).join("|");
+  return `${active?1:0}:${activeProgress}:${area?.entryDepth??"-"}:${history}:${merchants}:${currentMerchantDepth}:${bosses}:${hollows}:${sideDiscovery}:${towns}:${quests}`;
 }
 
 function syncLargeTrailLabels(layerId,labelPositions){
@@ -7549,6 +7902,7 @@ function rebuildTrailWorld(target,anchorDepth){
   };
   const ts=ensureTownState();
   for(const t of TOWN_DEFS) addLandmark(t.kind==="city"?"city":"town",t.depth,!!ts?.departed?.[t.id],t.name);
+  for(const q of activeQuestDestinationLandmarks())addLandmark("quest",q.depth,false,q.title);
   const cm=currentMerchant();if(cm)addLandmark("merchant",cm.depth,false,`${cm.title} ${cm.name}`);
   for(const h of (S.merchantHistory||[]))addLandmark("merchant",Number(h.depth)||0,true,h.name||"Merchant camp");
   const firstStratum=Math.max(0,Math.floor(worldFrom/FATHOMS_PER_STRATUM)),lastStratum=Math.max(firstStratum,Math.floor(worldTo/FATHOMS_PER_STRATUM));
@@ -7799,6 +8153,25 @@ function renderTravel(){
   syncBrowseTravelUI();
 }
 
+function combatLootRecordForFoe(f=S?.foe){
+  if(!f||!Array.isArray(S?.lootHistory)) return null;
+  for(let i=S.lootHistory.length-1;i>=0;i--){
+    const rec=S.lootHistory[i];
+    if(Number(rec?.encounter)===Number(S.encounter)&&String(rec?.foeName||"")===String(f.name||"")) return rec;
+  }
+  return null;
+}
+function renderCombatLootPanel(){
+  const panel=$("combatLootPanel");if(!panel)return;
+  const f=S?.foe,post=!!f?.defeated;panel.hidden=!post;if(!post){panel.innerHTML="";return;}
+  const rec=combatLootRecordForFoe(f),items=rec?.items||[];
+  const itemHtml=items.length?items.map(item=>`<div class="combat-loot-item"><b>${esc(item)}</b><span>${rec?.bonusItems?.includes(item)?"Investigation":"Collected"}</span></div>`).join(""):`<div class="combat-loot-empty">Nothing worth carrying was recovered from this foe.</div>`;
+  const loot=S.pendingLoot&&Number(S.pendingLoot.encounter)===Number(S.encounter)?S.pendingLoot:null,canSearch=!!loot&&!loot.searched;
+  const search=canSearch?`<div class="combat-loot-search"><b>Something may have been overlooked.</b><span>Perception caught a detail worth checking carefully. ${skillCheckPreview("investigation",Number.isFinite(loot.searchChallenge)?loot.searchChallenge:authoredChallenge(12))}</span></div>`:rec?.searchResult?`<div class="combat-loot-result">${esc(rec.searchResult)}</div>`:"";
+  const investigate=canSearch?`<button class="combat-loot-btn investigate" type="button" data-combat-loot-investigate><b>Investigate</b><span>Search for one possible additional find</span></button>`:"";
+  panel.innerHTML=`<div class="combat-loot-head"><div><em>Encounter resolved</em><b>Recovered</b></div><span>${items.length} find${items.length===1?"":"s"}</span></div><div class="combat-loot-items">${itemHtml}</div>${search}<div class="combat-loot-actions ${canSearch?"":"single"}">${investigate}<button class="combat-loot-btn continue" type="button" data-combat-loot-continue><b>Continue</b><span>Leave the defeated foe behind</span></button></div>`;
+}
+
 function render(){
   checkBoonExpiry();
   renderCombatHeader();
@@ -7826,6 +8199,7 @@ function render(){
   const arenaNode=$("arena");
   if(arenaNode) arenaNode.classList.toggle("combat-scroll",!!f&&!over);
   if(arenaNode) arenaNode.classList.toggle("combat-mode",!!f);
+  if(arenaNode) arenaNode.classList.toggle("post-combat-mode",!!f?.defeated);
   if(!f && combatHistoryOpen) setCombatHistoryOpen(false);
   const sprite = $("foeSprite");
   if(f){
@@ -7876,6 +8250,7 @@ function render(){
     $("foeStatus").innerHTML = "";
   }
 
+  renderCombatLootPanel();
   renderAbilitySheet();
   renderRestAbilityPick();
   renderCharacterSheet();
@@ -7886,23 +8261,18 @@ function render(){
 
   $("btnRun").hidden = !f || over;
   if(f){
-    const c = runCost(), fatal = c>=S.hp, btn = $("btnRun");
-    btn.disabled = S.heavyCharge>0;
-    btn.classList.toggle("fatal",fatal&&S.heavyCharge===0);
-    btn.classList.toggle("armed",armed==="run");
-    btn.querySelector("b").textContent = "Run";
-    $("runSub").textContent =
-      S.heavyCharge>0 ? `HEAVY PREPARED\nRELEASE OR ${defenceName().toUpperCase()}`
-      : armed==="run" ? "TAP AGAIN\nTO BREAK CONTACT"
-      : fatal ? `COSTS ${c} HP\nTHAT KILLS YOU`
-      : c===0 ? "WILL NOT FOLLOW\nNO HP COST"
-      : `COSTS ${c} HP\nON SUCCESS`;
+    const c=runCost(),fatal=c>=S.hp,btn=$("btnRun"),defeated=!!f.defeated;
+    btn.disabled=defeated||S.heavyCharge>0;
+    btn.classList.toggle("fatal",!defeated&&fatal&&S.heavyCharge===0);
+    btn.classList.toggle("armed",!defeated&&armed==="run");
+    btn.querySelector("b").textContent="Run";
+    $("runSub").textContent=defeated?"FOE DEFEATED\nNO ESCAPE NEEDED":S.heavyCharge>0?`HEAVY PREPARED\nRELEASE OR ${defenceName().toUpperCase()}`:armed==="run"?"TAP AGAIN\nTO BREAK CONTACT":fatal?`COSTS ${c} HP\nTHAT KILLS YOU`:c===0?"WILL NOT FOLLOW\nNO HP COST":`COSTS ${c} HP\nON SUCCESS`;
   }
 
   const w = equippedWeaponDef();
   $("heroStats").textContent = `STR ${effectiveStat("STR")} · CON ${effectiveStat("CON")} · DEX ${effectiveStat("DEX")} · ${w.unarmed?"unarmed":`${w.stat} weapon`}`;
   const combatPackBtn=$("btnCombatPack"),combatPackTxt=$("combatPackTxt");
-  if(combatPackBtn) combatPackBtn.disabled=!f||over||combatVictoryPending;
+  if(combatPackBtn) combatPackBtn.disabled=!f||over;
   if(combatPackTxt){
     const bandages=S.inventory?.bandages||0;
     combatPackTxt.textContent=S.bleeding?`${bandages} bandage${bandages===1?"":"s"} · bleeding`:`${bandages} item${bandages===1?"":"s"}`;
@@ -7927,7 +8297,7 @@ function render(){
     tell?.setAttribute("aria-expanded",String(!collapsed));
   }
 
-  if(f&&!over&&S.heavyCharge===0){
+  if(f&&!f.defeated&&!over&&S.heavyCharge===0){
     const c = runCost(), chance = Math.round(runSuccessChance()*100), btn = $("btnRun"), fatal = c>=S.hp;
     if(btn&&armed!=="run") $("runSub").textContent = fatal
       ? `${chance}% ESCAPE\n−${c} HP KILLS YOU`
@@ -7941,9 +8311,8 @@ function render(){
 
   renderLootHistory();
   renderEncounterWarningLocks();
-  if($("btnAbilities")) $("btnAbilities").disabled = !f || over || !!combatVictoryPending;
+  if($("btnAbilities")) $("btnAbilities").disabled = !f || over;
   if(combatVictoryPending){
-    if($("btnCombatPack")) $("btnCombatPack").disabled = true;
     if($("btnRun")) $("btnRun").disabled = true;
   }
   renderSettingsSheet();
@@ -8380,13 +8749,13 @@ function merchantEncounterRange(){
   const first=(S?.merchantVisits||0)<=0;
   return first ? [18,34] : [38,78];
 }
-function merchantSellMultiplier(){
-  const cha=effectiveStat("CHA")||10;
-  return clamp(1.28-(cha-10)*0.015,1.08,1.34);
+function merchantSellMultiplier(merchant=currentMerchant()){
+  const cha=effectiveStat("CHA")||10,base=clamp(1.28-(cha-10)*0.015,1.08,1.34);
+  return clamp(base*(Number(merchant?.playerBuyPriceMod)||1),0.90,1.34);
 }
-function merchantBuyMultiplier(){
-  const cha=effectiveStat("CHA")||10;
-  return clamp(0.50+(cha-10)*0.015,0.34,0.72);
+function merchantBuyMultiplier(merchant=currentMerchant()){
+  const cha=effectiveStat("CHA")||10,base=clamp(0.50+(cha-10)*0.015,0.34,0.72);
+  return clamp(base*(Number(merchant?.playerSellPayoutMod)||1),0.34,0.82);
 }
 function merchantUnitValueForBackpackKey(key,name=""){
   if(key==="campSupplies") return 34;
@@ -8411,13 +8780,13 @@ function merchantEquipmentStatsHtml(item){
   if(!lines.length) return "";
   return `<div class="merchant-item-stats"><em>Stats</em>${lines.map(line=>`<span class="merchant-item-stat">${esc(line)}</span>`).join("")}</div>`;
 }
-function merchantBuyPrice(stock){
+function merchantBuyPrice(stock,merchant=currentMerchant()){
   if(!stock) return 0;
   if(stock.kind==="equipment"){
     const item=equipmentItemDef(stock.itemId); if(!item) return 0;
-    return Math.max(1,Math.ceil(computedItemGoldValue(item)*merchantSellMultiplier()));
+    return Math.max(1,Math.ceil(computedItemGoldValue(item)*merchantSellMultiplier(merchant)));
   }
-  return Math.max(1,Math.ceil((Number(stock.unitPrice)||0)*merchantSellMultiplier()));
+  return Math.max(1,Math.ceil((Number(stock.unitPrice)||0)*merchantSellMultiplier(merchant)));
 }
 function merchantSupplyStock(label,key,qty,unitPrice,desc){
   return {id:`mstock_${key}_${Date.now().toString(36)}_${Math.floor(rnd()*1e5).toString(36)}`,kind:"supply",supplyKey:key,label,qty,unitPrice,desc};
@@ -8442,9 +8811,26 @@ function generateMerchantForDepth(depth){
   }
   stock.push(merchantSupplyStock("Bandage","bandages",ri(1,3),12,"Stops Bleeding when used from the Backpack."));
   stock.push(merchantSupplyStock("Camp Supply","campSupplies",1,34,"A compact field bundle for making camp at a safe hollow."));
-  let purse=ri(120,260)+Math.round(d*1.2);
-  for(const row of stock) purse+=Math.round(merchantBuyPrice(row)*0.22);
-  return {id,name,title,depth:roundQuarter(d),purse,stock};
+  const merchant={id,name,title,depth:roundQuarter(d),purse:ri(120,260)+Math.round(d*1.2),stock,context:"wandering"};
+  for(const row of stock) merchant.purse+=Math.round(merchantBuyPrice(row,merchant)*0.22);
+  return merchant;
+}
+function generateTownMerchantForService(def,serviceId){
+  const d=Math.max(0,Number(def?.depth)||0),id=`town_${def?.id||"town"}_${serviceId}`;
+  const common={id,depth:roundQuarter(d),context:"town",serviceId,playerBuyPriceMod:0.92,playerSellPayoutMod:1.10};
+  if(serviceId==="herbalist"){
+    return {...common,title:def?.name||"Town",name:"Herbalist",displayName:`${def?.name||"Town"} Herbalist`,buyOnly:true,purse:600+Math.round(d),stock:[merchantSupplyStock("Bandage","bandages",10,12,"Stops Bleeding when used from the Backpack.")]};
+  }
+  const stock=[];
+  for(let i=0;i<6;i++){
+    const item=generateProceduralEquipment(Math.max(0,d+ri(-6,12)),`town-market:${def?.id||"town"}:${i}`);
+    storeMerchantEquipment(item);
+    stock.push({id:`${id}_eq_${i}`,kind:"equipment",itemId:item.id});
+  }
+  stock.push(merchantSupplyStock("Camp Supply","campSupplies",2,34,"A compact field bundle for making camp at a safe hollow."));
+  const market={...common,title:def?.name||"Town",name:"Market",displayName:`${def?.name||"Town"} Market`,buyOnly:false,purse:1400+Math.round(d*2),stock};
+  for(const row of stock) market.purse+=Math.round(merchantBuyPrice(row,market)*0.15);
+  return market;
 }
 function midBossDepthForStratum(stratum){ return stratum*FATHOMS_PER_STRATUM + FATHOMS_PER_STRATUM/2; }
 function routeReservedDepthsAround(depth){
@@ -8457,6 +8843,7 @@ function routeReservedDepthsAround(depth){
   if(Number.isFinite(Number(S?.sideDiscoveryAt))) out.push(Number(S.sideDiscoveryAt));
   for(const h of (S?.sideAreaHistory||[])) out.push(Number(h.entryDepth)||0);
   for(const h of (S?.merchantHistory||[])) out.push(Number(h.depth)||0);
+  for(const q of questInstances("active")) out.push(Number(q.targetDepth)||0);
   return out;
 }
 function routeDepthClear(depth,minGap=5){ return routeReservedDepthsAround(depth).every(other=>Math.abs(other-depth)>=minGap); }
@@ -8485,7 +8872,12 @@ function maybeScheduleMerchant(){
   const depth=findClearMerchantDepth((Number(S.depth)||0)+ri(mn,mx));
   S.pendingMerchant=generateMerchantForDepth(depth);
 }
-function currentMerchant(){ ensureMerchantState(); return S?.pendingMerchant||null; }
+function currentMerchant(){
+  ensureMerchantState();
+  if(townMerchantServiceId && currentTown()) return ensureTownMerchantService(townMerchantServiceId);
+  return S?.pendingMerchant||null;
+}
+function merchantDisplayName(m=currentMerchant()){ return m?.displayName||`${m?.title||"Merchant"} ${m?.name||""}`.trim(); }
 function merchantArrivalText(m){
   return `${m.title} ${m.name} has made a neutral camp along the route. A blue lantern hangs beside the path, and the trader watches your approach without reaching for steel.`;
 }
@@ -8516,11 +8908,20 @@ function retireMerchant(){
 }
 function leaveMerchant(){
   if(!S || S.packMode!=="merchant") return;
-  const m=currentMerchant();
+  const m=currentMerchant(),townTrade=m?.context==="town";
   S.packMode=null;
   packReturnTarget=null;
   $("packSheet").hidden=true;
-  if(m) travelLogAdd(`You leave <b>${esc(m.title)} ${esc(m.name)}</b> behind and continue the descent.`,"note");
+  merchantView="buy";merchantSellGearScope="backpack";merchantPendingPurchase=null;
+  merchantSellSelection={equipment:new Set(),backpack:new Set()};merchantSellQuantities={};
+  if(townTrade){
+    townMerchantServiceId=null;
+    saveRunNow();
+    syncBrowseTravelUI();
+    render();
+    return;
+  }
+  if(m) travelLogAdd(`You leave <b>${esc(merchantDisplayName(m))}</b> behind and continue the descent.`,"note");
   retireMerchant();
   S.travelMode="descend";
   resumeBoonClock();
@@ -8606,7 +9007,7 @@ function merchantSelectedBackpackUnits(){
 function merchantCanAfford(amount){ return (currentMerchant()?.purse||0) >= Math.max(0,amount||0); }
 function merchantAddSoldEquipmentToStock(itemId){
   const m=currentMerchant(); if(!m||!equipmentItemDef(itemId)) return;
-  m.stock.push({id:`${m.id}_resale_${Math.floor(rnd()*1e6).toString(36)}`,kind:"equipment",itemId});
+  m.stock.push({id:`${m.id}_resale_${Math.floor(rnd()*1e6).toString(36)}`,kind:"equipment",itemId,resale:true});
 }
 function removeEquippedItemEverywhere(itemId){
   ensureEquipmentState();
@@ -8628,7 +9029,7 @@ function merchantBuyStock(stockId,confirmed=false){
   S.gold-=price; m.purse+=price;
   if(row.kind==="equipment"){
     addEquipmentToBag(row.itemId);
-    travelLogAdd(`Bought <b>${esc(equipmentItemDef(row.itemId)?.name||"gear")}</b> from <b>${esc(m.title)} ${esc(m.name)}</b> for ${formatGold(price)}.`,"good");
+    travelLogAdd(`Bought <b>${esc(equipmentItemDef(row.itemId)?.name||"gear")}</b> from <b>${esc(merchantDisplayName(m))}</b> for ${formatGold(price)}.`,"good");
     m.stock.splice(idx,1);
   }else if(row.kind==="supply"){
     const key=row.supplyKey;
@@ -9594,12 +9995,8 @@ function openLootFound(drops,f){
     if(practice.awarded) travelLogAdd(`You finish collecting the obvious salvage.${practiceText("perception",practice)}`,"note");
     S.pendingLoot=null;return;
   }
-  S.pendingLoot={encounter,foeName:f?.name||"foe",drops:[...drops],searched:false,historyId:rec.id,searchChallenge:authoredChallenge(12)};
-  S.travelEvent={
-    id:"loot-found",stage:"bonus",kind:"Perception",title:"Something may have been overlooked",
-    text:`You already collected ${lootItemsText(drops)} from the ${S.pendingLoot.foeName}. Perception caught a detail worth investigating.`,
-    rollHtml:formatSkillCheck(sense)+practiceText("perception",practice)
-  };
+  S.pendingLoot={encounter,foeName:f?.name||"foe",drops:[...drops],searched:false,historyId:rec.id,searchChallenge:authoredChallenge(12),perceptionText:formatSkillCheck(sense)+practiceText("perception",practice)};
+  if(S.travelEvent?.id==="loot-found") S.travelEvent=null;
 }
 async function resolveLootSearch(skill="investigation"){
   const loot=S.pendingLoot;
@@ -9622,6 +10019,7 @@ async function resolveLootSearch(skill="investigation"){
     : c.success
       ? `<span class="note">Investigation succeeds, but nothing else here is worth carrying.</span>`
       : `<span class="note">Investigation finds no additional salvage.</span>`;
+  if(rec) rec.searchResult=found?`Investigation recovered ${found}.`:c.success?"Investigation found no additional salvage worth carrying.":"Investigation found nothing else.";
   travelLogAdd(`${outcome}<br>${checkText}${practice}`,found?"good":"note");
   S.pendingLoot=null;S.travelEvent=null;render();
 }
@@ -9875,7 +10273,8 @@ function makeLootRecord(drops,f){
     encounter:S.encounter,
     foeName:f?.name || "foe",
     items:[...drops],
-    bonusItems:[]
+    bonusItems:[],
+    searchResult:null
   };
   history.push(rec);
   if(history.length>40) history.shift();
@@ -10591,6 +10990,20 @@ function migrateSave7To8(snapshot){
   }
   return next;
 }
+function migrateSave8To9(snapshot){
+  const next=cloneForSave(snapshot);next.schema=9;const state=next.state;
+  if(isSaveRecord(state)){
+    if(!isSaveRecord(state.quests))state.quests={instances:[],nextSerial:1,exploreAccumulator:0};
+    if(!Array.isArray(state.quests.instances))state.quests.instances=[];
+    state.quests.nextSerial=Math.max(1,Math.floor(Number(state.quests.nextSerial)||1));
+    state.quests.exploreAccumulator=Math.max(0,Number(state.quests.exploreAccumulator)||0);
+    if(!isSaveRecord(state.inventory))state.inventory={};
+    if(!Array.isArray(state.inventory.questItems))state.inventory.questItems=[];
+    if(!isSaveRecord(state.charNotices))state.charNotices={};
+    for(const k of ["overview","status","skills","equipment","bestiary","abilities","quests","journal"])if(!(k in state.charNotices))state.charNotices[k]=false;
+  }
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
@@ -10598,7 +11011,8 @@ const SAVE_MIGRATIONS={
   4:migrateSave4To5,
   5:migrateSave5To6,
   6:migrateSave6To7,
-  7:migrateSave7To8
+  7:migrateSave7To8,
+  8:migrateSave8To9
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -10790,8 +11204,10 @@ function rebuildTravelLogFromState(){
 }
 function normalizeRestoredRun(){
   if(!S) return;
+  if(S.trade==="Apothecary's Hand") S.trade="Herbalist's Hand";
   S.travelLog=Array.isArray(S.travelLog)?S.travelLog:[];
-  S.charNotices=S.charNotices||{overview:false,status:false,skills:false,equipment:false,bestiary:false,abilities:false};
+  S.charNotices=S.charNotices||{overview:false,status:false,skills:false,equipment:false,bestiary:false,abilities:false,quests:false,journal:false};
+  for(const k of ["overview","status","skills","equipment","bestiary","abilities","quests","journal"])if(!(k in S.charNotices))S.charNotices[k]=false;
   S.skillRankNotices=S.skillRankNotices||{};
   S.hollowStates=S.hollowStates||{};
   S.bossDefeated=S.bossDefeated||{};S.midBossDefeated=S.midBossDefeated||{};
@@ -10820,9 +11236,11 @@ function normalizeRestoredRun(){
   for(const item of Object.values(S.generatedItems)) if(item&&typeof item==="object") stampItemEconomy(item,{recalculateGeneratedIlvl:!!item.generated});
   S.inventory=S.inventory||{};
   S.inventory.misc=S.inventory.misc||{};
+  S.inventory.questItems=Array.isArray(S.inventory.questItems)?S.inventory.questItems:[];
   S.inventory.weapons=Array.isArray(S.inventory.weapons)?S.inventory.weapons:[];
   S.inventory.equipment=Array.isArray(S.inventory.equipment)?S.inventory.equipment:[];
   ensureEquipmentState();
+  normalizeQuestState();
   syncEquipmentHpCeiling();
   if(!settings.characterIndicators) clearCurrentCharacterIndicators();
   if(S.foe){
@@ -10939,7 +11357,7 @@ function restoreRun(snapshot){
     render();
 
     if(over) showDeathScreen();
-    else if(S.foe?.defeated){combatVictoryPending=S.foe;setTimeout(()=>finalizeCombatVictory(S.foe),0);}
+    else if(S.foe?.defeated){combatVictoryPending=S.foe;render();}
     else if(encounterWarningState){
       if(encounterWarningState.deadline<=performance.now()) setTimeout(beginEncounterTransition,0);
       else encounterWarningFrame=requestAnimationFrame(encounterWarningLoop);
@@ -11007,7 +11425,15 @@ $("townHotspots")?.addEventListener("click",e=>{
   const btn=e.target.closest("[data-town-location]");if(btn)openTownLocation(btn.dataset.townLocation);
 });
 $("btnTownLocationBack")?.addEventListener("click",closeTownLocation);
-$("townLocationActions")?.addEventListener("click",e=>{if(e.target.closest("#btnTownLocationLeave"))armTownDeparture();});
+$("townLocationActions")?.addEventListener("click",e=>{
+  if(e.target.closest("#btnTownLocationLeave")){armTownDeparture();return;}
+  const service=e.target.closest("[data-town-service]");
+  if(!service||service.disabled)return;
+  if(service.dataset.townService==="market") openTownMerchantService("market");
+  else if(service.dataset.townService==="herbalist") openTownMerchantService("herbalist");
+  else if(service.dataset.townService==="tavern-rest") restAtTownTavern();
+  else if(service.dataset.townService==="quest-accept") acceptQuest(service.dataset.questDef);
+});
 $("btnTownCancelLeave")?.addEventListener("click",()=>{townDepartureArmed=false;renderTown();});
 $("btnTownConfirmLeave")?.addEventListener("click",departCurrentTown);
 $("btnTravelLogToggle").addEventListener("click",()=>{travelLogExpanded=!travelLogExpanded;renderTravelLogCollapse();});
@@ -11293,6 +11719,11 @@ $("charAbilities").addEventListener("click", e => {
 $("charNav").addEventListener("click", e => {
   const b=e.target.closest("[data-char-view]"); if(!b)return; charView=b.dataset.charView; if(charView!=="skills") clearCharacterNotice(charView); renderCharacterSheet();
 });
+$("questPageTabs")?.addEventListener("click",e=>{const b=e.target.closest("[data-quest-list-view]");if(!b)return;questListView=b.dataset.questListView;charExpandedQuest=null;renderQuestPage();});
+$("charQuests")?.addEventListener("click",e=>{
+  const more=e.target.closest("[data-quest-more]");if(more){charExpandedQuest=charExpandedQuest===more.dataset.questMore?null:more.dataset.questMore;renderQuestPage();return;}
+  const del=e.target.closest("[data-quest-delete]");if(del)deleteInactiveQuest(del.dataset.questDelete);
+});
 $("btnEquipmentExpand").addEventListener("click", toggleEquipmentList);
 $("equipmentRingRail").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)selectEquipmentSlot(b.dataset.equipmentSlot);});
 $("equipmentBodyGrid").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)selectEquipmentSlot(b.dataset.equipmentSlot);});
@@ -11366,8 +11797,18 @@ $("restAbilityOptions").addEventListener("click", e => {
     render();
   }
 });
+$("combatLootPanel")?.addEventListener("click", async e => {
+  const investigate=e.target.closest("[data-combat-loot-investigate]");
+  if(investigate){
+    e.currentTarget.querySelectorAll("button").forEach(btn=>btn.disabled=true);
+    await resolveLootSearch("investigation");
+    return;
+  }
+  const cont=e.target.closest("[data-combat-loot-continue]");
+  if(cont&&combatVictoryPending)finalizeCombatVictory(combatVictoryPending);
+});
 $("btnCombatPack").addEventListener("click", () => {
-  if(!S || over || !S.foe || combatVictoryPending) return;
+  if(!S || over || !S.foe) return;
   armed=null;
   openPack("combat","backpack");
 });

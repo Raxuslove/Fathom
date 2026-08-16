@@ -15,4 +15,4 @@ Recover perhaps reducing the stamina to 2 from 3.  (Done)
 
 Combat change: All attacks are perfect but no combat intent so true blind rock paper scissors unless use read it (or different version of it) this way you know what 
 
-
+Need to check the riddles and hints mechanics from side passages.
