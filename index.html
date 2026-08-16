@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.106.4 — Merchant Sale Integrity Fix</title>
+<title>Lowfathom v0.106.5 — Combat Damage Popups + Mobile Scroll Safety</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -164,6 +164,7 @@
    - v0.104.0: Town Phase 3 core services — Market reuses merchant buy/sell with better town rates, Tavern fully recovers the delver, Herbalist sells Bandages, Guild Hall remains reserved for quests
    - v0.106.3: Universal merchant gear comparison — equipment in Buy and Sell Gear shows the same deltas against the relevant currently equipped item; empty slots stay quiet
    - v0.106.4: Merchant sale integrity fix — retires the legacy weapon mirror so sold starter/static weapons cannot resurrect into owned gear and be sold repeatedly
+   - v0.106.5: combat damage popups + mobile scroll safety — 2-second damage numbers, gold critical-hit callouts, and extra bottom scroll room above phone navigation bars
    - v0.104.1: Grey Lantern town-map trim — reduced the map shell height slightly and nudged the map art upward to crop unused top/bottom space
    - v0.105.0: Town Phase 4 quest engine — persistent quest instances, Character Quests + Journal pages, quest-bound Backpack items, active/inactive/completed states, proportional quota turn-ins, and combat/Explore quest drops
    - v0.105.1: post-combat resolution pass — defeated encounters collapse combat actions/intent, surface collected loot and optional Investigation immediately, then wait for Continue
@@ -194,6 +195,7 @@
   --cond:'IBM Plex Sans Condensed',system-ui,sans-serif;
   --travel-bg:#010406;
   --travel-surface:#020608;
+  --mobile-scroll-safety:72px;
 }
 
 
@@ -2095,6 +2097,64 @@ button{
   .arena.combat-scroll .preview{min-height:60px;padding:8px 12px 9px}
   .arena.combat-scroll .mact{min-height:58px;padding:10px 11px}
 }
+
+/* v0.106.5: damage is readable without opening the exchange log. Normal damage
+   is red; an actual Critical Strike gets the larger lamp-gold `!` treatment. */
+.combat-damage-pop{
+  --damage-shift:0px;position:absolute;z-index:24;pointer-events:none;user-select:none;
+  min-width:44px;text-align:center;font-family:var(--cf-serif);font-size:23px;font-weight:700;line-height:1;
+  color:#e1684d;text-shadow:0 1px 0 #120706,0 0 6px rgba(213,81,55,.78),0 0 13px rgba(178,47,31,.38);
+  transform:translate3d(var(--damage-shift),7px,0) scale(.9);opacity:0;
+  animation:combatDamageNumber 2s cubic-bezier(.18,.7,.22,1) forwards;
+}
+.arena.combat-mode .foe>.combat-damage-pop{left:38%;top:44px}
+.arena.combat-mode .hero>.combat-damage-pop{right:22px;top:24px}
+.combat-damage-pop.critical{
+  font-size:28px;color:#f0c85e;letter-spacing:.01em;
+  text-shadow:0 1px 0 #171006,0 0 7px rgba(240,200,94,.95),0 0 16px rgba(205,145,43,.58);
+}
+@keyframes combatDamageNumber{
+  0%{opacity:0;transform:translate3d(var(--damage-shift),8px,0) scale(.82)}
+  8%{opacity:1;transform:translate3d(var(--damage-shift),0,0) scale(1.08)}
+  16%{opacity:1;transform:translate3d(var(--damage-shift),-3px,0) scale(1)}
+  76%{opacity:1;transform:translate3d(var(--damage-shift),-12px,0) scale(1)}
+  100%{opacity:0;transform:translate3d(var(--damage-shift),-27px,0) scale(.98)}
+}
+
+/* Phone navigation bars can overlay the CSS viewport on some browser/PWA
+   combinations. Give every major scroll surface a deliberately generous tail
+   so the last real content can always be scrolled clear of the system controls. */
+@media (max-width:600px){
+  .arena.combat-mode{
+    padding-bottom:calc(var(--mobile-scroll-safety) + env(safe-area-inset-bottom));
+    scroll-padding-bottom:calc(var(--mobile-scroll-safety) + env(safe-area-inset-bottom));
+  }
+  .travel{
+    overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;
+    grid-template-rows:auto auto auto auto;align-content:start;
+    padding-bottom:calc(var(--mobile-scroll-safety) + env(safe-area-inset-bottom));
+    scroll-padding-bottom:calc(var(--mobile-scroll-safety) + env(safe-area-inset-bottom));
+  }
+  .travel-middle{min-height:auto;overflow:visible}
+  .town-screen,.creator{
+    padding-bottom:calc(var(--mobile-scroll-safety) + env(safe-area-inset-bottom));
+    scroll-padding-bottom:calc(var(--mobile-scroll-safety) + env(safe-area-inset-bottom));
+  }
+  .pack-scroll,
+  .char-panel>.char-page:not([hidden]),
+  .loot-history-list,
+  .combat-history-list,
+  .settings-sheet:not(.travel-browse) .settings-panel,
+  .settings-sheet.travel-browse .settings-scroll,
+  .info-panel,
+  .equipment-inspect-panel,
+  .boonpick-panel,
+  .restskillpick-panel,
+  .travel-log{
+    padding-bottom:calc(var(--mobile-scroll-safety) + env(safe-area-inset-bottom));
+    scroll-padding-bottom:calc(var(--mobile-scroll-safety) + env(safe-area-inset-bottom));
+  }
+}
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important}
   .rarity-sparkle{animation:none!important;opacity:.16!important;transform:translate(-50%,-50%) scale(.7)!important}
@@ -3675,7 +3735,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.106.4";
+const BUILD_VERSION = "v0.106.5";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -6989,6 +7049,23 @@ function dmgStrike(stage=strikeStage(), swingOverride=null){
 function damageTypeMultiplier(type, foe=S.foe){
   return foe?.profile?.damageTypes?.[type] ?? 1;
 }
+let combatDamagePopSerial=0;
+function showCombatDamagePop(target,amount,{critical=false}={}){
+  const value=Math.max(0,Math.round(Number(amount)||0));
+  if(value<=0)return;
+  const arena=document.querySelector(".arena.combat-mode");
+  if(!arena)return;
+  const host=target==="foe"?arena.querySelector(":scope > .foe"):arena.querySelector(":scope > .hero");
+  if(!host)return;
+  const pop=document.createElement("span");
+  pop.className=`combat-damage-pop${critical?" critical":""}`;
+  pop.textContent=critical?`${value}!`:`${value}`;
+  const lanes=[-18,0,18,-9,9];
+  pop.style.setProperty("--damage-shift",`${lanes[combatDamagePopSerial++%lanes.length]}px`);
+  host.appendChild(pop);
+  window.setTimeout(()=>pop.remove(),2100);
+}
+
 function applyOutgoingEquipmentEffects(baseDamage,{foe=S.foe,eligible=true}={}){
   const base=Math.max(0,Math.round(Number(baseDamage)||0));
   if(!eligible||!S||!foe||base<=0) return {damage:base,html:"",crit:false,bossBonus:0,heal:0};
@@ -7011,6 +7088,7 @@ function applyOutgoingEquipmentEffects(baseDamage,{foe=S.foe,eligible=true}={}){
   if(bossBonus>0) html+=`<p class="good">Boss Damage added <b>${bossBonus}</b>.</p>`;
   if(crit) html+=`<p class="good"><b>Critical Strike.</b> +${critBonus} damage.</p>`;
   if(heal>0) html+=`<p class="good"><b>Lifesteal.</b> Recovered ${heal} HP.</p>`;
+  showCombatDamagePop("foe",damage,{critical:crit});
   return {damage,html,crit,bossBonus,critBonus,heal};
 }
 function reflectedDamageFromHit(incomingDamage){
@@ -7794,6 +7872,7 @@ function takeTurn(key){
 
       if(dmg > 0){
         S.hp -= dmg;
+        showCombatDamagePop("hero",dmg);
         const attackText = f.intent === "heavy"
           ? "came down on you"
           : f.intent === "offquick"
@@ -7801,7 +7880,7 @@ function takeTurn(key){
             : "darted in";
         out += `<p class="hurt">${I.label}: it ${attackText} for <b>${dmg}</b>.</p>`;
         const reflected=reflectedDamageFromHit(dmg);
-        if(reflected>0){f.hp-=reflected;out+=`<p class="good"><b>Damage Reflect.</b> ${reflected} damage returned.</p>`;}
+        if(reflected>0){f.hp-=reflected;showCombatDamagePop("foe",reflected);out+=`<p class="good"><b>Damage Reflect.</b> ${reflected} damage returned.</p>`;}
       }
 
       // Guard/Parry only advances toward Perfect when the foe really attacks.
@@ -9977,7 +10056,7 @@ function advanceBleeding(ms,context="travel"){
   const expired=S.bleedRemainingMs<=0;
   let html="";
   if(damage>0){
-    if(context==="combat") html+=`<p class="hurt">Bleeding costs <b>${damage} HP</b>.</p>`;
+    if(context==="combat"){showCombatDamagePop("hero",damage);html+=`<p class="hurt">Bleeding costs <b>${damage} HP</b>.</p>`;}
     else travelLogAdd(`Bleeding costs <b>${damage} HP</b>. <b>${bleedSecondsRemaining()}s</b> remain.`,"danger");
   }
   if(expired){
