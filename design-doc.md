@@ -309,3 +309,6 @@ posture mechanic = worth keeping
 exact cost = needs designing around the travel engine
 
 AFter every 1000 Fathom you get 1 extra life, Does not stack. (Reason being it would suck if you're 10000 fathom deep and then die, that would be a Rage Quit moment for a game where you lose a dedicated player forever.) They revive but are -500 fathom back. This also gives them time to get themselves stronger or strategize. 
+
+
+Riddles could give int+investigation checks for hints. You can ask for more hints but the DC goes higher the more often you ask for a hint.

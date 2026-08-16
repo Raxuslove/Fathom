@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.101.20 — Drop & Recovery Balance</title>
+<title>Lowfathom v0.103.0 — Interactive Town Map</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -155,6 +155,8 @@
    - v0.101.13: replaces circular vignette falloff with rectangular edge feathering, deepening the frame-adjacent shade without a visible inner ring
    - v0.101.15: darkens the ornate frame artwork itself while preserving the approved interior vignette falloff
    - v0.101.16: active descent/explore travel modes gain a cyan held-state frame and glow for immediate mode feedback
+   - v0.102.0: Town Phase 1 foundation — authored Grey Lantern test town at 50 fathoms, one-way arrival/departure, persistent town state and route landmark
+   - v0.103.0: Town Phase 2 — Grey Lantern illustrated map, map hotspots/location panels, authored town marker asset and town-priority landmark collision handling
    - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
@@ -575,6 +577,107 @@ button{
 .travel-act.active span{color:#91bfc3}
 .travel-act:disabled{opacity:.45;cursor:not-allowed}
 .travel-act:disabled b,.travel-act:disabled span{color:#39434e}
+
+/* ---------- v0.103.0: Town Phase 2 interactive map ---------- */
+.town-screen{
+  position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;overflow:hidden;
+  background:#010406;color:var(--bone);
+}
+.town-screen[hidden]{display:none}
+.town-head{
+  flex:0 0 auto;padding:calc(12px + env(safe-area-inset-top)) 12px 10px;
+  background:#020608;border-bottom:1px solid var(--rule);
+}
+.town-head-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.town-head em{display:block;font-style:normal;font-family:var(--cond);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.town-head h1{margin:2px 0 0;font-family:var(--slab);font-size:23px;line-height:1.05;font-weight:600;color:var(--lamp)}
+.town-head p{margin:5px 0 0;max-width:48ch;font-size:10.5px;line-height:1.35;color:#87919a}
+.town-map-wrap{flex:1;min-height:0;padding:10px 12px 8px;display:flex;overflow:auto;overscroll-behavior:contain}
+.town-map-shell{
+  position:relative;flex:1;min-width:0;min-height:0;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;
+  border:11px solid transparent;border-image:url("./assets/ui/frame-map.png") 22 / 11px / 0 stretch;
+  background:#010406;
+}
+.town-map-artboard{
+  position:relative;z-index:1;width:100%;aspect-ratio:4/3;flex:0 0 auto;
+  background-color:#05080a;background-position:center;background-repeat:no-repeat;background-size:contain;
+}
+.town-map-artboard::after{
+  content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(1,4,6,.68) 0%,rgba(1,4,6,.22) 8%,rgba(1,4,6,0) 18%,rgba(1,4,6,0) 82%,rgba(1,4,6,.22) 92%,rgba(1,4,6,.68) 100%),
+    linear-gradient(180deg,rgba(1,4,6,.56) 0%,rgba(1,4,6,.16) 9%,rgba(1,4,6,0) 20%,rgba(1,4,6,0) 80%,rgba(1,4,6,.18) 91%,rgba(1,4,6,.62) 100%);
+}
+.town-hotspots{position:absolute;inset:0;z-index:4;pointer-events:none}
+.town-hotspot{
+  --hx:50%;--hy:50%;position:absolute;left:var(--hx);top:var(--hy);transform:translate(-50%,-50%);
+  width:48px;height:48px;border:0;background:transparent;padding:0;pointer-events:auto;
+  display:flex;align-items:center;justify-content:center;
+}
+.town-hotspot::before{
+  content:"";position:absolute;left:50%;top:50%;width:23px;height:23px;transform:translate(-50%,-50%) rotate(45deg);
+  background:rgba(2,7,9,.88);border:1px solid rgba(230,194,136,.82);box-shadow:0 2px 9px rgba(0,0,0,.68),inset 0 0 0 2px rgba(230,194,136,.07);
+  transition:transform .12s,border-color .12s,box-shadow .12s,background .12s;
+}
+.town-hotspot::after{
+  content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;transform:translate(-50%,-50%);
+  border-radius:50%;background:var(--lamp);box-shadow:0 0 7px rgba(230,194,136,.86),0 0 13px rgba(188,131,43,.38);
+}
+.town-hotspot span{
+  position:absolute;left:50%;top:calc(50% + 19px);transform:translateX(-50%);min-width:max-content;max-width:92px;
+  padding:2px 5px;border:1px solid rgba(138,117,80,.32);background:rgba(2,6,8,.90);
+  font-family:var(--cond);font-size:8px;line-height:1.15;letter-spacing:.07em;text-transform:uppercase;color:#c8c1b3;
+  text-shadow:0 1px 2px #000;white-space:nowrap;
+}
+.town-hotspot:hover::before,.town-hotspot:focus-visible::before,.town-hotspot.selected::before{
+  transform:translate(-50%,-50%) rotate(45deg) scale(1.12);border-color:#f0cb89;background:rgba(12,18,19,.94);
+  box-shadow:0 0 0 2px rgba(230,194,136,.13),0 0 14px rgba(230,194,136,.30),0 3px 10px rgba(0,0,0,.72);
+}
+.town-hotspot.selected span{color:var(--lamp);border-color:rgba(230,194,136,.52)}
+.town-map-hint{
+  position:absolute;z-index:5;left:10px;top:10px;padding:5px 7px;border:1px solid rgba(138,117,80,.30);
+  background:rgba(2,6,8,.86);font-family:var(--cond);font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#89949b;
+  pointer-events:none;
+}
+.town-location-panel{
+  position:absolute;z-index:8;left:9px;right:9px;bottom:9px;max-height:58%;overflow-y:auto;
+  border:10px solid transparent;border-image:url("./assets/ui/frame-panel.png") 30 fill / 10px / 0 stretch;
+  background:#020608;box-shadow:0 12px 32px rgba(0,0,0,.58);
+}
+.town-location-panel[hidden]{display:none}
+.town-location-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:3px 4px 7px;border-bottom:1px solid rgba(190,150,80,.20)}
+.town-location-head em{display:block;font-style:normal;font-family:var(--cond);font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--lamp-dim)}
+.town-location-head h2{margin:1px 0 0;font-family:var(--slab);font-size:18px;line-height:1.1;color:var(--bone);font-weight:600}
+.town-location-back{min-width:70px;border:1px solid var(--rule-hi);background:#071015;padding:7px 8px;font-family:var(--cond);font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+.town-location-copy{padding:8px 4px 4px}
+.town-location-copy p{margin:0;font-size:10.5px;line-height:1.4;color:#939da4}
+.town-location-copy small{display:block;margin-top:6px;font-family:var(--cond);font-size:8.5px;line-height:1.35;letter-spacing:.05em;color:#65717a}
+.town-location-actions{display:grid;gap:6px;padding:5px 4px 3px}
+.town-location-action{min-height:46px;border:1px solid var(--rule-hi);background:#081014;padding:8px 9px;text-align:left;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.town-location-action.primary{border-color:var(--lamp-dim);color:var(--lamp);background:#12130f}
+.town-location-action:disabled{opacity:.48;cursor:not-allowed}
+.town-depart-confirm{display:grid;grid-template-columns:1fr .72fr;gap:6px;padding:2px 4px 4px}
+.town-depart-confirm[hidden]{display:none}
+.town-depart-confirm button{min-height:48px;border:1px solid var(--rule-hi);background:#081013;padding:8px 9px;font-family:var(--cond);font-size:8.5px;line-height:1.3;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
+.town-depart-confirm .confirm{border-color:var(--lamp-dim);color:var(--lamp);background:#14130f}
+.town-footer{flex:0 0 auto;padding:0 12px calc(9px + env(safe-area-inset-bottom))}
+.town-state-card{padding:7px 9px;border:1px solid rgba(138,117,80,.22);background:#020608;font-size:9.5px;line-height:1.35;color:#77838b;text-align:center}
+.town-state-card b{color:#aeb7b9;font-weight:500}
+/* Authored route landmark. A town takes visual priority over incidental route
+   markers close enough to overlap it; the landmark remains anchored to its true depth. */
+.trail-landmark-html.town,.trail-landmark-html.city{
+  width:27px!important;height:37.5px!important;background-image:url("./assets/ui/town-mark-1.png")!important;
+  background-position:center bottom!important;background-repeat:no-repeat!important;background-size:contain!important;
+  border:0!important;box-shadow:none!important;transform:translate(-50%,-100%)!important;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.72))!important;
+}
+.trail-landmark-html.town::before,.trail-landmark-html.town::after,.trail-landmark-html.city::before,.trail-landmark-html.city::after{content:none!important;display:none!important}
+.trail-view.large .trail-landmark-html.town,.trail-view.large .trail-landmark-html.city{width:33px!important;height:46.5px!important}
+.trail-view.mini .trail-landmark-html.town,.trail-view.mini .trail-landmark-html.city{width:24px!important;height:33px!important}
+@media (max-height:650px){
+  .town-head p{display:none}.town-map-wrap{padding-top:7px}.town-state-card{padding:5px 8px}
+  .town-hotspot{width:44px;height:44px}.town-hotspot span{font-size:7.5px}
+}
 
 /* ---------- Session 5 / v0.083.6: Backpack + Equipment inventory sheet ---------- */
 .pack-sheet{
@@ -2825,6 +2928,42 @@ body.font-slab{--cf-serif:var(--slab)}
     </div>
   </section>
 
+  <section class="town-screen" id="townScreen" hidden aria-live="polite">
+    <header class="town-head">
+      <div class="town-head-row">
+        <div><em id="townMeta">Town · 50.0 fathoms</em><h1 id="townName">Grey Lantern</h1></div>
+        <button class="settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button>
+      </div>
+      <p id="townIntro">Travel and encounters are paused while you are inside. Choose a place directly on the town map.</p>
+    </header>
+    <div class="town-map-wrap">
+      <div class="town-map-shell" id="townMapShell" aria-label="Grey Lantern town map">
+        <div class="town-map-artboard" id="townMapArtboard">
+          <div class="town-hotspots" id="townHotspots" aria-label="Town locations"></div>
+          <div class="town-map-hint">Tap a marked place</div>
+        </div>
+        <section class="town-location-panel" id="townLocationPanel" hidden aria-live="polite">
+          <div class="town-location-head">
+            <div><em id="townLocationType">Location</em><h2 id="townLocationName">Market</h2></div>
+            <button class="town-location-back" id="btnTownLocationBack" type="button">Back to map</button>
+          </div>
+          <div class="town-location-copy">
+            <p id="townLocationDescription"></p>
+            <small id="townLocationStatus"></small>
+          </div>
+          <div class="town-location-actions" id="townLocationActions"></div>
+          <div class="town-depart-confirm" id="townDepartConfirm" hidden>
+            <button class="confirm" id="btnTownConfirmLeave" type="button">Leave Grey Lantern permanently</button>
+            <button id="btnTownCancelLeave" type="button">Stay in town</button>
+          </div>
+        </section>
+      </div>
+    </div>
+    <footer class="town-footer">
+      <div class="town-state-card"><b>Safe inside town.</b> Services are mapped in this phase; their gameplay opens in Phase 3.</div>
+    </footer>
+  </section>
+
   <div class="pack-sheet" id="packSheet" hidden>
     <div class="pack-scrim" id="packScrim"></div>
     <div class="pack-panel">
@@ -3357,7 +3496,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.101.20";
+const BUILD_VERSION = "v0.103.0";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -3381,6 +3520,50 @@ const TRAIL_W = 220;
 const TRAIL_H = 154;
 const TRAIL_MARKER_Y = 77;             // visually centered while the route slopes downward
 const TRAIL_VERTICAL_ZOOM = 0.80;      // compact minimap route height
+
+/* v0.103.0 Town Phase 2. Grey Lantern remains at 50 fathoms only for rapid
+   testing; later it can move to ~200 by changing this one authored depth.
+   Locations are data-driven so later towns/cities can reuse the same map engine. */
+const TOWN_DEFS = Object.freeze([
+  Object.freeze({
+    id:"grey-lantern",name:"Grey Lantern",kind:"town",depth:50,
+    image:"./assets/ui/town-grey-lantern.png",aspectRatio:"4 / 3",
+    locations:Object.freeze([
+      Object.freeze({id:"market",name:"Market",type:"Trade",x:50.0,y:45.5,description:"The central market district.",status:"Trading opens in Town Phase 3."}),
+      Object.freeze({id:"inn",name:"Rest House",type:"Recovery",x:31.5,y:57.0,description:"The town's inn and rest house.",status:"Town recovery opens in Town Phase 3."}),
+      Object.freeze({id:"apothecary",name:"Apothecary",type:"Medicine",x:68.5,y:46.0,description:"The apothecary and healer's quarter.",status:"Medical services open in Town Phase 3."}),
+      Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:78.0,y:31.5,description:"A hall used by delvers, guards, and local employers.",status:"Quest interaction opens with the quest phase."}),
+      Object.freeze({id:"lower-gate",name:"Lower Gate",type:"Departure",x:48.5,y:83.0,description:"The road out of Grey Lantern continues deeper.",status:"Departure is permanent; you cannot travel back to this town.",departure:true})
+    ])
+  })
+]);
+function townDefById(id){ return TOWN_DEFS.find(t=>t.id===id)||null; }
+function townLocationById(def,id){ return def?.locations?.find(loc=>loc.id===id)||null; }
+function ensureTownState(){
+  if(!S) return null;
+  const state=(S.townState&&typeof S.townState==="object"&&!Array.isArray(S.townState))?S.townState:{};
+  state.currentId=typeof state.currentId==="string"?state.currentId:null;
+  state.visited=(state.visited&&typeof state.visited==="object"&&!Array.isArray(state.visited))?state.visited:{};
+  state.departed=(state.departed&&typeof state.departed==="object"&&!Array.isArray(state.departed))?state.departed:{};
+  if(state.currentId&&!townDefById(state.currentId)) state.currentId=null;
+  S.townState=state;
+  return state;
+}
+function currentTown(){
+  const state=ensureTownState();
+  return state?.currentId?townDefById(state.currentId):null;
+}
+function findCrossedTown(beforeDepth,afterDepth){
+  const state=ensureTownState();
+  if(!state||state.currentId) return null;
+  const before=Number(beforeDepth)||0,after=Number(afterDepth)||0;
+  return TOWN_DEFS.find(t=>!state.departed[t.id]&&before<t.depth&&after>=t.depth)||null;
+}
+function townAtCurrentDepth(){
+  const state=ensureTownState();
+  if(!state||state.currentId) return null;
+  return TOWN_DEFS.find(t=>!state.departed[t.id]&&Math.abs((Number(S?.depth)||0)-t.depth)<0.001)||null;
+}
 
 /* Strike momentum prototype. Normal Strike is unchanged. Double Strike lands just
    below the first 2.7× Heavy; Perfect Strike sits above it but below 4.7× Heavy. */
@@ -3648,7 +3831,7 @@ let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 7;
+const SAVE_SCHEMA = 8;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -4039,6 +4222,7 @@ function newDelver(profile){
     runAttemptStratum:0, runAttempts:0,
     descentXpMaxDepth:0, descentXpPending:0,
     lootHistory:[], pendingLoot:null, combatLog:[], concealment:null, stealthOpportunitySeq:0,pendingMerchant:null,merchantVisits:0,merchantHistory:[],
+    townState:{currentId:null,visited:{},departed:{}},
     turn:1, foe:null
   };
 
@@ -4175,6 +4359,7 @@ function openCreator({keepChoices=true}={}){
   if(!keepChoices) creatorDraft = {name:"",folk:null,trade:null,origin:null,className:null,startingLoadout:null,humanPlus2:null,humanPlus1:null,humanMinus2:null};
   else creatorDraft.name = "";
   document.querySelectorAll(".dead").forEach(n => n.remove());
+  if($("townScreen")) $("townScreen").hidden=true;
   $("creator").hidden = false;
   renderCreator();
   setTimeout(() => $("creatorName")?.focus(), 0);
@@ -4583,7 +4768,7 @@ function renderLevelUpNotice(){
   $("levelupBar").style.transform=`scaleX(${frac})`;
 }
 function travelBrowsingContextAvailable(){
-  if(!S || over || S.foe || S.travelEvent || S.activeHollow || S.pendingBoonChoice) return false;
+  if(!S || over || currentTown() || S.foe || S.travelEvent || S.activeHollow || S.pendingBoonChoice) return false;
   if(sideAreaActive() || encounterWarningActive()) return false;
   const creator=$("creator");
   return !creator || creator.hidden;
@@ -4596,7 +4781,7 @@ function browsingSheetOpen(){
 function syncTravelMapMode(){
   const travel=$("travel"),creator=$("creator"),middleVisual=$("travelMiddleVisual");
   if(!travel) return false;
-  const travelVisible=!!S && !over && !S.foe && (creator?.hidden ?? true);
+  const travelVisible=!!S && !over && !currentTown() && !S.foe && (creator?.hidden ?? true);
   const browseMini=travelVisible && browsingSheetOpen();
   travel.classList.toggle("browse-mini-map",browseMini);
   if(middleVisual){
@@ -4610,7 +4795,7 @@ function syncBrowseTravelUI(){
   const show=travelBrowsingContextAvailable() && browsingSheetOpen();
   if(arena) arena.classList.toggle("browse-descent-visible",show);
   if(settingsSheet){
-    const travelContext=!!S && !over && !S.foe && ($("creator")?.hidden ?? true);
+    const travelContext=!!S && !over && !currentTown() && !S.foe && ($("creator")?.hidden ?? true);
     settingsSheet.classList.toggle("travel-browse",travelContext);
   }
   if(!controls) return;
@@ -5876,8 +6061,94 @@ async function handleTravelEventAction(action){
   }
 }
 
+let townDepartureArmed=false;
+let townLocationOpenId=null;
+function closeTownBlockingSheets(){
+  if($("packSheet")) $("packSheet").hidden=true;
+  if($("sheet")) $("sheet").hidden=true;
+  if($("charSheet")) $("charSheet").hidden=true;
+  if($("lootHistorySheet")) $("lootHistorySheet").hidden=true;
+  if($("settingsSheet")) $("settingsSheet").hidden=true;
+  if(S) S.packMode=null;
+  packReturnTarget=null;
+  selectedLootHistoryId=null;
+  townDepartureArmed=false;
+  townLocationOpenId=null;
+}
+function enterTown(def){
+  if(!S||!def||over||S.foe||S.travelEvent||S.activeHollow) return false;
+  const state=ensureTownState();
+  if(!state||state.departed[def.id]) return false;
+  pauseBoonClock();
+  clearHollowTimer();
+  closeTownBlockingSheets();
+  S.depth=Number(def.depth)||S.depth;
+  S.exploreElapsedMs=0;S.exploreDepth=S.depth;
+  S.travelMode="stopped";S.travelSinceEvent=0;
+  state.currentId=def.id;state.visited[def.id]=true;
+  travelLogAdd(`You reach <b>${esc(def.name)}</b> at <b>${formatDepth(def.depth)} fathoms</b>. The descent waits beyond its lower gate.`,"beat");
+  render();requestRunSave();
+  return true;
+}
+function openTownLocation(id){
+  const def=currentTown();if(!def||!townLocationById(def,id))return;
+  townLocationOpenId=id;townDepartureArmed=false;renderTown();
+}
+function closeTownLocation(){
+  townLocationOpenId=null;townDepartureArmed=false;renderTown();
+}
+function armTownDeparture(){
+  const def=currentTown(),loc=townLocationById(def,townLocationOpenId);
+  if(!loc?.departure)return;
+  townDepartureArmed=true;renderTown();
+}
+function departCurrentTown(){
+  const def=currentTown();if(!S||!def)return false;
+  const state=ensureTownState();
+  state.visited[def.id]=true;state.departed[def.id]=true;state.currentId=null;
+  townDepartureArmed=false;townLocationOpenId=null;
+  S.travelMode="stopped";S.travelSinceEvent=0;
+  travelLogAdd(`You leave <b>${esc(def.name)}</b> through the lower gate. There is no road back for you.`,"beat");
+  render();saveRunNow();
+  return true;
+}
+function renderTown(){
+  const screen=$("townScreen");if(!screen)return;
+  const def=!over?currentTown():null;
+  screen.hidden=!def;
+  if(!def){townDepartureArmed=false;townLocationOpenId=null;return;}
+  $("townMeta").textContent=`${def.kind==="city"?"City":"Town"} · ${formatDepth(def.depth)} fathoms`;
+  $("townName").textContent=def.name;
+  const art=$("townMapArtboard");
+  if(art){art.style.backgroundImage=`url("${def.image}")`;art.style.aspectRatio=def.aspectRatio||"4 / 3";}
+  const loc=townLocationById(def,townLocationOpenId);
+  if(townLocationOpenId&&!loc){townLocationOpenId=null;townDepartureArmed=false;}
+  const active=townLocationById(def,townLocationOpenId);
+  const hotspots=$("townHotspots");
+  if(hotspots){
+    hotspots.innerHTML=(def.locations||[]).map(place=>`<button class="town-hotspot${active?.id===place.id?" selected":""}" type="button" data-town-location="${esc(place.id)}" style="--hx:${Number(place.x)||50}%;--hy:${Number(place.y)||50}%" aria-label="Open ${esc(place.name)}"><span>${esc(place.name)}</span></button>`).join("");
+  }
+  const panel=$("townLocationPanel");
+  if(panel)panel.hidden=!active;
+  if(active){
+    $("townLocationType").textContent=active.type||"Location";
+    $("townLocationName").textContent=active.name;
+    $("townLocationDescription").textContent=active.description||"";
+    $("townLocationStatus").textContent=active.status||"";
+    const actions=$("townLocationActions");
+    if(actions){
+      actions.innerHTML=active.departure
+        ? `<button class="town-location-action primary" id="btnTownLocationLeave" type="button">Leave through the lower gate</button>`
+        : `<button class="town-location-action" type="button" disabled>Service opens in a later phase</button>`;
+    }
+  }
+  const confirm=$("townDepartConfirm");if(confirm)confirm.hidden=!townDepartureArmed;
+  const actionLeave=$("btnTownLocationLeave");if(actionLeave)actionLeave.hidden=townDepartureArmed;
+  $("btnTownConfirmLeave").textContent=`Leave ${def.name} permanently`;
+}
+
 function startTravel(mode){
-  if(encounterWarningActive() || !S || over || S.foe || S.travelEvent || S.activeHollow || S.pendingBoonChoice) return;
+  if(encounterWarningActive() || !S || over || currentTown() || S.foe || S.travelEvent || S.activeHollow || S.pendingBoonChoice) return;
   if(sideAreaActive()&&mode==="explore"){
     if(S.travelMode==="side") return promptSideRetreat();
     S.travelMode="side";
@@ -5920,6 +6191,15 @@ function travelInterruptionChance(){
 function runTravelTickCore(){
   syncSidePassageStratum();
   if(!S || over) return;
+  ensureTownState();
+  if(currentTown()){
+    if(S.travelMode!=="stopped"){S.travelMode="stopped";pauseBoonClock();}
+    return;
+  }
+  if(!S.foe && !S.travelEvent && !S.activeHollow && S.travelMode==="descend"){
+    const waitingTown=townAtCurrentDepth();
+    if(waitingTown) return enterTown(waitingTown);
+  }
 
   if(!S.foe && !S.travelEvent && !S.sideDiscoveryAttempted && !S.sideAreaResolved && !sideAreaActive() &&
      (S.travelMode==="descend" || S.travelMode==="explore") && S.depth>=4){
@@ -5980,6 +6260,8 @@ function runTravelTickCore(){
     }
     const afterStratum=stratumIndex(S.depth);
     if(afterStratum!==beforeStratum) travelLogAdd(`You cross into <b>${esc(stratumName(afterStratum))}</b>.`,"beat");
+    const town=findCrossedTown(beforeDepth,S.depth);
+    if(town){S.depth=town.depth;S.exploreDepth=S.depth;enterTown(town);return;}
     const hollow=findCrossedHollow(beforeDepth,S.depth);
     if(hollow){ discoverHollow(hollow); return; }
   }
@@ -7137,7 +7419,9 @@ function trailStructureSignature(){
   const bosses=`${Object.entries(S?.midBossDefeated||{}).filter(([,v])=>v).map(([k])=>k).join(",")}/${Object.entries(S?.bossDefeated||{}).filter(([,v])=>v).map(([k])=>k).join(",")}`;
   const hollows=Object.entries(S?.hollowStates||{}).map(([k,v])=>`${k}:${v}`).join(",");
   const sideDiscovery=`${S?.sideDiscoveryAttempted?1:0}:${Number(S?.sideDiscoveryAt||0).toFixed(2)}`;
-  return `${active?1:0}:${activeProgress}:${area?.entryDepth??"-"}:${history}:${merchants}:${currentMerchantDepth}:${bosses}:${hollows}:${sideDiscovery}`;
+  const ts=ensureTownState();
+  const towns=TOWN_DEFS.map(t=>`${t.id}:${ts?.visited?.[t.id]?1:0}:${ts?.departed?.[t.id]?1:0}:${ts?.currentId===t.id?1:0}`).join("|");
+  return `${active?1:0}:${activeProgress}:${area?.entryDepth??"-"}:${history}:${merchants}:${currentMerchantDepth}:${bosses}:${hollows}:${sideDiscovery}:${towns}`;
 }
 
 function syncLargeTrailLabels(layerId,labelPositions){
@@ -7201,7 +7485,15 @@ function rebuildTrailWorld(target,anchorDepth){
     marks+=`<line class="trail-boundary" x1="${x.toFixed(2)}" y1="${(TRAIL_MARKER_Y-TRAIL_H).toFixed(2)}" x2="${x.toFixed(2)}" y2="${(TRAIL_MARKER_Y+TRAIL_H).toFixed(2)}"></line>`;
   }
   const landmarks=[];
-  const addLandmark=(type,depth,visited=false,title="")=>{if(depth>=worldFrom-.001&&depth<=worldTo+.001)landmarks.push({type,depth,visited,title});};
+  const TOWN_LANDMARK_CLEARANCE=3.6; // fathoms; prevents authored town pins from visually stacking with incidental markers
+  const nearAuthoredTown=depth=>TOWN_DEFS.some(t=>Math.abs(Number(t.depth)-Number(depth))<TOWN_LANDMARK_CLEARANCE);
+  const addLandmark=(type,depth,visited=false,title="")=>{
+    if(depth<worldFrom-.001||depth>worldTo+.001)return;
+    if(type!=="town"&&type!=="city"&&nearAuthoredTown(depth))return;
+    landmarks.push({type,depth,visited,title});
+  };
+  const ts=ensureTownState();
+  for(const t of TOWN_DEFS) addLandmark(t.kind==="city"?"city":"town",t.depth,!!ts?.departed?.[t.id],t.name);
   const cm=currentMerchant();if(cm)addLandmark("merchant",cm.depth,false,`${cm.title} ${cm.name}`);
   for(const h of (S.merchantHistory||[]))addLandmark("merchant",Number(h.depth)||0,true,h.name||"Merchant camp");
   const firstStratum=Math.max(0,Math.floor(worldFrom/FATHOMS_PER_STRATUM)),lastStratum=Math.max(firstStratum,Math.floor(worldTo/FATHOMS_PER_STRATUM));
@@ -7368,7 +7660,7 @@ function renderSafeHollow(){
 
 function renderTravel(){
   const travel=$("travel");
-  const show=!!S&&!S.foe&&!over;
+  const show=!!S&&!S.foe&&!over&&!currentTown();
   travel.hidden=!show;
   if(!show) return;
   syncTravelMapMode();
@@ -7455,6 +7747,7 @@ function renderTravel(){
 function render(){
   checkBoonExpiry();
   renderCombatHeader();
+  renderTown();
   renderTravel();
   renderActiveBoon();
   renderBoonChoice();
@@ -10227,13 +10520,30 @@ function migrateSave6To7(snapshot){
   }
   return next;
 }
+function migrateSave7To8(snapshot){
+  const next=cloneForSave(snapshot);next.schema=8;
+  const state=next.state;
+  if(isSaveRecord(state)){
+    if(!isSaveRecord(state.townState)) state.townState={currentId:null,visited:{},departed:{}};
+    if(!isSaveRecord(state.townState.visited)) state.townState.visited={};
+    if(!isSaveRecord(state.townState.departed)) state.townState.departed={};
+    if(typeof state.townState.currentId!=="string") state.townState.currentId=null;
+    // Saves already deeper than the temporary test town must never be pulled
+    // backward into it after updating. Treat the authored location as passed.
+    for(const town of TOWN_DEFS){
+      if((Number(state.depth)||0)>town.depth+.001 && state.townState.currentId!==town.id) state.townState.departed[town.id]=true;
+    }
+  }
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
   3:migrateSave3To4,
   4:migrateSave4To5,
   5:migrateSave5To6,
-  6:migrateSave6To7
+  6:migrateSave6To7,
+  7:migrateSave7To8
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -10432,6 +10742,11 @@ function normalizeRestoredRun(){
   S.bossDefeated=S.bossDefeated||{};S.midBossDefeated=S.midBossDefeated||{};
   S.seenFoes=S.seenFoes||{};
   S.seenTravelEvents=S.seenTravelEvents||{};
+  const restoredTowns=ensureTownState();
+  for(const town of TOWN_DEFS){
+    if(S.depth>town.depth+.001 && restoredTowns.currentId!==town.id) restoredTowns.departed[town.id]=true;
+  }
+  if(restoredTowns.currentId){S.travelMode="stopped";}
   S.skillPracticeSources=S.skillPracticeSources||{};
   ensureSkillDiagnostics();
   if(S.bleeding){
@@ -10563,7 +10878,7 @@ function restoreRun(snapshot){
       levelUpNoticeDeadline=performance.now()+Math.max(0,snapshot.levelUpNotice.remainingMs||0);
     }
 
-    if(S.boon && (S.travelMode==="descend"||S.travelMode==="explore"||S.travelMode==="side") && !S.foe && !S.travelEvent && !S.activeHollow && !encounterWarningState && !over) resumeBoonClock();
+    if(S.boon && !currentTown() && (S.travelMode==="descend"||S.travelMode==="explore"||S.travelMode==="side") && !S.foe && !S.travelEvent && !S.activeHollow && !encounterWarningState && !over) resumeBoonClock();
 
     say(`<p class="note">Chronicle restored at <b>${formatDepth(S.depth)} fathoms</b>.</p>`);
     render();
@@ -10633,6 +10948,13 @@ function renderTravelLogCollapse(){
   const text=btn.querySelector(".travel-log-toggle-text");if(text)text.textContent=travelLogExpanded?"full history":"latest only";
   if(travelLogExpanded){const log=$("travelLog");if(log)requestAnimationFrame(()=>{log.scrollTop=log.scrollHeight;});}
 }
+$("townHotspots")?.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-town-location]");if(btn)openTownLocation(btn.dataset.townLocation);
+});
+$("btnTownLocationBack")?.addEventListener("click",closeTownLocation);
+$("townLocationActions")?.addEventListener("click",e=>{if(e.target.closest("#btnTownLocationLeave"))armTownDeparture();});
+$("btnTownCancelLeave")?.addEventListener("click",()=>{townDepartureArmed=false;renderTown();});
+$("btnTownConfirmLeave")?.addEventListener("click",departCurrentTown);
 $("btnTravelLogToggle").addEventListener("click",()=>{travelLogExpanded=!travelLogExpanded;renderTravelLogCollapse();});
 $("btnCombatLogToggle").addEventListener("click",()=>setCombatHistoryOpen(true));
 $("btnCombatHistoryBack").addEventListener("click",()=>setCombatHistoryOpen(false));

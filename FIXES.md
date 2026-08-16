@@ -11,8 +11,8 @@ Explore maybe have it a tiny button within the button that gives information on 
 
 Combat log size.
 
-Recover perhaps reducing the stamina to 2 from 3.
+Recover perhaps reducing the stamina to 2 from 3.  (Done)
 
-
+Combat change: All attacks are perfect but no combat intent so true blind rock paper scissors unless use read it (or different version of it) this way you know what 
 
 
