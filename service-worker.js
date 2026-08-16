@@ -8,7 +8,7 @@
   forgotten/optional image cannot abort the entire service-worker install and
   strand the installed PWA on an older cache.
 */
-const CACHE_NAME = "lowfathom-v0.105.3";
+const CACHE_NAME = "lowfathom-v0.106.1";
 
 const CORE_SHELL = [
   "./",
@@ -74,7 +74,11 @@ const APP_ASSETS = [
   "./assets/ui/tex-stone.png",
   "./assets/ui/travel-merchant-mark.png",
   "./assets/ui/town-mark-1.png",
+  "./assets/ui/city-mark.png",
+  "./assets/ui/gold-question-mark.png",
+  "./assets/ui/excl-silver-mark.png",
   "./assets/ui/town-grey-lantern.png",
+  "./assets/ui/city-lantern.png",
   "./assets/fathom-die/obsidian/theme.config.json",
   "./assets/fathom-die/obsidian/diffuse-dark.png",
   "./assets/fathom-die/obsidian/diffuse-light.png",

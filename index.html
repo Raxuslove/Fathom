@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.105.3 — Faster Post-Combat Reveal</title>
+<title>Lowfathom v0.106.1 — Recovery Economy Pass</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -167,6 +167,8 @@
    - v0.105.1: post-combat resolution pass — defeated encounters collapse combat actions/intent, surface collected loot and optional Investigation immediately, then wait for Continue
    - v0.105.2: post-combat reveal timing — lethal results linger for 3 seconds, obsolete turn UI fades away, then Recovered enters as the resolution panel
    - v0.105.3: faster post-combat reveal — turn UI begins fading at 1.5 seconds and Recovered appears at 2.0 seconds
+   - v0.106.1: recovery economy pass — Grey Lantern moved to 150, Lantern City to 450, Ashwick to 550; lodging costs 10/20 sc with a smaller boon list; Camp Supply healing reduced to 50% Max HP
+   - v0.106.0: Town Phase 5 — Lantern City at 200 fathoms, Ashwick test town at 250, settlement-based quest turn-ins, city marker art, quest hotspot indicators and a second fetch-and-forward contract
    - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
@@ -659,6 +661,19 @@ button{
   box-shadow:0 0 0 2px rgba(230,194,136,.13),0 0 14px rgba(230,194,136,.30),0 3px 10px rgba(0,0,0,.72);
 }
 .town-hotspot.selected span{color:var(--lamp);border-color:rgba(230,194,136,.52)}
+/* Phase 5: quest state can temporarily replace a location's ordinary diamond.
+   Silver ! = a contract is available here. Gold ? = an active quest resolves here. */
+.town-hotspot.quest-available::before,.town-hotspot.quest-target::before{
+  width:30px;height:36px;transform:translate(-50%,-50%);border:0;box-shadow:none;background-color:transparent;
+  background-position:center;background-repeat:no-repeat;background-size:contain;
+}
+.town-hotspot.quest-available::before{background-image:url("./assets/ui/excl-silver-mark.png")}
+.town-hotspot.quest-target::before{background-image:url("./assets/ui/gold-question-mark.png")}
+.town-hotspot.quest-available::after,.town-hotspot.quest-target::after{display:none}
+.town-hotspot.quest-available:hover::before,.town-hotspot.quest-available:focus-visible::before,.town-hotspot.quest-available.selected::before,
+.town-hotspot.quest-target:hover::before,.town-hotspot.quest-target:focus-visible::before,.town-hotspot.quest-target.selected::before{
+  transform:translate(-50%,-50%) scale(1.10);filter:drop-shadow(0 0 8px rgba(230,194,136,.38));
+}
 .town-map-hint{
   position:absolute;z-index:5;left:10px;top:10px;padding:5px 7px;border:1px solid rgba(138,117,80,.30);
   background:rgba(2,6,8,.86);font-family:var(--cond);font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#89949b;
@@ -707,17 +722,20 @@ button{
 .town-footer-pack b{font-family:var(--slab);font-size:13px;font-weight:600;color:var(--bone)}
 .town-footer-pack span{margin-top:2px;font-family:var(--cond);font-size:9.5px;line-height:1.2;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
 .town-footer-pack:active{background:var(--travel-bg)}
-/* Authored route landmark. A town takes visual priority over incidental route
-   markers close enough to overlap it; the landmark remains anchored to its true depth. */
+/* Authored settlement route landmarks. Towns keep the established town pin.
+   Cities use their own marker and are exactly 25% larger at every map scale. */
 .trail-landmark-html.town,.trail-landmark-html.city{
-  width:40.5px!important;height:56.25px!important;background-image:url("./assets/ui/town-mark-1.png")!important;
   background-position:center bottom!important;background-repeat:no-repeat!important;background-size:contain!important;
   border:0!important;box-shadow:none!important;transform:translate(-50%,-100%)!important;
   filter:drop-shadow(0 2px 3px rgba(0,0,0,.72))!important;
 }
+.trail-landmark-html.town{width:40.5px!important;height:56.25px!important;background-image:url("./assets/ui/town-mark-1.png")!important}
+.trail-landmark-html.city{width:50.625px!important;height:70.3125px!important;background-image:url("./assets/ui/city-mark.png")!important}
 .trail-landmark-html.town::before,.trail-landmark-html.town::after,.trail-landmark-html.city::before,.trail-landmark-html.city::after{content:none!important;display:none!important}
-.trail-view.large .trail-landmark-html.town,.trail-view.large .trail-landmark-html.city{width:49.5px!important;height:69.75px!important}
-.trail-view.mini .trail-landmark-html.town,.trail-view.mini .trail-landmark-html.city{width:30px!important;height:42px!important}
+.trail-view.large .trail-landmark-html.town{width:49.5px!important;height:69.75px!important}
+.trail-view.large .trail-landmark-html.city{width:61.875px!important;height:87.1875px!important}
+.trail-view.mini .trail-landmark-html.town{width:30px!important;height:42px!important}
+.trail-view.mini .trail-landmark-html.city{width:37.5px!important;height:52.5px!important}
 @media (max-height:740px){
   .town-map-wrap{padding-top:7px}
   .town-map-shell{max-width:min(100%, calc((100vh - 430px) * 4 / 3));margin:0 auto}
@@ -3010,7 +3028,7 @@ body.font-slab{--cf-serif:var(--slab)}
         <h2 id="safeHollowTitle">Defensible ground</h2>
         <p id="safeHollowText">You can make camp here once, or leave it behind.</p>
         <div class="hollow-actions">
-          <button class="hollow-btn camp" id="btnCampHere"><b>Make camp</b><span id="campHereSub">1 Camp Supply · full recovery</span></button>
+          <button class="hollow-btn camp" id="btnCampHere"><b>Make camp</b><span id="campHereSub">1 Camp Supply · 50% Max HP + full resources</span></button>
           <button class="hollow-btn continue" id="btnLeaveHollow"><b>Continue</b><span>leave this hollow behind</span></button>
         </div>
         <div class="hollow-countdown" id="hollowCountdown"></div>
@@ -3343,12 +3361,12 @@ body.font-slab{--cf-serif:var(--slab)}
   <div class="boonpick" id="boonPick" hidden>
     <div class="boonpick-panel">
       <div class="boonpick-head">
-        <em>Camp boon</em>
-        <b>Choose how you prepare</b>
-        <p>One boon active at a time · 10 minutes of active delve time · paused whenever you are not Descending or Exploring.</p>
+        <em id="boonPickKind">Camp boon</em>
+        <b id="boonPickTitle">Choose how you prepare</b>
+        <p id="boonPickText">One boon active at a time · 10 minutes of active delve time · paused whenever you are not Descending or Exploring.</p>
       </div>
       <div id="boonOptions"></div>
-      <div class="boonpick-note">Prototype boon set. Camp fully restores you first; the boon then shapes the next stretch of the delve.</div>
+      <div class="boonpick-note" id="boonPickNote">Camp restores 50% of Max HP plus your other combat resources; the boon shapes the next stretch of the delve.</div>
     </div>
   </div>
 
@@ -3655,7 +3673,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.105.3";
+const BUILD_VERSION = "v0.106.1";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -3680,12 +3698,13 @@ const TRAIL_H = 154;
 const TRAIL_MARKER_Y = 77;             // visually centered while the route slopes downward
 const TRAIL_VERTICAL_ZOOM = 0.80;      // compact minimap route height
 
-/* v0.104.1 Town trim pass. Grey Lantern remains at 50 fathoms only for rapid
-   testing; later it can move to ~200 by changing this one authored depth.
-   Town defs can now also tune their map framing with a custom aspect ratio and vertical focal point. */
+/* v0.106.1 recovery/economy test spacing. Grey Lantern is Town A at 150 fathoms,
+   Lantern City is the test city at 450, and Ashwick remains the temporary Town C
+   at 550 so every authored delivery still moves strictly deeper. Ashwick continues
+   to reuse Grey Lantern art until its own settlement pass. */
 const TOWN_DEFS = Object.freeze([
   Object.freeze({
-    id:"grey-lantern",name:"Grey Lantern",kind:"town",depth:50,
+    id:"grey-lantern",name:"Grey Lantern",kind:"town",depth:150,
     image:"./assets/ui/town-grey-lantern.png",aspectRatio:"4 / 4.55",focusY:"43%",
     locations:Object.freeze([
       Object.freeze({id:"market",name:"Market",type:"Trade",x:49.0,y:44.0,description:"The central market district.",service:"market"}),
@@ -3694,28 +3713,65 @@ const TOWN_DEFS = Object.freeze([
       Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:80.0,y:28.5,description:"A hall used by delvers, guards, and local employers.",service:"guild"}),
       Object.freeze({id:"lower-gate",name:"Lower Gate",type:"Departure",x:48.5,y:83.0,description:"The road out of Grey Lantern continues deeper.",status:"Departure is permanent; you cannot travel back to this town.",departure:true})
     ])
+  }),
+  Object.freeze({
+    id:"lantern-city",name:"Lantern City",kind:"city",depth:450,
+    image:"./assets/ui/city-lantern.png",aspectRatio:"4 / 4.55",focusY:"43%",
+    locations:Object.freeze([
+      Object.freeze({id:"market",name:"Market",type:"Trade",x:49.0,y:44.0,description:"Lantern City's crowded trade quarter.",service:"market"}),
+      Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"A large rest house serving delvers and caravan crews.",service:"tavern"}),
+      Object.freeze({id:"herbalist",name:"Herbalist",npcName:"Mara Venn",type:"Medicine",x:70.0,y:45.0,description:"Mara Venn keeps a medicine shop here and receives field samples for Grey Lantern.",service:"herbalist"}),
+      Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:80.0,y:28.5,description:"Lantern City's Guild Hall posts work for the road below.",service:"guild"}),
+      Object.freeze({id:"lower-gate",name:"Lower Gate",type:"Departure",x:48.5,y:83.0,description:"The lower road leaves Lantern City and continues into the dark.",status:"Departure is permanent; you cannot travel back to this city.",departure:true})
+    ])
+  }),
+  Object.freeze({
+    id:"ashwick",name:"Ashwick",kind:"town",depth:550,
+    image:"./assets/ui/town-grey-lantern.png",aspectRatio:"4 / 4.55",focusY:"43%",
+    locations:Object.freeze([
+      Object.freeze({id:"market",name:"Market",type:"Trade",x:49.0,y:44.0,description:"Ashwick's temporary test market.",service:"market"}),
+      Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"A small rest house near the lower road.",service:"tavern"}),
+      Object.freeze({id:"herbalist",name:"Herbalist",type:"Medicine",x:70.0,y:45.0,description:"A local herbalist serving the settlement.",service:"herbalist"}),
+      Object.freeze({id:"guild",name:"Guild Hall",npcName:"Toren Kest",type:"Contracts",x:80.0,y:28.5,description:"Quartermaster Toren Kest receives Guild material forwarded from Lantern City.",service:"guild"}),
+      Object.freeze({id:"lower-gate",name:"Lower Gate",type:"Departure",x:48.5,y:83.0,description:"The descent continues beyond Ashwick.",status:"Departure is permanent; you cannot travel back to this town.",departure:true})
+    ])
   })
 ]);
 /* ============================================================
-   v0.105.0 — TOWN PHASE 4 QUEST ENGINE
-   Definitions are immutable authored recipes. A save stores only accepted
-   quest instances, their resolved destination/reward, and real quest-bound
-   Backpack items. This keeps later balance edits from mutating old contracts.
+   v0.106.0 — TOWN PHASE 5 DELIVERY LOOP
+   Quest instances now resolve authored settlement/location destinations. The
+   generic depth-event path remains available for future ruins, camps and other
+   non-settlement hand-ins. Quest items stay instance-bound and proportional
+   quota rewards remain locked when the contract is accepted.
    ============================================================ */
 const QUEST_DEFS = Object.freeze([
   Object.freeze({
     id:"grey-lantern-cave-mushrooms",title:"Cave Mushroom Samples",kind:"quota-delivery",
     giverTownId:"grey-lantern",giverLocationId:"guild",giverName:"Grey Lantern Guild Hall",
-    targetName:"Lower Guild Relay",targetOffset:60,repeatable:false,
-    summary:"Gather up to 5 cave mushrooms during the descent and deliver what you recover to the lower Guild relay.",
-    details:"The Guild pays by usable sample rather than requiring a perfect set. The contract resolves at the lower relay even if you arrive with fewer than five.",
-    lore:"A practical field order from Grey Lantern: bring back what survives the road. The relay will not hold the descent open for missing samples.",
+    targetTownId:"lantern-city",targetLocationId:"herbalist",targetNpcName:"Mara Venn",targetName:"Mara Venn · Lantern City Herbalist",repeatable:false,
+    summary:"Gather up to 5 cave mushrooms during the descent and deliver what you recover to Mara Venn in Lantern City.",
+    details:"Grey Lantern's Guild wants fresh samples carried forward to Lantern City. Mara Venn pays by usable sample, so arriving with fewer than five still earns a proportional reward.",
+    lore:"A practical field order from Grey Lantern: gather what survives the road and place it directly in the hands of Lantern City's herbalist.",
     objectives:Object.freeze([Object.freeze({
       id:"mushrooms",type:"quota-item",required:5,
-      item:Object.freeze({id:"quest-cave-mushroom",name:"Cave Mushroom",desc:"A cave mushroom gathered under this specific Guild contract.",onAbandon:"convert",mundaneName:"Cave Mushroom"}),
+      item:Object.freeze({id:"quest-cave-mushroom",name:"Cave Mushroom",desc:"A cave mushroom gathered under this specific Grey Lantern contract.",onAbandon:"convert",mundaneName:"Cave Mushroom"}),
       sources:Object.freeze(["combat","explore"]),combatChance:.36,exploreChance:.55,exploreInterval:1.25
     })]),
     reward:Object.freeze({goldPerUnit:10,maxGold:50})
+  }),
+  Object.freeze({
+    id:"lantern-city-deepglass",title:"Deepglass Forwarding Order",kind:"quota-delivery",
+    giverTownId:"lantern-city",giverLocationId:"guild",giverName:"Lantern City Guild Hall",
+    targetTownId:"ashwick",targetLocationId:"guild",targetNpcName:"Toren Kest",targetName:"Toren Kest · Ashwick Guild Hall",repeatable:false,
+    summary:"Recover up to 4 deepglass fragments below Lantern City and carry them forward to Toren Kest in Ashwick.",
+    details:"The Guild pays for every intact fragment that reaches Ashwick. The order is deliberately capped; once four contract fragments are secured, no more are marked for this job.",
+    lore:"Deepglass is common enough to find and fragile enough that every surviving piece matters. Lantern City wants the samples moved downward, not returned upward.",
+    objectives:Object.freeze([Object.freeze({
+      id:"deepglass",type:"quota-item",required:4,
+      item:Object.freeze({id:"quest-deepglass-fragment",name:"Deepglass Fragment",desc:"A dark glassy fragment gathered for Lantern City's forwarding order.",onAbandon:"convert",mundaneName:"Deepglass Fragment"}),
+      sources:Object.freeze(["combat","explore"]),combatChance:.34,exploreChance:.52,exploreInterval:1.25
+    })]),
+    reward:Object.freeze({goldPerUnit:14,maxGold:56})
   })
 ]);
 function questDefById(id){return QUEST_DEFS.find(q=>q.id===id)||null;}
@@ -3778,6 +3834,15 @@ function questProgressText(inst){
   return state?`${state.current||0} / ${state.required||1}`:"";
 }
 function questAtTownLocation(townId,locationId){return QUEST_DEFS.find(q=>q.giverTownId===townId&&q.giverLocationId===locationId)||null;}
+function questTurnInsAtTownLocation(townId,locationId){
+  return questInstances("active").filter(inst=>{const def=questDefById(inst.definitionId);return (inst.targetTownId||def?.targetTownId)===townId&&(inst.targetLocationId||def?.targetLocationId)===locationId;});
+}
+function questDestinationText(inst){
+  const def=questDefById(inst?.definitionId);if(!inst||!def)return "—";
+  const town=townDefById(inst.targetTownId||def.targetTownId),loc=townLocationById(town,inst.targetLocationId||def.targetLocationId),npc=inst.targetNpcName||def.targetNpcName;
+  if(town)return `${town.name} · ${loc?.name||def.targetName||"Destination"}${npc?` · ${npc}`:""} · ${formatDepth(inst.targetDepth)} fathoms`;
+  return `${formatDepth(inst.targetDepth)} fathoms · ${def.targetName||"Quest destination"}`;
+}
 function findClearQuestDepth(desired){
   let d=roundQuarter(Math.max((Number(S?.depth)||0)+8,Number(desired)||0));
   for(let i=0;i<100;i++){
@@ -3789,12 +3854,14 @@ function acceptQuest(defId){
   ensureQuestState();const def=questDefById(defId);if(!def)return false;
   if(questInstanceForDefinition(defId)&&!def.repeatable)return false;
   const serial=S.quests.nextSerial++,instanceId=`q-${def.id}-${serial}`;
-  const originDepth=Number(S.depth)||Number(townDefById(def.giverTownId)?.depth)||0,targetDepth=findClearQuestDepth(originDepth+Number(def.targetOffset||0));
+  const originDepth=Number(S.depth)||Number(townDefById(def.giverTownId)?.depth)||0,targetTown=townDefById(def.targetTownId);
+  const targetDepth=targetTown?Number(targetTown.depth):findClearQuestDepth(originDepth+Number(def.targetOffset||0));
   const objectives={};for(const obj of def.objectives||[])objectives[obj.id]={current:0,required:Math.max(1,Number(obj.required)||1)};
-  const inst={instanceId,definitionId:def.id,status:"active",acceptedAt:Date.now(),acceptedAtDepth:originDepth,acceptedTownId:def.giverTownId,targetDepth,objectives,promisedRewards:{...(def.reward||{})},result:null,inactiveReason:null};
+  const inst={instanceId,definitionId:def.id,status:"active",acceptedAt:Date.now(),acceptedAtDepth:originDepth,acceptedTownId:def.giverTownId,targetDepth,targetTownId:def.targetTownId||null,targetLocationId:def.targetLocationId||null,targetNpcName:def.targetNpcName||null,expiresAtDepth:def.expiresAfterDepth?roundQuarter(originDepth+Number(def.expiresAfterDepth)):null,objectives,promisedRewards:{...(def.reward||{})},result:null,inactiveReason:null};
   S.quests.instances.push(inst);
   for(const obj of def.objectives||[])if(obj.type==="delivery-item"&&obj.issuedQty)addQuestItem(inst,obj,obj.issuedQty,"issued");
-  nudgePendingMerchantFromDepth(targetDepth,5);markCharacterNotice("quests");travelLogAdd(`<b>Quest accepted:</b> ${esc(def.title)} · destination ${formatDepth(targetDepth)} fathoms.`,"beat");saveRunNow();renderTown();renderCharacterSheet();renderTrail();return true;
+  if(!targetTown)nudgePendingMerchantFromDepth(targetDepth,5);
+  markCharacterNotice("quests");travelLogAdd(`<b>Quest accepted:</b> ${esc(def.title)} · destination ${esc(questDestinationText(inst))}.`,"beat");saveRunNow();renderTown();renderCharacterSheet();renderTrail();return true;
 }
 function eligibleQuestDropObjectives(source){
   const rows=[];for(const inst of questInstances("active")){const def=questDefById(inst.definitionId);syncQuestObjectiveProgress(inst);for(const obj of def?.objectives||[]){if(obj.type!=="quota-item"||!obj.sources?.includes(source))continue;const st=inst.objectives[obj.id];if((st?.current||0)<(st?.required||obj.required||1))rows.push({inst,obj});}}return rows;
@@ -3809,17 +3876,25 @@ function maybeQuestExploreDrop(){
   const pickRow=pick(eligible),chance=clamp(Number(pickRow.obj.exploreChance)||0,0,1);if(rnd()>=chance)return null;const added=addQuestItem(pickRow.inst,pickRow.obj,1,"explore");if(!added)return null;
   syncQuestObjectiveProgress(pickRow.inst);const st=pickRow.inst.objectives[pickRow.obj.id];travelLogAdd(`Exploring turns up <b>${esc(pickRow.obj.item.name)}</b> for <b>${esc(questDefById(pickRow.inst.definitionId)?.title||"your quest")}</b> · ${st.current}/${st.required}.`,"good");return pickRow.obj.item.name;
 }
-function crossedActiveQuestTarget(beforeDepth,afterDepth){return questInstances("active").filter(q=>Number(q.targetDepth)>beforeDepth+.0001&&Number(q.targetDepth)<=afterDepth+.0001).sort((a,b)=>a.targetDepth-b.targetDepth)[0]||null;}
+function crossedActiveQuestTarget(beforeDepth,afterDepth){return questInstances("active").filter(q=>!q.targetTownId&&Number(q.targetDepth)>beforeDepth+.0001&&Number(q.targetDepth)<=afterDepth+.0001).sort((a,b)=>a.targetDepth-b.targetDepth)[0]||null;}
 function beginQuestTurnIn(inst){
-  if(!inst||inst.status!=="active")return false;const def=questDefById(inst.definitionId);S.depth=Number(inst.targetDepth)||S.depth;S.exploreDepth=S.depth;S.exploreElapsedMs=0;const prior=S.travelMode||"descend";S.travelMode="stopped";pauseBoonClock();syncQuestObjectiveProgress(inst);
+  if(!inst||inst.status!=="active"||inst.targetTownId)return false;const def=questDefById(inst.definitionId);S.depth=Number(inst.targetDepth)||S.depth;S.exploreDepth=S.depth;S.exploreElapsedMs=0;const prior=S.travelMode||"descend";S.travelMode="stopped";pauseBoonClock();syncQuestObjectiveProgress(inst);
   const obj=def?.objectives?.[0],count=obj?questItemCount(inst.instanceId,obj.id):0;const payout=Math.min(Number(inst.promisedRewards?.maxGold)||Infinity,count*(Number(inst.promisedRewards?.goldPerUnit)||0));
   S.travelEvent={id:"quest-turnin",kind:"Quest",title:def?.targetName||"Quest destination",questInstanceId:inst.instanceId,priorMode:prior,text:`${def?.title||"Contract"} can be resolved here.`,rollHtml:`<b>Carried:</b> ${count}/${obj?.required||0} ${esc(obj?.item?.name||"quest item")}${count===1?"":"s"}<br><b>Payment now:</b> ${formatGold(payout)}`};
   travelLogAdd(`<b>Quest destination reached.</b> ${esc(def?.targetName||"The hand-in point")} waits at ${formatDepth(S.depth)} fathoms.`,"beat");render();return true;
 }
-function completeQuestTurnIn(instanceId){
-  const inst=questInstanceById(instanceId);if(!inst||inst.status!=="active")return false;const def=questDefById(inst.definitionId),obj=def?.objectives?.[0];if(!obj)return false;syncQuestObjectiveProgress(inst);const count=questItemCount(inst.instanceId,obj.id);if(count<=0)return false;
+function resolveQuestDelivery(inst,{resumeTravel=false}={}){
+  if(!inst||inst.status!=="active")return false;const def=questDefById(inst.definitionId),obj=def?.objectives?.[0];if(!obj)return false;syncQuestObjectiveProgress(inst);const count=questItemCount(inst.instanceId,obj.id);if(count<=0)return false;
   const delivered=removeQuestItems(inst.instanceId,obj.id,count),reward=Math.min(Number(inst.promisedRewards?.maxGold)||Infinity,delivered*(Number(inst.promisedRewards?.goldPerUnit)||0));S.gold=(S.gold||0)+reward;inst.status="completed";inst.completedAt=Date.now();inst.result={delivered,required:obj.required,reward,full:delivered>=obj.required};inst.inactiveReason=null;
-  const resume=S.travelEvent?.priorMode||"descend";S.travelEvent=null;S.travelMode=resume==="explore"?"stopped":resume;resumeBoonClock();markCharacterNotice("quests");travelLogAdd(`<b>${esc(def.title)} completed${delivered<obj.required?" partially":""}.</b> Delivered ${delivered}/${obj.required} · received ${formatGold(reward)}.`,"good");saveRunNow();render();return true;
+  markCharacterNotice("quests");travelLogAdd(`<b>${esc(def.title)} completed${delivered<obj.required?" partially":""}.</b> Delivered ${delivered}/${obj.required} · received ${formatGold(reward)}.`,"good");
+  if(resumeTravel){const resume=S.travelEvent?.priorMode||"descend";S.travelEvent=null;S.travelMode=resume==="explore"?"stopped":resume;resumeBoonClock();}
+  saveRunNow();render();return true;
+}
+function completeQuestTurnIn(instanceId){return resolveQuestDelivery(questInstanceById(instanceId),{resumeTravel:true});}
+function completeTownQuestTurnIn(instanceId){
+  const inst=questInstanceById(instanceId),def=questDefById(inst?.definitionId),town=currentTown();if(!inst||!def||!town||inst.status!=="active")return false;
+  if((inst.targetTownId||def.targetTownId)!==town.id||(inst.targetLocationId||def.targetLocationId)!==townLocationOpenId)return false;
+  const ok=resolveQuestDelivery(inst,{resumeTravel:false});if(ok){renderTown();renderCharacterSheet();renderPack(false);renderTrail();}return ok;
 }
 function makeQuestInactive(instanceId,reason="Destination missed"){
   const inst=questInstanceById(instanceId);if(!inst||inst.status!=="active")return false;inst.status="inactive";inst.inactiveReason=reason;inst.inactiveAt=Date.now();markCharacterNotice("quests");requestRunSave();return true;
@@ -3832,9 +3907,18 @@ function deleteInactiveQuest(instanceId){
   const released=releaseQuestItems(inst);S.quests.instances=S.quests.instances.filter(q=>q.instanceId!==instanceId);travelLogAdd(`Inactive quest <b>${esc(def?.title||"quest")}</b> removed.${released?` ${released} gathered item${released===1?"":"s"} became ordinary inventory.`:""}`,"note");saveRunNow();renderCharacterSheet();renderPack(false);renderTrail();return true;
 }
 function normalizeQuestState(){
-  ensureQuestState();for(const inst of S.quests.instances){if(!questDefById(inst.definitionId)){inst.status="inactive";inst.inactiveReason="Quest definition unavailable";}syncQuestObjectiveProgress(inst);if(inst.status==="active"&&Number(S.depth)>Number(inst.targetDepth)+TRAVEL_STEP&&S.travelEvent?.questInstanceId!==inst.instanceId){inst.status="inactive";inst.inactiveReason="Delivery point missed";}}
+  ensureQuestState();for(const inst of S.quests.instances){
+    const def=questDefById(inst.definitionId);if(!def){inst.status="inactive";inst.inactiveReason="Quest definition unavailable";continue;}
+    if(inst.status==="active"){
+      if(def.targetTownId&&!inst.targetTownId){inst.targetTownId=def.targetTownId;inst.targetLocationId=def.targetLocationId||null;inst.targetNpcName=def.targetNpcName||null;inst.targetDepth=Number(townDefById(def.targetTownId)?.depth)||Number(inst.targetDepth)||0;}
+      if(inst.expiresAtDepth&&Number(S.depth)>Number(inst.expiresAtDepth)+TRAVEL_STEP){inst.status="inactive";inst.inactiveReason="Contract expired";}
+      else if(!inst.targetTownId&&Number(S.depth)>Number(inst.targetDepth)+TRAVEL_STEP&&S.travelEvent?.questInstanceId!==inst.instanceId){inst.status="inactive";inst.inactiveReason="Delivery point missed";}
+      else if(inst.targetTownId&&ensureTownState()?.departed?.[inst.targetTownId]){inst.status="inactive";inst.inactiveReason="Destination left behind";}
+    }
+    syncQuestObjectiveProgress(inst);
+  }
 }
-function activeQuestDestinationLandmarks(){return questInstances("active").map(inst=>({depth:Number(inst.targetDepth)||0,title:questDefById(inst.definitionId)?.targetName||"Quest destination"}));}
+function activeQuestDestinationLandmarks(){return questInstances("active").filter(inst=>!inst.targetTownId).map(inst=>({depth:Number(inst.targetDepth)||0,title:questDefById(inst.definitionId)?.targetName||"Quest destination"}));}
 
 function townDefById(id){ return TOWN_DEFS.find(t=>t.id===id)||null; }
 function townLocationById(def,id){ return def?.locations?.find(loc=>loc.id===id)||null; }
@@ -3959,6 +4043,10 @@ const COMBAT_RESULT_LINGER_MS = 1500;    // legacy timing constant; post-combat 
 const POST_COMBAT_REVEAL_DELAY_MS = 2000;
 const POST_COMBAT_FADE_START_MS = 1500;
 const STARTING_CAMP_SUPPLIES = 2;
+const CAMP_HEAL_FRACTION = 0.50;       // Camp Supplies are expedition sustain, not portable inns
+const TOWN_LODGING_COST_SC = 10;       // current test-economy price; deliberately not deep-game scaled yet
+const CITY_LODGING_COST_SC = 20;
+const TAVERN_BOON_IDS = Object.freeze(["whetstone","poultice","makingplan"]);
 const BOON_DURATION_MS = 10 * 60 * 1000; // prototype: active delve time; frozen whenever travel is held/interrupted
 const BOONS = {
   whetstone:{
@@ -4134,7 +4222,7 @@ let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 9;
+const SAVE_SCHEMA = 10;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -4732,6 +4820,7 @@ function resumeBoonClock(){
 function activateBoon(id){
   const def = BOONS[id];
   if(!def || !S) return;
+  const fromTavern=!!currentTown();
   clearBoon(false);
   const running = S.travelMode === "descend" || S.travelMode === "explore";
   S.boon = running
@@ -4742,7 +4831,7 @@ function activateBoon(id){
     S.stamina = S.staminaMax;
   }
   S.pendingBoonChoice = false;
-  travelLogAdd(`Camp boon: <b>${esc(def.name)}</b>.`, "good");
+  travelLogAdd(`${fromTavern?"Lodging":"Camp"} boon: <b>${esc(def.name)}</b>.`, "good");
   render();
 }
 function guardRestoreAmount(){
@@ -4756,7 +4845,15 @@ function renderBoonChoice(){
   if(!picker) return;
   picker.hidden = !S?.pendingBoonChoice || over;
   if(picker.hidden) return;
-  $("boonOptions").innerHTML = Object.values(BOONS).map(b =>
+  const tavern=!!currentTown();
+  const options=tavern?TAVERN_BOON_IDS.map(id=>BOONS[id]).filter(Boolean):Object.values(BOONS);
+  if($("boonPickKind")) $("boonPickKind").textContent=tavern?"Lodging boon":"Camp boon";
+  if($("boonPickTitle")) $("boonPickTitle").textContent=tavern?"Choose how you spend the evening":"Choose how you prepare";
+  if($("boonPickText")) $("boonPickText").textContent="One boon active at a time · 10 minutes of active delve time · paused whenever you are not Descending or Exploring.";
+  if($("boonPickNote")) $("boonPickNote").textContent=tavern
+    ? "A paid room fully restores you and offers a smaller preparation list than making camp."
+    : "Camp restores 50% of Max HP plus Stamina and all ability uses; the full camp boon list remains available.";
+  $("boonOptions").innerHTML = options.map(b =>
     `<button class="boon-opt" data-boon="${b.id}"><b>${esc(b.name)}</b><span>${esc(b.desc)}</span></button>`
   ).join("");
 }
@@ -5607,7 +5704,7 @@ function renderQuestPage(){
     const def=questDefById(inst.definitionId);syncQuestObjectiveProgress(inst);const progress=questProgressText(inst),open=charExpandedQuest===inst.instanceId;
     const reward=inst.status==="completed"?`${formatGold(inst.result?.reward||0)} received`:questPromisedRewardText(inst);
     const obj=def?.objectives?.[0],held=obj?questItemCount(inst.instanceId,obj.id):0;
-    const detail=`<div class="quest-detail" ${open?"":"hidden"}><div class="quest-detail-grid"><b>Given by</b><span>${esc(def?.giverName||"—")}</span><b>Destination</b><span>${formatDepth(inst.targetDepth)} fathoms · ${esc(def?.targetName||"—")}</span><b>Objective</b><span>${esc(def?.details||def?.summary||"—")}</span><b>Progress</b><span>${esc(progress)}</span><b>Quest items</b><span>${held} bound to this contract instance</span><b>Promised</b><span>${esc(questPromisedRewardText(inst))}</span>${inst.status==="completed"?`<b>Result</b><span>${inst.result?.delivered||0}/${inst.result?.required||0} delivered · ${formatGold(inst.result?.reward||0)} paid</span>`:""}${inst.status==="inactive"?`<b>Status</b><span>${esc(inst.inactiveReason||"Inactive")}</span>`:""}</div>${def?.lore?`<p class="quest-lore">${esc(def.lore)}</p>`:""}</div>`;
+    const detail=`<div class="quest-detail" ${open?"":"hidden"}><div class="quest-detail-grid"><b>Given by</b><span>${esc(def?.giverName||"—")}</span><b>Destination</b><span>${esc(questDestinationText(inst))}</span><b>Objective</b><span>${esc(def?.details||def?.summary||"—")}</span><b>Progress</b><span>${esc(progress)}</span><b>Quest items</b><span>${held} bound to this contract instance</span><b>Promised</b><span>${esc(questPromisedRewardText(inst))}</span>${inst.status==="completed"?`<b>Result</b><span>${inst.result?.delivered||0}/${inst.result?.required||0} delivered · ${formatGold(inst.result?.reward||0)} paid</span>`:""}${inst.status==="inactive"?`<b>Status</b><span>${esc(inst.inactiveReason||"Inactive")}</span>`:""}</div>${def?.lore?`<p class="quest-lore">${esc(def.lore)}</p>`:""}</div>`;
     return `<div class="quest-entry ${inst.status}"><div class="quest-entry-main"><div class="quest-entry-copy"><b>${esc(def?.title||inst.definitionId)}</b><p>${esc(def?.summary||"")}</p></div><div class="quest-entry-side"><strong>${esc(questStatusLabel(inst))}</strong><span>${esc(progress)}</span><span>${esc(reward)}</span></div></div><div class="quest-entry-actions"><button class="more" type="button" data-quest-more="${esc(inst.instanceId)}">${open?"Hide details":"See more"}</button>${inst.status==="inactive"?`<button class="warn" type="button" data-quest-delete="${esc(inst.instanceId)}">Delete</button>`:""}</div>${detail}</div>`;
   }).join(""):`<div class="quest-empty">${questListView==="active"?"No active quests.":questListView==="inactive"?"No inactive quests.":"No completed quests yet."}</div>`;
 }
@@ -5767,9 +5864,11 @@ function campAtHollow(){
   clearHollowRespite();
   cancelHollowAutoResume();
   clearHollowTimer();
-  const healedHp=S.hpMax-S.hp;
+  const beforeHp=S.hp;
+  const campHeal=Math.max(1,Math.round(S.hpMax*CAMP_HEAL_FRACTION));
   S.inventory.campSupplies--;
-  S.hp=S.hpMax;
+  S.hp=Math.min(S.hpMax,S.hp+campHeal);
+  const healedHp=S.hp-beforeHp;
   S.stamina=S.staminaMax;
   S.heavyCharge=0;
   S.strikeChain=0;
@@ -5783,7 +5882,7 @@ function campAtHollow(){
   S.travelMode="stopped";
   S.pendingBoonChoice=true;
   if(wasBleeding)clearBleeding();
-  travelLogAdd(`You make camp. <b>HP, Stamina and all ability uses fully restored.</b> Choose a boon for the next stretch.`,"good");
+  travelLogAdd(`You make camp. <b>${healedHp} HP recovered · Stamina and all ability uses fully restored.</b> Choose a boon for the next stretch.`,"good");
   if(healedHp>0) triggerHealFx(healedHp,["travel"]);
   render();
 }
@@ -6455,6 +6554,7 @@ function armTownDeparture(){
 function departCurrentTown(){
   const def=currentTown();if(!S||!def)return false;
   const state=ensureTownState();
+  for(const inst of questInstances("active")){const qdef=questDefById(inst.definitionId);if((inst.targetTownId||qdef?.targetTownId)===def.id)makeQuestInactive(inst.instanceId,"Destination left behind");}
   state.visited[def.id]=true;state.departed[def.id]=true;state.currentId=null;
   townDepartureArmed=false;townLocationOpenId=null;townMerchantServiceId=null;
   S.travelMode="stopped";S.travelSinceEvent=0;
@@ -6479,10 +6579,20 @@ function ensureTownMerchantService(serviceId){
 function townRecoveryNeeded(){
   return !!S && (S.hp<S.hpMax || S.stamina<S.staminaMax || abilitiesNeedRestoration() || !!S.bleeding || !restReady());
 }
+function townLodgingCost(def=currentTown()){
+  if(!def)return 0;
+  return def.kind==="city"?CITY_LODGING_COST_SC:TOWN_LODGING_COST_SC;
+}
+function canAffordTownLodging(def=currentTown()){
+  return !!S&&!!def&&(S.gold||0)>=townLodgingCost(def);
+}
 function restAtTownTavern(){
   const def=currentTown();
-  if(!S||!def||over||!townRecoveryNeeded()) return false;
+  if(!S||!def||over||S.pendingBoonChoice) return false;
+  const cost=townLodgingCost(def);
+  if((S.gold||0)<cost) return false;
   const beforeHp=S.hp,beforeStamina=S.stamina,beforeUses=abilityUsesReady(),wasBleeding=!!S.bleeding;
+  S.gold=Math.max(0,(S.gold||0)-cost);
   S.hp=S.hpMax;
   S.stamina=S.staminaMax;
   S.heavyCharge=0;S.strikeChain=0;S.defenceChain=0;S.abilityQuickUsed=false;
@@ -6490,13 +6600,14 @@ function restAtTownTavern(){
   S.restRecovery=REST_RECOVERY_REQUIRED;
   S.pendingRestAbilityChoice=false;
   if(wasBleeding) clearBleeding();
+  S.pendingBoonChoice=true;
   const healed=Math.max(0,S.hp-beforeHp),stamina=Math.max(0,S.stamina-beforeStamina),uses=Math.max(0,abilityUsesReady()-beforeUses);
   const gains=[];
   if(healed) gains.push(`${healed} HP`);
   if(stamina) gains.push(`${stamina} Stamina`);
   if(uses) gains.push(`${uses} ability use${uses===1?"":"s"}`);
   if(wasBleeding) gains.push("Bleeding stopped");
-  travelLogAdd(`You rest at <b>${esc(def.name)}</b>'s tavern. <b>${esc(gains.length?gains.join(" · "):"Fully recovered")}</b>.`,"good");
+  travelLogAdd(`You rent a room at <b>${esc(def.name)}</b>'s tavern for <b>${esc(formatGold(cost))}</b>. <b>${esc(gains.length?gains.join(" · "):"Fully recovered")}</b>. Choose a lodging boon.`,"good");
   if(healed>0) triggerHealFx(healed,["travel"]);
   saveRunNow();
   render();
@@ -6512,34 +6623,54 @@ function openTownMerchantService(serviceId){
   openPack("merchant","backpack");
   return true;
 }
+function townLocationQuestMarkerClass(townId,loc){
+  if(questTurnInsAtTownLocation(townId,loc.id).length)return " quest-target";
+  const offered=questAtTownLocation(townId,loc.id);if(offered&&!questInstanceForDefinition(offered.id))return " quest-available";
+  return "";
+}
+function townQuestTurnInStatus(loc){
+  const rows=questTurnInsAtTownLocation(currentTown()?.id,loc.id);if(!rows.length)return "";
+  return rows.map(inst=>{const def=questDefById(inst.definitionId),obj=def?.objectives?.[0],held=obj?questItemCount(inst.instanceId,obj.id):0,required=obj?.required||0,payout=Math.min(Number(inst.promisedRewards?.maxGold)||Infinity,held*(Number(inst.promisedRewards?.goldPerUnit)||0));return `${def?.targetNpcName||loc.npcName||"The recipient"} is waiting for ${def?.title||"your contract"} · ${held}/${required} carried · ${formatGold(payout)} payable now.`;}).join(" ");
+}
+function townQuestTurnInActions(loc){
+  const rows=questTurnInsAtTownLocation(currentTown()?.id,loc.id);if(!rows.length)return "";
+  return rows.map(inst=>{const def=questDefById(inst.definitionId),obj=def?.objectives?.[0],held=obj?questItemCount(inst.instanceId,obj.id):0,reward=Math.min(Number(inst.promisedRewards?.maxGold)||Infinity,held*(Number(inst.promisedRewards?.goldPerUnit)||0));return held>0?`<button class="town-location-action primary" type="button" data-town-service="quest-deliver" data-quest-instance="${esc(inst.instanceId)}">Deliver ${held}/${obj?.required||0} · ${formatGold(reward)}</button>`:`<button class="town-location-action" type="button" disabled>No ${esc(obj?.item?.name||"quest items")} to deliver</button>`;}).join("");
+}
 function townLocationStatusText(loc){
   if(!loc) return "";
-  if(loc.service==="market") return "Town market rates are better than wandering trade: buy prices are about 8% lower and sale offers about 10% higher.";
-  if(loc.service==="tavern") return townRecoveryNeeded()?`Recovery available · HP ${S.hp}/${S.hpMax} · Stamina ${S.stamina}/${S.staminaMax} · ${abilityUsesReady()}/${abilityUsesMax()} ability uses ready.`:"You are fully recovered and ready to leave town.";
-  if(loc.service==="herbalist") return "Bandages are available now. Direct healer services are reserved for a later town-service hook.";
+  const turnIn=townQuestTurnInStatus(loc);
+  if(loc.service==="market") return turnIn||"Town market rates are better than wandering trade: buy prices are about 8% lower and sale offers about 10% higher.";
+  if(loc.service==="tavern"){
+    const def=currentTown(),cost=townLodgingCost(def),afford=canAffordTownLodging(def);
+    const recovery=townRecoveryNeeded()?`Full recovery available · HP ${S.hp}/${S.hpMax} · Stamina ${S.stamina}/${S.staminaMax}.`:`You are already fully recovered.`;
+    return turnIn||`${def?.kind==="city"?"City":"Town"} room · ${formatGold(cost)} · ${recovery} Includes a lodging boon.${afford?"":" Not enough coin."}`;
+  }
+  if(loc.service==="herbalist") return turnIn||"Bandages are available now. Direct healer services are reserved for a later town-service hook.";
   if(loc.service==="guild"){
+    if(turnIn)return turnIn;
     const def=questAtTownLocation(currentTown()?.id,loc.id),inst=def?questInstanceForDefinition(def.id):null;
     if(!def)return "No contracts are posted here yet.";
-    if(inst?.status==="active")return `${def.title} is active · ${questProgressText(inst)} · deliver at ${formatDepth(inst.targetDepth)} fathoms.`;
+    if(inst?.status==="active")return `${def.title} is active · ${questProgressText(inst)} · ${questDestinationText(inst)}.`;
     if(inst?.status==="completed")return `${def.title} has already been resolved.`;
     if(inst?.status==="inactive")return `${def.title} is no longer active. Review or delete it from Character → Quests.`;
     return `${def.title} is available · ${def.summary}`;
   }
-  return loc.status||"";
+  return turnIn||loc.status||"";
 }
 function townLocationActionsHtml(loc){
   if(!loc) return "";
+  const turnIn=townQuestTurnInActions(loc);
   if(loc.departure) return `<button class="town-location-action primary" id="btnTownLocationLeave" type="button">Leave through the lower gate</button>`;
-  if(loc.service==="market") return `<button class="town-location-action primary" type="button" data-town-service="market">Open Market</button>`;
-  if(loc.service==="tavern") return `<button class="town-location-action primary" type="button" data-town-service="tavern-rest" ${townRecoveryNeeded()?"":"disabled"}>${townRecoveryNeeded()?"Rest and recover fully":"Fully rested"}</button>`;
-  if(loc.service==="herbalist") return `<button class="town-location-action primary" type="button" data-town-service="herbalist">Buy Bandages</button><button class="town-location-action" type="button" disabled>Healer services · later phase</button>`;
+  if(loc.service==="market") return `${turnIn}<button class="town-location-action primary" type="button" data-town-service="market">Open Market</button>`;
+  if(loc.service==="tavern"){const def=currentTown(),cost=townLodgingCost(def),afford=canAffordTownLodging(def);return `${turnIn}<button class="town-location-action primary" type="button" data-town-service="tavern-rest" ${afford&&!S.pendingBoonChoice?"":"disabled"}>Rent room · ${formatGold(cost)}</button>`;}
+  if(loc.service==="herbalist") return `${turnIn}<button class="town-location-action primary" type="button" data-town-service="herbalist">Buy Bandages</button><button class="town-location-action" type="button" disabled>Healer services · later phase</button>`;
   if(loc.service==="guild"){
-    const def=questAtTownLocation(currentTown()?.id,loc.id),inst=def?questInstanceForDefinition(def.id):null;
-    if(!def)return `<button class="town-location-action" type="button" disabled>No contracts posted</button>`;
-    if(inst)return `<button class="town-location-action" type="button" disabled>${inst.status==="active"?"Contract active":inst.status==="completed"?"Contract completed":"Contract inactive"}</button>`;
-    return `<button class="town-location-action primary" type="button" data-town-service="quest-accept" data-quest-def="${esc(def.id)}">Accept · ${esc(def.title)}</button>`;
+    const def=questAtTownLocation(currentTown()?.id,loc.id),inst=def?questInstanceForDefinition(def.id):null;let offered="";
+    if(def){if(inst)offered=`<button class="town-location-action" type="button" disabled>${inst.status==="active"?"Contract active":inst.status==="completed"?"Contract completed":"Contract inactive"}</button>`;else offered=`<button class="town-location-action primary" type="button" data-town-service="quest-accept" data-quest-def="${esc(def.id)}">Accept · ${esc(def.title)}</button>`;}
+    else if(!turnIn)offered=`<button class="town-location-action" type="button" disabled>No contracts posted</button>`;
+    return `${turnIn}${offered}`;
   }
-  return `<button class="town-location-action" type="button" disabled>Service unavailable</button>`;
+  return `${turnIn}<button class="town-location-action" type="button" disabled>Service unavailable</button>`;
 }
 function renderTown(){
   const screen=$("townScreen");if(!screen)return;
@@ -6550,7 +6681,7 @@ function renderTown(){
   $("townName").textContent=def.name;
   const art=$("townMapArtboard");
   const shell=$("townMapShell");
-  if(shell)shell.style.aspectRatio=def.aspectRatio||"4 / 3";
+  if(shell){shell.style.aspectRatio=def.aspectRatio||"4 / 3";shell.setAttribute("aria-label",`${def.name} ${def.kind} map`);}
   if(art){
     art.style.backgroundImage=`url("${def.image}")`;
     art.style.aspectRatio=def.aspectRatio||"4 / 3";
@@ -6561,13 +6692,13 @@ function renderTown(){
   const active=townLocationById(def,townLocationOpenId);
   const hotspots=$("townHotspots");
   if(hotspots){
-    hotspots.innerHTML=(def.locations||[]).map(place=>`<button class="town-hotspot${active?.id===place.id?" selected":""}" type="button" data-town-location="${esc(place.id)}" style="--hx:${Number(place.x)||50}%;--hy:${Number(place.y)||50}%" aria-label="Open ${esc(place.name)}"><span>${esc(place.name)}</span></button>`).join("");
+    hotspots.innerHTML=(def.locations||[]).map(place=>`<button class="town-hotspot${active?.id===place.id?" selected":""}${townLocationQuestMarkerClass(def.id,place)}" type="button" data-town-location="${esc(place.id)}" style="--hx:${Number(place.x)||50}%;--hy:${Number(place.y)||50}%" aria-label="Open ${esc(place.name)}"><span>${esc(place.name)}</span></button>`).join("");
   }
   const panel=$("townLocationPanel");
   if(panel)panel.hidden=!active;
   if(active){
     $("townLocationType").textContent=active.type||"Location";
-    $("townLocationName").textContent=active.name;
+    $("townLocationName").textContent=active.npcName?`${active.name} — ${active.npcName}`:active.name;
     $("townLocationDescription").textContent=active.description||"";
     $("townLocationStatus").textContent=townLocationStatusText(active);
     const actions=$("townLocationActions");
@@ -6634,6 +6765,7 @@ function runTravelTickCore(){
   syncSidePassageStratum();
   if(!S || over) return;
   ensureTownState();
+  normalizeQuestState();
   if(currentTown()){
     if(S.travelMode!=="stopped"){S.travelMode="stopped";pauseBoonClock();}
     return;
@@ -8129,7 +8261,7 @@ function renderSafeHollow(){
   }else{
     camp.disabled=false;
     camp.querySelector("b").textContent="Make camp";
-    $("campHereSub").textContent=`1 Camp Supply · ${S.inventory.campSupplies} carried · full recovery`;
+    $("campHereSub").textContent=`1 Camp Supply · ${S.inventory.campSupplies} carried · 50% Max HP + full resources`;
   }
   const countdown=$("hollowCountdown");
   if(stage) countdown.textContent="No auto-continue at the pre-boss staging hollow.";
@@ -11099,6 +11231,23 @@ function migrateSave8To9(snapshot){
   }
   return next;
 }
+function migrateSave9To10(snapshot){
+  const next=cloneForSave(snapshot);next.schema=10;const state=next.state;
+  if(isSaveRecord(state)){
+    if(!isSaveRecord(state.townState))state.townState={currentId:null,visited:{},departed:{},services:{}};
+    if(!isSaveRecord(state.townState.visited))state.townState.visited={};if(!isSaveRecord(state.townState.departed))state.townState.departed={};if(!isSaveRecord(state.townState.services))state.townState.services={};
+    if(isSaveRecord(state.quests)&&Array.isArray(state.quests.instances)){
+      for(const inst of state.quests.instances){
+        if(!isSaveRecord(inst)||inst.status!=="active")continue;
+        if(inst.definitionId==="grey-lantern-cave-mushrooms"&&!inst.targetTownId){inst.targetTownId="lantern-city";inst.targetLocationId="herbalist";inst.targetNpcName="Mara Venn";inst.targetDepth=200;}
+      }
+    }
+    // New authored settlements should remain reachable when they are still ahead,
+    // but an older save already deeper than them must not be pulled backward.
+    for(const town of TOWN_DEFS){if((Number(state.depth)||0)>town.depth+.001&&state.townState.currentId!==town.id)state.townState.departed[town.id]=true;}
+  }
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
@@ -11107,7 +11256,8 @@ const SAVE_MIGRATIONS={
   5:migrateSave5To6,
   6:migrateSave6To7,
   7:migrateSave7To8,
-  8:migrateSave8To9
+  8:migrateSave8To9,
+  9:migrateSave9To10
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -11526,6 +11676,7 @@ $("townLocationActions")?.addEventListener("click",e=>{
   if(!service||service.disabled)return;
   if(service.dataset.townService==="market") openTownMerchantService("market");
   else if(service.dataset.townService==="herbalist") openTownMerchantService("herbalist");
+  else if(service.dataset.townService==="quest-deliver") completeTownQuestTurnIn(service.dataset.questInstance);
   else if(service.dataset.townService==="tavern-rest") restAtTownTavern();
   else if(service.dataset.townService==="quest-accept") acceptQuest(service.dataset.questDef);
 });
