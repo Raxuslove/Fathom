@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.103.4 — Town Map Portrait Fit</title>
+<title>Lowfathom v0.103.7 — Town Marker Placement Pass</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -159,6 +159,8 @@
    - v0.103.0: Town Phase 2 — Grey Lantern illustrated map, map hotspots/location panels, authored town marker asset and town-priority landmark collision handling
    - v0.103.3: Town Phase 2 polish — town map shell resized, settings cog matched to combat/travel, Grey Lantern marker enlarged again, location panel separated below the map
    - v0.103.4: Town Phase 2 portrait fit — Grey Lantern map shell made taller without widening it, tuned for the replacement town art; inn renamed to Tavern
+   - v0.103.5: Town Phase 2 footer actions — replaced the static town footer note with Character and Backpack access while inside town
+   - v0.103.7: Town Phase 2 placement pass — corrected town footer HP source, matched the town Character button frame to Backpack, and repositioned Grey Lantern location markers
    - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
@@ -580,7 +582,7 @@ button{
 .travel-act:disabled{opacity:.45;cursor:not-allowed}
 .travel-act:disabled b,.travel-act:disabled span{color:#39434e}
 
-/* ---------- v0.103.4: Town Phase 2 portrait-fit pass ---------- */
+/* ---------- v0.103.7: Town Phase 2 placement-and-footer pass ---------- */
 .town-screen{
   position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
   background:#010406;color:var(--bone);
@@ -670,8 +672,27 @@ button{
 .town-depart-confirm button{min-height:48px;border:1px solid var(--rule-hi);background:#081013;padding:8px 9px;font-family:var(--cond);font-size:8.5px;line-height:1.3;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
 .town-depart-confirm .confirm{border-color:var(--lamp-dim);color:var(--lamp);background:#14130f}
 .town-footer{flex:0 0 auto;padding:0 12px calc(9px + env(safe-area-inset-bottom))}
-.town-state-card{padding:7px 9px;border:1px solid rgba(138,117,80,.22);background:#020608;font-size:9.5px;line-height:1.35;color:#77838b;text-align:center}
-.town-state-card b{color:#aeb7b9;font-weight:500}
+.town-footer-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.town-footer-btn{position:relative;background:none;text-align:left;color:var(--bone)}
+.town-footer-btn::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(1,4,6,.76) 0%,rgba(1,4,6,.42) 7%,rgba(1,4,6,.15) 15%,rgba(1,4,6,.04) 23%,rgba(1,4,6,0) 31%),
+    linear-gradient(270deg,rgba(1,4,6,.76) 0%,rgba(1,4,6,.42) 7%,rgba(1,4,6,.15) 15%,rgba(1,4,6,.04) 23%,rgba(1,4,6,0) 31%),
+    linear-gradient(180deg,rgba(1,4,6,.68) 0%,rgba(1,4,6,.35) 8%,rgba(1,4,6,.12) 17%,rgba(1,4,6,.03) 25%,rgba(1,4,6,0) 34%),
+    linear-gradient(0deg,rgba(1,4,6,.76) 0%,rgba(1,4,6,.42) 7%,rgba(1,4,6,.15) 15%,rgba(1,4,6,.04) 23%,rgba(1,4,6,0) 31%);}
+.town-footer-btn > *{position:relative;z-index:1}
+.town-footer-hero{display:flex;flex-direction:column;justify-content:center;min-height:62px;padding:5px 8px;border:9px solid transparent;border-image:url("./assets/ui/frame-button.png") 30 fill / 9px / 0 stretch;cursor:pointer}
+.town-footer-hero:active{background:var(--travel-bg)}
+.town-footer-hero-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
+.town-footer-hero-top b{font-family:var(--slab);font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.town-footer-hero-top span{font-family:var(--cond);font-size:9px;color:var(--dim)}
+.town-footer-hp{position:relative;overflow:visible;height:8px;background:#080b0e;border:1px solid var(--rule)}
+.town-footer-hp i{display:block;height:100%;transition:width .25s}
+.town-footer-hero-meta{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-family:var(--cond);font-size:9px;color:var(--dim)}
+.town-footer-pack{display:flex;flex-direction:column;justify-content:center;min-height:62px;padding:5px 8px;border:9px solid transparent;border-image:url("./assets/ui/frame-button.png") 30 fill / 9px / 0 stretch;cursor:pointer}
+.town-footer-pack b{font-family:var(--slab);font-size:13px;font-weight:600;color:var(--bone)}
+.town-footer-pack span{margin-top:2px;font-family:var(--cond);font-size:9.5px;line-height:1.2;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+.town-footer-pack:active{background:var(--travel-bg)}
 /* Authored route landmark. A town takes visual priority over incidental route
    markers close enough to overlap it; the landmark remains anchored to its true depth. */
 .trail-landmark-html.town,.trail-landmark-html.city{
@@ -684,7 +705,7 @@ button{
 .trail-view.large .trail-landmark-html.town,.trail-view.large .trail-landmark-html.city{width:49.5px!important;height:69.75px!important}
 .trail-view.mini .trail-landmark-html.town,.trail-view.mini .trail-landmark-html.city{width:30px!important;height:42px!important}
 @media (max-height:740px){
-  .town-map-wrap{padding-top:7px}.town-state-card{padding:5px 8px}
+  .town-map-wrap{padding-top:7px}
   .town-map-shell{max-width:min(100%, calc((100vh - 430px) * 4 / 3));margin:0 auto}
 }
 @media (max-height:650px){
@@ -2974,7 +2995,14 @@ body.font-slab{--cf-serif:var(--slab)}
       </div>
     </section>
     <footer class="town-footer">
-      <div class="town-state-card"><b>Safe inside town.</b> Services are mapped in this phase; their gameplay opens in Phase 3.</div>
+      <div class="town-footer-row">
+        <button class="town-footer-btn town-footer-hero" id="townHeroCard" type="button" aria-label="Open character sheet while in town">
+          <div class="town-footer-hero-top"><b id="townHeroName">—</b><span id="townHeroLv">Level —</span></div>
+          <div class="town-footer-hp"><i id="townHeroHpBar" style="width:0%"></i></div>
+          <div class="town-footer-hero-meta"><span id="townHeroHpText">0 / 0 hp</span><span id="townHeroXpText">0 / 0 XP</span></div>
+        </button>
+        <button class="town-footer-btn town-footer-pack" id="btnTownPack" type="button"><b>Backpack</b><span id="townPackSub">0 Camp Supplies · 0 Bandages</span></button>
+      </div>
     </footer>
   </section>
 
@@ -3510,7 +3538,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.103.4";
+const BUILD_VERSION = "v0.103.7";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -3535,7 +3563,7 @@ const TRAIL_H = 154;
 const TRAIL_MARKER_Y = 77;             // visually centered while the route slopes downward
 const TRAIL_VERTICAL_ZOOM = 0.80;      // compact minimap route height
 
-/* v0.103.4 Town Phase 2 portrait fit. Grey Lantern remains at 50 fathoms only for rapid
+/* v0.103.7 Town Phase 2 placement pass. Grey Lantern remains at 50 fathoms only for rapid
    testing; later it can move to ~200 by changing this one authored depth.
    Locations are data-driven so later towns/cities can reuse the same map engine. */
 const TOWN_DEFS = Object.freeze([
@@ -3543,10 +3571,10 @@ const TOWN_DEFS = Object.freeze([
     id:"grey-lantern",name:"Grey Lantern",kind:"town",depth:50,
     image:"./assets/ui/town-grey-lantern.png",aspectRatio:"4 / 5",
     locations:Object.freeze([
-      Object.freeze({id:"market",name:"Market",type:"Trade",x:50.0,y:45.5,description:"The central market district.",status:"Trading opens in Town Phase 3."}),
-      Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:31.5,y:57.0,description:"Grey Lantern's tavern and rest house.",status:"Town recovery opens in Town Phase 3."}),
-      Object.freeze({id:"apothecary",name:"Apothecary",type:"Medicine",x:68.5,y:46.0,description:"The apothecary and healer's quarter.",status:"Medical services open in Town Phase 3."}),
-      Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:78.0,y:31.5,description:"A hall used by delvers, guards, and local employers.",status:"Quest interaction opens with the quest phase."}),
+      Object.freeze({id:"market",name:"Market",type:"Trade",x:49.0,y:44.0,description:"The central market district.",status:"Trading opens in Town Phase 3."}),
+      Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"Grey Lantern's tavern and rest house.",status:"Town recovery opens in Town Phase 3."}),
+      Object.freeze({id:"apothecary",name:"Apothecary",type:"Medicine",x:70.0,y:45.0,description:"The apothecary and healer's quarter.",status:"Medical services open in Town Phase 3."}),
+      Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:80.0,y:28.5,description:"A hall used by delvers, guards, and local employers.",status:"Quest interaction opens with the quest phase."}),
       Object.freeze({id:"lower-gate",name:"Lower Gate",type:"Departure",x:48.5,y:83.0,description:"The road out of Grey Lantern continues deeper.",status:"Departure is permanent; you cannot travel back to this town.",departure:true})
     ])
   })
@@ -6161,6 +6189,17 @@ function renderTown(){
   const confirm=$("townDepartConfirm");if(confirm)confirm.hidden=!townDepartureArmed;
   const actionLeave=$("btnTownLocationLeave");if(actionLeave)actionLeave.hidden=townDepartureArmed;
   $("btnTownConfirmLeave").textContent=`Leave ${def.name} permanently`;
+  if(S){
+    $("townHeroName").textContent=S.name||"—";
+    $("townHeroLv").textContent=`Level ${S.level||1}`;
+    const hpMax=Math.max(1,S.hpMax||1), hpNow=Math.max(0,Math.min(hpMax,S.hp||0)), xpNeed=Math.max(1,xpToNext()), xpNow=Math.max(0,S.xp||0);
+    const hpPct=(hpNow/hpMax)*100;
+    $("townHeroHpBar").style.width=`${hpPct}%`;
+    $("townHeroHpBar").style.background=hpPct>55?"#6f93a7":(hpPct>25?"#9a8450":"#a15b4a");
+    $("townHeroHpText").textContent=`${hpNow} / ${hpMax} hp`;
+    $("townHeroXpText").textContent=`${xpNow} / ${xpNeed} XP`;
+    $("townPackSub").textContent=`${S.inventory?.campSupplies||0} Camp Supplies · ${S.inventory?.bandages||0} Bandage${(S.inventory?.bandages||0)===1?"":"s"}`;
+  }
 }
 
 function startTravel(mode){
@@ -11135,6 +11174,13 @@ $("btnDescend").addEventListener("click", () => startTravel("descend"));
 $("btnExplore").addEventListener("click", () => startTravel("explore"));
 $("btnRest").addEventListener("click", takeRest);
 $("btnPack").addEventListener("click", () => openPack(null,"backpack"));
+$("btnTownPack")?.addEventListener("click", () => openPack(null,"backpack"));
+$("townHeroCard")?.addEventListener("click", openCharacterSheet);
+$("townHeroCard")?.addEventListener("keydown", e => {
+  if(e.key!=="Enter"&&e.key!==" ") return;
+  e.preventDefault();
+  openCharacterSheet();
+});
 $("btnStopTravel").addEventListener("click", stopTravel);
 $("btnBrowseDescend").addEventListener("click", () => startTravel("descend"));
 $("btnBrowseStop").addEventListener("click", stopTravel);
