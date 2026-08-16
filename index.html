@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.106.6 — Travel Log Dock + Damage Popup Tuning</title>
+<title>Lowfathom v0.106.7 — Character Combat Stats</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -166,6 +166,7 @@
    - v0.106.4: Merchant sale integrity fix — retires the legacy weapon mirror so sold starter/static weapons cannot resurrect into owned gear and be sold repeatedly
    - v0.106.5: combat damage popups + mobile scroll safety — 2-second damage numbers, gold critical-hit callouts, and extra bottom scroll room above phone navigation bars
    - v0.106.6: travel-log dock repair + popup tuning — Delve Log moves beside compact Stop, opens as a pop-out, and damage numbers become signed 3.5-second HP-bar callouts
+   - v0.106.7: Character Overview gains live combat statistics derived from the actual attack, defence, Armor and equipment-affix formulas
    - v0.104.1: Grey Lantern town-map trim — reduced the map shell height slightly and nudged the map art upward to crop unused top/bottom space
    - v0.105.0: Town Phase 4 quest engine — persistent quest instances, Character Quests + Journal pages, quest-bound Backpack items, active/inactive/completed states, proportional quota turn-ins, and combat/Explore quest drops
    - v0.105.1: post-combat resolution pass — defeated encounters collapse combat actions/intent, surface collected loot and optional Investigation immediately, then wait for Continue
@@ -1685,6 +1686,19 @@ button{
 .char-nav-btn.active b{color:var(--lamp)}
 .char-page[hidden]{display:none}
 .char-overview-note{padding:9px 13px;background:#101418;border-bottom:1px solid var(--rule);font-size:10.5px;color:var(--dim)}
+/* ---------- v0.106.7: Character Overview combat statistics ---------- */
+.char-combat-stats{background:#101418;border-bottom:1px solid var(--rule)}
+.char-combat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--rule)}
+.char-combat-stat{min-width:0;padding:9px 11px;background:#12181e}
+.char-combat-stat em{display:block;font-style:normal;font-family:var(--cond);font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+.char-combat-stat b{display:block;margin-top:2px;font-family:var(--slab);font-size:14px;line-height:1.15;color:var(--bone);font-weight:600}
+.char-combat-stat small{display:block;margin-top:3px;font-family:var(--cond);font-size:8.5px;line-height:1.3;color:#687580}
+.char-combat-stat.offense b{color:var(--lamp)}
+.char-combat-stat.defense b{color:#9fbdba}
+.char-combat-stat.utility b{color:#c3b39a}
+.char-combat-stat.future{background:#0f1418}
+.char-combat-stat.future b,.char-combat-stat.future small{color:#46515b}
+@media (max-width:360px){.char-combat-grid{grid-template-columns:1fr}}
 .char-overview-note b{color:var(--lamp-dim)}
 .char-status-list{background:#101418;border-bottom:1px solid var(--rule)}
 .char-status{padding:11px 13px;border-bottom:1px solid var(--rule);background:#141a20}
@@ -3276,6 +3290,8 @@ body.font-slab{--cf-serif:var(--slab)}
         </div>
         <div class="char-folk-trait" id="charFolkTrait"></div>
         <div class="char-overview-note"><b>Specialization</b> · <span id="charSpecialization">—</span></div>
+        <div class="char-section-head"><b>Combat stats</b><span>live character values</span></div>
+        <div class="char-combat-stats"><div class="char-combat-grid" id="charCombatStats"></div></div>
       </section>
 
       <section class="char-page" data-char-page="status" hidden>
@@ -3749,7 +3765,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.106.6";
+const BUILD_VERSION = "v0.106.7";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -5061,6 +5077,54 @@ function availableStatPoints(){
 function statPointHint(stat){
   return ({STR:"weapons + Athletics",CON:"maximum HP",DEX:"finesse + DEX Skills",INT:"arcane + INT Skills",WIS:"Perception + Survival",CHA:"social / conviction"})[stat] || "";
 }
+function combatEstimateRange(base,mult,swingMax){
+  const lo=Math.max(1,Math.round(base*mult));
+  const hi=Math.max(lo,Math.round(base*mult+swingMax));
+  const avg=Math.max(1,Math.round(base*mult+swingMax/2));
+  return {lo,hi,avg};
+}
+function neutralCounterEstimate(perfect=false){
+  if(!S)return 0;
+  if(S.className==="Votary"){
+    const shield=S.loadout==="shield";
+    const mult=perfect?(shield?0.75:1.25):(shield?0.35:0.75);
+    return Math.max(1,Math.round(effectiveStat("STR")*mult));
+  }
+  const stat=S.className==="Rogue"?effectiveStat("DEX"):S.className==="Wizard"?effectiveStat("INT"):effectiveStat("STR");
+  return Math.max(1,Math.round(stat*(perfect?1.05:0.55)));
+}
+function renderCharacterCombatStats(){
+  const root=$("charCombatStats");if(!root||!S)return;
+  const attack=weaponAttackBase();
+  const s0=combatEstimateRange(attack,STRIKE_MULT[0],4);
+  const s1=combatEstimateRange(attack,STRIKE_MULT[1],5);
+  const s2=combatEstimateRange(attack,STRIKE_MULT[2],6);
+  const h1=combatEstimateRange(attack,2.7,6);
+  const h2=combatEstimateRange(attack,4.7,6);
+  const aff=equipmentAffixTotals();
+  const armor=Math.round(equipmentArmorFor());
+  const mitigation=Math.round(armorMitigation()*100);
+  const defendName=defenceName();
+  const defendReduction=Math.round((1-defenceReduction())*100);
+  const counter=neutralCounterEstimate(false),perfectCounter=neutralCounterEstimate(true);
+  const atkStat=attackStatKey(),atkValue=attackStatValue(),weapon=equippedWeaponDef(),weaponPart=weaponContribution(weapon);
+  const fmtPct=n=>`${Math.max(0,Number(n)||0)}%`;
+  const capText=(value,unit="damage/action")=>value>0?` · cap ${value} ${unit}`:"";
+  const rows=[
+    {label:"Strike",value:`~${s0.avg} damage`,sub:`${s0.lo}–${s0.hi} neutral · chain ~${s0.avg} / ~${s1.avg} / ~${s2.avg} · ${atkStat} ${atkValue} + weapon ${Number.isInteger(weaponPart)?weaponPart:weaponPart.toFixed(1)}`,cls:"offense"},
+    {label:"Heavy",value:`~${h1.avg} / ~${h2.avg}`,sub:`first pull ${h1.lo}–${h1.hi} · full pull ${h2.lo}–${h2.hi} · 2.7× / 4.7× attack`,cls:"offense"},
+    {label:"Critical Strike",value:fmtPct(aff.crit.pct),sub:aff.crit.pct>0?`+50% base damage · bonus cap +${aff.crit.bonusCap}/action`:"No current Critical Strike gear bonus.",cls:"utility"},
+    {label:"Boss Damage",value:`+${fmtPct(aff.bossDamage.pct)}`,sub:aff.bossDamage.pct>0?`Bonus cap +${aff.bossDamage.bonusCap}/action`:"No current Boss Damage gear bonus.",cls:"utility"},
+    {label:defendName,value:`${defendReduction}% reduction`,sub:`Normal defence · +${guardRestoreAmount()} Stamina · counter ~${counter} · Perfect: 0 damage, counter ~${perfectCounter}`,cls:"defense"},
+    {label:"Armor",value:`${armor} · ${mitigation}% mitigation`,sub:`Current ordinary-damage mitigation at ${formatDepth(S.depth||0)} fathoms; scales against expected Armor at depth.`,cls:"defense"},
+    {label:"Lifesteal",value:fmtPct(aff.lifesteal.pct),sub:aff.lifesteal.pct>0?`Heal cap ${aff.lifesteal.healCap} HP/action`:"No current Lifesteal gear bonus.",cls:"utility"},
+    {label:"Damage Reflect",value:fmtPct(aff.reflect.pct),sub:aff.reflect.pct>0?`Return cap ${aff.reflect.damageCap} damage/hit`:"No current Damage Reflect gear bonus.",cls:"utility"},
+    {label:"Armor Penetration",value:"—",sub:"Not implemented in the combat engine yet.",cls:"future"},
+    {label:"Magic Penetration",value:"—",sub:"Not implemented in the combat engine yet.",cls:"future"}
+  ];
+  root.innerHTML=rows.map(r=>`<div class="char-combat-stat ${r.cls}"><em>${esc(r.label)}</em><b>${esc(r.value)}</b><small>${esc(r.sub)}</small></div>`).join("");
+}
+
 function renderCharacterStats(){
   if(!S || !$("charStats")) return;
   const draftTotal=statPointDraftTotal();
@@ -5802,6 +5866,7 @@ function renderCharacterSheet(){
   renderCharacterStats();
   $("charFolkTrait").innerHTML=`<b>${esc(S.folk)} Folk trait</b> · ${formatFolkMods(S.folkMods)}`;
   if($("charSpecialization")) $("charSpecialization").textContent=S.specialization||"—";
+  renderCharacterCombatStats();
 
   $("charSkills").innerHTML=SKILL_ORDER.map(id=>{
     const def=SKILL_DEFS[id],st=skillState(id),rating=skillRating(id),apt=skillAptitude(id),prof=proficiencyBonus(id),rankNotice=skillHasRankNotice(id);
