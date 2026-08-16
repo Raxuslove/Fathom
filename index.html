@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.106.7 — Character Combat Stats</title>
+<title>Lowfathom v0.107.0 — Phase 6 Caravan System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -167,6 +167,8 @@
    - v0.106.5: combat damage popups + mobile scroll safety — 2-second damage numbers, gold critical-hit callouts, and extra bottom scroll room above phone navigation bars
    - v0.106.6: travel-log dock repair + popup tuning — Delve Log moves beside compact Stop, opens as a pop-out, and damage numbers become signed 3.5-second HP-bar callouts
    - v0.106.7: Character Overview gains live combat statistics derived from the actual attack, defence, Armor and equipment-affix formulas
+   - v0.107.0: Phase 6 Caravan System — uncommon route-based caravan events, passive Perception warnings, generic sudden-event markers, caravan merchants, attacked/damaged choices, and a caravan-origin delivery quest
+   - v0.107.0: combat damage-number linger reduced from 3.5 seconds to 2.5 seconds
    - v0.104.1: Grey Lantern town-map trim — reduced the map shell height slightly and nudged the map art upward to crop unused top/bottom space
    - v0.105.0: Town Phase 4 quest engine — persistent quest instances, Character Quests + Journal pages, quest-bound Backpack items, active/inactive/completed states, proportional quota turn-ins, and combat/Explore quest drops
    - v0.105.1: post-combat resolution pass — defeated encounters collapse combat actions/intent, surface collected loot and optional Investigation immediately, then wait for Continue
@@ -398,6 +400,19 @@ button{
 .trail-landmark-html.quest::after{content:"!"!important;display:block!important;position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font-family:var(--slab);font-size:14px;font-weight:700;line-height:1;color:var(--lamp)}
 .trail-view.large .trail-landmark-html.quest{width:34px!important;height:42px!important}
 .trail-view.mini .trail-landmark-html.quest{width:24px!important;height:30px!important}
+/* v0.107.0: Phase 6 world events use the supplied silver ?! marker. The icon
+   reveals only that something is happening on the route; the event type remains
+   contextual until the delver reaches it. */
+.trail-landmark-html.caravan-event{
+  width:27px!important;height:37px!important;
+  background-image:url("./assets/ui/sudden-event-mark.png")!important;
+  background-position:center bottom!important;background-repeat:no-repeat!important;background-size:contain!important;
+  border:0!important;box-shadow:none!important;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.72)) drop-shadow(0 0 5px rgba(180,188,194,.18))!important;
+}
+.trail-landmark-html.caravan-event::before,.trail-landmark-html.caravan-event::after{content:none!important;display:none!important}
+.trail-view.large .trail-landmark-html.caravan-event{width:33px!important;height:45px!important}
+.trail-view.mini .trail-landmark-html.caravan-event{width:24px!important;height:33px!important}
 /* Give the large map a little more presence while keeping the compact map tidy. */
 .trail-view.large .trail-landmark-html{width:22px;height:31px}
 .trail-view.mini .trail-landmark-html{width:16px;height:22px}
@@ -442,6 +457,15 @@ button{
 .travel-middle-visual .trail-view{
   flex:0 0 auto;width:100%;aspect-ratio:1.72 / 1;height:auto;max-height:272px;
 }
+.caravan-early-warning{
+  position:absolute;z-index:8;left:50%;top:18px;transform:translateX(-50%);
+  width:min(82%,330px);padding:7px 9px;border:1px solid rgba(174,181,187,.48);
+  background:rgba(2,6,8,.93);box-shadow:0 5px 18px rgba(0,0,0,.34);
+  font-family:var(--cond);font-size:9.5px;line-height:1.35;letter-spacing:.03em;color:#c0c5c9;
+  text-align:center;pointer-events:none;
+}
+.caravan-early-warning[hidden]{display:none}
+.caravan-early-warning b{font-family:var(--slab);font-size:12px;color:#d4d7d9;font-weight:600}
 .safe-hollow-card{
   margin:auto 12px 12px;padding:11px 12px 12px;
   border:1px solid var(--lamp-dim);background:var(--travel-surface);
@@ -2117,14 +2141,14 @@ button{
 
 /* v0.106.6: damage callouts anchor directly above the HP bar they changed.
    Normal damage is signed red; Critical Strikes are larger lamp-gold values with `!`.
-   The long hold keeps the number readable during fast combat exchanges. */
+   The 2.5-second hold keeps the number readable without letting old hits linger into later exchanges. */
 .combat-damage-pop{
   --damage-shift:0px;position:absolute;z-index:24;left:50%;bottom:calc(100% + 6px);
   pointer-events:none;user-select:none;white-space:nowrap;
   min-width:44px;text-align:center;font-family:var(--cf-serif);font-size:23px;font-weight:700;line-height:1;
   color:#e1684d;text-shadow:0 1px 0 #120706,0 0 6px rgba(213,81,55,.78),0 0 13px rgba(178,47,31,.38);
   transform:translate3d(calc(-50% + var(--damage-shift)),5px,0) scale(.9);opacity:0;
-  animation:combatDamageNumber 3.5s cubic-bezier(.18,.7,.22,1) forwards;
+  animation:combatDamageNumber 2.5s cubic-bezier(.18,.7,.22,1) forwards;
 }
 .combat-damage-pop.critical{
   font-size:28px;color:#f0c85e;letter-spacing:.01em;
@@ -3136,6 +3160,7 @@ body.font-slab{--cf-serif:var(--slab)}
             <div class="trail-label-layer" id="trailLabelsLarge"></div>
           </div>
           <div class="trail-marker" id="trailMarkerLarge"><i></i></div>
+          <div class="caravan-early-warning" id="caravanEarlyWarning" hidden aria-live="polite"></div>
         </div>
       </div>
 
@@ -3765,7 +3790,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.106.7";
+const BUILD_VERSION = "v0.107.0";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -3864,6 +3889,19 @@ const QUEST_DEFS = Object.freeze([
       sources:Object.freeze(["combat","explore"]),combatChance:.34,exploreChance:.52,exploreInterval:1.25
     })]),
     reward:Object.freeze({goldPerUnit:14,maxGold:56})
+  }),
+  Object.freeze({
+    id:"caravan-sealed-dispatch",title:"Sealed Caravan Dispatch",kind:"delivery",
+    giverTownId:null,giverLocationId:null,giverName:"Damaged caravan on the Grey Lantern road",
+    targetTownId:"lantern-city",targetLocationId:"guild",targetNpcName:"Lantern City Quartermaster",targetName:"Lantern City Guild Hall",repeatable:false,
+    summary:"Carry a sealed dispatch recovered from a damaged caravan forward to Lantern City.",
+    details:"A caravan crew on the Grey Lantern road asked you to carry one sealed dispatch to the Guild Hall in Lantern City. The parcel is already in your pack; only delivery remains.",
+    lore:"The road keeps moving even when a wagon cannot. Someone still has to carry the message forward.",
+    objectives:Object.freeze([Object.freeze({
+      id:"dispatch",type:"delivery-item",required:1,issuedQty:1,
+      item:Object.freeze({id:"quest-caravan-dispatch",name:"Sealed Caravan Dispatch",desc:"A sealed dispatch entrusted to you by a damaged caravan.",onAbandon:"convert",mundaneName:"Sealed Dispatch"})
+    })]),
+    reward:Object.freeze({goldPerUnit:24,maxGold:24})
   })
 ]);
 function questDefById(id){return QUEST_DEFS.find(q=>q.id===id)||null;}
@@ -4011,6 +4049,200 @@ function normalizeQuestState(){
   }
 }
 function activeQuestDestinationLandmarks(){return questInstances("active").filter(inst=>!inst.targetTownId).map(inst=>({depth:Number(inst.targetDepth)||0,title:questDefById(inst.definitionId)?.targetName||"Quest destination"}));}
+
+/* ============================================================
+   v0.107.0 — PHASE 6 CARAVAN EVENT LAYER
+
+   Caravans are route events, not continuously simulated actors. One persistent
+   pending event can exist on an authored settlement route. Reaching it opens a
+   short optional decision; Move Along always resolves safely and immediately.
+   ============================================================ */
+const CARAVAN_ROUTE_DEFS=Object.freeze([
+  Object.freeze({
+    id:"grey-lantern__lantern-city",fromTownId:"grey-lantern",toTownId:"lantern-city",eventChance:1,
+    pool:Object.freeze([
+      Object.freeze({type:"passing",weight:4}),
+      Object.freeze({type:"merchant",weight:2}),
+      Object.freeze({type:"damaged",weight:3}),
+      Object.freeze({type:"attacked",weight:2})
+    ])
+  }),
+  Object.freeze({
+    id:"lantern-city__ashwick",fromTownId:"lantern-city",toTownId:"ashwick",eventChance:.55,
+    pool:Object.freeze([
+      Object.freeze({type:"passing",weight:2}),
+      Object.freeze({type:"merchant",weight:2}),
+      Object.freeze({type:"damaged",weight:1}),
+      Object.freeze({type:"attacked",weight:4})
+    ])
+  })
+]);
+const CARAVAN_WARNING_DISTANCE=22;
+const CARAVAN_WARNING_MS=6000;
+
+function ensureCaravanState(){
+  if(!S)return null;
+  if(!S.caravans||typeof S.caravans!=="object"||Array.isArray(S.caravans))S.caravans={pending:null,history:[],routeRolls:{},warning:null,nextSerial:1,activeMerchant:null};
+  const c=S.caravans;
+  if(!Array.isArray(c.history))c.history=[];
+  if(!c.routeRolls||typeof c.routeRolls!=="object"||Array.isArray(c.routeRolls))c.routeRolls={};
+  c.nextSerial=Math.max(1,Math.floor(Number(c.nextSerial)||1));
+  if(!c.pending||typeof c.pending!=="object"||Array.isArray(c.pending))c.pending=null;
+  if(!c.warning||typeof c.warning!=="object"||Array.isArray(c.warning))c.warning=null;
+  if(!c.activeMerchant||typeof c.activeMerchant!=="object"||Array.isArray(c.activeMerchant))c.activeMerchant=null;
+  return c;
+}
+function caravanRouteById(id){return CARAVAN_ROUTE_DEFS.find(r=>r.id===id)||null;}
+function caravanRouteBounds(route){
+  const from=townDefById(route?.fromTownId),to=townDefById(route?.toTownId);
+  return from&&to?{from,to,start:Number(from.depth)||0,end:Number(to.depth)||0}:null;
+}
+function currentCaravanRoute(){
+  if(!S||currentTown())return null;
+  const ts=ensureTownState(),depth=Number(S.depth)||0;
+  return CARAVAN_ROUTE_DEFS.find(route=>{
+    const b=caravanRouteBounds(route);if(!b)return false;
+    return !!ts?.departed?.[b.from.id]&&!ts?.departed?.[b.to.id]&&depth>=b.start-.001&&depth<b.end-.001;
+  })||null;
+}
+function weightedCaravanType(route){
+  const pool=route?.pool||[];const total=pool.reduce((n,row)=>n+Math.max(0,Number(row.weight)||0),0);
+  if(total<=0)return "passing";
+  let roll=rnd()*total;
+  for(const row of pool){roll-=Math.max(0,Number(row.weight)||0);if(roll<=0)return row.type;}
+  return pool[pool.length-1]?.type||"passing";
+}
+function findClearCaravanDepth(route){
+  const b=caravanRouteBounds(route);if(!b)return null;
+  const low=roundQuarter(Math.max(b.start+14,(Number(S.depth)||b.start)+14)),high=roundQuarter(b.end-14);
+  if(high<=low)return null;
+  let d=roundQuarter(low+rnd()*(high-low));
+  for(let i=0;i<120;i++){
+    if(routeDepthClear(d,6))return d;
+    d=roundQuarter(d+.75);
+    if(d>high)d=low;
+  }
+  return d;
+}
+function maybeScheduleCaravan(){
+  if(!S||over||sideAreaActive())return null;
+  const c=ensureCaravanState();if(c.pending)return c.pending;
+  const route=currentCaravanRoute();if(!route||c.routeRolls[route.id])return null;
+  c.routeRolls[route.id]=true;
+  if(rnd()>clamp(Number(route.eventChance)||0,0,1)){requestRunSave();return null;}
+  const depth=findClearCaravanDepth(route);if(!Number.isFinite(depth))return null;
+  c.pending={
+    id:`caravan-${c.nextSerial++}`,routeId:route.id,type:weightedCaravanType(route),depth:roundQuarter(depth),
+    direction:rnd()<.5?"down":"up",warningChecked:false,warningShown:false,createdAt:Date.now()
+  };
+  requestRunSave();return c.pending;
+}
+function pendingCaravan(){return ensureCaravanState()?.pending||null;}
+function caravanRouteLabel(event=pendingCaravan()){
+  const route=caravanRouteById(event?.routeId),b=caravanRouteBounds(route);if(!b)return "Underground route";
+  return event?.direction==="up"
+    ? `${b.to.name} → ${b.from.name} · travelling upward`
+    : `${b.from.name} → ${b.to.name} · travelling downward`;
+}
+function caravanWarningText(event=pendingCaravan()){
+  if(!event)return "";
+  if(event.type==="attacked")return "Steel and shouting carry through the dark ahead.";
+  if(event.type==="damaged")return "You hear an uneven wheel and stopped voices somewhere ahead.";
+  if(event.type==="merchant")return "Harness bells and several voices carry along the route ahead.";
+  return "Harness, footsteps, and low voices carry along the road ahead.";
+}
+function maybeCaravanPerceptionWarning(){
+  const event=pendingCaravan();if(!event||event.warningChecked||S.travelMode!=="descend"||S.foe||S.travelEvent)return false;
+  const distance=Number(event.depth)-Number(S.depth);
+  if(distance<=0||distance>CARAVAN_WARNING_DISTANCE)return false;
+  event.warningChecked=true;
+  const challenge=authoredChallenge(event.type==="attacked"?10:event.type==="damaged"?12:14);
+  const check=runSkillCheck("perception",challenge),practice=awardSkillPractice("perception",`caravan-warning:${event.id}`,check);
+  if(!check.success){requestRunSave();return false;}
+  event.warningShown=true;
+  const text=caravanWarningText(event);
+  ensureCaravanState().warning={eventId:event.id,text,until:Date.now()+CARAVAN_WARNING_MS};
+  travelLogAdd(`<b>Perception:</b> ${esc(text)}${practiceText("perception",practice)}`,"good");
+  requestRunSave();return true;
+}
+function renderCaravanEarlyWarning(){
+  const box=$("caravanEarlyWarning");if(!box)return;
+  const warning=ensureCaravanState()?.warning;
+  if(!warning||Date.now()>=Number(warning.until)||warning.eventId!==pendingCaravan()?.id){
+    if(S?.caravans)S.caravans.warning=null;
+    box.hidden=true;box.textContent="";return;
+  }
+  box.hidden=false;box.innerHTML=`<b>Perception</b><br>${esc(warning.text)}`;
+}
+function caravanEventCopy(event){
+  if(!event)return {title:"Caravan on the road",text:"Traffic occupies the route ahead."};
+  if(event.type==="merchant")return {title:"A merchant caravan has halted",text:"A travelling trader and several pack animals have stopped beside the route."};
+  if(event.type==="damaged")return {title:"A caravan has broken down",text:"One wagon sits at an angle with a damaged wheel while the crew works around it."};
+  if(event.type==="attacked")return {title:"A caravan is under attack",text:"A caravan has been hit beside the route. Fighting is still underway around the wagons."};
+  return {title:"A caravan passes through",text:"A small caravan occupies the route for a moment before continuing on its way."};
+}
+function beginCaravanEvent(event=pendingCaravan()){
+  if(!S||!event||S.foe||S.travelEvent||currentTown())return false;
+  S.depth=roundQuarter(event.depth);S.exploreDepth=S.depth;S.exploreElapsedMs=0;
+  pauseBoonClock();S.travelMode="stopped";S.travelSinceEvent=0;
+  if(S.caravans)S.caravans.warning=null;
+  const copy=caravanEventCopy(event);
+  S.travelEvent={
+    id:"caravan",stage:"choice",kind:"Road traffic",title:copy.title,text:copy.text,
+    rollHtml:`<b>Route:</b> ${esc(caravanRouteLabel(event))}`,caravanEventId:event.id,caravanType:event.type,routeId:event.routeId,priorMode:"descend",outcome:null
+  };
+  travelLogAdd(`<b>Caravan event.</b> ${esc(copy.title)} · ${esc(caravanRouteLabel(event))}.`,"note");
+  render();return true;
+}
+function crossedPendingCaravan(beforeDepth,afterDepth){
+  const event=pendingCaravan();if(!event)return null;
+  return Number(event.depth)>Number(beforeDepth)+.0001&&Number(event.depth)<=Number(afterDepth)+.0001?event:null;
+}
+function recordCaravanResolution(outcome="resolved",event=pendingCaravan()){
+  const c=ensureCaravanState();if(!c)return;
+  if(event){
+    c.history.push({id:event.id,routeId:event.routeId,type:event.type,direction:event.direction,depth:Number(event.depth)||0,outcome,resolvedAt:Date.now()});
+    if(c.history.length>40)c.history.shift();
+  }
+  c.pending=null;c.activeMerchant=null;c.warning=null;
+  requestRunSave();
+}
+function completeCaravanAndResume(outcome="resolved"){
+  const event=pendingCaravan(),prior=S?.travelEvent?.priorMode||"descend";
+  recordCaravanResolution(outcome,event);
+  if(S)S.travelEvent=null;
+  if(S&&!over){S.travelMode=prior==="descend"?"descend":"stopped";S.travelSinceEvent=0;resumeBoonClock();}
+  saveRunNow();render();return true;
+}
+function caravanSetResult(title,text,rollHtml="",outcome="resolved"){
+  if(S?.travelEvent?.id!=="caravan")return false;
+  Object.assign(S.travelEvent,{stage:"result",title,text,rollHtml,outcome});render();return true;
+}
+function caravanCanOfferDispatch(event=pendingCaravan()){
+  return !!event&&event.routeId==="grey-lantern__lantern-city"&&!questInstanceForDefinition("caravan-sealed-dispatch");
+}
+function generateCaravanMerchant(event=pendingCaravan()){
+  if(!event)return null;
+  const merchant=generateMerchantForDepth(event.depth);
+  merchant.context="caravan";merchant.caravanEventId=event.id;merchant.title="Caravan Trader";merchant.displayName=`${merchant.title} ${merchant.name}`;
+  return merchant;
+}
+function caravanCombatVictory(foe){
+  if(!foe?.caravan)return 0;
+  const event=pendingCaravan(),reward=ri(8,16);
+  S.gold=(S.gold||0)+reward;
+  travelLogAdd(`The caravan survives the fight and pays you <b>${esc(formatGold(reward))}</b> before moving on.`,"good");
+  recordCaravanResolution("helped-attacked",event);
+  return reward;
+}
+function caravanCombatAbandoned(foe){
+  if(!foe?.caravan)return false;
+  travelLogAdd(`You break away from the caravan fight and leave the road event behind.`,"note");
+  recordCaravanResolution("left-during-fight",pendingCaravan());return true;
+}
+function activeCaravanLandmark(){
+  const event=pendingCaravan();return event?{depth:Number(event.depth)||0,title:"Something is happening on the route"}:null;
+}
 
 function townDefById(id){ return TOWN_DEFS.find(t=>t.id===id)||null; }
 function townLocationById(def,id){ return def?.locations?.find(loc=>loc.id===id)||null; }
@@ -4314,7 +4546,7 @@ let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 10;
+const SAVE_SCHEMA = 11;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -4705,6 +4937,7 @@ function newDelver(profile){
     runAttemptStratum:0, runAttempts:0,
     descentXpMaxDepth:0, descentXpPending:0,
     lootHistory:[], pendingLoot:null, combatLog:[], concealment:null, stealthOpportunitySeq:0,pendingMerchant:null,merchantVisits:0,merchantHistory:[],
+    caravans:{pending:null,history:[],routeRolls:{},warning:null,nextSerial:1,activeMerchant:null},
     townState:{currentId:null,visited:{},departed:{},services:{}},
     quests:{instances:[],nextSerial:1,exploreAccumulator:0},
     turn:1, foe:null
@@ -6273,9 +6506,11 @@ function spawnEncounter(options={}){
   armed = null;
 
   const base = options.profile || (options.boss ? BOSS_PROFILE : chooseFoeProfile());
-  travelLogAdd(options.surprise
-    ? `You move first from concealment. <b>${cap(article(base.name))}</b> has not reacted yet.`
-    : `Something moves in the dark. <b>${cap(article(base.name))}</b> closes on you.`,options.surprise?"good":"danger");
+  travelLogAdd(options.caravan
+    ? `You enter the caravan fight. <b>${cap(article(base.name))}</b> turns toward you.`
+    : options.surprise
+      ? `You move first from concealment. <b>${cap(article(base.name))}</b> has not reacted yet.`
+      : `Something moves in the dark. <b>${cap(article(base.name))}</b> closes on you.`,options.surprise?"good":"danger");
   const hpRoll = 0.94 + rnd()*0.12;
   const hpProfile = base.hp/34;
   const atkProfile = base.atk/7;
@@ -6292,6 +6527,7 @@ function spawnEncounter(options={}){
   };
   S.seenFoes[base.id] = true;
   if(firstSeen) markCharacterNotice("bestiary");
+  if(options.caravan)S.foe.caravan={...options.caravan};
 
   if(options.side){
     S.foe.side = true;
@@ -6366,6 +6602,30 @@ function renderTravelEvent(){
   if(ev.id==="stealth-contact"){
     roll.hidden=!ev.rollHtml; roll.innerHTML=ev.rollHtml||"";
     actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="stealth-ambush"><b>Ambush</b><span>start combat with a surprise opening · breaks Concealment</span></button><button class="travel-event-btn ignore" data-event-action="stealth-pass"><b>Let them pass</b><span>no combat XP or loot · remain concealed</span></button>`;
+    return;
+  }
+
+  if(ev.id==="caravan"){
+    roll.hidden=!ev.rollHtml;roll.innerHTML=ev.rollHtml||"";
+    if(ev.stage==="quest-offer"){
+      actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="caravan-accept-quest"><b>Carry it forward</b><span>accept a normal delivery quest · item goes into your Backpack</span></button><button class="travel-event-btn ignore" data-event-action="caravan-decline-quest"><b>Move Along</b><span>safe · immediate · no penalty</span></button>`;
+      return;
+    }
+    if(ev.stage==="result"){
+      actions.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="caravan-continue"><b>Continue</b><span>return to the descent</span></button>`;
+      return;
+    }
+    if(ev.caravanType==="merchant"){
+      actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="caravan-trade"><b>Trade</b><span>use the normal merchant buy/sell system</span></button><button class="travel-event-btn ignore" data-event-action="caravan-move"><b>Move Along</b><span>safe · immediate · no penalty</span></button>`;
+      return;
+    }
+    if(ev.caravanType==="passing"){
+      actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="caravan-greet"><b>Exchange a word</b><span>brief road contact · no obligation</span></button><button class="travel-event-btn ignore" data-event-action="caravan-move"><b>Move Along</b><span>safe · immediate · no penalty</span></button>`;
+      return;
+    }
+    const stealChallenge=authoredChallenge(ev.caravanType==="attacked"?14:12);
+    const helpSub=ev.caravanType==="attacked"?"enter the fight using normal combat":"help the crew get the wagon moving";
+    actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="${ev.caravanType==="attacked"?"caravan-help-attacked":"caravan-help-damaged"}"><b>Help</b><span>${helpSub}</span></button><button class="travel-event-btn investigate" data-event-action="caravan-steal"><b>Take advantage</b><span>${skillCheckPreview("stealth",stealChallenge)} · Stealth</span></button><button class="travel-event-btn ignore wide" data-event-action="caravan-move"><b>Move Along</b><span>safe · immediate · no penalty</span></button>`;
     return;
   }
 
@@ -6525,6 +6785,63 @@ async function handleTravelEventAction(action){
   if(ev.id==="loot-found"){
     if(action==="loot-investigation") return resolveLootSearch("investigation");
     if(action==="loot-continue") return closeLootFound();
+    return;
+  }
+
+  if(ev.id==="caravan"){
+    const event=pendingCaravan();
+    if(action==="caravan-move"){
+      travelLogAdd(`You leave the caravan event behind and continue descending.`,"note");
+      return completeCaravanAndResume("moved-along");
+    }
+    if(action==="caravan-greet"){
+      travelLogAdd(`You exchange a few words with the passing caravan and keep your place on the road.`,"note");
+      return caravanSetResult("Traffic moving on","The caravan continues on its route. Nothing else is required of you.",ev.rollHtml,"greeted");
+    }
+    if(action==="caravan-trade"){
+      const c=ensureCaravanState();if(!event||!c)return;
+      c.activeMerchant=generateCaravanMerchant(event);
+      S.travelEvent=null;
+      openPack("merchant","backpack");
+      render();
+      return;
+    }
+    if(action==="caravan-help-damaged"){
+      const reward=ri(3,7);S.gold=(S.gold||0)+reward;
+      travelLogAdd(`You help the damaged caravan get the wagon stable. The crew gives you <b>${esc(formatGold(reward))}</b>.`,"good");
+      if(caravanCanOfferDispatch(event)){
+        ev.stage="quest-offer";ev.title="One thing still needs to move";ev.text="The wagon can continue slowly, but the crew asks whether you can carry a sealed dispatch forward to Lantern City.";ev.rollHtml=`<b>Immediate thanks:</b> ${formatGold(reward)}<br><b>Destination:</b> Lantern City Guild Hall`;ev.outcome="helped-damaged";render();return;
+      }
+      return caravanSetResult("The wagon is stable","The crew can continue under its own power. You are free to leave.",`<b>Received:</b> ${formatGold(reward)}`,"helped-damaged");
+    }
+    if(action==="caravan-accept-quest"){
+      if(!questInstanceForDefinition("caravan-sealed-dispatch"))acceptQuest("caravan-sealed-dispatch");
+      ev.stage="result";ev.title="Dispatch accepted";ev.text="The sealed dispatch is now a normal quest-bound Backpack item. Deliver it at Lantern City Guild Hall.";ev.rollHtml=`<b>Quest:</b> Sealed Caravan Dispatch<br><b>Destination:</b> Lantern City Guild Hall`;ev.outcome="helped-dispatch";render();return;
+    }
+    if(action==="caravan-decline-quest"){
+      travelLogAdd(`You decline the caravan's delivery request and continue on.`,"note");
+      return completeCaravanAndResume("helped-declined-dispatch");
+    }
+    if(action==="caravan-help-attacked"){
+      if(!event)return;
+      const profile=chooseFoeProfile();
+      S.travelEvent=null;
+      travelLogAdd(`You choose to help and enter the fighting around the caravan.`,"beat");
+      return spawnEncounter({profile,caravan:{eventId:event.id,routeId:event.routeId,type:event.type}});
+    }
+    if(action==="caravan-steal"){
+      if(!event)return;
+      const challenge=authoredChallenge(event.type==="attacked"?14:12),check=await runActiveSkillCheck("stealth",challenge),practice=awardSkillPractice("stealth",`caravan-steal:${event.id}`,check);
+      const resultHtml=formatSkillCheck(check)+practiceText("stealth",practice);
+      if(check.success){
+        const reward=ri(10,20);S.gold=(S.gold||0)+reward;
+        travelLogAdd(`You take advantage of the confusion and come away with <b>${esc(formatGold(reward))}</b>.`,"note");
+        return caravanSetResult("You slip away unnoticed",`You recover ${formatGold(reward)} and leave before anyone can stop you.`,resultHtml,"stole");
+      }
+      travelLogAdd(`You cannot find a clean opening. You leave without taking anything.`,"note");
+      return caravanSetResult("No clean opening","The opportunity closes before you can take anything. No one follows you.",resultHtml,"steal-failed");
+    }
+    if(action==="caravan-continue")return completeCaravanAndResume(ev.outcome||"resolved");
     return;
   }
 
@@ -6705,6 +7022,7 @@ function departCurrentTown(){
   townDepartureArmed=false;townLocationOpenId=null;townMerchantServiceId=null;
   S.travelMode="stopped";S.travelSinceEvent=0;
   travelLogAdd(`You leave <b>${esc(def.name)}</b> through the lower gate. There is no road back for you.`,"beat");
+  maybeScheduleCaravan();
   render();saveRunNow();
   return true;
 }
@@ -6919,6 +7237,8 @@ function runTravelTickCore(){
   if(!S.foe && !S.travelEvent && !S.activeHollow && S.travelMode==="descend"){
     const waitingTown=townAtCurrentDepth();
     if(waitingTown) return enterTown(waitingTown);
+    maybeScheduleCaravan();
+    maybeCaravanPerceptionWarning();
   }
 
   if(!S.foe && !S.travelEvent && !S.sideDiscoveryAttempted && !S.sideAreaResolved && !sideAreaActive() &&
@@ -6934,6 +7254,8 @@ function runTravelTickCore(){
   if(S.travelMode==="descend" && !S.foe && !S.travelEvent){
     const questTarget=crossedActiveQuestTarget(S.depth,S.depth+TRAVEL_STEP);
     if(questTarget)return beginQuestTurnIn(questTarget);
+    const caravan=crossedPendingCaravan(S.depth,S.depth+TRAVEL_STEP);
+    if(caravan)return beginCaravanEvent(caravan);
   }
 
   if(S.travelMode==="descend" && !S.foe && !S.travelEvent && currentMerchant() && S.depth<currentMerchant().depth && S.depth+TRAVEL_STEP>=currentMerchant().depth){
@@ -7144,7 +7466,7 @@ function showCombatDamagePop(target,amount,{critical=false}={}){
   const lanes=[-18,0,18,-9,9];
   pop.style.setProperty("--damage-shift",`${lanes[combatDamagePopSerial++%lanes.length]}px`);
   host.appendChild(pop);
-  window.setTimeout(()=>pop.remove(),3650);
+  window.setTimeout(()=>pop.remove(),2650);
 }
 
 function applyOutgoingEquipmentEffects(baseDamage,{foe=S.foe,eligible=true}={}){
@@ -7324,7 +7646,7 @@ function finalizeCombatVictory(foe){
 function finishKill(out){
   const f=S.foe;
   if(!f) return;
-  const wasSide=!!f.side, wasBoss=!!f.boss, wasMimic=!!f.mimic;
+  const wasSide=!!f.side, wasBoss=!!f.boss, wasMimic=!!f.mimic, wasCaravan=!!f.caravan;
   const bossStratum=f.bossStratum??Math.max(0,Math.floor(S.depth/FATHOMS_PER_STRATUM));
   S._lootFoundCurrent=[];
 
@@ -7401,6 +7723,8 @@ function finishKill(out){
       travelLogAdd(`The boundary opens. You cross into <b>${esc(stratumName(bossStratum+1))}</b>.`,"beat");
     }
   }
+
+  if(wasCaravan)caravanCombatVictory(f);
 
   const drops=[...S._lootFoundCurrent];
   delete S._lootFoundCurrent;
@@ -8061,6 +8385,7 @@ function tapRun(){
   if(S.hp<=0)return die(`<p class="hurt">Turned to run. Did not get far.</p>`);
   travelLogAdd(`You break contact and hold at <b>${formatDepth(S.depth)} fathoms</b>.`,"danger");
   say(`<p class="said">Broke contact and did not look back.</p>`+(c?`<p class="hurt">It cost <b>${c}</b> on the way out.</p>`:`<p class="note">It let you go.</p>`));
+  if(S.foe?.caravan)caravanCombatAbandoned(S.foe);
   S.foe=null;S.heavyCharge=0;S.strikeChain=0;S.defenceChain=0;S.abilityQuickUsed=false;
   render();
 }
@@ -8273,6 +8598,7 @@ function rebuildTrailWorld(target,anchorDepth){
   const ts=ensureTownState();
   for(const t of TOWN_DEFS) addLandmark(t.kind==="city"?"city":"town",t.depth,!!ts?.departed?.[t.id],t.name);
   for(const q of activeQuestDestinationLandmarks())addLandmark("quest",q.depth,false,q.title);
+  const caravanLm=activeCaravanLandmark();if(caravanLm)addLandmark("caravan-event",caravanLm.depth,false,caravanLm.title);
   const cm=currentMerchant();if(cm)addLandmark("merchant",cm.depth,false,`${cm.title} ${cm.name}`);
   for(const h of (S.merchantHistory||[]))addLandmark("merchant",Number(h.depth)||0,true,h.name||"Merchant camp");
   const firstStratum=Math.max(0,Math.floor(worldFrom/FATHOMS_PER_STRATUM)),lastStratum=Math.max(firstStratum,Math.floor(worldTo/FATHOMS_PER_STRATUM));
@@ -8456,7 +8782,9 @@ function renderTravel(){
   $("travelHpN").textContent=`${Math.max(0,S.hp)} / ${S.hpMax} hp`;
   $("travelXp").textContent=`${S.xp} / ${xpToNext(S.level)} XP`;
   maybeScheduleMerchant();
+  maybeScheduleCaravan();
   renderTrail();
+  renderCaravanEarlyWarning();
   renderTravelEvent();
   renderSafeHollow();
   // Inventory/equipment is rendered on open and on actual inventory interactions.
@@ -9264,6 +9592,7 @@ function routeReservedDepthsAround(depth){
   if(Number.isFinite(Number(S?.sideDiscoveryAt))) out.push(Number(S.sideDiscoveryAt));
   for(const h of (S?.sideAreaHistory||[])) out.push(Number(h.entryDepth)||0);
   for(const h of (S?.merchantHistory||[])) out.push(Number(h.depth)||0);
+  const caravan=pendingCaravan();if(caravan)out.push(Number(caravan.depth)||0);
   for(const q of questInstances("active")) out.push(Number(q.targetDepth)||0);
   return out;
 }
@@ -9294,8 +9623,9 @@ function maybeScheduleMerchant(){
   S.pendingMerchant=generateMerchantForDepth(depth);
 }
 function currentMerchant(){
-  ensureMerchantState();
+  ensureMerchantState();ensureCaravanState();
   if(townMerchantServiceId && currentTown()) return ensureTownMerchantService(townMerchantServiceId);
+  if(S?.caravans?.activeMerchant) return S.caravans.activeMerchant;
   return S?.pendingMerchant||null;
 }
 function merchantDisplayName(m=currentMerchant()){ return m?.displayName||`${m?.title||"Merchant"} ${m?.name||""}`.trim(); }
@@ -9329,7 +9659,7 @@ function retireMerchant(){
 }
 function leaveMerchant(){
   if(!S || S.packMode!=="merchant") return;
-  const m=currentMerchant(),townTrade=m?.context==="town";
+  const m=currentMerchant(),townTrade=m?.context==="town",caravanTrade=m?.context==="caravan";
   S.packMode=null;
   packReturnTarget=null;
   $("packSheet").hidden=true;
@@ -9343,7 +9673,8 @@ function leaveMerchant(){
     return;
   }
   if(m) travelLogAdd(`You leave <b>${esc(merchantDisplayName(m))}</b> behind and continue the descent.`,"note");
-  retireMerchant();
+  if(caravanTrade) recordCaravanResolution("traded",pendingCaravan());
+  else retireMerchant();
   S.travelMode="descend";
   resumeBoonClock();
   syncBrowseTravelUI();
@@ -11446,6 +11777,19 @@ function migrateSave9To10(snapshot){
   }
   return next;
 }
+function migrateSave10To11(snapshot){
+  const next=cloneForSave(snapshot);next.schema=11;const state=next.state;
+  if(isSaveRecord(state)){
+    if(!isSaveRecord(state.caravans))state.caravans={pending:null,history:[],routeRolls:{},warning:null,nextSerial:1,activeMerchant:null};
+    if(!Array.isArray(state.caravans.history))state.caravans.history=[];
+    if(!isSaveRecord(state.caravans.routeRolls))state.caravans.routeRolls={};
+    state.caravans.nextSerial=Math.max(1,Math.floor(Number(state.caravans.nextSerial)||1));
+    if(!isSaveRecord(state.caravans.pending))state.caravans.pending=null;
+    if(!isSaveRecord(state.caravans.warning))state.caravans.warning=null;
+    if(!isSaveRecord(state.caravans.activeMerchant))state.caravans.activeMerchant=null;
+  }
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
@@ -11455,7 +11799,8 @@ const SAVE_MIGRATIONS={
   6:migrateSave6To7,
   7:migrateSave7To8,
   8:migrateSave8To9,
-  9:migrateSave9To10
+  9:migrateSave9To10,
+  10:migrateSave10To11
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -11669,7 +12014,7 @@ function normalizeRestoredRun(){
     S.bleedCombatTurns=Math.max(0,Number(S.bleedCombatTurns)||0);
   }else clearBleeding();
   S.stealthOpportunitySeq=Number.isInteger(S.stealthOpportunitySeq)?S.stealthOpportunitySeq:0;
-  S.concealment=(S.concealment&&Number(S.concealment.remainingMs)>0)?{remainingMs:Number(S.concealment.remainingMs),autoPass:!!S.concealment.autoPass}:null;ensureMerchantState();
+  S.concealment=(S.concealment&&Number(S.concealment.remainingMs)>0)?{remainingMs:Number(S.concealment.remainingMs),autoPass:!!S.concealment.autoPass}:null;ensureMerchantState();ensureCaravanState();
   S.abilities=S.abilities||{};
   for(const id of UNIVERSAL_ABILITY_IDS){const def=ABILITY_DEFS[id];if(def&&!S.abilities[id])S.abilities[id]={cur:def.max,max:def.max,degree:def.degree};}
   S.lootHistory=Array.isArray(S.lootHistory)?S.lootHistory:[];
