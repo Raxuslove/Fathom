@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.103.0 — Interactive Town Map</title>
+<title>Lowfathom v0.103.4 — Town Map Portrait Fit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -157,6 +157,8 @@
    - v0.101.16: active descent/explore travel modes gain a cyan held-state frame and glow for immediate mode feedback
    - v0.102.0: Town Phase 1 foundation — authored Grey Lantern test town at 50 fathoms, one-way arrival/departure, persistent town state and route landmark
    - v0.103.0: Town Phase 2 — Grey Lantern illustrated map, map hotspots/location panels, authored town marker asset and town-priority landmark collision handling
+   - v0.103.3: Town Phase 2 polish — town map shell resized, settings cog matched to combat/travel, Grey Lantern marker enlarged again, location panel separated below the map
+   - v0.103.4: Town Phase 2 portrait fit — Grey Lantern map shell made taller without widening it, tuned for the replacement town art; inn renamed to Tavern
    - v0.100.20: hard-locks soft-menu surfaces to the exact near-black pair #020608 / #010406 for Backpack, Character, Abilities, Loot History and Settings
    - v0.090.5: side riddles and mechanisms gain optional escalating Skill-based hints; hints never solve or fail the obstacle themselves
 
@@ -578,9 +580,9 @@ button{
 .travel-act:disabled{opacity:.45;cursor:not-allowed}
 .travel-act:disabled b,.travel-act:disabled span{color:#39434e}
 
-/* ---------- v0.103.0: Town Phase 2 interactive map ---------- */
+/* ---------- v0.103.4: Town Phase 2 portrait-fit pass ---------- */
 .town-screen{
-  position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;overflow:hidden;
+  position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
   background:#010406;color:var(--bone);
 }
 .town-screen[hidden]{display:none}
@@ -589,18 +591,25 @@ button{
   background:#020608;border-bottom:1px solid var(--rule);
 }
 .town-head-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.town-head .settings-cog{
+  flex:0 0 auto;width:30px;height:30px;min-width:30px;min-height:30px;padding:0;border:none;border-radius:50%;
+  background:center/contain no-repeat url("./assets/ui/icon-gear.png");
+  box-shadow:none;color:transparent;font-size:0;
+}
+.town-head .settings-cog::before{content:none}
+.town-head .settings-cog:active{background:center/contain no-repeat url("./assets/ui/icon-gear.png");filter:brightness(1.08)}
 .town-head em{display:block;font-style:normal;font-family:var(--cond);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
 .town-head h1{margin:2px 0 0;font-family:var(--slab);font-size:23px;line-height:1.05;font-weight:600;color:var(--lamp)}
 .town-head p{margin:5px 0 0;max-width:48ch;font-size:10.5px;line-height:1.35;color:#87919a}
-.town-map-wrap{flex:1;min-height:0;padding:10px 12px 8px;display:flex;overflow:auto;overscroll-behavior:contain}
+.town-map-wrap{flex:0 0 auto;padding:10px 12px 8px;display:block;overflow:visible}
 .town-map-shell{
-  position:relative;flex:1;min-width:0;min-height:0;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;
+  position:relative;width:100%;max-width:100%;aspect-ratio:4/5;min-height:0;display:block;overflow:hidden;
   border:11px solid transparent;border-image:url("./assets/ui/frame-map.png") 22 / 11px / 0 stretch;
   background:#010406;
 }
 .town-map-artboard{
-  position:relative;z-index:1;width:100%;aspect-ratio:4/3;flex:0 0 auto;
-  background-color:#05080a;background-position:center;background-repeat:no-repeat;background-size:contain;
+  position:relative;z-index:1;width:100%;height:100%;aspect-ratio:auto;
+  background-color:#05080a;background-position:center;background-repeat:no-repeat;background-size:cover;
 }
 .town-map-artboard::after{
   content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
@@ -611,22 +620,22 @@ button{
 .town-hotspots{position:absolute;inset:0;z-index:4;pointer-events:none}
 .town-hotspot{
   --hx:50%;--hy:50%;position:absolute;left:var(--hx);top:var(--hy);transform:translate(-50%,-50%);
-  width:48px;height:48px;border:0;background:transparent;padding:0;pointer-events:auto;
+  width:42px;height:42px;border:0;background:transparent;padding:0;pointer-events:auto;
   display:flex;align-items:center;justify-content:center;
 }
 .town-hotspot::before{
-  content:"";position:absolute;left:50%;top:50%;width:23px;height:23px;transform:translate(-50%,-50%) rotate(45deg);
+  content:"";position:absolute;left:50%;top:50%;width:18px;height:18px;transform:translate(-50%,-50%) rotate(45deg);
   background:rgba(2,7,9,.88);border:1px solid rgba(230,194,136,.82);box-shadow:0 2px 9px rgba(0,0,0,.68),inset 0 0 0 2px rgba(230,194,136,.07);
   transition:transform .12s,border-color .12s,box-shadow .12s,background .12s;
 }
 .town-hotspot::after{
-  content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;transform:translate(-50%,-50%);
+  content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;transform:translate(-50%,-50%);
   border-radius:50%;background:var(--lamp);box-shadow:0 0 7px rgba(230,194,136,.86),0 0 13px rgba(188,131,43,.38);
 }
 .town-hotspot span{
-  position:absolute;left:50%;top:calc(50% + 19px);transform:translateX(-50%);min-width:max-content;max-width:92px;
+  position:absolute;left:50%;top:calc(50% + 16px);transform:translateX(-50%);min-width:max-content;max-width:92px;
   padding:2px 5px;border:1px solid rgba(138,117,80,.32);background:rgba(2,6,8,.90);
-  font-family:var(--cond);font-size:8px;line-height:1.15;letter-spacing:.07em;text-transform:uppercase;color:#c8c1b3;
+  font-family:var(--cond);font-size:7px;line-height:1.15;letter-spacing:.07em;text-transform:uppercase;color:#c8c1b3;
   text-shadow:0 1px 2px #000;white-space:nowrap;
 }
 .town-hotspot:hover::before,.town-hotspot:focus-visible::before,.town-hotspot.selected::before{
@@ -640,9 +649,9 @@ button{
   pointer-events:none;
 }
 .town-location-panel{
-  position:absolute;z-index:8;left:9px;right:9px;bottom:9px;max-height:58%;overflow-y:auto;
+  position:relative;z-index:1;flex:0 0 auto;margin:0 12px 8px;max-height:none;overflow-y:auto;
   border:10px solid transparent;border-image:url("./assets/ui/frame-panel.png") 30 fill / 10px / 0 stretch;
-  background:#020608;box-shadow:0 12px 32px rgba(0,0,0,.58);
+  background:#020608;box-shadow:none;
 }
 .town-location-panel[hidden]{display:none}
 .town-location-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:3px 4px 7px;border-bottom:1px solid rgba(190,150,80,.20)}
@@ -666,18 +675,23 @@ button{
 /* Authored route landmark. A town takes visual priority over incidental route
    markers close enough to overlap it; the landmark remains anchored to its true depth. */
 .trail-landmark-html.town,.trail-landmark-html.city{
-  width:27px!important;height:37.5px!important;background-image:url("./assets/ui/town-mark-1.png")!important;
+  width:40.5px!important;height:56.25px!important;background-image:url("./assets/ui/town-mark-1.png")!important;
   background-position:center bottom!important;background-repeat:no-repeat!important;background-size:contain!important;
   border:0!important;box-shadow:none!important;transform:translate(-50%,-100%)!important;
   filter:drop-shadow(0 2px 3px rgba(0,0,0,.72))!important;
 }
 .trail-landmark-html.town::before,.trail-landmark-html.town::after,.trail-landmark-html.city::before,.trail-landmark-html.city::after{content:none!important;display:none!important}
-.trail-view.large .trail-landmark-html.town,.trail-view.large .trail-landmark-html.city{width:33px!important;height:46.5px!important}
-.trail-view.mini .trail-landmark-html.town,.trail-view.mini .trail-landmark-html.city{width:24px!important;height:33px!important}
-@media (max-height:650px){
-  .town-head p{display:none}.town-map-wrap{padding-top:7px}.town-state-card{padding:5px 8px}
-  .town-hotspot{width:44px;height:44px}.town-hotspot span{font-size:7.5px}
+.trail-view.large .trail-landmark-html.town,.trail-view.large .trail-landmark-html.city{width:49.5px!important;height:69.75px!important}
+.trail-view.mini .trail-landmark-html.town,.trail-view.mini .trail-landmark-html.city{width:30px!important;height:42px!important}
+@media (max-height:740px){
+  .town-map-wrap{padding-top:7px}.town-state-card{padding:5px 8px}
+  .town-map-shell{max-width:min(100%, calc((100vh - 430px) * 4 / 3));margin:0 auto}
 }
+@media (max-height:650px){
+  .town-head p{display:none}
+  .town-hotspot{width:40px;height:40px}.town-hotspot span{font-size:6.5px}
+}
+
 
 /* ---------- Session 5 / v0.083.6: Backpack + Equipment inventory sheet ---------- */
 .pack-sheet{
@@ -2942,23 +2956,23 @@ body.font-slab{--cf-serif:var(--slab)}
           <div class="town-hotspots" id="townHotspots" aria-label="Town locations"></div>
           <div class="town-map-hint">Tap a marked place</div>
         </div>
-        <section class="town-location-panel" id="townLocationPanel" hidden aria-live="polite">
-          <div class="town-location-head">
-            <div><em id="townLocationType">Location</em><h2 id="townLocationName">Market</h2></div>
-            <button class="town-location-back" id="btnTownLocationBack" type="button">Back to map</button>
-          </div>
-          <div class="town-location-copy">
-            <p id="townLocationDescription"></p>
-            <small id="townLocationStatus"></small>
-          </div>
-          <div class="town-location-actions" id="townLocationActions"></div>
-          <div class="town-depart-confirm" id="townDepartConfirm" hidden>
-            <button class="confirm" id="btnTownConfirmLeave" type="button">Leave Grey Lantern permanently</button>
-            <button id="btnTownCancelLeave" type="button">Stay in town</button>
-          </div>
-        </section>
       </div>
     </div>
+    <section class="town-location-panel" id="townLocationPanel" hidden aria-live="polite">
+      <div class="town-location-head">
+        <div><em id="townLocationType">Location</em><h2 id="townLocationName">Market</h2></div>
+        <button class="town-location-back" id="btnTownLocationBack" type="button">Back to map</button>
+      </div>
+      <div class="town-location-copy">
+        <p id="townLocationDescription"></p>
+        <small id="townLocationStatus"></small>
+      </div>
+      <div class="town-location-actions" id="townLocationActions"></div>
+      <div class="town-depart-confirm" id="townDepartConfirm" hidden>
+        <button class="confirm" id="btnTownConfirmLeave" type="button">Leave Grey Lantern permanently</button>
+        <button id="btnTownCancelLeave" type="button">Stay in town</button>
+      </div>
+    </section>
     <footer class="town-footer">
       <div class="town-state-card"><b>Safe inside town.</b> Services are mapped in this phase; their gameplay opens in Phase 3.</div>
     </footer>
@@ -3496,7 +3510,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.103.0";
+const BUILD_VERSION = "v0.103.4";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -3521,16 +3535,16 @@ const TRAIL_H = 154;
 const TRAIL_MARKER_Y = 77;             // visually centered while the route slopes downward
 const TRAIL_VERTICAL_ZOOM = 0.80;      // compact minimap route height
 
-/* v0.103.0 Town Phase 2. Grey Lantern remains at 50 fathoms only for rapid
+/* v0.103.4 Town Phase 2 portrait fit. Grey Lantern remains at 50 fathoms only for rapid
    testing; later it can move to ~200 by changing this one authored depth.
    Locations are data-driven so later towns/cities can reuse the same map engine. */
 const TOWN_DEFS = Object.freeze([
   Object.freeze({
     id:"grey-lantern",name:"Grey Lantern",kind:"town",depth:50,
-    image:"./assets/ui/town-grey-lantern.png",aspectRatio:"4 / 3",
+    image:"./assets/ui/town-grey-lantern.png",aspectRatio:"4 / 5",
     locations:Object.freeze([
       Object.freeze({id:"market",name:"Market",type:"Trade",x:50.0,y:45.5,description:"The central market district.",status:"Trading opens in Town Phase 3."}),
-      Object.freeze({id:"inn",name:"Rest House",type:"Recovery",x:31.5,y:57.0,description:"The town's inn and rest house.",status:"Town recovery opens in Town Phase 3."}),
+      Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:31.5,y:57.0,description:"Grey Lantern's tavern and rest house.",status:"Town recovery opens in Town Phase 3."}),
       Object.freeze({id:"apothecary",name:"Apothecary",type:"Medicine",x:68.5,y:46.0,description:"The apothecary and healer's quarter.",status:"Medical services open in Town Phase 3."}),
       Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:78.0,y:31.5,description:"A hall used by delvers, guards, and local employers.",status:"Quest interaction opens with the quest phase."}),
       Object.freeze({id:"lower-gate",name:"Lower Gate",type:"Departure",x:48.5,y:83.0,description:"The road out of Grey Lantern continues deeper.",status:"Departure is permanent; you cannot travel back to this town.",departure:true})
@@ -6120,6 +6134,8 @@ function renderTown(){
   $("townMeta").textContent=`${def.kind==="city"?"City":"Town"} · ${formatDepth(def.depth)} fathoms`;
   $("townName").textContent=def.name;
   const art=$("townMapArtboard");
+  const shell=$("townMapShell");
+  if(shell)shell.style.aspectRatio=def.aspectRatio||"4 / 3";
   if(art){art.style.backgroundImage=`url("${def.image}")`;art.style.aspectRatio=def.aspectRatio||"4 / 3";}
   const loc=townLocationById(def,townLocationOpenId);
   if(townLocationOpenId&&!loc){townLocationOpenId=null;townDepartureArmed=false;}
