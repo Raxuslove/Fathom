@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.106.3 — Universal Merchant Gear Comparison</title>
+<title>Lowfathom v0.106.4 — Merchant Sale Integrity Fix</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -163,6 +163,7 @@
    - v0.103.7: Town Phase 2 placement pass — corrected town footer HP source, matched the town Character button frame to Backpack, and repositioned Grey Lantern location markers
    - v0.104.0: Town Phase 3 core services — Market reuses merchant buy/sell with better town rates, Tavern fully recovers the delver, Herbalist sells Bandages, Guild Hall remains reserved for quests
    - v0.106.3: Universal merchant gear comparison — equipment in Buy and Sell Gear shows the same deltas against the relevant currently equipped item; empty slots stay quiet
+   - v0.106.4: Merchant sale integrity fix — retires the legacy weapon mirror so sold starter/static weapons cannot resurrect into owned gear and be sold repeatedly
    - v0.104.1: Grey Lantern town-map trim — reduced the map shell height slightly and nudged the map art upward to crop unused top/bottom space
    - v0.105.0: Town Phase 4 quest engine — persistent quest instances, Character Quests + Journal pages, quest-bound Backpack items, active/inactive/completed states, proportional quota turn-ins, and combat/Explore quest drops
    - v0.105.1: post-combat resolution pass — defeated encounters collapse combat actions/intent, surface collected loot and optional Investigation immediately, then wait for Continue
@@ -3674,7 +3675,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.106.3";
+const BUILD_VERSION = "v0.106.4";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -4599,7 +4600,7 @@ function newDelver(profile){
     inventory:{
       campSupplies:STARTING_CAMP_SUPPLIES, bandages:1, meat:0, rope:0, water:1,
       rogueTools:cls==="Rogue"?1:0, lexicon:cls==="Wizard"?1:0, reliquary:cls==="Votary"?1:0,
-      misc:{}, questItems:[], weapons:[startingEquipment.rightHand].filter(Boolean), equipment:[...startingEquipmentBag], passageKey:null
+      misc:{}, questItems:[], weapons:[], equipment:[...startingEquipmentBag], passageKey:null
     },
     generatedItems:{},
     equipment:{...startingEquipment},
@@ -5354,10 +5355,13 @@ function ensureEquipmentState(){
     for(const slot of EQUIPMENT_SLOT_ORDER) if(!(slot in S.equipment)) S.equipment[slot]=null;
     S.inventory.equipment=[...new Set(S.inventory.equipment.filter(id=>equipmentItemDef(id)))];
   }
+  // Migrate the obsolete pre-9B weapon mirror exactly once, then retire it.
+  // Keeping IDs here after migration could resurrect sold gear on the next render.
   const legacyWeapons=S.inventory.weapons.filter(id=>GEAR_ITEMS[id]);
   for(const id of legacyWeapons){
     if(id!==S.equipment.rightHand && !S.inventory.equipment.includes(id)) S.inventory.equipment.push(id);
   }
+  S.inventory.weapons=[];
   // Palette-test fixtures are no longer part of live chronicles.
   S.inventory.equipment=S.inventory.equipment.filter(id=>!RARITY_TEST_WEAPONS.includes(id));
   if(RARITY_TEST_WEAPONS.includes(S.equipment.rightHand)) S.equipment.rightHand=null;
@@ -9722,8 +9726,8 @@ function addMisc(name, qty=1){
   S.inventory.misc[name]=(S.inventory.misc[name]||0)+qty;
 }
 function addWeapon(itemId){
-  if(!S.inventory.weapons) S.inventory.weapons=[];
-  if(!S.inventory.weapons.includes(itemId)) S.inventory.weapons.push(itemId);
+  if(!S?.inventory || !itemId || !equipmentItemDef(itemId)) return;
+  // Equipment inventory is canonical. The old inventory.weapons mirror is retired.
   if(!S.inventory.equipment) S.inventory.equipment=[];
   if(S?.equipment?.rightHand!==itemId && !S.inventory.equipment.includes(itemId)) S.inventory.equipment.push(itemId);
 }
