@@ -168,6 +168,7 @@
    - v0.106.6: travel-log dock repair + popup tuning — Delve Log moves beside compact Stop, opens as a pop-out, and damage numbers become signed 3.5-second HP-bar callouts
    - v0.106.7: Character Overview gains live combat statistics derived from the actual attack, defence, Armor and equipment-affix formulas
    - v0.107.4: XP layout refinement — combat name/level/HP hierarchy, purple XP readouts, and compact Character-sheet XP bar
+   - v0.107.5: road-traffic stale-slot repair — overtaken merchant/caravan slots self-heal and reschedule without changing the 75/25 balance
    - v0.107.0: Phase 6 Caravan System — uncommon route-based caravan events, passive Perception warnings, generic sudden-event markers, caravan merchants, attacked/damaged choices, and a caravan-origin delivery quest
    - v0.107.0: combat damage-number linger reduced from 3.5 seconds to 2.5 seconds
    - v0.107.1: temporary goblin portrait removed; Rogue Heavy presentation renamed Backstab; damage callouts reduced to 1.5 seconds with separated lanes
@@ -3826,7 +3827,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.107.4";
+const BUILD_VERSION = "v0.107.5";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -9686,9 +9687,40 @@ function normalizePendingMerchantDepth(){
   if(!m || m.depth<=Number(S.depth||0)+TRAVEL_STEP) return;
   if(!routeDepthClear(m.depth,5)) m.depth=findClearMerchantDepth(Math.max(Number(S.depth||0)+6,m.depth));
 }
+function roadTrafficDepthIsStale(depth){
+  const d=Number(depth),here=Number(S?.depth)||0;
+  return !Number.isFinite(d) || d<=here+.0001;
+}
+function repairStaleRoadTrafficSlot(){
+  if(!S)return false;
+  ensureMerchantState();const caravanState=ensureCaravanState();
+  // Do not retire a slot after the player has actually reached it. Merchant and
+  // caravan encounters keep their pending record alive while the choice/trade/
+  // combat UI is open, so those states are deliberately protected here.
+  const merchantActive=S.travelEvent?.id==="merchant" || (S.packMode==="merchant" && !!S.pendingMerchant);
+  const caravanActive=S.travelEvent?.id==="caravan" || !!S.foe?.caravan || !!caravanState?.activeMerchant;
+  let repaired=false;
+  if(S.pendingMerchant && !merchantActive && roadTrafficDepthIsStale(S.pendingMerchant.depth)){
+    S.pendingMerchant=null;
+    repaired=true;
+  }
+  if(caravanState?.pending && !caravanActive && roadTrafficDepthIsStale(caravanState.pending.depth)){
+    caravanState.pending=null;
+    caravanState.warning=null;
+    caravanState.activeMerchant=null;
+    caravanState.routeRolls={};
+    repaired=true;
+  }
+  if(repaired)requestRunSave();
+  return repaired;
+}
 function maybeScheduleMerchant(){
   if(!S || sideAreaActive()) return;
   ensureMerchantState();ensureCaravanState();
+  // v0.107.5: a town/boss/other priority interruption can occasionally move the
+  // delver past a pending road slot before that slot gets its crossing check.
+  // Retire only unseen stale slots, then immediately create a fresh future slot.
+  repairStaleRoadTrafficSlot();
   // There is exactly one road-traffic slot pending at a time. A caravan and a
   // wandering merchant can never be independently scheduled on top of each other.
   if(S.pendingMerchant){normalizePendingMerchantDepth();return;}
