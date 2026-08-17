@@ -312,3 +312,6 @@ AFter every 1000 Fathom you get 1 extra life, Does not stack. (Reason being it w
 
 
 Riddles could give int+investigation checks for hints. You can ask for more hints but the DC goes higher the more often you ask for a hint.
+
+
+Starter/tutorial town starting in a more peaceful looking zone like grassplanes and forests.

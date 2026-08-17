@@ -167,6 +167,7 @@
    - v0.106.5: combat damage popups + mobile scroll safety — 2-second damage numbers, gold critical-hit callouts, and extra bottom scroll room above phone navigation bars
    - v0.106.6: travel-log dock repair + popup tuning — Delve Log moves beside compact Stop, opens as a pop-out, and damage numbers become signed 3.5-second HP-bar callouts
    - v0.106.7: Character Overview gains live combat statistics derived from the actual attack, defence, Armor and equipment-affix formulas
+   - v0.107.4: XP layout refinement — combat name/level/HP hierarchy, purple XP readouts, and compact Character-sheet XP bar
    - v0.107.0: Phase 6 Caravan System — uncommon route-based caravan events, passive Perception warnings, generic sudden-event markers, caravan merchants, attacked/damaged choices, and a caravan-origin delivery quest
    - v0.107.0: combat damage-number linger reduced from 3.5 seconds to 2.5 seconds
    - v0.107.1: temporary goblin portrait removed; Rogue Heavy presentation renamed Backstab; damage callouts reduced to 1.5 seconds with separated lanes
@@ -577,6 +578,7 @@ button{
 .xp-track{position:relative;height:4px;margin-top:3px;overflow:hidden;background:#07090d;border:1px solid rgba(139,115,182,.24)}
 .xp-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--xp-dim),var(--xp));transition:width .25s ease-out;box-shadow:0 0 7px rgba(139,115,182,.18)}
 .travel-hero-meta{display:flex;justify-content:space-between;gap:10px;margin-top:4px;font-family:var(--cond);font-size:10px;color:var(--dim)}
+.travel-hero-meta #travelXp{color:var(--xp)}
 
 /* Travel actions share the combat pad's treatment: frame-button 9-slice,
    Cormorant label, condensed caps sub-line, 6px gutters. */
@@ -1299,6 +1301,10 @@ button{
 .char-vitals em{display:block;font-style:normal;font-family:var(--cond);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
 .char-vitals b{display:block;margin-top:2px;font-family:var(--slab);font-size:16px;color:var(--bone)}
 .char-vitals>div:nth-child(2) b{color:var(--stamina)}
+.char-vital-line{display:flex;align-items:baseline;gap:5px;min-height:21px}
+.char-vital-line em{display:inline;margin:0;flex:0 0 auto}
+.char-vital-line b{display:inline;margin:0;font-size:16px;line-height:1;color:var(--bone)}
+.char-vitals .char-xp-track{height:4px;margin-top:3px}
 .char-hp-track{position:relative;display:block;height:7px;margin-top:7px;background:#080b0e;border:1px solid var(--rule);overflow:visible}
 .char-hp-track>i{display:block;height:100%;background:linear-gradient(90deg,#4b78a0,#6f9fbd);transition:width .25s}
 .char-hp-track.mid>i{background:linear-gradient(90deg,#8a6f34,var(--warn))}
@@ -2548,8 +2554,10 @@ body.font-slab{--cf-serif:var(--slab)}
 
 /* you -------------------------------------------------------------------------- */
 .arena.combat-mode .hero .cname{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:7px}
-.arena.combat-mode .hero .cname b{font-family:var(--cf-serif);font-size:18px;font-weight:600;color:var(--cf-cream);line-height:1.05}
-.arena.combat-mode .hero .lv{font-family:var(--cond);font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#7fa8c4}
+.arena.combat-mode .hero-name-level{display:flex;align-items:baseline;gap:7px;min-width:0}
+.arena.combat-mode .hero .cname b{font-family:var(--cf-serif);font-size:18px;font-weight:600;color:var(--cf-cream);line-height:1.05;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arena.combat-mode .hero .lv{flex:0 0 auto;font-family:var(--cond);font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#7fa8c4}
+.arena.combat-mode .hero-hp-top{flex:0 0 auto;margin-left:auto;font-family:var(--cf-serif);font-size:13px;font-weight:600;color:#73bce0;white-space:nowrap}
 .arena.combat-mode .hero .bar.hp{height:8px;margin:0;border:1px solid rgba(70,120,150,.45);border-radius:2px;background:#070f13}
 .arena.combat-mode .hero .bar.hp > i{background:linear-gradient(90deg,#2f6c8d,#4e9ec4)}
 .arena.combat-mode .hero .hpn{color:#73bce0}
@@ -2562,14 +2570,13 @@ body.font-slab{--cf-serif:var(--slab)}
   font-family:var(--cf-serif);font-size:13px;font-weight:600;color:#d9a13d;white-space:nowrap;
 }
 .arena.combat-mode .vitalrow .n::after{content:" STAMINA";font-family:var(--cond);font-size:8px;letter-spacing:.14em}
-.arena.combat-mode .vitalrow .hpn{margin-left:auto}
+.arena.combat-mode .vitalrow .xp{margin-left:auto;min-width:0;font-family:var(--cond);font-size:8.5px;letter-spacing:.06em;line-height:1.2;text-transform:uppercase;text-align:right;color:var(--xp);white-space:nowrap}
 .arena.combat-mode .progressrow{
   margin-top:9px;display:flex;justify-content:space-between;gap:10px;
   font-family:var(--cond);font-size:8.5px;letter-spacing:.06em;line-height:1.35;
   color:#7f8f96;text-transform:uppercase;
 }
 .arena.combat-mode .progressrow .stats{color:#aebbba;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.arena.combat-mode .progressrow .xp{color:var(--xp);text-align:right;flex:0 0 auto}
 .arena.combat-mode .hero>.xp-track{margin-top:3px;height:4px}
 
 /* v0.107.3: combat must never widen its grid track from intrinsic content. */
@@ -3319,7 +3326,7 @@ body.font-slab{--cf-serif:var(--slab)}
         <div class="char-head-actions"><span class="char-live">travel continues</span><div class="char-head-buttons"><button class="char-clear-new" id="btnClearCharNotices" type="button" hidden>Clear new</button></div></div>
       </div>
       <div class="char-vitals">
-        <div><em>HP</em><b id="charHp">—</b><span class="char-hp-track" id="charHpBar"><i id="charHpFill"></i></span></div>
+        <div><div class="char-vital-line"><em>HP</em><b id="charHp">—</b></div><span class="char-hp-track" id="charHpBar"><i id="charHpFill"></i></span><div class="xp-track char-xp-track" aria-hidden="true"><i id="charXpBar"></i></div></div>
         <div><em>Stamina</em><b id="charStamina">—</b></div>
       </div>
       <div class="currency-strip"><span>Coins</span><b id="charGold">0g</b></div>
@@ -3549,18 +3556,17 @@ body.font-slab{--cf-serif:var(--slab)}
   <section class="combat-loot-panel" id="combatLootPanel" hidden aria-live="polite"></section>
 
   <section class="hero">
-    <div class="cname"><b id="heroName">—</b><span class="lv" id="heroLv"></span></div>
+    <div class="cname"><div class="hero-name-level"><b id="heroName">—</b><span class="lv" id="heroLv"></span></div><span class="hero-hp-top hpn" id="heroHpN"></span></div>
     <div class="bar hp" id="heroBar"><i id="heroHp"></i></div>
     <div class="xp-track" aria-hidden="true"><i id="heroXpBar"></i></div>
     <div class="nums" hidden></div>
     <div class="vitalrow">
       <span class="pips" id="pips"></span>
       <span class="n" id="staminaN"></span>
-      <span class="hpn" id="heroHpN"></span>
+      <span class="xp" id="heroXp">0 / 0 XP</span>
     </div>
     <div class="progressrow">
       <span class="stats" id="heroStats">STR — · CON — · DEX —</span>
-      <span class="xp" id="heroXp">0 / 0 XP</span>
     </div>
     <div class="combat-boon" id="combatBoon" hidden><b>Boon</b><span id="combatBoonTxt"></span></div>
     <div class="combat-boon" id="combatCurse" hidden><b>Affliction</b><span id="combatCurseTxt"></span></div>
@@ -3820,7 +3826,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.107.3";
+const BUILD_VERSION = "v0.107.4";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -6123,10 +6129,11 @@ function renderCharacterSheet(){
   $("charName").textContent=S.name;
   $("charClassLevel").textContent=`${S.className || "Votary"} · Level ${S.level}`;
   $("charBackground").textContent=`${S.folk} · ${S.trade} · ${S.origin}`;
-  $("charHp").textContent=`${Math.max(0,S.hp)} / ${S.hpMax}`;
+  $("charHp").textContent=`${Math.max(0,S.hp)}/${S.hpMax}`;
   const charHpFrac=clamp(S.hp/S.hpMax,0,1);
   playerHpClass($("charHpBar"),charHpFrac);
   $("charHpFill").style.width=`${charHpFrac*100}%`;
+  if($("charXpBar")) $("charXpBar").style.width=`${clamp(S.xp/Math.max(1,xpToNext(S.level)),0,1)*100}%`;
   $("charStamina").textContent=`${S.stamina} / ${S.staminaMax}`;
   if($("charGold")) $("charGold").innerHTML=formatGoldHtml(S.gold||0);
   renderCharacterStats();
@@ -9091,6 +9098,7 @@ function render(){
   if($("travelXpBar")) $("travelXpBar").style.width=`${xpPct}%`;
   if($("heroXpBar")) $("heroXpBar").style.width=`${xpPct}%`;
   if($("townHeroXpBar")) $("townHeroXpBar").style.width=`${xpPct}%`;
+  if($("charXpBar")) $("charXpBar").style.width=`${xpPct}%`;
 
   renderLootHistory();
   renderEncounterWarningLocks();
