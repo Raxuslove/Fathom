@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.107.2 — Road Traffic Hotfix</title>
+<title>Lowfathom v0.107.3 — Phone Layout Patch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -192,6 +192,7 @@
   --lamp:#e6c288; --lamp-dim:#8a7550;
   --rust:#b4553c; --verdigris:#5f9490;
   --stamina:#c89b4b; --warn:#d99a4e;
+  --xp:#8b73b6; --xp-dim:#4f416d;
   --rarity-salvage:#6b6355; --rarity-poor:#7d8794; --rarity-common:#c2bdb1;
   --rarity-uncommon:#6f9e79; --rarity-rare:#6a9bc4; --rarity-epic:#a87fc0;
   --rarity-wondrous:#cf87a6; --rarity-legendary:#d99a4e; --rarity-mythical:#d95f34;
@@ -573,6 +574,8 @@ button{
 .travel-hero-top span{font-family:var(--cond);font-size:10px;color:var(--dim)}
 .travel-hp{position:relative;overflow:visible;height:8px;background:#080b0e;border:1px solid var(--rule)}
 .travel-hp i{display:block;height:100%;transition:width .25s}
+.xp-track{position:relative;height:4px;margin-top:3px;overflow:hidden;background:#07090d;border:1px solid rgba(139,115,182,.24)}
+.xp-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--xp-dim),var(--xp));transition:width .25s ease-out;box-shadow:0 0 7px rgba(139,115,182,.18)}
 .travel-hero-meta{display:flex;justify-content:space-between;gap:10px;margin-top:4px;font-family:var(--cond);font-size:10px;color:var(--dim)}
 
 /* Travel actions share the combat pad's treatment: frame-button 9-slice,
@@ -751,7 +754,8 @@ button{
 .town-footer-hero-top span{font-family:var(--cond);font-size:9px;color:var(--dim)}
 .town-footer-hp{position:relative;overflow:visible;height:8px;background:#080b0e;border:1px solid var(--rule)}
 .town-footer-hp i{display:block;height:100%;transition:width .25s}
-.town-footer-hero-meta{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-family:var(--cond);font-size:9px;color:var(--dim)}
+.town-footer-hero .xp-track{margin-top:2px;height:4px}
+.town-footer-hero-meta{display:flex;justify-content:space-between;gap:8px;margin-top:3px;font-family:var(--cond);font-size:9px;color:var(--dim)}
 .town-footer-pack{display:flex;flex-direction:column;justify-content:center;min-height:62px;padding:5px 8px;border:9px solid transparent;border-image:url("./assets/ui/frame-button.png") 30 fill / 9px / 0 stretch;cursor:pointer}
 .town-footer-pack b{font-family:var(--slab);font-size:13px;font-weight:600;color:var(--bone)}
 .town-footer-pack span{margin-top:2px;font-family:var(--cond);font-size:9.5px;line-height:1.2;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
@@ -2564,8 +2568,18 @@ body.font-slab{--cf-serif:var(--slab)}
   font-family:var(--cond);font-size:8.5px;letter-spacing:.06em;line-height:1.35;
   color:#7f8f96;text-transform:uppercase;
 }
-.arena.combat-mode .progressrow .stats{color:#aebbba}
-.arena.combat-mode .progressrow .xp{color:#d59b3f;text-align:right}
+.arena.combat-mode .progressrow .stats{color:#aebbba;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arena.combat-mode .progressrow .xp{color:var(--xp);text-align:right;flex:0 0 auto}
+.arena.combat-mode .hero>.xp-track{margin-top:3px;height:4px}
+
+/* v0.107.3: combat must never widen its grid track from intrinsic content. */
+.arena.combat-mode{grid-template-columns:minmax(0,1fr);overflow-x:hidden}
+.arena.combat-mode>.strip,.arena.combat-mode>.foe,.arena.combat-mode>.intent,
+.arena.combat-mode>.battle-space,.arena.combat-mode>.combat-loot-panel,.arena.combat-mode>.hero,
+.arena.combat-mode>.pad,.arena.combat-mode>.preview,.arena.combat-mode>.pad2,
+.arena.combat-mode>.combat-bottom-row,.arena.combat-mode>.combat-log-wrap{min-width:0;max-width:100%}
+.arena.combat-mode .foe-top,.arena.combat-mode .foe-id,.arena.combat-mode .cname,
+.arena.combat-mode .vitalrow,.arena.combat-mode .progressrow{min-width:0}
 
 /* the action pad ---------------------------------------------------------------- */
 .arena.combat-mode .pad{padding:4px 12px 0;background:transparent;border:none;gap:5px;grid-template-columns:1fr 1fr;grid-auto-rows:1fr}
@@ -2747,6 +2761,16 @@ body.font-slab{--cf-serif:var(--slab)}
   .arena.combat-mode #iconAbilities .ui-icon{width:34px;height:34px}
   .arena.combat-mode .mact > b,.arena.combat-mode .botbtn > b{font-size:11.5px;letter-spacing:.01em}
   .arena.combat-mode .mact > span:not(.mact-icon),.arena.combat-mode .botbtn > span:not(.mact-icon){font-size:8px;letter-spacing:.055em}
+}
+
+/* v0.107.3: phone-only intent typography. Desktop keeps the approved 31px presentation. */
+@media (max-width:480px){
+  .arena.combat-mode .intent b{font-size:27px;line-height:1.02}
+  .arena.combat-mode .intent .intent-tell{font-size:13.5px}
+}
+@media (max-width:380px){
+  .arena.combat-mode .intent b{font-size:25.5px}
+  .arena.combat-mode .intent .intent-tell{font-size:13px}
 }
 
 /* ---------- v0.101.9: soft-sheet near-black unification ----------
@@ -3176,6 +3200,7 @@ body.font-slab{--cf-serif:var(--slab)}
     <section class="travel-hero" id="travelHeroCard" role="button" tabindex="0" aria-label="Open character sheet">
       <div class="travel-hero-top"><div class="travel-hero-name"><b id="travelHeroName">—</b><span class="travel-new" id="travelHeroNew" hidden>• New</span></div><span id="travelHeroLv">Level —</span></div>
       <div class="travel-hp"><i id="travelHp"></i></div>
+      <div class="xp-track" aria-hidden="true"><i id="travelXpBar"></i></div>
       <div class="travel-hero-meta">
         <span id="travelHpN">— hp</span>
         <span id="travelXp">— XP</span>
@@ -3232,6 +3257,7 @@ body.font-slab{--cf-serif:var(--slab)}
         <button class="town-footer-btn town-footer-hero" id="townHeroCard" type="button" aria-label="Open character sheet while in town">
           <div class="town-footer-hero-top"><b id="townHeroName">—</b><span id="townHeroLv">Level —</span></div>
           <div class="town-footer-hp"><i id="townHeroHpBar" style="width:0%"></i></div>
+          <div class="xp-track" aria-hidden="true"><i id="townHeroXpBar"></i></div>
           <div class="town-footer-hero-meta"><span id="townHeroHpText">0 / 0 hp</span><span id="townHeroXpText">0 / 0 XP</span></div>
         </button>
         <button class="town-footer-btn town-footer-pack" id="btnTownPack" type="button"><b>Backpack</b><span id="townPackSub">0 Camp Supplies · 0 Bandages</span></button>
@@ -3525,6 +3551,7 @@ body.font-slab{--cf-serif:var(--slab)}
   <section class="hero">
     <div class="cname"><b id="heroName">—</b><span class="lv" id="heroLv"></span></div>
     <div class="bar hp" id="heroBar"><i id="heroHp"></i></div>
+    <div class="xp-track" aria-hidden="true"><i id="heroXpBar"></i></div>
     <div class="nums" hidden></div>
     <div class="vitalrow">
       <span class="pips" id="pips"></span>
@@ -3793,7 +3820,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.107.2";
+const BUILD_VERSION = "v0.107.3";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -7186,6 +7213,7 @@ function renderTown(){
     $("townHeroHpBar").style.background=hpPct>55?"#6f93a7":(hpPct>25?"#9a8450":"#a15b4a");
     $("townHeroHpText").textContent=`${hpNow} / ${hpMax} hp`;
     $("townHeroXpText").textContent=`${xpNow} / ${xpNeed} XP`;
+    if($("townHeroXpBar")) $("townHeroXpBar").style.width=`${clamp(xpNow/Math.max(1,xpNeed),0,1)*100}%`;
     $("townPackSub").textContent=`${S.inventory?.campSupplies||0} Camp Supplies · ${S.inventory?.bandages||0} Bandage${(S.inventory?.bandages||0)===1?"":"s"}`;
   }
 }
@@ -8810,6 +8838,7 @@ function renderTravel(){
   $("travelHp").style.width=`${travelHpFrac*100}%`;
   $("travelHpN").textContent=`${Math.max(0,S.hp)} / ${S.hpMax} hp`;
   $("travelXp").textContent=`${S.xp} / ${xpToNext(S.level)} XP`;
+  if($("travelXpBar")) $("travelXpBar").style.width=`${clamp(S.xp/Math.max(1,xpToNext(S.level)),0,1)*100}%`;
   maybeScheduleMerchant();
   renderTrail();
   renderCaravanEarlyWarning();
@@ -8918,6 +8947,7 @@ function render(){
   $("heroLv").textContent = "Level " + S.level;
   $("heroStats").textContent = `STR ${effectiveStat("STR")} · CON ${effectiveStat("CON")} · DEX ${effectiveStat("DEX")}`;
   $("heroXp").textContent = `${S.xp} / ${xpToNext(S.level)} XP`;
+  if($("heroXpBar")) $("heroXpBar").style.width=`${clamp(S.xp/Math.max(1,xpToNext(S.level)),0,1)*100}%`;
 
   const hf = clamp(S.hp/S.hpMax,0,1);
   playerHpClass($("heroBar"),hf);
@@ -9057,6 +9087,10 @@ function render(){
   const pending = pendingDescentXp(), suffix = pending ? ` · +${pending} descent pending` : "";
   if($("travelXp")) $("travelXp").textContent = `${S.xp} / ${xpToNext(S.level)} XP${suffix}`;
   if($("heroXp")) $("heroXp").textContent = `${S.xp} / ${xpToNext(S.level)} XP${suffix}`;
+  const xpPct=clamp(S.xp/Math.max(1,xpToNext(S.level)),0,1)*100;
+  if($("travelXpBar")) $("travelXpBar").style.width=`${xpPct}%`;
+  if($("heroXpBar")) $("heroXpBar").style.width=`${xpPct}%`;
+  if($("townHeroXpBar")) $("townHeroXpBar").style.width=`${xpPct}%`;
 
   renderLootHistory();
   renderEncounterWarningLocks();
