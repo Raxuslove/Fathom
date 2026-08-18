@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.110.3 — Combat Turn Counter Fix</title>
+<title>Lowfathom v0.110.5 — Caravan Frequency Balance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -175,6 +175,8 @@
    - v0.110.1: Protection clarity — active Protection now shows as PR beside HP, defensive-source combat log language connects Guard/Parry/Ward/Brace to Protection, and enemy turns use short wind-up/aftermath beats so Protection loss and split damage callouts remain readable
    - v0.110.2: enemy-action clarity + crit-roll repair — the large combat panel is the foe's current committed action, Guard/Dodge affect the response immediately instead of persisting as hidden next-turn stances, enemy-action text is red, base 10 DEX grants no Crit Chance, generated Crit rolls use 0.25% steps with rarity-biased high rolls, and Rogue Backstab clearly separates setup from release
    - v0.110.3: combat turn counter fix — one numbered turn now covers the player response and the committed enemy action resolving; the counter advances only when that exchange completes and control returns to the next turn
+   - v0.110.4: caravan interaction integration — passing and damaged caravan branches now use the reusable Interaction Engine for real conversations, save-safe rewards, optional Bandage/Survival help and delivery-quest follow-up
+   - v0.110.5: caravan frequency balance — road-traffic slots now resolve 50% as caravans and 50% as wandering merchants; caravan micro-event weights and total road-traffic cadence are unchanged
    - v0.107.5: road-traffic stale-slot repair — overtaken merchant/caravan slots self-heal and reschedule without changing the 75/25 balance
    - v0.107.0: Phase 6 Caravan System — uncommon route-based caravan events, passive Perception warnings, generic sudden-event markers, caravan merchants, attacked/damaged choices, and a caravan-origin delivery quest
    - v0.107.0: combat damage-number linger reduced from 3.5 seconds to 2.5 seconds
@@ -3906,7 +3908,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.110.3";
+const BUILD_VERSION = "v0.110.5";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -4267,6 +4269,116 @@ const INTERACTION_DEFS=Object.freeze({
         ])
       })
     })
+  }),
+  "caravan-passing":Object.freeze({
+    id:"caravan-passing",kind:"Passing caravan",start:"greeting",endHook:"resolve-caravan-interaction",
+    nodes:Object.freeze({
+      greeting:Object.freeze({
+        speaker:"Caravaner",
+        text:"A caravaner gives you a tired nod as the wagons edge past in the dark.",
+        choices:Object.freeze([
+          Object.freeze({id:"route",label:"Where are you headed?",sub:"ask about their route",next:"route"}),
+          Object.freeze({id:"road",label:"Anything ahead?",sub:"ask what they saw on the road",next:"road"}),
+          Object.freeze({id:"leave",label:"Safe travels",sub:"let the caravan continue",end:true,wide:true,style:"leave"})
+        ])
+      }),
+      route:Object.freeze({
+        speaker:"Caravaner",
+        text:active=>active?.context?.direction==="up"
+          ?"Upward. Supplies, letters, and whoever has business closer to the settlements above."
+          :"Downward. There is always another stop below, if the road stays open.",
+        choices:Object.freeze([
+          Object.freeze({id:"back",label:"Keep talking",sub:"ask something else",next:"greeting"}),
+          Object.freeze({id:"leave",label:"Move Along",sub:"return to the descent",end:true,style:"leave"})
+        ])
+      }),
+      road:Object.freeze({
+        speaker:"Caravaner",
+        text:"Nothing worth stopping for when we passed through. That can change quickly down here.",
+        choices:Object.freeze([
+          Object.freeze({id:"back",label:"Keep talking",sub:"ask something else",next:"greeting"}),
+          Object.freeze({id:"leave",label:"Move Along",sub:"return to the descent",end:true,style:"leave"})
+        ])
+      })
+    })
+  }),
+  "caravan-damaged":Object.freeze({
+    id:"caravan-damaged",kind:"Damaged caravan",start:"thanks",endHook:"resolve-caravan-interaction",
+    nodes:Object.freeze({
+      thanks:Object.freeze({
+        speaker:"Caravan Master",
+        text:"That's got it. Another stretch like that and we'd have lost the wheel entirely.",
+        onEnterEffects:Object.freeze([Object.freeze({type:"gold",min:3,max:7})]),
+        choices:Object.freeze([
+          Object.freeze({id:"wounded",label:"Anyone hurt?",sub:"check whether the crew needs treatment",next:"wounded"}),
+          Object.freeze({id:"more",label:"Need anything else?",sub:"see whether anything still needs doing",next:"more"}),
+          Object.freeze({id:"leave",label:"Move Along",sub:"return to the descent",end:true,wide:true,style:"leave"})
+        ])
+      }),
+      wounded:Object.freeze({
+        speaker:"Caravan Master",
+        text:"Mostly scrapes. One of ours caught the axle badly when it shifted.",
+        choices:Object.freeze([
+          Object.freeze({
+            id:"bandage",label:"Use a Bandage",sub:"1 Bandage · Survival check",style:"skill",
+            enabledWhen:Object.freeze({type:"inventoryAtLeast",key:"bandages",amount:1}),disabledSub:"requires 1 Bandage",
+            beforeEffects:Object.freeze([Object.freeze({type:"inventory",key:"bandages",delta:-1})]),
+            skill:Object.freeze({id:"survival",challengeRank:12,practiceSource:"caravan-damaged-wounded"}),
+            success:"bandage-success",failure:"bandage-failure"
+          }),
+          Object.freeze({id:"back",label:"Keep talking",sub:"leave your supplies packed",next:"more",style:"leave"})
+        ])
+      }),
+      "bandage-success":Object.freeze({
+        speaker:"Wounded Caravaner",
+        text:"Good wrap. That'll hold until we reach somewhere with a proper table and light.",
+        choices:Object.freeze([Object.freeze({id:"continue",label:"Anything else?",sub:"return to the caravan master",next:"more",wide:true})])
+      }),
+      "bandage-failure":Object.freeze({
+        speaker:"Wounded Caravaner",
+        text:"It'll do. Not pretty, but better than leaving it open on the road.",
+        choices:Object.freeze([Object.freeze({id:"continue",label:"Anything else?",sub:"return to the caravan master",next:"more",wide:true})])
+      }),
+      more:Object.freeze({
+        speaker:"Caravan Master",
+        text:"If you're still offering, there may be one thing.",
+        choices:Object.freeze([
+          Object.freeze({
+            id:"dispatch",label:"Anything I can carry forward?",sub:"ask whether something needs to reach the next settlement",next:"dispatch-offer",
+            showWhen:Object.freeze({all:Object.freeze([
+              Object.freeze({type:"contextEquals",key:"routeId",value:"grey-lantern__lantern-city"}),
+              Object.freeze({type:"questAbsent",questId:"caravan-sealed-dispatch"})
+            ])})
+          }),
+          Object.freeze({
+            id:"nothing",label:"Anything I can carry forward?",sub:"ask whether something needs to reach the next settlement",next:"nothing-more",
+            showWhen:Object.freeze({not:Object.freeze({all:Object.freeze([
+              Object.freeze({type:"contextEquals",key:"routeId",value:"grey-lantern__lantern-city"}),
+              Object.freeze({type:"questAbsent",questId:"caravan-sealed-dispatch"})
+            ])})})
+          }),
+          Object.freeze({id:"leave",label:"Move Along",sub:"return to the descent",end:true,style:"leave"})
+        ])
+      }),
+      "dispatch-offer":Object.freeze({
+        speaker:"Caravan Master",
+        text:"Take this sealed dispatch to the Guild Hall in Lantern City. We'll make poor time from here.",
+        choices:Object.freeze([
+          Object.freeze({id:"accept",label:"Carry it forward",sub:"accept the delivery quest",next:"dispatch-accepted",style:"reward",effects:Object.freeze([Object.freeze({type:"acceptQuest",questId:"caravan-sealed-dispatch"})])}),
+          Object.freeze({id:"decline",label:"Not this time",sub:"leave the dispatch with the caravan",next:"more",style:"leave"})
+        ])
+      }),
+      "dispatch-accepted":Object.freeze({
+        speaker:"Caravan Master",
+        text:"Then that's one less thing tied to this wagon. Safe road.",
+        choices:Object.freeze([Object.freeze({id:"leave",label:"Move Along",sub:"return to the descent",end:true,wide:true,style:"leave"})])
+      }),
+      "nothing-more":Object.freeze({
+        speaker:"Caravan Master",
+        text:"Not today. You've already done enough.",
+        choices:Object.freeze([Object.freeze({id:"leave",label:"Move Along",sub:"return to the descent",end:true,wide:true,style:"leave"})])
+      })
+    })
   })
 });
 let interactionBusy=false;
@@ -4280,6 +4392,7 @@ function ensureInteractionState(){
   return st;
 }
 function interactionDef(id){return INTERACTION_DEFS[id]||null;}
+function interactionNodeText(node,active){return typeof node?.text==="function"?(node.text(active)||""):(node?.text||"");}
 function activeInteraction(){return ensureInteractionState()?.active||null;}
 function interactionConditionMet(condition,active=activeInteraction()){
   if(!condition)return true;
@@ -4365,6 +4478,11 @@ const INTERACTION_HOOKS={
     const outcome=active?.context?.outcome||"helped-attacked";recordCaravanResolution(outcome,pendingCaravan());
     if(S&&!over){S.travelMode=active?.context?.resumeMode==="descend"?"descend":"stopped";S.travelSinceEvent=0;resumeBoonClock();}
     return "";
+  },
+  "resolve-caravan-interaction":active=>{
+    const outcome=active?.context?.outcome||"talked";recordCaravanResolution(outcome,pendingCaravan());
+    if(S&&!over){S.travelMode=active?.context?.resumeMode==="descend"?"descend":"stopped";S.travelSinceEvent=0;resumeBoonClock();}
+    return "";
   }
 };
 function endInteraction(){
@@ -4376,7 +4494,7 @@ function renderInteraction(){
   const sheet=$("interactionSheet");if(!sheet)return;
   const active=activeInteraction(),def=interactionDef(active?.defId),node=def?.nodes?.[active?.nodeId];
   sheet.hidden=!active||!def||!node;if(sheet.hidden)return;
-  $("interactionKind").textContent=def.kind||"Conversation";$("interactionSpeaker").textContent=node.speaker||"Traveller";$("interactionText").textContent=node.text||"";
+  $("interactionKind").textContent=def.kind||"Conversation";$("interactionSpeaker").textContent=node.speaker||"Traveller";$("interactionText").textContent=interactionNodeText(node,active);
   const result=$("interactionResult"),html=active.nodeResults?.[active.nodeId]||"";result.hidden=!html;result.innerHTML=html;
   const actions=$("interactionActions");actions.innerHTML=(node.choices||[]).filter(choice=>interactionConditionMet(choice.showWhen,active)).map(choice=>{
     const enabled=interactionConditionMet(choice.enabledWhen,active),sub=enabled?(choice.sub||""):(choice.disabledSub||choice.sub||"Unavailable");
@@ -4408,7 +4526,7 @@ async function handleInteractionChoice(choiceId){
 
    Caravans no longer maintain a second independent interruption timer. The
    existing wandering-merchant scheduler owns one road-traffic slot at a time:
-   75% of those slots stay the normal wandering merchant, while 25% become a
+   50% of those slots stay the normal wandering merchant, while 50% become a
    caravan event at the exact same scheduled depth. This keeps road life visible
    without increasing the total number of travel interruptions.
    ============================================================ */
@@ -4438,7 +4556,7 @@ const CARAVAN_DEFAULT_POOL=Object.freeze([
   Object.freeze({type:"damaged",weight:2}),
   Object.freeze({type:"attacked",weight:2})
 ]);
-const CARAVAN_ROAD_SLOT_CHANCE=.25;
+const CARAVAN_ROAD_SLOT_CHANCE=.50;
 const CARAVAN_WARNING_DISTANCE=22;
 const CARAVAN_WARNING_MS=6000;
 
@@ -7079,7 +7197,7 @@ function renderTravelEvent(){
       return;
     }
     if(ev.caravanType==="passing"){
-      actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="caravan-greet"><b>Exchange a word</b><span>brief road contact · no obligation</span></button><button class="travel-event-btn ignore" data-event-action="caravan-move"><b>Move Along</b><span>safe · immediate · no penalty</span></button>`;
+      actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="caravan-greet"><b>Have a word</b><span>talk with someone from the caravan</span></button><button class="travel-event-btn ignore" data-event-action="caravan-move"><b>Move Along</b><span>safe · immediate · no penalty</span></button>`;
       return;
     }
     const stealChallenge=authoredChallenge(ev.caravanType==="attacked"?14:12);
@@ -7254,8 +7372,11 @@ async function handleTravelEventAction(action){
       return completeCaravanAndResume("moved-along");
     }
     if(action==="caravan-greet"){
-      travelLogAdd(`You exchange a few words with the passing caravan and keep your place on the road.`,"note");
-      return caravanSetResult("Traffic moving on","The caravan continues on its route. Nothing else is required of you.",ev.rollHtml,"greeted");
+      if(!event)return;
+      const context={eventId:event.id,routeId:event.routeId,caravanType:event.type,direction:event.direction,resumeMode:ev.priorMode||"descend",outcome:"talked-passing"};
+      S.travelEvent=null;
+      travelLogAdd(`You fall into step beside the passing caravan long enough to have a word.`,"note");
+      return startInteraction("caravan-passing",context);
     }
     if(action==="caravan-trade"){
       const c=ensureCaravanState();if(!event||!c)return;
@@ -7266,12 +7387,11 @@ async function handleTravelEventAction(action){
       return;
     }
     if(action==="caravan-help-damaged"){
-      const reward=ri(3,7);S.gold=(S.gold||0)+reward;
-      travelLogAdd(`You help the damaged caravan get the wagon stable. The crew gives you <b>${esc(formatGold(reward))}</b>.`,"good");
-      if(caravanCanOfferDispatch(event)){
-        ev.stage="quest-offer";ev.title="One thing still needs to move";ev.text="The wagon can continue slowly, but the crew asks whether you can carry a sealed dispatch forward to Lantern City.";ev.rollHtml=`<b>Immediate thanks:</b> ${formatGold(reward)}<br><b>Destination:</b> Lantern City Guild Hall`;ev.outcome="helped-damaged";render();return;
-      }
-      return caravanSetResult("The wagon is stable","The crew can continue under its own power. You are free to leave.",`<b>Received:</b> ${formatGold(reward)}`,"helped-damaged");
+      if(!event)return;
+      const context={eventId:event.id,routeId:event.routeId,caravanType:event.type,direction:event.direction,resumeMode:ev.priorMode||"descend",outcome:"helped-damaged"};
+      S.travelEvent=null;
+      travelLogAdd(`You help the damaged caravan brace the wagon and get the wheel stable again.`,"good");
+      return startInteraction("caravan-damaged",context);
     }
     if(action==="caravan-accept-quest"){
       if(!questInstanceForDefinition("caravan-sealed-dispatch"))acceptQuest("caravan-sealed-dispatch");
