@@ -168,6 +168,7 @@
    - v0.106.6: travel-log dock repair + popup tuning — Delve Log moves beside compact Stop, opens as a pop-out, and damage numbers become signed 3.5-second HP-bar callouts
    - v0.106.7: Character Overview gains live combat statistics derived from the actual attack, defence, Armor and equipment-affix formulas
    - v0.107.4: XP layout refinement — combat name/level/HP hierarchy, purple XP readouts, and compact Character-sheet XP bar
+   - v0.108.0: Interaction Engine foundation — reusable save-safe NPC conversations with node choices, conditions, Skill checks, effects and explicit exits; attacked caravans are the first live proof case
    - v0.107.5: road-traffic stale-slot repair — overtaken merchant/caravan slots self-heal and reschedule without changing the 75/25 balance
    - v0.107.0: Phase 6 Caravan System — uncommon route-based caravan events, passive Perception warnings, generic sudden-event markers, caravan merchants, attacked/damaged choices, and a caravan-origin delivery quest
    - v0.107.0: combat damage-number linger reduced from 3.5 seconds to 2.5 seconds
@@ -521,6 +522,38 @@ button{
 .travel-event-btn.investigate b{color:var(--lamp)}
 .travel-event-btn.ignore b{color:var(--dim)}
 .travel-event-btn:active{background:var(--travel-surface)}
+
+/* ---------- v0.108.0: reusable NPC Interaction Engine ---------- */
+.interaction-sheet{
+  position:absolute;inset:0;z-index:44;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(1,4,6,.68);padding-top:calc(12px + env(safe-area-inset-top));
+}
+.interaction-sheet[hidden]{display:none}
+.interaction-panel{
+  width:100%;max-height:min(82%,640px);overflow-y:auto;overscroll-behavior:contain;
+  background:#020608;border-top:1px solid var(--lamp-dim);box-shadow:0 -18px 42px rgba(0,0,0,.46);
+}
+.interaction-head{padding:11px 13px 9px;background:#010406;border-bottom:1px solid var(--rule)}
+.interaction-head em{display:block;font-style:normal;font-family:var(--cond);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--lamp-dim)}
+.interaction-head h2{margin:2px 0 0;font-family:var(--slab);font-size:20px;line-height:1.08;font-weight:600;color:var(--bone)}
+.interaction-copy{padding:13px;background:#020608;border-bottom:1px solid var(--rule)}
+.interaction-copy p{margin:0;font-family:var(--slab);font-size:15px;line-height:1.45;color:#c8c3b7}
+.interaction-result{margin-top:10px;padding:8px 9px;border-left:2px solid var(--verdigris);background:#061013;font-family:var(--cond);font-size:10px;line-height:1.45;color:#9fb5b3}
+.interaction-result[hidden]{display:none}
+.interaction-result b{color:var(--bone);font-weight:600}.interaction-result .good{color:#92b896}.interaction-result .bad{color:#c77965}
+.interaction-actions{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);padding-bottom:env(safe-area-inset-bottom)}
+.interaction-choice{min-height:58px;border:0;background:#081014;padding:9px 11px;text-align:left}
+.interaction-choice.wide{grid-column:1/-1}
+.interaction-choice b{display:block;font-family:var(--slab);font-size:14px;font-weight:600;line-height:1.15;color:var(--bone)}
+.interaction-choice span{display:block;margin-top:3px;font-family:var(--cond);font-size:9px;line-height:1.3;color:var(--dim)}
+.interaction-choice.skill b{color:var(--verdigris)}
+.interaction-choice.reward b{color:var(--lamp)}
+.interaction-choice.leave b{color:var(--dim)}
+.interaction-choice:disabled{background:#05090b;cursor:not-allowed}
+.interaction-choice:disabled b,.interaction-choice:disabled span{color:#414b54}
+@media (max-width:380px){
+  .interaction-head h2{font-size:18px}.interaction-copy p{font-size:14px}.interaction-choice{min-height:54px;padding:8px 9px}
+}
 
 .travel-log-wrap{
   min-height:0;
@@ -3273,6 +3306,17 @@ body.font-slab{--cf-serif:var(--slab)}
     </footer>
   </section>
 
+  <section class="interaction-sheet" id="interactionSheet" hidden aria-live="polite" aria-label="NPC interaction">
+    <div class="interaction-panel" role="dialog" aria-modal="true" aria-labelledby="interactionSpeaker">
+      <div class="interaction-head"><em id="interactionKind">Conversation</em><h2 id="interactionSpeaker">Traveller</h2></div>
+      <div class="interaction-copy">
+        <p id="interactionText"></p>
+        <div class="interaction-result" id="interactionResult" hidden></div>
+      </div>
+      <div class="interaction-actions" id="interactionActions"></div>
+    </div>
+  </section>
+
   <div class="pack-sheet" id="packSheet" hidden>
     <div class="pack-scrim" id="packScrim"></div>
     <div class="pack-panel">
@@ -3827,7 +3871,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.107.5";
+const BUILD_VERSION = "v0.108.0";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -4088,6 +4132,243 @@ function normalizeQuestState(){
 function activeQuestDestinationLandmarks(){return questInstances("active").filter(inst=>!inst.targetTownId).map(inst=>({depth:Number(inst.targetDepth)||0,title:questDefById(inst.definitionId)?.targetName||"Quest destination"}));}
 
 /* ============================================================
+   v0.108.0 — GAME-WIDE NPC INTERACTION ENGINE
+
+   Conversations are data-driven node graphs. Content supplies speakers, text,
+   choices, conditions, effects and optional existing-Skill checks; the engine
+   owns rendering, save-safe node state and transitions. Nothing here creates a
+   parallel quest, merchant, item or Skill system — interaction effects call the
+   existing engines instead.
+   ============================================================ */
+const INTERACTION_DEFS=Object.freeze({
+  "caravan-survivors":Object.freeze({
+    id:"caravan-survivors",kind:"Caravan survivors",start:"thanks",endHook:"resolve-helped-caravan",
+    nodes:Object.freeze({
+      thanks:Object.freeze({
+        speaker:"Caravan Master",
+        text:"Gods below—you came at the right moment. Thought we'd lost the wagon.",
+        choices:Object.freeze([
+          Object.freeze({id:"continue",label:"Continue",sub:"hear them out",next:"reward",wide:true})
+        ])
+      }),
+      reward:Object.freeze({
+        speaker:"Caravan Master",
+        text:"Here. Something for your troubles. We can handle the dead.",
+        onEnterEffects:Object.freeze([
+          Object.freeze({type:"gold",min:8,max:16}),
+          Object.freeze({type:"generatedEquipment",depthOffset:0,source:"caravan-survivor-thanks"})
+        ]),
+        choices:Object.freeze([
+          Object.freeze({id:"wounded",label:"Are you all right?",sub:"ask after the wounded",next:"wounded"}),
+          Object.freeze({id:"more",label:"Need any more help?",sub:"see whether anything else needs doing",next:"more"}),
+          Object.freeze({id:"leave",label:"Move Along",sub:"return to the descent",end:true,wide:true,style:"leave"})
+        ])
+      }),
+      wounded:Object.freeze({
+        speaker:"Caravan Master",
+        text:"A few cuts. One of ours took the worst of it.",
+        choices:Object.freeze([
+          Object.freeze({
+            id:"bandage",label:"Use a Bandage",sub:"1 Bandage · Survival check",style:"skill",
+            enabledWhen:Object.freeze({type:"inventoryAtLeast",key:"bandages",amount:1}),disabledSub:"requires 1 Bandage",
+            beforeEffects:Object.freeze([Object.freeze({type:"inventory",key:"bandages",delta:-1})]),
+            skill:Object.freeze({id:"survival",challengeRank:12,practiceSource:"caravan-wounded"}),
+            success:"bandage-success",failure:"bandage-failure"
+          }),
+          Object.freeze({id:"back",label:"Keep talking",sub:"leave your supplies packed",next:"more",style:"leave"})
+        ])
+      }),
+      "bandage-success":Object.freeze({
+        speaker:"Wounded Caravaner",
+        text:"That'll hold. Better than bleeding all the way to Lantern City.",
+        choices:Object.freeze([Object.freeze({id:"continue",label:"Anything else?",sub:"return to the caravan master",next:"more",wide:true})])
+      }),
+      "bandage-failure":Object.freeze({
+        speaker:"Wounded Caravaner",
+        text:"You bind it as best you can. It should hold, but not comfortably.",
+        choices:Object.freeze([Object.freeze({id:"continue",label:"Anything else?",sub:"return to the caravan master",next:"more",wide:true})])
+      }),
+      more:Object.freeze({
+        speaker:"Caravan Master",
+        text:"If you're still offering, there may be one thing.",
+        choices:Object.freeze([
+          Object.freeze({
+            id:"dispatch",label:"Anything I can carry forward?",sub:"ask whether something needs to reach the next settlement",next:"dispatch-offer",
+            showWhen:Object.freeze({all:Object.freeze([
+              Object.freeze({type:"contextEquals",key:"routeId",value:"grey-lantern__lantern-city"}),
+              Object.freeze({type:"questAbsent",questId:"caravan-sealed-dispatch"})
+            ])})
+          }),
+          Object.freeze({
+            id:"nothing",label:"Anything I can carry forward?",sub:"ask whether something needs to reach the next settlement",next:"nothing-more",
+            showWhen:Object.freeze({not:Object.freeze({all:Object.freeze([
+              Object.freeze({type:"contextEquals",key:"routeId",value:"grey-lantern__lantern-city"}),
+              Object.freeze({type:"questAbsent",questId:"caravan-sealed-dispatch"})
+            ])})})
+          }),
+          Object.freeze({id:"leave",label:"Move Along",sub:"return to the descent",end:true,style:"leave"})
+        ])
+      }),
+      "dispatch-offer":Object.freeze({
+        speaker:"Caravan Master",
+        text:"Take this sealed dispatch to the Guild Hall in Lantern City. The wagon will make poor time from here.",
+        choices:Object.freeze([
+          Object.freeze({id:"accept",label:"Carry it forward",sub:"accept a normal persistent quest",next:"dispatch-accepted",style:"reward",effects:Object.freeze([Object.freeze({type:"acceptQuest",questId:"caravan-sealed-dispatch"})])}),
+          Object.freeze({id:"decline",label:"Not this time",sub:"leave the dispatch with the caravan",next:"more",style:"leave"})
+        ])
+      }),
+      "dispatch-accepted":Object.freeze({
+        speaker:"Caravan Master",
+        text:"Then that's one less thing tied to this wagon. Safe road.",
+        choices:Object.freeze([
+          Object.freeze({id:"leave",label:"Move Along",sub:"return to the descent",end:true,wide:true,style:"leave"})
+        ])
+      }),
+      "nothing-more":Object.freeze({
+        speaker:"Caravan Master",
+        text:"Not today. You've done enough.",
+        choices:Object.freeze([
+          Object.freeze({id:"leave",label:"Move Along",sub:"return to the descent",end:true,wide:true,style:"leave"})
+        ])
+      })
+    })
+  })
+});
+let interactionBusy=false;
+function ensureInteractionState(){
+  if(!S)return null;
+  if(!S.interactionState||typeof S.interactionState!=="object"||Array.isArray(S.interactionState))S.interactionState={active:null,pending:null,nextSerial:1};
+  const st=S.interactionState;
+  st.nextSerial=Math.max(1,Math.floor(Number(st.nextSerial)||1));
+  if(!st.active||typeof st.active!=="object"||Array.isArray(st.active))st.active=null;
+  if(!st.pending||typeof st.pending!=="object"||Array.isArray(st.pending))st.pending=null;
+  return st;
+}
+function interactionDef(id){return INTERACTION_DEFS[id]||null;}
+function activeInteraction(){return ensureInteractionState()?.active||null;}
+function interactionConditionMet(condition,active=activeInteraction()){
+  if(!condition)return true;
+  if(condition.all)return condition.all.every(c=>interactionConditionMet(c,active));
+  if(condition.any)return condition.any.some(c=>interactionConditionMet(c,active));
+  if(condition.not)return !interactionConditionMet(condition.not,active);
+  if(condition.type==="inventoryAtLeast")return Number(S?.inventory?.[condition.key])>=Number(condition.amount||1);
+  if(condition.type==="questAbsent")return !questInstanceForDefinition(condition.questId);
+  if(condition.type==="contextEquals")return active?.context?.[condition.key]===condition.value;
+  return true;
+}
+function interactionEffectResult(effect,active){
+  if(!effect||!active)return "";
+  if(effect.type==="gold"){
+    const amount=ri(Number(effect.min)||0,Number(effect.max)||Number(effect.min)||0);S.gold=(S.gold||0)+amount;
+    travelLogAdd(`Conversation reward: <b>${esc(formatGold(amount))}</b>.`,"good");
+    return `<b>Received:</b> ${esc(formatGold(amount))}`;
+  }
+  if(effect.type==="generatedEquipment"){
+    const item=generateProceduralEquipment(Math.max(0,(Number(S.depth)||0)+(Number(effect.depthOffset)||0)),effect.source||`interaction:${active.defId}`);
+    if(!item)return "";addGeneratedEquipment(item);
+    travelLogAdd(`Conversation reward: <b>${esc(item.name)}</b> · ${esc(item.rarity)} · iLv ${item.itemLevel}.`,"good");
+    return `<b>Equipment:</b> ${esc(item.name)} · ${esc(item.rarity)} · iLv ${item.itemLevel}`;
+  }
+  if(effect.type==="inventory"){
+    const key=effect.key;if(!key)return "";S.inventory=S.inventory||{};S.inventory[key]=Math.max(0,(Number(S.inventory[key])||0)+(Number(effect.delta)||0));
+    if(Number(effect.delta)<0){
+      const amount=Math.abs(Number(effect.delta)||0);let label=key.replace(/([A-Z])/g," $1").replace(/^./,m=>m.toUpperCase());if(amount===1&&label.endsWith("s"))label=label.slice(0,-1);
+      travelLogAdd(`Conversation choice used <b>${amount} ${esc(label)}</b>.`,"note");return `<b>Used:</b> ${amount} ${esc(label)}`;
+    }
+    return "";
+  }
+  if(effect.type==="acceptQuest"){
+    const existing=questInstanceForDefinition(effect.questId),accepted=existing||acceptQuest(effect.questId);
+    return accepted?`<b>Quest:</b> ${esc(questDefById(effect.questId)?.title||effect.questId)}`:"";
+  }
+  if(effect.type==="hook"){
+    const hook=INTERACTION_HOOKS[effect.name];return typeof hook==="function"?(hook(active,effect)||""):"";
+  }
+  return "";
+}
+function applyInteractionEffects(effects,active,onceKey=null){
+  if(!active||!Array.isArray(effects)||!effects.length)return "";
+  active.appliedEffects=Array.isArray(active.appliedEffects)?active.appliedEffects:[];
+  if(onceKey&&active.appliedEffects.includes(onceKey))return "";
+  if(onceKey)active.appliedEffects.push(onceKey);
+  const parts=effects.map(effect=>interactionEffectResult(effect,active)).filter(Boolean);
+  const html=parts.join("<br>");
+  active.effectResults=active.effectResults&&typeof active.effectResults==="object"?active.effectResults:{};
+  if(onceKey)active.effectResults[onceKey]=html;
+  requestRunSave();return html;
+}
+function enterInteractionNode(active,nodeId,extraHtml=""){
+  const def=interactionDef(active?.defId),node=def?.nodes?.[nodeId];if(!active||!node)return false;
+  active.nodeId=nodeId;active.nodeResults=active.nodeResults&&typeof active.nodeResults==="object"?active.nodeResults:{};
+  const onEnter=applyInteractionEffects(node.onEnterEffects,active,`node:${nodeId}`);
+  const combined=[extraHtml,onEnter].filter(Boolean).join("<br>");
+  if(combined)active.nodeResults[nodeId]=[active.nodeResults[nodeId],combined].filter(Boolean).join("<br>");
+  requestRunSave();return true;
+}
+function interactionSession(defId,context={}){
+  const st=ensureInteractionState(),def=interactionDef(defId);if(!st||!def)return null;
+  return {sessionId:`interaction-${st.nextSerial++}`,defId,nodeId:def.start,context:cloneForSave(context||{}),appliedEffects:[],effectResults:{},nodeResults:{},startedAt:Date.now()};
+}
+function startInteraction(defId,context={}){
+  const st=ensureInteractionState(),active=interactionSession(defId,context);if(!st||!active)return false;
+  st.active=active;st.pending=null;interactionBusy=false;
+  if(!currentTown()){pauseBoonClock();S.travelMode="stopped";}
+  enterInteractionNode(active,active.nodeId);saveRunNow();render();return true;
+}
+function queueInteraction(defId,context={}){
+  const st=ensureInteractionState(),pending=interactionSession(defId,context);if(!st||!pending)return false;
+  st.pending=pending;requestRunSave();return true;
+}
+function activateQueuedInteraction(){
+  const st=ensureInteractionState();if(!st?.pending)return false;
+  st.active=st.pending;st.pending=null;interactionBusy=false;
+  if(!currentTown()){pauseBoonClock();S.travelMode="stopped";}
+  enterInteractionNode(st.active,st.active.nodeId);saveRunNow();render();return true;
+}
+const INTERACTION_HOOKS={
+  "resolve-helped-caravan":active=>{
+    const outcome=active?.context?.outcome||"helped-attacked";recordCaravanResolution(outcome,pendingCaravan());
+    if(S&&!over){S.travelMode=active?.context?.resumeMode==="descend"?"descend":"stopped";S.travelSinceEvent=0;resumeBoonClock();}
+    return "";
+  }
+};
+function endInteraction(){
+  const st=ensureInteractionState(),active=st?.active,def=interactionDef(active?.defId);if(!st||!active)return false;
+  if(def?.endHook){const hook=INTERACTION_HOOKS[def.endHook];if(typeof hook==="function")hook(active);}
+  st.active=null;interactionBusy=false;saveRunNow();render();return true;
+}
+function renderInteraction(){
+  const sheet=$("interactionSheet");if(!sheet)return;
+  const active=activeInteraction(),def=interactionDef(active?.defId),node=def?.nodes?.[active?.nodeId];
+  sheet.hidden=!active||!def||!node;if(sheet.hidden)return;
+  $("interactionKind").textContent=def.kind||"Conversation";$("interactionSpeaker").textContent=node.speaker||"Traveller";$("interactionText").textContent=node.text||"";
+  const result=$("interactionResult"),html=active.nodeResults?.[active.nodeId]||"";result.hidden=!html;result.innerHTML=html;
+  const actions=$("interactionActions");actions.innerHTML=(node.choices||[]).filter(choice=>interactionConditionMet(choice.showWhen,active)).map(choice=>{
+    const enabled=interactionConditionMet(choice.enabledWhen,active),sub=enabled?(choice.sub||""):(choice.disabledSub||choice.sub||"Unavailable");
+    const cls=["interaction-choice",choice.wide?"wide":"",choice.style||""].filter(Boolean).join(" ");
+    return `<button class="${cls}" type="button" data-interaction-choice="${esc(choice.id)}"${enabled?"":" disabled"}><b>${esc(choice.label||"Continue")}</b><span>${esc(sub)}</span></button>`;
+  }).join("");
+}
+async function handleInteractionChoice(choiceId){
+  if(interactionBusy)return;const active=activeInteraction(),def=interactionDef(active?.defId),node=def?.nodes?.[active?.nodeId],choice=node?.choices?.find(c=>c.id===choiceId);
+  if(!active||!choice||!interactionConditionMet(choice.showWhen,active)||!interactionConditionMet(choice.enabledWhen,active))return;
+  interactionBusy=true;renderInteraction();
+  let resultHtml=applyInteractionEffects(choice.beforeEffects,active,`choice:${active.nodeId}:${choice.id}:before`);
+  let target=choice.next||null;
+  if(choice.skill){
+    const challenge=authoredChallenge(Number(choice.skill.challengeRank)||12),check=await runActiveSkillCheck(choice.skill.id,challenge,Number(choice.skill.circumstance)||0);
+    const practiceKey=`interaction:${choice.skill.practiceSource||choice.id}:${active.context?.eventId||active.sessionId}`;
+    const practice=awardSkillPractice(choice.skill.id,practiceKey,check);
+    resultHtml=[resultHtml,formatSkillCheck(check)+practiceText(choice.skill.id,practice)].filter(Boolean).join("<br>");
+    target=check.success?choice.success:choice.failure;
+  }
+  resultHtml=[resultHtml,applyInteractionEffects(choice.effects,active,`choice:${active.nodeId}:${choice.id}:effects`)].filter(Boolean).join("<br>");
+  if(choice.end){interactionBusy=false;return endInteraction();}
+  if(target)enterInteractionNode(active,target,resultHtml);
+  interactionBusy=false;saveRunNow();render();
+}
+
+/* ============================================================
    v0.107.2 — PHASE 6 CARAVANS ON THE WANDERING-MERCHANT CADENCE
 
    Caravans no longer maintain a second independent interruption timer. The
@@ -4268,12 +4549,11 @@ function generateCaravanMerchant(event=pendingCaravan()){
   return merchant;
 }
 function caravanCombatVictory(foe){
-  if(!foe?.caravan)return 0;
-  const event=pendingCaravan(),reward=ri(8,16);
-  S.gold=(S.gold||0)+reward;
-  travelLogAdd(`The caravan survives the fight and pays you <b>${esc(formatGold(reward))}</b> before moving on.`,"good");
-  recordCaravanResolution("helped-attacked",event);
-  return reward;
+  if(!foe?.caravan)return false;
+  const event=pendingCaravan();if(!event)return false;
+  travelLogAdd(`The fighting around the caravan finally stops. The survivors gather themselves beside the wagons.`,"good");
+  queueInteraction("caravan-survivors",{eventId:event.id,routeId:event.routeId,caravanType:event.type,resumeMode:"descend",outcome:"helped-attacked"});
+  return true;
 }
 function caravanCombatAbandoned(foe){
   if(!foe?.caravan)return false;
@@ -4586,7 +4866,7 @@ let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 12;
+const SAVE_SCHEMA = 13;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -4978,6 +5258,7 @@ function newDelver(profile){
     descentXpMaxDepth:0, descentXpPending:0,
     lootHistory:[], pendingLoot:null, combatLog:[], concealment:null, stealthOpportunitySeq:0,pendingMerchant:null,merchantVisits:0,merchantHistory:[],
     caravans:{pending:null,history:[],routeRolls:{},warning:null,nextSerial:1,activeMerchant:null},
+    interactionState:{active:null,pending:null,nextSerial:1},
     townState:{currentId:null,visited:{},departed:{},services:{}},
     quests:{instances:[],nextSerial:1,exploreAccumulator:0},
     turn:1, foe:null
@@ -7701,6 +7982,7 @@ function finalizeCombatVictory(foe){
   S.pendingLoot=null;
   if(S?.foe===foe) S.foe=null;
   combatVictoryPending=null;
+  if(ensureInteractionState()?.pending){activateQueuedInteraction();return;}
   render();
 }
 
@@ -8948,6 +9230,7 @@ function render(){
   renderCombatHeader();
   renderTown();
   renderTravel();
+  renderInteraction();
   renderActiveBoon();
   renderBoonChoice();
 
@@ -9698,7 +9981,8 @@ function repairStaleRoadTrafficSlot(){
   // caravan encounters keep their pending record alive while the choice/trade/
   // combat UI is open, so those states are deliberately protected here.
   const merchantActive=S.travelEvent?.id==="merchant" || (S.packMode==="merchant" && !!S.pendingMerchant);
-  const caravanActive=S.travelEvent?.id==="caravan" || !!S.foe?.caravan || !!caravanState?.activeMerchant;
+  const interactionCaravanId=S.interactionState?.active?.context?.eventId||S.interactionState?.pending?.context?.eventId||null;
+  const caravanActive=S.travelEvent?.id==="caravan" || !!S.foe?.caravan || !!caravanState?.activeMerchant || (!!caravanState?.pending&&interactionCaravanId===caravanState.pending.id);
   let repaired=false;
   if(S.pendingMerchant && !merchantActive && roadTrafficDepthIsStale(S.pendingMerchant.depth)){
     S.pendingMerchant=null;
@@ -11912,6 +12196,11 @@ function migrateSave11To12(snapshot){
   }
   return next;
 }
+function migrateSave12To13(snapshot){
+  const next=cloneForSave(snapshot);next.schema=13;const state=next.state;
+  if(isSaveRecord(state)&&!isSaveRecord(state.interactionState))state.interactionState={active:null,pending:null,nextSerial:1};
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
@@ -11923,7 +12212,8 @@ const SAVE_MIGRATIONS={
   8:migrateSave8To9,
   9:migrateSave9To10,
   10:migrateSave10To11,
-  11:migrateSave11To12
+  11:migrateSave11To12,
+  12:migrateSave12To13
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -12137,7 +12427,8 @@ function normalizeRestoredRun(){
     S.bleedCombatTurns=Math.max(0,Number(S.bleedCombatTurns)||0);
   }else clearBleeding();
   S.stealthOpportunitySeq=Number.isInteger(S.stealthOpportunitySeq)?S.stealthOpportunitySeq:0;
-  S.concealment=(S.concealment&&Number(S.concealment.remainingMs)>0)?{remainingMs:Number(S.concealment.remainingMs),autoPass:!!S.concealment.autoPass}:null;ensureMerchantState();ensureCaravanState();
+  S.concealment=(S.concealment&&Number(S.concealment.remainingMs)>0)?{remainingMs:Number(S.concealment.remainingMs),autoPass:!!S.concealment.autoPass}:null;ensureMerchantState();ensureCaravanState();ensureInteractionState();
+  if(activeInteraction())S.travelMode="stopped";
   S.abilities=S.abilities||{};
   for(const id of UNIVERSAL_ABILITY_IDS){const def=ABILITY_DEFS[id];if(def&&!S.abilities[id])S.abilities[id]={cur:def.max,max:def.max,degree:def.degree};}
   S.lootHistory=Array.isArray(S.lootHistory)?S.lootHistory:[];
@@ -12719,6 +13010,10 @@ $("combatLootPanel")?.addEventListener("click", async e => {
   if(investigate){investigate.disabled=true;await resolveLootSearch("investigation");return;}
   const cont=e.target.closest("[data-combat-loot-continue]");
   if(cont && combatVictoryPending) finalizeCombatVictory(combatVictoryPending);
+});
+$("interactionActions")?.addEventListener("click", async e=>{
+  const b=e.target.closest("[data-interaction-choice]");if(!b||b.disabled)return;
+  await handleInteractionChoice(b.dataset.interactionChoice);
 });
 $("btnCombatPack").addEventListener("click", () => {
   if(!S || over || !S.foe) return;
