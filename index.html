@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.110.0 — Alternating Turn Combat</title>
+<title>Lowfathom v0.110.3 — Combat Turn Counter Fix</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -172,6 +172,9 @@
    - v0.109.0: combat/stat rework — CON-based Protection replaces percentage defence, Rogue Parry and Wizard Wand Ward/Staff Brace identities, DEX-based Crit Chance, WIS-based Precision/Crit Damage, restricted Crit gear, guaranteed enhanced Backstab crits, Protection HP overlay and split damage callouts
    - v0.109.1: Precision baseline micro patch — the default 10 WIS now counts as 0 Precision; only effective WIS above 10 grants Precision, while WIS below 10 never creates negative Precision
    - v0.110.0: alternating-turn combat — player and enemy now take distinct turns; enemy Intent previews its next action, Protection remains visibly prepared between turns, surprise can grant consecutive turns, and enemy Guard/Dodge become real one-turn stances
+   - v0.110.1: Protection clarity — active Protection now shows as PR beside HP, defensive-source combat log language connects Guard/Parry/Ward/Brace to Protection, and enemy turns use short wind-up/aftermath beats so Protection loss and split damage callouts remain readable
+   - v0.110.2: enemy-action clarity + crit-roll repair — the large combat panel is the foe's current committed action, Guard/Dodge affect the response immediately instead of persisting as hidden next-turn stances, enemy-action text is red, base 10 DEX grants no Crit Chance, generated Crit rolls use 0.25% steps with rarity-biased high rolls, and Rogue Backstab clearly separates setup from release
+   - v0.110.3: combat turn counter fix — one numbered turn now covers the player response and the committed enemy action resolving; the counter advances only when that exchange completes and control returns to the next turn
    - v0.107.5: road-traffic stale-slot repair — overtaken merchant/caravan slots self-heal and reschedule without changing the 75/25 balance
    - v0.107.0: Phase 6 Caravan System — uncommon route-based caravan events, passive Perception warnings, generic sudden-event markers, caravan merchants, attacked/damaged choices, and a caravan-origin delivery quest
    - v0.107.0: combat damage-number linger reduced from 3.5 seconds to 2.5 seconds
@@ -1044,6 +1047,14 @@ button{
   pointer-events:none;
 }
 .hero .bar.hp .protection-fill.active{opacity:1}
+.hero .bar.hp .protection-fill.spent{
+  transform-origin:left center;animation:protectionSpent .72s ease-out forwards;
+}
+@keyframes protectionSpent{
+  0%{opacity:1;transform:scaleX(1)}
+  72%{opacity:.62;transform:scaleX(.18)}
+  100%{opacity:0;transform:scaleX(0)}
+}
 .travel-hp i{background:linear-gradient(90deg,#4f7898,#78a6c4)}
 .travel-hp.mid i{background:linear-gradient(90deg,#9a7936,#d1a74e)}
 .travel-hp.low i{background:linear-gradient(90deg,#8e3f2c,var(--rust))}
@@ -2319,9 +2330,9 @@ button{
 
 /* ---------- v0.100.17: edited-concept layout ----------
    The chrome steps back so the information can step forward. One loud frame on the
-   Intent (that is the thing you read every turn); thin rules everywhere else.
-   Asset pack still does the work — bare glyphs on the pad, medallions on the Intent
-   and the Selected Action, the gold frames on Intent / armed states / Run.
+   Enemy Action (the thing you read every turn); thin rules everywhere else.
+   Asset pack still does the work — bare glyphs on the pad, medallions on Enemy Action
+   and the Selected Action, the framed Enemy Action / armed states / Run.
    Bars and stamina segments stay pure CSS because their widths are dynamic.
    Typography: <body> default = Cormorant Garamond; body.font-slab = Zilla Slab.
    ---------------------------------------------------------------------------------- */
@@ -2461,7 +2472,7 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode .knowledge:empty{display:none}
 .arena.combat-mode .statusline{margin-top:8px}
 
-/* THE INTENT — fixed glyph, independently centred copy, untouched frame art ---
+/* THE ENEMY ACTION — fixed glyph, independently centred copy, untouched frame art ---
    The glyph and divider are absolute overlays, NOT grid columns. Earlier versions
    made them layout columns, which shrank the text's box and pushed the title
    off the panel's true centre. Overlays keep .intent-copy full width, so the
@@ -2490,21 +2501,22 @@ body.font-slab{--cf-serif:var(--slab)}
 }
 .arena.combat-mode .intent em{
   display:block;margin:0 0 2px;font-family:var(--cond);font-size:9.5px;font-style:normal;
-  letter-spacing:.26em;text-transform:uppercase;color:#c08f47;
+  letter-spacing:.26em;text-transform:uppercase;color:#c96f5b;
 }
 .arena.combat-mode .intent b{
   display:block;font-family:var(--cf-serif);font-size:31px;font-weight:600;font-style:normal;
-  line-height:1.04;color:var(--cf-gold-hi);text-transform:none;
+  line-height:1.04;color:#df765f;text-transform:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+  text-shadow:0 0 9px rgba(190,75,53,.14);
 }
 .arena.combat-mode .intent .intent-tell{
   display:block;margin-top:2px;font-family:var(--cf-serif);font-size:15px;font-style:italic;
-  line-height:1.15;color:#d5ab6c;
+  line-height:1.15;color:#c98e82;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
 }
 .arena.combat-mode .intent .intent-note{display:none}
-.arena.combat-mode .intent .turn-phase{display:block;margin-bottom:2px;font-family:var(--cond);font-size:9px;font-style:normal;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#8fb6b2}
-.arena.combat-mode .intent.enemy-turn .turn-phase{color:#d6a15b}
+.arena.combat-mode .intent .turn-phase{display:block;margin-bottom:2px;font-family:var(--cond);font-size:9px;font-style:normal;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#8f9ba2}
+.arena.combat-mode .intent.enemy-turn .turn-phase{color:#b98275}
 .arena.combat-mode .intent.enemy-turn{filter:brightness(.96)}
 .arena.combat-mode .intent.unknown b{color:#8fa0a6;font-size:19px;white-space:normal;line-height:1.2}
 
@@ -2611,7 +2623,10 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode .hero-name-level{display:flex;align-items:baseline;gap:7px;min-width:0}
 .arena.combat-mode .hero .cname b{font-family:var(--cf-serif);font-size:18px;font-weight:600;color:var(--cf-cream);line-height:1.05;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .arena.combat-mode .hero .lv{flex:0 0 auto;font-family:var(--cond);font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#7fa8c4}
-.arena.combat-mode .hero-hp-top{flex:0 0 auto;margin-left:auto;font-family:var(--cf-serif);font-size:13px;font-weight:600;color:#73bce0;white-space:nowrap}
+.arena.combat-mode .hero-top-vitals{flex:0 0 auto;margin-left:auto;display:flex;align-items:baseline;gap:7px;white-space:nowrap}
+.arena.combat-mode .hero-pr-top{font-family:var(--cond);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#b2bac0}
+.arena.combat-mode .hero-pr-top.spent{color:#7e8991}
+.arena.combat-mode .hero-hp-top{flex:0 0 auto;font-family:var(--cf-serif);font-size:13px;font-weight:600;color:#73bce0;white-space:nowrap}
 .arena.combat-mode .hero .bar.hp{height:8px;margin:0;border:1px solid rgba(70,120,150,.45);border-radius:2px;background:#070f13}
 .arena.combat-mode .hero .bar.hp > i{background:linear-gradient(90deg,#2f6c8d,#4e9ec4)}
 .arena.combat-mode .hero .hpn{color:#73bce0}
@@ -3200,7 +3215,7 @@ body.font-slab{--cf-serif:var(--slab)}
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><div class="travel-band-actions"><span class="build-version" id="buildVersion">v0.110.0</span><button class="settings-cog travel-settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button></div></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><div class="travel-band-actions"><span class="build-version" id="buildVersion">v0.110.3</span><button class="settings-cog travel-settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button></div></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -3613,7 +3628,7 @@ body.font-slab{--cf-serif:var(--slab)}
   </section>
 
   <div class="intent unknown" id="intent">
-    <div class="intent-copy"><em>Intent</em><b>—</b></div>
+    <div class="intent-copy"><em>Enemy action</em><b>—</b></div>
   </div>
 
   <div class="battle-space" aria-hidden="true"></div>
@@ -3621,7 +3636,7 @@ body.font-slab{--cf-serif:var(--slab)}
   <section class="combat-loot-panel" id="combatLootPanel" hidden aria-live="polite"></section>
 
   <section class="hero">
-    <div class="cname"><div class="hero-name-level"><b id="heroName">—</b><span class="lv" id="heroLv"></span></div><span class="hero-hp-top hpn" id="heroHpN"></span></div>
+    <div class="cname"><div class="hero-name-level"><b id="heroName">—</b><span class="lv" id="heroLv"></span></div><span class="hero-top-vitals"><span class="hero-pr-top" id="heroProtectionN" hidden></span><span class="hero-hp-top hpn" id="heroHpN"></span></span></div>
     <div class="bar hp" id="heroBar"><i id="heroHp"></i><i class="protection-fill" id="heroProtection" aria-hidden="true"></i></div>
     <div class="xp-track" aria-hidden="true"><i id="heroXpBar"></i></div>
     <div class="nums" hidden></div>
@@ -3891,7 +3906,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.110.0";
+const BUILD_VERSION = "v0.110.3";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -4748,7 +4763,7 @@ const ABILITY_DEFS = {
   holdfast:{
     id:"holdfast", name:"Hold Fast", degree:"I", max:2,
     desc:"Negate the foe's declared attack this turn. A prepared Heavy remains prepared.",
-    mechanics:"Only usable against an attack intent. Consumes your turn, deals no damage, restores no Stamina and makes no counterattack. Strike and defence rhythm break; a prepared Heavy is preserved.",
+    mechanics:"Only usable against an incoming attack action. Consumes your turn, deals no damage, restores no Stamina and makes no counterattack. Strike and defence rhythm break; a prepared Heavy is preserved.",
     scaling:"No stat scaling at Degree I."
   },
   smite:{
@@ -4886,7 +4901,7 @@ let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 15;
+const SAVE_SCHEMA = 16;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -4953,7 +4968,10 @@ function trimNumber(value,digits=1){
   return String(Number(n.toFixed(digits)));
 }
 function dexCritChanceForEquipment(equipmentState=S?.equipment){
-  return Math.min(DEX_CRIT_CAP_PCT,Math.max(0,effectiveStatForEquipment("DEX",equipmentState))*DEX_CRIT_PER_POINT);
+  // 10 DEX is the neutral character baseline, matching WIS -> Precision. Only
+  // effective DEX above 10 creates Critical Chance; falling below 10 never
+  // creates a negative crit modifier.
+  return Math.min(DEX_CRIT_CAP_PCT,Math.max(0,effectiveStatForEquipment("DEX",equipmentState)-10)*DEX_CRIT_PER_POINT);
 }
 function precisionForEquipment(equipmentState=S?.equipment){
   // 10 WIS is the neutral character baseline and grants 0 Precision. Only WIS
@@ -5762,12 +5780,13 @@ function renderCharacterCombatStats(){
   const dexCrit=dexCritChanceForEquipment(),gearCrit=aff.crit.pct||0,totalCrit=criticalChance();
   const precision=precisionForEquipment(),critDamage=criticalDamagePct();
   const fmtPct=n=>`${trimNumber(Math.max(0,Number(n)||0),1)}%`;
+  const fmtCritPct=n=>`${trimNumber(Math.max(0,Number(n)||0),2)}%`;
   const rows=[
     {label:"Strike",value:`~${s0.avg} damage`,sub:`${s0.lo}–${s0.hi} neutral · chain ~${s0.avg} / ~${s1.avg} / ~${s2.avg} · ${atkStat} ${atkValue} + weapon ${Number.isInteger(weaponPart)?weaponPart:weaponPart.toFixed(1)}`,cls:"offense"},
     {label:S.className==="Rogue"?"Backstab":"Heavy",value:S.className==="Rogue"?`~${criticalDamageFromBase(h1.avg,BACKSTAB_CRIT_BONUS_PCT)} / ~${criticalDamageFromBase(h2.avg,BACKSTAB_CRIT_BONUS_PCT)}`:`~${h1.avg} / ~${h2.avg}`,sub:S.className==="Rogue"?`2.7× / 4.7× base attack · guaranteed critical · +${BACKSTAB_CRIT_BONUS_PCT}pp Critical Damage`:`first pull ${h1.lo}–${h1.hi} · full pull ${h2.lo}–${h2.hi} · 2.7× / 4.7× attack`,cls:"offense"},
-    {label:"Critical Chance",value:fmtPct(totalCrit),sub:`${fmtPct(dexCrit)} from DEX${gearCrit?` · +${fmtPct(gearCrit)} equipment`:""} · DEX contribution caps at ${DEX_CRIT_CAP_PCT}%`,cls:"utility"},
+    {label:"Critical Chance",value:fmtCritPct(totalCrit),sub:`${fmtCritPct(dexCrit)} from DEX above 10${gearCrit?` · +${fmtCritPct(gearCrit)} equipment`:""} · DEX contribution caps at ${DEX_CRIT_CAP_PCT}%`,cls:"utility"},
     {label:"Precision",value:`${trimNumber(precision,0)} · ${fmtPct(critDamage)} crit`,sub:`WIS above 10 gives Precision 1:1; 10 or less gives 0. Critical hits start at ${BASE_CRIT_DAMAGE_PCT}% damage; each later +50pp costs progressively more Precision.`,cls:"utility"},
-    {label:defendName,value:`${protection} Protection`,sub:`CON ${baseProtection}${shieldProtection?` + shield ${shieldProtection}`:""} · absorbs the next incoming attack 1:1, then all remaining Protection clears`,cls:"defense"},
+    {label:defendName,value:`${protection} PR`,sub:`PR = Protection · CON ${baseProtection}${shieldProtection?` + shield ${shieldProtection}`:""} · absorbs the next incoming attack 1:1, then all remaining Protection clears`,cls:"defense"},
     {label:"Perfect Defence",value:"100% attack blocked",sub:`Second defended attack in the rhythm · ignores ordinary Protection capacity · counter ~${perfectCounter}`,cls:"defense"},
     {label:"Armor",value:`${armor} · ${mitigation}% mitigation`,sub:`Persistent equipment mitigation applies before temporary Protection.`,cls:"defense"},
     {label:"Counter",value:`~${counter} normal`,sub:`Normal defence counters when started at full Stamina. Perfect defence always counters.`,cls:"offense"},
@@ -6285,7 +6304,7 @@ function equipmentCompareHtml(itemId,targetSlot=null){
   }
   const strikeDelta=(c.strikeAfter??0)-(c.strikeBefore??0); if(Math.abs(strikeDelta)>.05) bits.push(`<span class="equipment-delta ${deltaClass(strikeDelta)}">Strike ${deltaText(strikeDelta,1)}</span>`);
   const protectionDelta=(c.protectionAfter??0)-(c.protectionBefore??0);if(protectionDelta)bits.push(`<span class="equipment-delta ${deltaClass(protectionDelta)}">Protection ${deltaText(protectionDelta)}</span>`);
-  const critDelta=(c.critChanceAfter??0)-(c.critChanceBefore??0);if(Math.abs(critDelta)>.001)bits.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,1)}%</span>`);
+  const critDelta=(c.critChanceAfter??0)-(c.critChanceBefore??0);if(Math.abs(critDelta)>.001)bits.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,2)}%</span>`);
   const critDamageDelta=(c.critDamageAfter??0)-(c.critDamageBefore??0);if(Math.abs(critDamageDelta)>.001)bits.push(`<span class="equipment-delta ${deltaClass(critDamageDelta)}">Crit Damage ${deltaText(critDamageDelta,1)}%</span>`);
   const bossDelta=(c.affixesAfter?.bossDamage?.pct||0)-(c.affixesBefore?.bossDamage?.pct||0);if(bossDelta)bits.push(`<span class="equipment-delta ${deltaClass(bossDelta)}">Boss ${deltaText(bossDelta)}%</span>`);
   const reflectDelta=(c.affixesAfter?.reflect?.pct||0)-(c.affixesBefore?.reflect?.pct||0);if(reflectDelta)bits.push(`<span class="equipment-delta ${deltaClass(reflectDelta)}">Reflect ${deltaText(reflectDelta)}%</span>`);
@@ -6485,7 +6504,7 @@ function renderEquipmentInspect(){
     if(comp.hpAfter!==comp.hpBefore) lines.push(`Max HP <span class="equipment-delta ${deltaClass(comp.hpAfter-comp.hpBefore)}">${comp.hpBefore} → ${comp.hpAfter}</span>`);
     if(Math.abs(comp.strikeAfter-comp.strikeBefore)>.05) lines.push(`Basic attack <span class="equipment-delta ${deltaClass(comp.strikeAfter-comp.strikeBefore)}">${comp.strikeBefore.toFixed(1)} → ${comp.strikeAfter.toFixed(1)}</span>`);
     if((comp.protectionAfter??0)!==(comp.protectionBefore??0)) lines.push(`Protection <span class="equipment-delta ${deltaClass(comp.protectionAfter-comp.protectionBefore)}">${comp.protectionBefore} → ${comp.protectionAfter}</span>`);
-    if(Math.abs((comp.critChanceAfter??0)-(comp.critChanceBefore??0))>.001) lines.push(`Crit Chance <span class="equipment-delta ${deltaClass(comp.critChanceAfter-comp.critChanceBefore)}">${trimNumber(comp.critChanceBefore,1)}% → ${trimNumber(comp.critChanceAfter,1)}%</span>`);
+    if(Math.abs((comp.critChanceAfter??0)-(comp.critChanceBefore??0))>.001) lines.push(`Crit Chance <span class="equipment-delta ${deltaClass(comp.critChanceAfter-comp.critChanceBefore)}">${trimNumber(comp.critChanceBefore,2)}% → ${trimNumber(comp.critChanceAfter,2)}%</span>`);
     if(Math.abs((comp.critDamageAfter??0)-(comp.critDamageBefore??0))>.001) lines.push(`Crit Damage <span class="equipment-delta ${deltaClass(comp.critDamageAfter-comp.critDamageBefore)}">${trimNumber(comp.critDamageBefore,1)}% → ${trimNumber(comp.critDamageAfter,1)}%</span>`);
     if(equipmentItemUsesBothHands(itemId)) lines.push(`Equipping this two-handed item returns the current Off Hand item to the Backpack.`);
     return `<div class="equipment-inspect-special"><b>Compared with ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}</b><br>${lines.join("<br>")}</div>`;
@@ -6877,7 +6896,7 @@ function renderPack(rememberView=true){
       const attrConsequences=STAT_KEYS.map(stat=>{const d=(cmp.attributesAfter?.[stat]||0)-(cmp.attributesBefore?.[stat]||0);return d?`<span class="equipment-delta ${deltaClass(d)}">${stat} ${deltaText(d)}</span>`:"";}).join("");
       const specialConsequences=[];
       const protDelta=(cmp.protectionAfter??0)-(cmp.protectionBefore??0);if(protDelta)specialConsequences.push(`<span class="equipment-delta ${deltaClass(protDelta)}">Protection ${deltaText(protDelta)}</span>`);
-      const critDelta=(cmp.critChanceAfter??0)-(cmp.critChanceBefore??0);if(Math.abs(critDelta)>.001)specialConsequences.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,1)}%</span>`);
+      const critDelta=(cmp.critChanceAfter??0)-(cmp.critChanceBefore??0);if(Math.abs(critDelta)>.001)specialConsequences.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,2)}%</span>`);
       const critDmgDelta=(cmp.critDamageAfter??0)-(cmp.critDamageBefore??0);if(Math.abs(critDmgDelta)>.001)specialConsequences.push(`<span class="equipment-delta ${deltaClass(critDmgDelta)}">Crit Damage ${deltaText(critDmgDelta,1)}%</span>`);
       const affixConsequences=[["Boss","bossDamage","pct"],["Reflect","reflect","pct"],["Lifesteal","lifesteal","pct"]].map(([label,key,prop])=>{const d=(cmp.affixesAfter?.[key]?.[prop]||0)-(cmp.affixesBefore?.[key]?.[prop]||0);return d?`<span class="equipment-delta ${deltaClass(d)}">${label} ${deltaText(d)}%</span>`:"";}).join("");
       const consequences=`${Math.abs(armorDelta)>.001?`<span class="equipment-delta ${deltaClass(armorDelta)}">Armor ${deltaText(armorDelta)}</span>`:""}${attrConsequences}${Math.abs(strikeDelta)>.05?`<span class="equipment-delta ${deltaClass(strikeDelta)}">Strike ${deltaText(strikeDelta,1)}</span>`:""}${specialConsequences.join("")}${affixConsequences}`;
@@ -6963,7 +6982,7 @@ function spawnEncounter(options={}){
     hp:hpMax,hpMax,atk:Math.max(1,Math.round(expectedEnemyHitAtDepth(S.depth)*atkProfile)),
     weakness:base.weakness,revealed:knowledgeReads(base.id)>=1,
     readUsed:false,whetstoneUsed:false,intent:null,
-    blinded:false,offBalance:false,offBalanceStruck:false,guardActive:false,dodgeActive:false,feintBaitedDodge:false
+    blinded:false,offBalance:false,offBalanceStruck:false,feintBaitedDodge:false
   };
   S.seenFoes[base.id] = true;
   if(firstSeen) markCharacterNotice("bestiary");
@@ -7843,16 +7862,20 @@ function rollIntent(){
   }
 }
 
-/* v0.110.0 — alternating-turn combat helpers. Intent is a promise about the
-   foe's next action; Guard/Dodge are only active after the foe actually spends
-   its turn taking that stance. The generic extra-turn counters deliberately
-   support Player → Player → Enemy and Enemy → Enemy → Player sequences. */
+/* v0.110.2 — committed enemy-action combat helpers. The foe chooses one action
+   before the player's response. That action is already in progress: Guard and
+   Dodge therefore affect the response immediately, while attacks resolve on the
+   short enemy beat after the player commits. Extra-turn counters deliberately
+   still support Player → Player → Enemy and Enemy → Enemy → Player sequences. */
+const ENEMY_TURN_WINDUP_MS=850;
+const ENEMY_TURN_AFTERMATH_MS=750;
 let enemyTurnTimer=null;
+let combatProtectionAftermath=null;
 function clearEnemyTurnTimer(){if(enemyTurnTimer!==null){clearTimeout(enemyTurnTimer);enemyTurnTimer=null;}}
 function combatActor(){return S?.combatActor==="enemy"?"enemy":"player";}
 function playerTurnActive(){return !!S?.foe&&!over&&!S.foe.defeated&&combatActor()==="player";}
-function foeGuardActive(foe=S?.foe){return !!foe?.guardActive;}
-function foeDodgeActive(foe=S?.foe){return !!foe?.dodgeActive;}
+function foeGuardActive(foe=S?.foe){return !!foe && foe.intent==="guard";}
+function foeDodgeActive(foe=S?.foe){return !!foe && foe.intent==="dodge";}
 function combatExtraTurns(actor){
   if(!S.combatExtraTurns||typeof S.combatExtraTurns!=="object")S.combatExtraTurns={player:0,enemy:0};
   return Math.max(0,Math.floor(Number(S.combatExtraTurns[actor])||0));
@@ -7868,6 +7891,7 @@ function beginCombatTurn(actor,{rollEnemyIntent=false}={}){
   S.turn=Math.max(1,Math.floor(Number(S.turn)||1));
   armed=null;
   if(actor==="player"){
+    combatProtectionAftermath=null;
     S.abilityQuickUsed=false;
     if(rollEnemyIntent&&S.foe&&!S.foe.defeated)rollIntent();
   }
@@ -7876,10 +7900,12 @@ function beginCombatTurn(actor,{rollEnemyIntent=false}={}){
   if(actor==="enemy")scheduleEnemyTurn();
 }
 function advanceFromPlayerTurn({surpriseOpening=false}={}){
-  S.turn++;
+  // A numbered combat turn is one full exchange: the player's response plus
+  // the foe's already-committed action resolving. Do not advance the counter
+  // merely because control moves into the enemy-resolution beat.
   if(surpriseOpening){
     // The concealed opener consumes the Unaware state, then the bonus player
-    // turn sees the foe's first real Intent before the enemy can act.
+    // turn sees the foe's first real committed action before the enemy can act.
     if(S.foe){S.foe.surprised=false;S.foe.intent=null;}
     spendCombatExtraTurn("player");
     return beginCombatTurn("player",{rollEnemyIntent:true});
@@ -7896,7 +7922,7 @@ function advanceFromEnemyTurn(){
   rollIntent();
   beginCombatTurn("player");
 }
-function scheduleEnemyTurn(delay=800){
+function scheduleEnemyTurn(delay=ENEMY_TURN_WINDUP_MS){
   if(enemyTurnTimer!==null||!S?.foe||over||S.foe.defeated||combatActor()!=="enemy")return;
   enemyTurnTimer=setTimeout(()=>{enemyTurnTimer=null;resolveEnemyTurn();},delay);
 }
@@ -8366,12 +8392,17 @@ const ACTIONS = {
 
   heavy:{
     label(){
-      if(S.className === "Rogue") return S.heavyCharge > 0 ? "Release Backstab" : "Backstab";
+      if(S.className === "Rogue") return S.heavyCharge > 0 ? "Release Backstab" : "Prepare Backstab";
       if(S.className === "Wizard") return S.heavyCharge > 0 ? "Release focus" : "Focus arcane";
       return S.heavyCharge > 0 ? "Release heavy" : "Wind up heavy";
     },
     sub(){
       if(S.className !== "Votary"){
+        if(S.className === "Rogue"){
+          if(S.heavyCharge >= 2) return `release now · guaranteed crit · 4.7×`;
+          if(S.heavyCharge === 1) return `release now · guaranteed crit · 2.7×`;
+          return `6 stamina · setup only · no damage`;
+        }
         if(S.heavyCharge >= 2) return `fully committed · 4.7× attack`;
         if(S.heavyCharge === 1) return `ready · 2.7× attack`;
         return `6 stamina · prepares 2.7× attack`;
@@ -8386,11 +8417,12 @@ const ACTIONS = {
       if(S.className !== "Votary"){
         if(S.heavyCharge === 0){
           const back = incoming();
+          if(S.className === "Rogue") return `<span class="bad"><b>SETUP ONLY — NO DAMAGE THIS TURN</b></span> · prepare a <span class="dmg">2.7× guaranteed-critical Backstab</span> · <span class="cost">6 stamina</span>${back?` · the enemy action still resolves for about <span class="bad">${back} damage</span>`:""}`;
           return `Prepare a <span class="dmg">2.7× ${attackScaleLabel()}</span> committed blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>${back?` · take <span class="bad">~${back}</span> while preparing`:""}`;
         }
         const d = dmgHeavy(), back = incoming(), mult = heavyMultiplier();
         const shown=S.className==="Rogue"?criticalDamageFromBase(d,BACKSTAB_CRIT_BONUS_PCT):d;
-        return `<span class="dmg">~${shown} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span>${S.className==="Rogue"?` · <span class="dmg">guaranteed crit +${BACKSTAB_CRIT_BONUS_PCT}pp</span>`:""} · releases before it acts${foeDodgeActive()?` · <span class="bad">70% miss chance</span>`:""}${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;
+        return `<span class="dmg">~${shown} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span>${S.className==="Rogue"?` · <span class="dmg">guaranteed crit +${BACKSTAB_CRIT_BONUS_PCT}pp</span>`:""} · releases before the enemy action resolves${foeDodgeActive()?` · <span class="bad">70% miss chance</span>`:""}${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;
       }
 
       if(S.heavyCharge === 0){
@@ -8404,7 +8436,7 @@ const ACTIONS = {
 
       const d = dmgHeavy(), back = incoming();
       const mult = heavyMultiplier();
-      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span> · <span class="cost">0 stamina</span> · releases before it acts`;
+      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span> · <span class="cost">0 stamina</span> · releases before the enemy action resolves`;
       if(f.offBalance) s += ` · <span class="dmg">+${Math.round((openingBonus()-1)*100)}% opening</span>`;
       if(foeDodgeActive(f)) s += ` · <span class="bad">70% miss chance</span>`;
       if(foeGuardActive(f)) s += ` · punches through most of its guard`;
@@ -8416,14 +8448,14 @@ const ACTIONS = {
       const f = S.foe;
       if(S.heavyCharge === 0){
         S.heavyCharge = 1;
-        if(S.className === "Rogue") return `<p class="good">Set up a <b>2.7× Backstab</b>.</p>`;
+        if(S.className === "Rogue") return `<p class="good"><b>Backstab prepared.</b> You set up a 2.7× committed strike.</p><p class="note"><b>No damage is dealt during setup.</b> Release Backstab on a later player turn to attack.</p>`;
         return `<p class="good">Drew back and prepared a <b>2.7×</b> heavy blow.</p>`;
       }
 
       const mult = heavyMultiplier();
       S.heavyCharge = 0;
       if(foeDodgeActive(f) && rnd() < 0.70){
-        if(S.className === "Rogue") return `<p>The ${mult.toFixed(1)}× Backstab misses as the foe slips clear.</p>`;
+        if(S.className === "Rogue") return `<p><b>Dodge.</b> The committed movement carries the foe clear and your ${mult.toFixed(1)}× Backstab misses.</p>`;
         return `<p>Released the ${mult.toFixed(1)}× heavy swing. It slipped clear before the blow arrived.</p>`;
       }
       const base=dmgHeavy(mult >= 4.7 ? 2 : 1),fx=applyOutgoingEquipmentEffects(base,S.className==="Rogue"?{forceCrit:true,critDamageBonusPct:BACKSTAB_CRIT_BONUS_PCT}:{});
@@ -8643,7 +8675,7 @@ function useHoldFast(){
   S.defenceChain=0;
   S.defencePrepared=null;
   S.negateNextAttack={name:abilityDisplayName("holdfast"),extraStamina:0,preserveHeavy:true};
-  say(`<p class="good"><b>${esc(abilityDisplayName("holdfast"))}.</b> You plant yourself for the declared <b>${esc(INTENTS[S.foe.intent].label)}</b>.</p><p class="note">Your turn is spent. The prepared Heavy remains prepared; the enemy attack will be negated on its turn.</p>`);
+  say(`<p class="good"><b>${esc(abilityDisplayName("holdfast"))}.</b> You plant yourself against the committed <b>${esc(INTENTS[S.foe.intent].label)}</b>.</p><p class="note">Your turn is spent. The prepared Heavy remains prepared; the enemy attack will be negated on its turn.</p>`);
   const bleed=tickCombatBleeding();
   if(!bleed.alive)return;
   if(bleed.html)say(bleed.html);
@@ -8761,7 +8793,7 @@ function takeTurn(key){
 
   let out = A.run();
   if(key === "guard"){
-    S.defencePrepared={perfect:perfectDefence,counter:defendedAtFull||perfectDefence,heavy:S.foe?.intent==="heavy"};
+    S.defencePrepared={perfect:perfectDefence,counter:defendedAtFull||perfectDefence,heavy:S.foe?.intent==="heavy",source:defenceName()};
   }
 
   if(S.foe.hp <= 0){
@@ -8782,11 +8814,6 @@ function resolveEnemyTurn(){
   if(!S?.foe||over||S.foe.defeated||combatActor()!=="enemy")return;
   const f=S.foe,I=INTENTS[f.intent];
   if(!I)return;
-
-  // A stance taken on the previous enemy turn protects exactly the intervening
-  // player turn. Once this enemy turn begins, that old stance has expired.
-  f.guardActive=false;
-  f.dodgeActive=false;
 
   let out="";
   const prepared=S.defencePrepared;
@@ -8823,10 +8850,15 @@ function resolveEnemyTurn(){
       const hpDamage=perfect?0:Math.max(0,rawIncoming-absorbed);
 
       if(absorbed>0){
+        const source=prepared?.source||defenceName();
+        const sourceLabel=`${perfect?"Perfect ":""}${source} Protection`;
+        const unused=Math.max(0,storedProtection-Math.min(storedProtection,absorbed));
+        combatProtectionAftermath={value:storedProtection,absorbed,source:sourceLabel};
         showCombatDamagePop("hero",absorbed,{protection:true});
-        out+=`<p class="note"><b>Protection</b> absorbed <b>${absorbed}</b> damage.</p>`;
+        out+=`<p class="note"><b>${esc(sourceLabel)}</b> absorbed <b>${absorbed}</b> damage.${unused>0?` <b>${unused}</b> unused Protection expired.`:""}</p>`;
       }
-      // Protection is attack-bound: every unused point clears after this attack.
+      // Protection is attack-bound: every unused point clears mechanically after this attack.
+      // v0.110.1 keeps a brief presentation-only ghost so the player can see it break.
       S.protection=0;
 
       if(hpDamage>0){
@@ -8866,17 +8898,15 @@ function resolveEnemyTurn(){
       out+=`<p class="note">It lashed out instead of recovering its footing. It is still <b>Off-Balance</b>.</p>`;
     }
   }else if(f.intent==="guard"){
-    f.guardActive=true;
     S.defencePrepared=null;
-    out+=`<p class="note"><b>Guard.</b> It sets itself behind its guard. The stance will blunt your next turn's ordinary attacks.</p>`;
+    out+=`<p class="note"><b>Guard.</b> It held the committed guard through your response.</p>`;
   }else if(f.intent==="dodge"){
     S.defencePrepared=null;
     if(f.feintBaitedDodge){
       f.feintBaitedDodge=false;
-      out+=`<p class="good"><b>Dodge.</b> It commits to empty space; the feint drew the movement out without spending your prepared attack.</p>`;
+      out+=`<p class="good"><b>Dodge.</b> It commits to empty space; the feint draws the movement out without spending your prepared attack.</p>`;
     }else{
-      f.dodgeActive=true;
-      out+=`<p class="note"><b>Dodge.</b> It slips into motion. Your next turn's direct attacks must deal with that stance.</p>`;
+      out+=`<p class="note"><b>Dodge.</b> It completed the committed evasive movement through your response.</p>`;
     }
   }else if(I.heal){
     S.defencePrepared=null;
@@ -8900,7 +8930,14 @@ function resolveEnemyTurn(){
   if(!bleed.alive)return;
   out+=bleed.html;
   say(out);
-  advanceFromEnemyTurn();
+  // Keep the resolved enemy action on screen briefly. Controls stay locked while
+  // damage callouts and the spent Protection bar communicate what just happened.
+  enemyTurnTimer=setTimeout(()=>{
+    enemyTurnTimer=null;
+    combatProtectionAftermath=null;
+    advanceFromEnemyTurn();
+  },ENEMY_TURN_AFTERMATH_MS);
+  render();
 }
 
 function tapRun(){
@@ -9443,11 +9480,20 @@ function render(){
   playerHpClass($("heroBar"),hf);
   $("heroHp").style.width = hf*100 + "%";
   $("heroHpN").textContent = `${Math.max(0,S.hp)} / ${S.hpMax}`;
-  const prot=Math.max(0,Math.round(Number(S.protection)||0)),protEl=$("heroProtection");
+  const prot=Math.max(0,Math.round(Number(S.protection)||0)),protEl=$("heroProtection"),protN=$("heroProtectionN");
+  const spentProt=prot<=0&&combatProtectionAftermath?Math.max(0,Math.round(Number(combatProtectionAftermath.value)||0)):0;
+  const visualProt=prot>0?prot:spentProt;
   if(protEl){
-    protEl.style.width=`${clamp(prot/Math.max(1,S.hpMax),0,1)*100}%`;
-    protEl.classList.toggle("active",prot>0);
-    protEl.title=prot>0?`${prot} Protection`:"";
+    protEl.style.width=`${clamp(visualProt/Math.max(1,S.hpMax),0,1)*100}%`;
+    protEl.classList.toggle("active",visualProt>0);
+    protEl.classList.toggle("spent",spentProt>0);
+    protEl.title=prot>0?`${prot} Protection`:spentProt>0?"Protection spent on the resolved attack":"";
+  }
+  if(protN){
+    protN.hidden=visualProt<=0;
+    protN.classList.toggle("spent",spentProt>0);
+    protN.textContent=prot>0?`PR ${prot}`:"PR 0";
+    protN.title="PR = Protection";
   }
 
   let pips = "";
@@ -9494,7 +9540,7 @@ function render(){
       $("intent").classList.remove("unknown");
       $("intent").classList.toggle("enemy-turn",enemyNow);
       const I = INTENTS[f.intent];
-      $("intent").innerHTML = `<div class="intent-copy"><span class="turn-phase">Turn ${Math.max(1,Number(S.turn)||1)} · ${enemyNow?"Enemy turn":"Your turn"}</span><em>${enemyNow?"Enemy action":"Enemy intent"}</em><b>${esc(I.label)}</b><span class="intent-tell">${esc(enemyNow?`now ${I.tell}`:I.tell)}</span></div>`;
+      $("intent").innerHTML = `<div class="intent-copy"><span class="turn-phase">Turn ${Math.max(1,Number(S.turn)||1)} · ${enemyNow?"Resolving":"Your turn"}</span><em>Enemy action</em><b>${esc(I.label)}</b><span class="intent-tell">${esc(I.tell)}</span></div>`;
     }
     $("tell").hidden = !f.revealed;
     if(f.revealed){
@@ -9507,8 +9553,6 @@ function render(){
       statuses.push(`<span class="status offbalance">Off-Balance${suffix}</span>`);
     }
     if(f.blinded) statuses.push(`<span class="status blinded">Blinded</span>`);
-    if(foeGuardActive(f)) statuses.push(`<span class="status">Guarding</span>`);
-    if(foeDodgeActive(f)) statuses.push(`<span class="status">Dodging</span>`);
     $("foeStatus").hidden = statuses.length===0;
     $("foeStatus").innerHTML = statuses.join("");
   }else{
@@ -9518,7 +9562,7 @@ function render(){
     $("foeHp").style.width = "0%";
     $("foeHpN").textContent = "";
     $("intent").classList.add("unknown");
-    $("intent").innerHTML = `<div class="intent-copy"><em>Intent</em><b>Nothing in front of you</b><span class="intent-note">Keep descending or explore this depth.</span></div>`;
+    $("intent").innerHTML = `<div class="intent-copy"><em>Enemy action</em><b>Nothing in front of you</b><span class="intent-note">Keep descending or explore this depth.</span></div>`;
     $("tell").hidden = true;
     $("foeStatus").hidden = true;
     $("foeStatus").innerHTML = "";
@@ -9639,7 +9683,8 @@ function actionIconName(key){ if(key==="heavy"||key==="draw"||key==="heavyfeint"
 function intentIconName(key){ return "intent"; }
 function portraitForFoe(f){ return ""; }
 function actionBadgeText(key,counters){
-  if(counters) return "Counters intent";
+  if(key==="heavy" && S.className==="Rogue" && S.heavyCharge===0) return "Setup · no damage";
+  if(counters) return "Counters action";
   if(key==="heavy" && S.heavyCharge===0) return "Prep 2.7×";
   if(key==="draw") return S.heavyCharge>=2 ? "Fully drawn" : "Draw";
   if(key==="read" && S.foe && !S.foe.readUsed){
@@ -9781,7 +9826,7 @@ Object.assign(ABILITY_DEFS, {
   slip:{
     id:"slip", name:"Slip Away", degree:"I", max:2,
     desc:"Negate a declared attack and recover 2 Stamina. Consumes your turn.",
-    mechanics:"Only usable against an attack intent. The attack is negated, you recover 2 Stamina, and Strike/defence rhythm breaks.",
+    mechanics:"Only usable against an incoming attack action. The attack is negated, you recover 2 Stamina, and Strike/defence rhythm breaks.",
     scaling:"No direct damage scaling at Degree I."
   },
   dirtytrick:{
@@ -9799,7 +9844,7 @@ Object.assign(ABILITY_DEFS, {
   ward:{
     id:"ward", name:"Ward", degree:"I", max:2,
     desc:"Negate the foe's declared attack this turn. Consumes your turn.",
-    mechanics:"Only usable against an attack intent. The attack is completely negated. No Stamina is restored and no counterattack is made.",
+    mechanics:"Only usable against an incoming attack action. The attack is completely negated. No Stamina is restored and no counterattack is made.",
     scaling:"No direct scaling at Degree I."
   },
   mend:{
@@ -9934,7 +9979,7 @@ const GENERATED_AFFIX_ENABLED = {
   lootFind:false
 };
 const EQUIPMENT_AFFIXES = Object.freeze({
-  crit:Object.freeze({id:"crit",name:"Critical Chance",unitCost:5,maxUnits:5,slots:["weapon","gloves","ring"],enabledKey:"crit"}),
+  crit:Object.freeze({id:"crit",name:"Critical Chance",unitCost:2.5,maxUnits:10,slots:["weapon","gloves","ring"],enabledKey:"crit"}),
   bossDamage:Object.freeze({id:"bossDamage",name:"Boss Damage",unitCost:8,maxUnits:15,slots:["weapon","focus","cape","light","necklace","earring","ring"],enabledKey:"bossDamage"}),
   reflect:Object.freeze({id:"reflect",name:"Damage Reflect",unitCost:6,maxUnits:15,slots:["shield","top","bottoms","hat","gloves","boots","cape","belt","necklace"],enabledKey:"reflect"}),
   lifesteal:Object.freeze({id:"lifesteal",name:"Lifesteal",unitCost:25,maxUnits:8,slots:["weapon","focus","necklace","ring"],enabledKey:"lifesteal"}),
@@ -9951,15 +9996,33 @@ function allowedGeneratedAffixes(entry){
   return Object.values(EQUIPMENT_AFFIXES).filter(def=>affixEnabled(def)&&def.slots.includes(key));
 }
 function emptyAffixRecord(){ return {}; }
+const CRIT_AFFIX_STEP_PCT = 0.25;
+const CRIT_AFFIX_CONTINUE_CHANCE = Object.freeze({
+  Salvage:0.30,Poor:0.36,Common:0.45,Uncommon:0.52,Rare:0.60,Epic:0.68,
+  Wondrous:0.73,Legendary:0.78,Mythical:0.82,Ancient:0.85,Sunless:0.88,Unfathomable:0.90
+});
 function generatedAffixMaxUnits(def,entry,weapon=null){
-  if(def?.id==="crit" && entry?.kind==="weapon" && weapon?.family==="dagger") return 10; // 5% on a dagger
+  if(def?.id==="crit" && entry?.kind==="weapon" && weapon?.family==="dagger") return 20; // 5% on a dagger
   return def?.maxUnits||0; // ordinary Crit gear tops out at 2.5%
+}
+function rolledCritMaxUnits(rarity,hardMaxUnits,randomFn=rnd){
+  const hard=Math.max(0,Math.floor(Number(hardMaxUnits)||0));
+  if(hard<=0)return 0;
+  const keep=CRIT_AFFIX_CONTINUE_CHANCE[rarity]??CRIT_AFFIX_CONTINUE_CHANCE.Common;
+  let units=1;
+  while(units<hard && randomFn()<keep)units++;
+  return units;
+}
+function generatedAffixCandidateMaxUnits(def,entry,weapon,rolledCaps=null){
+  const hard=generatedAffixMaxUnits(def,entry,weapon);
+  if(def?.id!=="crit" || !rolledCaps || !Number.isFinite(Number(rolledCaps.crit)))return hard;
+  return Math.max(0,Math.min(hard,Math.floor(Number(rolledCaps.crit)||0)));
 }
 function addAffixUnit(affixes,def,maxUnits=def.maxUnits){
   const rec=affixes[def.id]||(affixes[def.id]={units:0,value:0});
   if(rec.units>=maxUnits) return false;
   rec.units++;rec.value=rec.units*def.unitCost;
-  if(def.id==="crit"){rec.pct=rec.units*0.5;delete rec.bonusCap;}
+  if(def.id==="crit"){rec.pct=rec.units*CRIT_AFFIX_STEP_PCT;delete rec.bonusCap;}
   else if(def.id==="bossDamage"){rec.pct=rec.units;rec.bonusCap=rec.units*2;}
   else if(def.id==="reflect"){rec.pct=rec.units;rec.damageCap=rec.units;}
   else if(def.id==="lifesteal"){rec.pct=rec.units;rec.healCap=rec.units;}
@@ -9971,7 +10034,7 @@ function affixIntrinsicValue(affixes){ return Object.values(affixes||{}).reduce(
 function generatedAffixLines(affixes){
   const out=[];
   const a=affixes||{};
-  if(a.crit?.units) out.push(`Critical Chance +${trimNumber(a.crit.pct,1)}%`);
+  if(a.crit?.units) out.push(`Critical Chance +${trimNumber(a.crit.pct,2)}%`);
   if(a.bossDamage?.units) out.push(`Boss Damage +${a.bossDamage.pct}% · bonus cap ${a.bossDamage.bonusCap}/action`);
   if(a.reflect?.units) out.push(`Damage Reflect ${a.reflect.pct}% · cap ${a.reflect.damageCap}/hit`);
   if(a.lifesteal?.units) out.push(`Lifesteal ${a.lifesteal.pct}% · cap ${a.lifesteal.healCap} HP/action`);
@@ -10096,7 +10159,7 @@ function merchantEquipmentCompareHtml(itemId,targetSlot=null){
   const strikeDelta=(c.strikeAfter??0)-(c.strikeBefore??0);
   if(Math.abs(strikeDelta)>.05) bits.push(`<span class="equipment-delta ${deltaClass(strikeDelta)}">Strike ${deltaText(strikeDelta,1)}</span>`);
   const protectionDelta=(c.protectionAfter??0)-(c.protectionBefore??0);if(protectionDelta)bits.push(`<span class="equipment-delta ${deltaClass(protectionDelta)}">Protection ${deltaText(protectionDelta)}</span>`);
-  const critDelta=(c.critChanceAfter??0)-(c.critChanceBefore??0);if(Math.abs(critDelta)>.001)bits.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,1)}%</span>`);
+  const critDelta=(c.critChanceAfter??0)-(c.critChanceBefore??0);if(Math.abs(critDelta)>.001)bits.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,2)}%</span>`);
   const critDmgDelta=(c.critDamageAfter??0)-(c.critDamageBefore??0);if(Math.abs(critDmgDelta)>.001)bits.push(`<span class="equipment-delta ${deltaClass(critDmgDelta)}">Crit Damage ${deltaText(critDmgDelta,1)}%</span>`);
   const affixes=[["Boss","bossDamage"],["Reflect","reflect"],["Lifesteal","lifesteal"]];
   for(const [label,key] of affixes){
@@ -10598,7 +10661,7 @@ function generatedMaxAffixTypes(rarity){
   if(rank<=RARITY_ORDER.indexOf("Rare")) return 2;
   return 3;
 }
-function buildGeneratedValueCandidate(entry,weapon,targetValue,rarity="Common"){
+function buildGeneratedValueCandidate(entry,weapon,targetValue,rarity="Common",rolledCaps=null){
   const candidate={value:0,attributes:{},affixes:emptyAffixRecord(),armor:0,weaponContribution:0};
   const affixes=allowedGeneratedAffixes(entry),limit=targetValue*(1+GENERATED_VALUE_TOLERANCE),maxTypes=generatedMaxAffixTypes(rarity);
   const coreCost=candidateCoreCost(entry);
@@ -10612,21 +10675,21 @@ function buildGeneratedValueCandidate(entry,weapon,targetValue,rarity="Common"){
   let guard=0;
   while(affixes.length && guard++<80){
     const usedTypes=Object.keys(candidate.affixes).length;
-    const fitting=affixes.filter(def=>candidate.value+def.unitCost<=limit && (candidate.affixes[def.id]?.units||0)<generatedAffixMaxUnits(def,entry,weapon) && (candidate.affixes[def.id]||usedTypes<maxTypes));
+    const fitting=affixes.filter(def=>candidate.value+def.unitCost<=limit && (candidate.affixes[def.id]?.units||0)<generatedAffixCandidateMaxUnits(def,entry,weapon,rolledCaps) && (candidate.affixes[def.id]||usedTypes<maxTypes));
     if(!fitting.length) break;
     const def=generatedWeightedPick(fitting,()=>1);
     if(rnd()<0.24 && candidate.value>=targetValue*(1-GENERATED_VALUE_TOLERANCE)) break;
-    addAffixUnit(candidate.affixes,def,generatedAffixMaxUnits(def,entry,weapon));candidate.value+=def.unitCost;
+    addAffixUnit(candidate.affixes,def,generatedAffixCandidateMaxUnits(def,entry,weapon,rolledCaps));candidate.value+=def.unitCost;
   }
   // Finish with native units when they improve the miss. This deliberately does
   // not force an exact target: final iLv is allowed to land naturally nearby.
   while(candidate.value+coreCost<=limit && Math.abs(targetValue-(candidate.value+coreCost))<Math.abs(targetValue-candidate.value)) candidateAddCoreUnit(candidate,entry,weapon);
   return candidate;
 }
-function bestGeneratedValueCandidate(entry,weapon,targetValue,rarity="Common"){
+function bestGeneratedValueCandidate(entry,weapon,targetValue,rarity="Common",rolledCaps=null){
   let best=null,bestScore=Infinity;
   for(let i=0;i<72;i++){
-    const c=buildGeneratedValueCandidate(entry,weapon,targetValue,rarity);
+    const c=buildGeneratedValueCandidate(entry,weapon,targetValue,rarity,rolledCaps);
     const miss=Math.abs(c.value-targetValue),outside=miss>targetValue*GENERATED_VALUE_TOLERANCE?targetValue:0;
     // Slightly prefer packages with at least one live affix when the slot can roll
     // one, but never enough to choose a materially worse power match.
@@ -10634,7 +10697,7 @@ function bestGeneratedValueCandidate(entry,weapon,targetValue,rarity="Common"){
     const score=miss+outside+diversity;
     if(score<bestScore){bestScore=score;best=cloneGeneratedCandidate(c);}
   }
-  return best||buildGeneratedValueCandidate(entry,weapon,targetValue,rarity);
+  return best||buildGeneratedValueCandidate(entry,weapon,targetValue,rarity,rolledCaps);
 }
 function generateProceduralEquipment(depth=S?.depth||0,sourceKey=""){
   const d=Math.max(0,Number(depth)||0),rarity=rollEquipmentRarity(d);
@@ -10643,7 +10706,13 @@ function generateProceduralEquipment(depth=S?.depth||0,sourceKey=""){
   let weapon=null;
   if(entry.kind==="weapon") weapon=generatedWeightedPick(GENERATED_WEAPON_FAMILIES);
   const coef=generatedSlotCoefficient(entry,weapon),targetValue=intrinsicValueFromLevel(targetIlvl,coef);
-  const pkg=bestGeneratedValueCandidate(entry,weapon,targetValue,rarity);
+  // Crit has a hard slot ceiling, but rarity controls how likely this particular
+  // item is to roll toward that ceiling. The rolled cap is chosen once per item
+  // so the 72 best-fit candidates cannot brute-force every eligible piece to max.
+  const critDef=EQUIPMENT_AFFIXES.crit;
+  const critEligible=allowedGeneratedAffixes(entry).some(def=>def.id==="crit");
+  const rolledCaps=critEligible?{crit:rolledCritMaxUnits(rarity,generatedAffixMaxUnits(critDef,entry,weapon))}:null;
+  const pkg=bestGeneratedValueCandidate(entry,weapon,targetValue,rarity,rolledCaps);
   let item;
   if(entry.kind==="weapon"){
     item={kind:"weapon",base:weapon.base,family:weapon.family,stat:weapon.stat,hands:weapon.hands,greatWeapon:!!weapon.greatWeapon,slot:"rightHand",slots:["rightHand"],weaponContribution:Number(pkg.weaponContribution.toFixed(1)),affixes:pkg.affixes};
@@ -10879,7 +10948,7 @@ function useNegateAbility(id, extraStamina=0){
   sk.cur--;closeAbilitySheet();armed=null;
   S.strikeChain=0;S.defenceChain=0;S.defencePrepared=null;S.heavyCharge=0;
   S.negateNextAttack={name:abilityDisplayName(id),extraStamina:Math.max(0,Number(extraStamina)||0),preserveHeavy:false};
-  say(`<p class="good"><b>${esc(abilityDisplayName(id))}.</b> Prepared to completely negate <b>${esc(INTENTS[S.foe.intent].label)}</b> on the enemy turn.</p>`);
+  say(`<p class="good"><b>${esc(abilityDisplayName(id))}.</b> Prepared to completely negate the committed <b>${esc(INTENTS[S.foe.intent].label)}</b> when it resolves.</p>`);
   const bleed=tickCombatBleeding();if(!bleed.alive)return;if(bleed.html)say(bleed.html);
   advanceFromPlayerTurn();
 }
@@ -11477,19 +11546,19 @@ ACTIONS.recover={
   }
 };
 
-// A prepared Heavy can answer Dodge with tempo rather than another RNG check.
-// The current Dodge still spends the foe's turn; its NEXT declared intent is forced
-// to be something other than Dodge, while the Heavy remains prepared.
+// A prepared Heavy can answer a committed Dodge with tempo rather than another
+// RNG check. Feint spends that Dodge on empty space; the next enemy action is
+// forced to be something other than Dodge while the Heavy remains prepared.
 ACTIONS.heavyfeint={
   label:"Feint",
   sub(){return `0 stamina · preserve ${heavyActionName()}`;},
   cost:0,
-  preview(){return `Show the committed blow without releasing it · <span class="cost">0 stamina</span> · preserve the ${heavyActionName()} · force the foe's next intent to be <span class="dmg">non-Dodge</span>`;},
+  preview(){return `Show the committed blow without releasing it · <span class="cost">0 stamina</span> · preserve the ${heavyActionName()} · force the foe's next action to be <span class="dmg">non-Dodge</span>`;},
   run(){
     if(!S.foe||!foeDodgeActive()||S.heavyCharge<=0)return `<p class="note">There is nothing useful to draw out.</p>`;
     S.foe.forceNonDodge=true;
-    S.foe.dodgeActive=false;
-    return `<p class="good">Feinted the release. It spent the Dodge on empty space, but your ${heavyActionName()} stayed ready.</p>`;
+    S.foe.feintBaitedDodge=true;
+    return `<p class="good">Feinted the release. The committed Dodge is drawn onto empty space, but your ${heavyActionName()} stays ready.</p>`;
   }
 };
 
@@ -12090,8 +12159,8 @@ const INFO_CHAPTERS = [
 ];
 let infoChapterId="skill-checks";
 function infoChapterHtml(id){
-  if(id==="item-value") return `<h3>Items, iLv &amp; Coinage</h3><p>Fathom sets the expected power of the world. Rarity shifts a generated item's target, but the <b>finished properties</b> decide its real Item Level.</p><div class="info-step"><b>Intrinsic Value:</b> the internal mechanical cost of the properties actually on the item. On a full 1.0 slot, roughly 1 Intrinsic Value corresponds to 1 iLv.</div><div class="info-step"><b>Slot coefficients:</b> smaller slots carry less raw power. A Ring/Earring uses 0.40; Cape/Belt/Light/Pendant 0.50; Hat/Gloves/Boots 0.60; Bottoms 0.80; full hand/Top slots 1.00. Two-handed weapons use two hand slots.</div><div class="info-step"><b>Best-fit generation:</b> the generator combines legitimate slot-native properties near its target instead of rounding one large stat and repeatedly landing on the same iLv shelf.</div><div class="info-step"><b>Critical Chance gear:</b> ordinary generated Crit Chance is restricted to weapons, gloves and rings. Those rolls are deliberately small: ordinary eligible pieces top out at 2.5%; daggers can reach 5% to reinforce their crit identity.</div><div class="info-step"><b>Appraised coin value:</b> appraisal starts from actual Intrinsic Value, then applies a restrained rarity/scarcity premium. A merchant may offer less or charge more; CHA modifies the transaction, not the item's combat power.</div><div class="info-step"><b>Bounded effects:</b> Boss Damage, Reflect and future Lifesteal retain item-stamped caps. Critical Damage is instead governed by WIS-derived Precision and becomes progressively more expensive to raise.</div><div class="info-example"><b>Current live generated affixes</b><br>Critical Chance · Boss Damage · Damage Reflect. Lifesteal is supported by the combat/value engine but intentionally switched off in ordinary generation while recovery pressure is being tested.</div>`;
-  if(id==="combat-stats") return `<h3>Combat stats</h3><p>The six attributes now have distinct combat jobs. None of these derived values decay merely because you descend farther.</p><div class="info-step"><b>Turns &amp; Intent:</b> Player and enemy actions are separate turns. On your turn, Enemy Intent tells you what the foe will do on its next turn. You may attack, prepare Protection, use an Ability or take another action; then the enemy takes the declared action. Surprise can grant consecutive turns, so the sequence is not permanently forced to alternate.</div><div class="info-step"><b>Enemy stances:</b> Guard and Dodge become active only when the enemy actually spends its turn taking that stance. They then affect your following turn and expire when the enemy acts again. This means Intent is a forecast, not a defence that somehow applied before the enemy took its turn.</div><div class="info-step"><b>CON → Protection:</b> CON still sets Max HP at 6 HP per point. A normal Guard, Parry, Ward or Brace also prepares Protection equal to your effective CON. A shield adds a flat Protection bonus derived from the shield itself.</div><div class="info-step"><b>Protection:</b> 1 Protection absorbs 1 damage from the next incoming attack <em>after Armor mitigation</em>. Any damage above Protection reaches HP. After that attack resolves, every unused point of Protection disappears.</div><div class="info-example"><b>Example</b><br>50 incoming damage against 30 Protection: <b>30</b> is absorbed and <b>20 HP</b> is lost. The combat bar shows a gray -30 and a red -20. If the attack were only 20, only gray -20 appears; the unused 10 still clears.</div><div class="info-step"><b>Defensive identities:</b> Votary uses Guard with a shield and Parry without one. Rogue uses Parry. Wizard uses Ward while wielding a wand and Brace with a two-handed staff. Perfect Defence still blocks the whole declared attack and counters.</div><div class="info-step"><b>DEX → Critical Chance:</b> every DEX gives +${DEX_CRIT_PER_POINT}% Critical Chance, up to a real ${DEX_CRIT_CAP_PCT}% contribution from DEX. Equipment Crit Chance can push the total above that attribute cap.</div><div class="info-step"><b>WIS → Precision:</b> 10 WIS is the neutral baseline and grants 0 Precision. Every effective WIS above 10 grants 1 Precision; WIS below 10 never creates negative Precision. Critical hits start at ${BASE_CRIT_DAMAGE_PCT}% damage. The first +50 percentage points of Critical Damage costs ${PRECISION_FIRST_50_COST} Precision; each later +50-point band doubles in cost: 1000, 2000, 4000 and so on. Precision therefore never stops progressing, but base STR/DEX/INT damage remains the main damage axis.</div><div class="info-step"><b>Backstab:</b> Rogue Backstab is a guaranteed critical and adds +${BACKSTAB_CRIT_BONUS_PCT} percentage points to the Critical Damage produced by Precision. Its Crit Chance is irrelevant for that one attack.</div><div class="info-equation">Crit Chance = min(50%, DEX × 0.25%) + equipped Crit Chance</div><div class="info-equation">Normal crit = Precision-derived Critical Damage · Backstab = that value + 25pp</div>`;
+  if(id==="item-value") return `<h3>Items, iLv &amp; Coinage</h3><p>Fathom sets the expected power of the world. Rarity shifts a generated item's target, but the <b>finished properties</b> decide its real Item Level.</p><div class="info-step"><b>Intrinsic Value:</b> the internal mechanical cost of the properties actually on the item. On a full 1.0 slot, roughly 1 Intrinsic Value corresponds to 1 iLv.</div><div class="info-step"><b>Slot coefficients:</b> smaller slots carry less raw power. A Ring/Earring uses 0.40; Cape/Belt/Light/Pendant 0.50; Hat/Gloves/Boots 0.60; Bottoms 0.80; full hand/Top slots 1.00. Two-handed weapons use two hand slots.</div><div class="info-step"><b>Best-fit generation:</b> the generator combines legitimate slot-native properties near its target instead of rounding one large stat and repeatedly landing on the same iLv shelf.</div><div class="info-step"><b>Critical Chance gear:</b> ordinary generated Crit Chance is restricted to weapons, gloves and rings and rolls in 0.25% steps. Ordinary eligible pieces can reach 2.5%; daggers can reach 5%. Those are ceilings, not automatic rolls: higher rarity makes high Crit rolls increasingly likely, while Common gear usually lands near the low end.</div><div class="info-step"><b>Appraised coin value:</b> appraisal starts from actual Intrinsic Value, then applies a restrained rarity/scarcity premium. A merchant may offer less or charge more; CHA modifies the transaction, not the item's combat power.</div><div class="info-step"><b>Bounded effects:</b> Boss Damage, Reflect and future Lifesteal retain item-stamped caps. Critical Damage is instead governed by WIS-derived Precision and becomes progressively more expensive to raise.</div><div class="info-example"><b>Current live generated affixes</b><br>Critical Chance · Boss Damage · Damage Reflect. Lifesteal is supported by the combat/value engine but intentionally switched off in ordinary generation while recovery pressure is being tested.</div>`;
+  if(id==="combat-stats") return `<h3>Combat stats</h3><p>The six attributes now have distinct combat jobs. None of these derived values decay merely because you descend farther.</p><div class="info-step"><b>Turns &amp; Enemy Action:</b> The turn number covers the whole exchange: your response and the foe's committed action resolving are both the same numbered turn. The counter advances only after that exchange finishes. The large red combat panel shows the foe's <b>current committed action</b> — the thing you are reacting to now. If it says Quick Attack, you may Parry before that attack resolves. If it says Guard or Dodge, that defence already affects attacks you make during this response. After you commit, the foe completes that action during its short resolution beat, then chooses a new action for your next response. Surprise can grant consecutive turns, so the sequence is not permanently forced to alternate.</div><div class="info-step"><b>One action, not two forecasts:</b> Guard and Dodge are no longer shown as separate Guarding/Dodging tags beside a different future action. Persistent conditions such as Bleeding, Blinded and Off-Balance still appear as status tags because they genuinely continue independently of the current enemy action.</div><div class="info-step"><b>CON → Protection:</b> CON still sets Max HP at 6 HP per point. A normal Guard, Parry, Ward or Brace also prepares Protection equal to your effective CON. A shield adds a flat Protection bonus derived from the shield itself.</div><div class="info-step"><b>Protection (PR):</b> 1 Protection absorbs 1 damage from the next incoming attack <em>after Armor mitigation</em>. In combat the active amount is shown as <b>PR</b> beside HP. Any damage above Protection reaches HP. After that attack resolves, every unused point of Protection disappears.</div><div class="info-example"><b>Example</b><br>50 incoming damage against 30 Protection: <b>30</b> is absorbed and <b>20 HP</b> is lost. The combat bar shows a gray -30 and a red -20. The log names the source, for example <b>Parry Protection absorbed 30 damage</b>. If the attack were only 20, only gray -20 appears and the unused 10 expires. A short aftermath beat leaves those cues visible before your next turn begins.</div><div class="info-step"><b>Defensive identities:</b> Votary uses Guard with a shield and Parry without one. Rogue uses Parry. Wizard uses Ward while wielding a wand and Brace with a two-handed staff. Perfect Defence still blocks the whole committed attack and counters.</div><div class="info-step"><b>DEX → Critical Chance:</b> 10 DEX is the neutral baseline and grants 0 Critical Chance. Every effective DEX above 10 gives +${DEX_CRIT_PER_POINT}% Critical Chance, up to a real ${DEX_CRIT_CAP_PCT}% contribution from DEX (reached at 210 effective DEX). DEX below 10 never creates negative Crit Chance. Equipment Crit Chance can push the total above that attribute cap.</div><div class="info-step"><b>WIS → Precision:</b> 10 WIS is the neutral baseline and grants 0 Precision. Every effective WIS above 10 grants 1 Precision; WIS below 10 never creates negative Precision. Critical hits start at ${BASE_CRIT_DAMAGE_PCT}% damage. The first +50 percentage points of Critical Damage costs ${PRECISION_FIRST_50_COST} Precision; each later +50-point band doubles in cost: 1000, 2000, 4000 and so on. Precision therefore never stops progressing, but base STR/DEX/INT damage remains the main damage axis.</div><div class="info-step"><b>Backstab:</b> Rogue Backstab has two explicit stages. <b>Prepare Backstab</b> spends the setup turn and deals no damage. <b>Release Backstab</b> is the actual attack: it is a guaranteed critical and adds +${BACKSTAB_CRIT_BONUS_PCT} percentage points to the Critical Damage produced by Precision. Its Crit Chance is irrelevant for that release.</div><div class="info-equation">Crit Chance = min(50%, max(0, DEX − 10) × 0.25%) + equipped Crit Chance</div><div class="info-equation">Normal crit = Precision-derived Critical Damage · Backstab = that value + 25pp</div>`;
   if(id==="aptitude") return `<h3>Attributes &amp; aptitude</h3><p>Attributes have direct combat jobs and also feed Skills. Skill checks compress enormous endless-game attributes before they touch the d100.</p><div class="info-step"><b>Combat jobs:</b> STR = physical power · CON = Max HP + Protection · DEX = finesse + Critical Chance · INT = arcane power · WIS above 10 = Precision + awareness · CHA = people/economy.</div><div class="info-step"><b>1. Find the governing attribute.</b><br>Investigation uses INT. Perception uses WIS. Stealth uses DEX, and so on.</div><div class="info-step"><b>2. Convert it into aptitude.</b><br>Every doubling of that attribute changes aptitude by about <b>${SKILL_APTITUDE_PER_DOUBLING} Rating</b>. Attribute 10 is about +0; 20 about +8; 40 about +16; 80 about +24.</div><div class="info-step"><b>3. Add aptitude to training.</b><br>Skill Rank remains the main expertise number. Class proficiency and special circumstances are added afterward.</div><div class="info-equation">Effective Rating = Skill Rank + attribute aptitude + proficiency + circumstance</div><p>This keeps attributes relevant without letting a future 2,000 INT become a ridiculous +2,000 on the die.</p>`;
   if(id==="practice") return `<h3>Practice &amp; Rank</h3><p>Skills are long-term expertise. They improve by facing meaningful situations, not by repeating a harmless button forever.</p><div class="info-step"><b>Growing Rank requirement:</b> Rank 0 starts at ${skillXpNeeded(0)} XP to advance. Each later Rank asks for ${SKILL_XP_PER_RANK_GROWTH} more XP than the previous one.</div><div class="info-step"><b>Balanced success:</b> begins around ${SKILL_BASE_PRACTICE} XP. Practice rewards rise slowly with Skill Rank so deep expertise still moves, but the requirement rises faster.</div><div class="info-step"><b>Difficult success:</b> gives more practice. Easier uncertain work gives less. Automatic/trivial checks give none.</div><div class="info-step"><b>Failure:</b> a credible failed attempt can teach a smaller amount, but failure XP fades toward zero at extreme odds so hopeless attempts are poor training.</div><div class="info-step"><b>Against the Odds:</b> a success shown at <b>${SKILL_AGAINST_ODDS_PCT}% or lower</b> earns roughly double that difficult success's XP plus a small extra bonus.</div><div class="info-step"><b>No reroll farming:</b> the same generated opportunity has one practice identity and cannot award practice repeatedly.</div><div class="info-equation">XP to next Rank = ${SKILL_XP_BASE} + (${SKILL_XP_PER_RANK_GROWTH} × current Rank)</div><p>The Rank number can continue forever. Higher Rank lowers the roll you need against the same challenge until old obstacles become automatic.</p>`;
   return `<h3>Skill checks</h3><p>Skill bonuses do not get added to the d100. They change <b>how low a number you need to roll</b>.</p><div class="info-step"><b>1. Build your Effective Rating.</b><br>Skill Rank + attribute aptitude + class proficiency + circumstances.</div><div class="info-step"><b>2. Compare it with the challenge.</b><br>The game compares your Effective Rating with that object's fixed Challenge Rating.</div><div class="info-step"><b>3. That comparison becomes a target.</b><br>More Rating means a better chance and therefore a lower <b>Need X+</b> number.</div><div class="info-step"><b>4. Roll d100.</b><br>Meet or beat the target to succeed. If it says <b>Need 47+</b>, 47–100 succeeds and 1–46 fails.</div><div class="info-example"><b>Example</b><br>Investigation Rank 20 + INT aptitude 16 = Rating 36. Against Challenge Rating 21, you are +15 ahead: about a 76% chance, shown as <b>Need 25+ on d100</b>.</div><div class="info-step"><b>Huge advantage?</b> Old trivial obstacles eventually auto-succeed with no die roll. Huge disadvantage can become an automatic failure.</div><details class="info-details"><summary>Under the hood</summary><p>Equal Rating is 50%. A +${SKILL_RATING_SPREAD} Rating gap is about 91%; −${SKILL_RATING_SPREAD} is about 9%. The exact probability curve is <code>P = 1 / (1 + 10^(-(Skill − Challenge)/${SKILL_RATING_SPREAD}))</code>. You never need to calculate it yourself.</p></details>`;
@@ -12455,10 +12524,10 @@ function normalizeCritAffixOnItem(item){
   const cap=critAffixCapForItem(item),old=item.affixes.crit;
   if(cap<=0){delete item.affixes.crit;return true;}
   const oldPct=Math.max(0,Number(old.pct)||Number(old.units)||0);
-  const pct=Math.min(cap,Math.round(oldPct*2)/2);
+  const pct=Math.min(cap,Math.round(oldPct/CRIT_AFFIX_STEP_PCT)*CRIT_AFFIX_STEP_PCT);
   if(pct<=0){delete item.affixes.crit;return true;}
-  const units=Math.max(1,Math.round(pct/0.5));
-  item.affixes.crit={units,pct:units*0.5,value:units*EQUIPMENT_AFFIXES.crit.unitCost};
+  const units=Math.max(1,Math.round(pct/CRIT_AFFIX_STEP_PCT));
+  item.affixes.crit={units,pct:units*CRIT_AFFIX_STEP_PCT,value:units*EQUIPMENT_AFFIXES.crit.unitCost};
   return true;
 }
 function migrateSave13To14(snapshot){
@@ -12490,6 +12559,52 @@ function migrateSave14To15(snapshot){
   }
   return next;
 }
+function deterministicUnitRandom(seedText){
+  let h=2166136261>>>0;
+  for(const ch of String(seedText||"")){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)>>>0;}
+  return ()=>{
+    h+=0x6D2B79F5;
+    let t=h;
+    t=Math.imul(t^(t>>>15),t|1);
+    t^=t+Math.imul(t^(t>>>7),t|61);
+    return ((t^(t>>>14))>>>0)/4294967296;
+  };
+}
+function critAffixHardUnitsForItem(item){
+  return Math.max(0,Math.round(critAffixCapForItem(item)/CRIT_AFFIX_STEP_PCT));
+}
+function restampExistingCritForRarity(item){
+  if(!isSaveRecord(item?.affixes)||!isSaveRecord(item.affixes.crit))return false;
+  const hard=critAffixHardUnitsForItem(item);
+  if(hard<=0){delete item.affixes.crit;return true;}
+  const oldPct=Math.max(0,Number(item.affixes.crit.pct)||Number(item.affixes.crit.units)*0.5||0);
+  const oldUnits=Math.max(1,Math.round(oldPct/CRIT_AFFIX_STEP_PCT));
+  const roller=deterministicUnitRandom(`${item.id||item.name||"item"}|${item.rarity||"Common"}|crit-v01102`);
+  const rarityCap=rolledCritMaxUnits(item.rarity||"Common",hard,roller);
+  const units=Math.max(1,Math.min(hard,oldUnits,rarityCap));
+  item.affixes.crit={units,pct:units*CRIT_AFFIX_STEP_PCT,value:units*EQUIPMENT_AFFIXES.crit.unitCost};
+  return true;
+}
+function migrateSave15To16(snapshot){
+  const next=cloneForSave(snapshot);next.schema=16;const state=next.state;
+  if(isSaveRecord(state)){
+    if(isSaveRecord(state.foe)){
+      // Legacy Guarding/Dodging flags represented a second future-action layer.
+      // v0.110.2 uses only the currently committed foe action shown in the panel.
+      state.foe.guardActive=false;state.foe.dodgeActive=false;state.foe.feintBaitedDodge=false;
+    }
+    if(isSaveRecord(state.generatedItems)){
+      for(const item of Object.values(state.generatedItems)){
+        if(!isSaveRecord(item)||!item.generated)continue;
+        if(restampExistingCritForRarity(item)){
+          stampItemEconomy(item,{recalculateGeneratedIlvl:true});
+          item.stats=generatedStatsLines(item);
+        }
+      }
+    }
+  }
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
@@ -12504,7 +12619,8 @@ const SAVE_MIGRATIONS={
   11:migrateSave11To12,
   12:migrateSave12To13,
   13:migrateSave13To14,
-  14:migrateSave14To15
+  14:migrateSave14To15,
+  15:migrateSave15To16
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
