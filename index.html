@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.110.5 — Caravan Frequency Balance</title>
+<title>Lowfathom v0.111.0 — Combat Timeline V2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,16 +21,17 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
-   - attack intents are separate from defensive stances
-   - Heavy Blow uses a commitment ladder: wind up, release / draw further / defend
-   - first draw is 2.7× STR; full draw is 4.7× STR
-   - Stamina is the in-fight resource
+   - enemy actions remain committed/readable while a global Speed timeline decides who acts next
+   - Heavy / Backstab / Arcane Bolt use a universal two-player-turn setup 1/2 → release 2/2 commitment
+   - enemy Heavy uses the same two-enemy-turn wind-up/release rule
+   - Stamina powers stronger choices; Strike is free and Stamina returns automatically as enemy turns pass
    - Read stays in the pad as an early weakness/layout prototype
    - Base passive Stamina regeneration is 0
-   - Guard/Parry restores +3 Stamina; normal defence counters at full Stamina
+   - one defensive Reaction is available between player turns; it does not consume a normal action
+   - Protection from that Reaction persists across consecutive enemy attacks until the next player turn
    - two successful defended attacks in a row upgrade the second defence to Perfect
-   - Perfect Guard/Parry always counters, even below full Stamina
-   - Sword-only loadouts Parry instead: less protection, stronger riposte
+   - Perfect Guard/Parry/Ward/Brace negates the attack and counters
+   - Votary uses Guard with a shield and Parry without one; Rogue Parry; Wizard Ward/Brace by weapon
    - Sand Throw can blind the foe and spoil its next attack
    - Guarding/parrying a Heavy Attack can leave the foe Off-Balance
    - Off-Balance foes must Steady or make a weak Glancing Attack
@@ -177,6 +178,7 @@
    - v0.110.3: combat turn counter fix — one numbered turn now covers the player response and the committed enemy action resolving; the counter advances only when that exchange completes and control returns to the next turn
    - v0.110.4: caravan interaction integration — passing and damaged caravan branches now use the reusable Interaction Engine for real conversations, save-safe rewards, optional Bandage/Survival help and delivery-quest follow-up
    - v0.110.5: caravan frequency balance — road-traffic slots now resolve 50% as caravans and 50% as wandering merchants; caravan micro-event weights and total road-traffic cadence are unchanged
+   - v0.111.0: Combat Timeline V2 — visible action queue, weapon/enemy Speed scheduling, one defensive Reaction between player turns, persistent Protection across multi-hit enemy sequences, automatic Stamina recovery, two-stage player/enemy committed attacks, and future-ready injected/charge hooks
    - v0.107.5: road-traffic stale-slot repair — overtaken merchant/caravan slots self-heal and reschedule without changing the 75/25 balance
    - v0.107.0: Phase 6 Caravan System — uncommon route-based caravan events, passive Perception warnings, generic sudden-event markers, caravan merchants, attacked/damaged choices, and a caravan-origin delivery quest
    - v0.107.0: combat damage-number linger reduced from 3.5 seconds to 2.5 seconds
@@ -2368,6 +2370,7 @@ body.font-slab{--cf-serif:var(--slab)}
    paint over them. New combat panels go in this list; overlays never do. */
 .arena.combat-mode > .strip,
 .arena.combat-mode > .foe,
+.arena.combat-mode > .combat-timeline,
 .arena.combat-mode > .intent,
 .arena.combat-mode > .combat-loot-panel,
 .arena.combat-mode > .battle-space,
@@ -2474,6 +2477,33 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode .knowledge:empty{display:none}
 .arena.combat-mode .statusline{margin-top:8px}
 
+/* v0.111.0 — compact global action timeline. Every node is one real turn.
+   The current slot is emphasized; injected Surprise/legendary-style slots can
+   coexist with normal Speed scheduling without changing the UI contract. */
+.arena.combat-mode .combat-timeline{
+  margin:5px 12px 0;padding:5px 7px 7px;border:1px solid rgba(120,146,150,.18);
+  background:rgba(4,10,13,.72);min-height:50px;overflow:hidden;
+}
+.arena.combat-mode .combat-timeline-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px;
+  font-family:var(--cond);font-size:7.5px;letter-spacing:.15em;text-transform:uppercase;color:#718188;
+}
+.arena.combat-mode .combat-timeline-head b{font-weight:500;color:#8aa29f;letter-spacing:.08em;white-space:nowrap}
+.arena.combat-mode .combat-timeline-track{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.timeline-slot{
+  position:relative;min-width:0;height:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:1px solid rgba(108,128,138,.22);background:#061014;font-family:var(--cond);line-height:1;
+}
+.timeline-slot strong{font-size:8px;letter-spacing:.10em;text-transform:uppercase;color:#9ba8aa;font-weight:600}
+.timeline-slot span{margin-top:2px;font-size:7px;color:#5f6d73}
+.timeline-slot.player strong{color:#8fc9c4}.timeline-slot.enemy strong{color:#d77863}
+.timeline-slot.current{border-color:rgba(230,194,136,.62);box-shadow:inset 0 0 0 1px rgba(230,194,136,.08);background:#0b1517}
+.timeline-slot.current::before{content:"NOW";position:absolute;top:-5px;left:50%;transform:translateX(-50%);padding:0 3px;background:#020608;font-size:6px;letter-spacing:.12em;color:var(--lamp)}
+.timeline-slot.injected{border-style:dashed}.timeline-slot.injected span::after{content:" +";color:var(--lamp-dim)}
+.timeline-slot.enemy-heavy strong{color:#e28a70}
+.timeline-slot.enemy-heavy::after{content:"";position:absolute;bottom:2px;left:20%;right:20%;height:1px;background:rgba(207,96,62,.45)}
+@media(max-width:360px){.arena.combat-mode .combat-timeline{margin-left:9px;margin-right:9px}.timeline-slot strong{font-size:7.3px}}
+
 /* THE ENEMY ACTION — fixed glyph, independently centred copy, untouched frame art ---
    The glyph and divider are absolute overlays, NOT grid columns. Earlier versions
    made them layout columns, which shrank the text's box and pushed the title
@@ -2517,6 +2547,7 @@ body.font-slab{--cf-serif:var(--slab)}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
 }
 .arena.combat-mode .intent .intent-note{display:none}
+.arena.combat-mode .intent .intent-charge{display:block;margin-top:3px;font-family:var(--cond);font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;color:#b98275}
 .arena.combat-mode .intent .turn-phase{display:block;margin-bottom:2px;font-family:var(--cond);font-size:9px;font-style:normal;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#8f9ba2}
 .arena.combat-mode .intent.enemy-turn .turn-phase{color:#b98275}
 .arena.combat-mode .intent.enemy-turn{filter:brightness(.96)}
@@ -2652,7 +2683,7 @@ body.font-slab{--cf-serif:var(--slab)}
 
 /* v0.107.3: combat must never widen its grid track from intrinsic content. */
 .arena.combat-mode{grid-template-columns:minmax(0,1fr);overflow-x:hidden}
-.arena.combat-mode>.strip,.arena.combat-mode>.foe,.arena.combat-mode>.intent,
+.arena.combat-mode>.strip,.arena.combat-mode>.foe,.arena.combat-mode>.combat-timeline,.arena.combat-mode>.intent,
 .arena.combat-mode>.battle-space,.arena.combat-mode>.combat-loot-panel,.arena.combat-mode>.hero,
 .arena.combat-mode>.pad,.arena.combat-mode>.preview,.arena.combat-mode>.pad2,
 .arena.combat-mode>.combat-bottom-row,.arena.combat-mode>.combat-log-wrap{min-width:0;max-width:100%}
@@ -3217,7 +3248,7 @@ body.font-slab{--cf-serif:var(--slab)}
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><div class="travel-band-actions"><span class="build-version" id="buildVersion">v0.110.3</span><button class="settings-cog travel-settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button></div></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><div class="travel-band-actions"><span class="build-version" id="buildVersion">v0.111.0</span><button class="settings-cog travel-settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button></div></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <div class="travel-depth"><b id="travelDepth">0.0</b><span>fathoms</span></div>
           <div class="travel-mini-controls" id="travelMiniControls" hidden aria-label="Travel controls while browsing">
@@ -3567,7 +3598,7 @@ body.font-slab{--cf-serif:var(--slab)}
       <section class="settings-section">
         <div class="settings-section-title">Info &amp; Rules</div>
         <div class="settings-row">
-          <div class="settings-copy"><b>How the numbers work</b><span>Open short chapters explaining Skills, combat stats, Protection, Critical Chance, Precision, items and progression.</span></div>
+          <div class="settings-copy"><b>How the numbers work</b><span>Open short chapters explaining the Turn Timeline, Speed, Reactions, Protection, Critical Chance, Precision, Skills, items and progression.</span></div>
           <button class="settings-info-open" id="btnOpenInfo" type="button">Open info</button>
         </div>
       </section>
@@ -3627,6 +3658,11 @@ body.font-slab{--cf-serif:var(--slab)}
       </div>
     </div>
     <div class="statusline" id="foeStatus" hidden></div>
+  </section>
+
+  <section class="combat-timeline" id="combatTimeline" aria-label="Turn timeline">
+    <div class="combat-timeline-head"><span>Turn order</span><b id="combatSpeedSummary">—</b></div>
+    <div class="combat-timeline-track" id="combatTimelineTrack"></div>
   </section>
 
   <div class="intent unknown" id="intent">
@@ -3832,7 +3868,7 @@ const INTENTS = {
    exact preview truthful and gives Read a concrete mechanical payoff. */
 const FOES = [
   {
-    id:"cutter", name:"goblin cutter", unlock:0, hp:32, atk:7, xp:9, danger:0, awareness:-8,
+    id:"cutter", name:"goblin cutter", unlock:0, hp:32, atk:7, xp:9, danger:0, awareness:-8, speed:105,
     intents:{quick:55, heavy:15, dodge:10, guard:10, recover:10}, recoverAt:0.35,
     weakness:{
       id:"overcommit",
@@ -3841,7 +3877,7 @@ const FOES = [
     }
   },
   {
-    id:"scrounger", name:"goblin scrounger", unlock:4, hp:30, atk:6, xp:10, danger:0, awareness:0,
+    id:"scrounger", name:"goblin scrounger", unlock:4, hp:30, atk:6, xp:10, danger:0, awareness:0, speed:95,
     intents:{quick:35, heavy:10, dodge:30, guard:25, recover:0},
     hurtIntents:{quick:15, heavy:5, dodge:25, guard:15, recover:40}, hurtAt:0.65,
     weakness:{
@@ -3851,7 +3887,7 @@ const FOES = [
     }
   },
   {
-    id:"skitter", name:"goblin skitter", unlock:8, hp:27, atk:6, xp:11, danger:1, awareness:10,
+    id:"skitter", name:"goblin skitter", unlock:8, hp:27, atk:6, xp:11, danger:1, awareness:10, speed:125,
     intents:{quick:35, heavy:5, dodge:45, guard:5, recover:10}, recoverAt:0.30,
     weakness:{
       id:"frail_frame",
@@ -3860,7 +3896,7 @@ const FOES = [
     }
   },
   {
-    id:"shieldback", name:"goblin shieldback", unlock:14, hp:38, atk:6, xp:12, danger:1, awareness:-4,
+    id:"shieldback", name:"goblin shieldback", unlock:14, hp:38, atk:6, xp:12, danger:1, awareness:-4, speed:90,
     intents:{quick:25, heavy:10, dodge:5, guard:45, recover:15}, recoverAt:0.35,
     weakness:{
       id:"braced_wrong",
@@ -3869,7 +3905,7 @@ const FOES = [
     }
   },
   {
-    id:"mauler", name:"goblin mauler", unlock:22, hp:34, atk:8, xp:14, danger:1, awareness:-6,
+    id:"mauler", name:"goblin mauler", unlock:22, hp:34, atk:8, xp:14, danger:1, awareness:-6, speed:82,
     intents:{quick:30, heavy:50, dodge:5, guard:5, recover:10}, recoverAt:0.28,
     weakness:{
       id:"top_heavy",
@@ -3878,12 +3914,12 @@ const FOES = [
     }
   },
   {
-    id:"oldhand", name:"goblin oldhand", unlock:32, hp:42, atk:8, xp:16, danger:2, awareness:18,
+    id:"oldhand", name:"goblin oldhand", unlock:32, hp:42, atk:8, xp:16, danger:2, awareness:18, speed:100,
     intents:{quick:30, heavy:20, dodge:20, guard:20, recover:10}, recoverAt:0.30,
     chargedIntents:{quick:20, heavy:5, dodge:50, guard:20, recover:5},
     weakness:{
       id:"deep_commitment",
-      txt:"Reads ordinary commitment. A fully drawn Heavy that lands deals +50% damage.",
+      txt:"Deep commitment leaves it vulnerable. A released Heavy that lands deals +50% damage.",
       eff:{fullHeavyBonus:1.50}
     }
   }
@@ -3908,7 +3944,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.110.5";
+const BUILD_VERSION = "v0.111.0";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 2;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
@@ -4746,8 +4782,8 @@ function townAtCurrentDepth(){
   return TOWN_DEFS.find(t=>!state.departed[t.id]&&Math.abs((Number(S?.depth)||0)-t.depth)<0.001)||null;
 }
 
-/* Strike momentum prototype. Normal Strike is unchanged. Double Strike lands just
-   below the first 2.7× Heavy; Perfect Strike sits above it but below 4.7× Heavy. */
+/* Strike momentum prototype. Timeline V2 leaves the existing chain coefficients
+   intact for the first playtest; committed-attack coefficients remain a tuning lever. */
 const STRIKE_MULT = [1.0, 2.4, 3.5];
 
 /* Session 9F item-value spine. Depth remains the master progression benchmark.
@@ -4848,7 +4884,7 @@ const BOON_DURATION_MS = 10 * 60 * 1000; // prototype: active delve time; frozen
 const BOONS = {
   whetstone:{
     id:"whetstone", name:"Whetstone Work",
-    desc:"The first Strike of every fight costs 0 Stamina."
+    desc:"The first Strike of every fight deals 15% more damage."
   },
   oiled:{
     id:"oiled", name:"Oiled Joints",
@@ -4856,7 +4892,7 @@ const BOONS = {
   },
   setfeet:{
     id:"setfeet", name:"Set Your Feet",
-    desc:"Guard / Parry / Ward / Brace restores 5 Stamina instead of 3."
+    desc:"Your defensive Reaction generates 20% more Protection."
   },
   poultice:{
     id:"poultice", name:"Poultice",
@@ -5019,7 +5055,7 @@ let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 16;
+const SAVE_SCHEMA = 17;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -5121,7 +5157,7 @@ function shieldProtectionBonusFor(equipmentState=S?.equipment){
 function protectionCapacityForEquipment(equipmentState=S?.equipment){
   return Math.max(0,Math.round(effectiveStatForEquipment("CON",equipmentState)+shieldProtectionBonusFor(equipmentState)));
 }
-function protectionCapacity(){ return protectionCapacityForEquipment(S?.equipment); }
+function protectionCapacity(){ const base=protectionCapacityForEquipment(S?.equipment); return boonActive("setfeet")?Math.max(1,Math.round(base*1.20)):base; }
 function criticalChanceForEquipment(equipmentState=S?.equipment){
   const gear=equipmentAffixTotalsFor(equipmentState).crit.pct||0;
   return Math.min(100,Math.max(0,dexCritChanceForEquipment(equipmentState)+gear));
@@ -5138,6 +5174,7 @@ function equipmentDisplayStatLines(item){
     : item.armor?[`Armor +${item.armor}`]
     : STAT_KEYS.filter(stat=>item.attributes?.[stat]).map(stat=>`${stat} +${item.attributes[stat]}`);
   const lines=[...(Array.isArray(item.stats)&&item.stats.length?item.stats:fallback)].filter(Boolean);
+  if((item.kind==="weapon" || ["sword","greatsword","axe","dagger","shortsword","bow","wand","staff","unarmed"].includes(item.family)) && !lines.some(line=>/^Speed\b/i.test(String(line)))) lines.push(`Speed ${weaponCombatSpeed(item)}`);
   if(item.family==="shield" && !lines.some(line=>/Protection/i.test(String(line)))){
     lines.push(`Defensive stance Protection +${shieldProtectionBonusFromItem(item)}`);
   }
@@ -5492,7 +5529,7 @@ function newDelver(profile){
     interactionState:{active:null,pending:null,nextSerial:1},
     townState:{currentId:null,visited:{},departed:{},services:{}},
     quests:{instances:[],nextSerial:1,exploreAccumulator:0},
-    turn:1, combatActor:"player", combatExtraTurns:{player:0,enemy:0}, defencePrepared:null, negateNextAttack:null, foe:null
+    turn:1, combatActor:"player", combatExtraTurns:{player:0,enemy:0}, combatTimeline:null, reactionAvailable:false, reactionWindow:false, protectionSource:null, defencePrepared:null, negateNextAttack:null, foe:null
   };
 
   S.hpMax = maxHp();
@@ -5711,9 +5748,6 @@ function activateBoon(id){
   travelLogAdd(`${fromTavern?"Lodging":"Camp"} boon: <b>${esc(def.name)}</b>.`, "good");
   render();
 }
-function guardRestoreAmount(){
-  return boonActive("setfeet") ? 5 : 3;
-}
 function poulticeHealAmount(){
   return Math.max(1, Math.round(S.hpMax * 0.05));
 }
@@ -5848,7 +5882,7 @@ function renderAbilitySheet(){
     let meta=`${sk.cur}/${sk.max} uses ready`;
     if(["layonhands","mend"].includes(id)&&S.hp>=S.hpMax) meta+=` · full HP`;
     if(["layonhands","mend"].includes(id)&&S.abilityQuickUsed) meta+=` · once per turn`;
-    if(["holdfast","slip","ward"].includes(id)&&S.foe&&INTENTS[S.foe.intent].kind!=="attack") meta+=` · no attack to answer`;
+    if(["holdfast","slip","ward"].includes(id)&&S.foe&&enemyActionDescriptor()?.kind!=="attack") meta+=` · no attack to answer`;
     if(sk.cur<=0) meta=`0/${sk.max} uses ready · spent`;
     return `<div class="skill-wrap"><button class="skill ${sk.cur<=0?"spent":""}" data-ability="${id}" ${unusable?"disabled":""}><span class="meta">${esc(meta)}</span><b>${esc(def.name)} ${esc(sk.degree)}</b><p>${esc(def.desc)}</p></button><button class="skill-more" data-ability-more="${id}">${open?"Hide details":"See more"}</button><div class="skill-detail" ${open?"":"hidden"}>${abilityDetailHtml(def)}</div></div>`;
   }).join("");
@@ -5885,7 +5919,6 @@ function renderCharacterCombatStats(){
   const s1=combatEstimateRange(attack,STRIKE_MULT[1],5);
   const s2=combatEstimateRange(attack,STRIKE_MULT[2],6);
   const h1=combatEstimateRange(attack,2.7,6);
-  const h2=combatEstimateRange(attack,4.7,6);
   const aff=equipmentAffixTotals();
   const armor=Math.round(equipmentArmorFor());
   const mitigation=Math.round(armorMitigation()*100);
@@ -5900,14 +5933,16 @@ function renderCharacterCombatStats(){
   const fmtPct=n=>`${trimNumber(Math.max(0,Number(n)||0),1)}%`;
   const fmtCritPct=n=>`${trimNumber(Math.max(0,Number(n)||0),2)}%`;
   const rows=[
-    {label:"Strike",value:`~${s0.avg} damage`,sub:`${s0.lo}–${s0.hi} neutral · chain ~${s0.avg} / ~${s1.avg} / ~${s2.avg} · ${atkStat} ${atkValue} + weapon ${Number.isInteger(weaponPart)?weaponPart:weaponPart.toFixed(1)}`,cls:"offense"},
-    {label:S.className==="Rogue"?"Backstab":"Heavy",value:S.className==="Rogue"?`~${criticalDamageFromBase(h1.avg,BACKSTAB_CRIT_BONUS_PCT)} / ~${criticalDamageFromBase(h2.avg,BACKSTAB_CRIT_BONUS_PCT)}`:`~${h1.avg} / ~${h2.avg}`,sub:S.className==="Rogue"?`2.7× / 4.7× base attack · guaranteed critical · +${BACKSTAB_CRIT_BONUS_PCT}pp Critical Damage`:`first pull ${h1.lo}–${h1.hi} · full pull ${h2.lo}–${h2.hi} · 2.7× / 4.7× attack`,cls:"offense"},
+    {label:"Strike",value:`~${s0.avg} damage`,sub:`0 Stamina · ${s0.lo}–${s0.hi} neutral · chain ~${s0.avg} / ~${s1.avg} / ~${s2.avg} · ${atkStat} ${atkValue} + weapon ${Number.isInteger(weaponPart)?weaponPart:weaponPart.toFixed(1)}`,cls:"offense"},
+    {label:S.className==="Rogue"?"Backstab":S.className==="Wizard"?"Arcane Bolt":"Heavy",value:S.className==="Rogue"?`~${criticalDamageFromBase(h1.avg,BACKSTAB_CRIT_BONUS_PCT)}`:`~${h1.avg}`,sub:S.className==="Rogue"?`two player turns · 2.7× base attack · guaranteed critical · +${BACKSTAB_CRIT_BONUS_PCT}pp Critical Damage`:`two player turns · setup 1/2 then 2.7× release`,cls:"offense"},
+    {label:"Speed",value:`${Math.round(playerCombatSpeed())}`,sub:`Weapon-driven action speed · higher acts more often on the timeline · ${equippedWeaponDef()?.family||"unarmed"}`,cls:"utility"},
     {label:"Critical Chance",value:fmtCritPct(totalCrit),sub:`${fmtCritPct(dexCrit)} from DEX above 10${gearCrit?` · +${fmtCritPct(gearCrit)} equipment`:""} · DEX contribution caps at ${DEX_CRIT_CAP_PCT}%`,cls:"utility"},
     {label:"Precision",value:`${trimNumber(precision,0)} · ${fmtPct(critDamage)} crit`,sub:`WIS above 10 gives Precision 1:1; 10 or less gives 0. Critical hits start at ${BASE_CRIT_DAMAGE_PCT}% damage; each later +50pp costs progressively more Precision.`,cls:"utility"},
-    {label:defendName,value:`${protection} PR`,sub:`PR = Protection · CON ${baseProtection}${shieldProtection?` + shield ${shieldProtection}`:""} · absorbs the next incoming attack 1:1, then all remaining Protection clears`,cls:"defense"},
+    {label:defendName,value:`${protection} PR`,sub:`Reaction · PR = Protection · CON ${baseProtection}${shieldProtection?` + shield ${shieldProtection}`:""} · persists across enemy attacks until your next player turn`,cls:"defense"},
     {label:"Perfect Defence",value:"100% attack blocked",sub:`Second defended attack in the rhythm · ignores ordinary Protection capacity · counter ~${perfectCounter}`,cls:"defense"},
     {label:"Armor",value:`${armor} · ${mitigation}% mitigation`,sub:`Persistent equipment mitigation applies before temporary Protection.`,cls:"defense"},
-    {label:"Counter",value:`~${counter} normal`,sub:`Normal defence counters when started at full Stamina. Perfect defence always counters.`,cls:"offense"},
+    {label:"Counter",value:`~${counter} normal`,sub:`A defensive Reaction counters when started at full Stamina. Perfect defence always counters.`,cls:"offense"},
+    {label:"Stamina Recovery",value:`+${STAMINA_PER_ENEMY_TURN} / enemy turn`,sub:`Basic Strike costs 0 Stamina. Stamina now returns automatically as enemy timeline turns pass; Recover is no longer a normal combat action.`,cls:"defense"},
     {label:"Boss Damage",value:`+${fmtPct(aff.bossDamage.pct)}`,sub:aff.bossDamage.pct>0?`Bonus cap +${aff.bossDamage.bonusCap}/action`:"No current Boss Damage gear bonus.",cls:"utility"},
     {label:"Lifesteal",value:fmtPct(aff.lifesteal.pct),sub:aff.lifesteal.pct>0?`Heal cap ${aff.lifesteal.healCap} HP/action`:"No current Lifesteal gear bonus.",cls:"utility"},
     {label:"Damage Reflect",value:fmtPct(aff.reflect.pct),sub:aff.reflect.pct>0?`Return cap ${aff.reflect.damageCap} damage/hit`:"No current Damage Reflect gear bonus.",cls:"utility"},
@@ -6372,7 +6407,8 @@ function equipmentComparisonForTarget(itemId,target){
   const precisionBefore=precisionForEquipment(beforeState),precisionAfter=precisionForEquipment(afterState);
   const critDamageBefore=criticalDamagePctForEquipment(beforeState),critDamageAfter=criticalDamagePctForEquipment(afterState);
   const protectionBefore=protectionCapacityForEquipment(beforeState),protectionAfter=protectionCapacityForEquipment(afterState);
-  return {target,currentId,itemDelta,valueDelta,gearDelta:after-before,before,after,armorBefore,armorAfter,mitigationBefore,mitigationAfter,attributesBefore,attributesAfter,hpBefore,hpAfter,strikeBefore,strikeAfter,affixesBefore,affixesAfter,critChanceBefore,critChanceAfter,precisionBefore,precisionAfter,critDamageBefore,critDamageAfter,protectionBefore,protectionAfter};
+  const speedBefore=playerCombatSpeedForEquipment(beforeState),speedAfter=playerCombatSpeedForEquipment(afterState);
+  return {target,currentId,itemDelta,valueDelta,gearDelta:after-before,before,after,armorBefore,armorAfter,mitigationBefore,mitigationAfter,attributesBefore,attributesAfter,hpBefore,hpAfter,strikeBefore,strikeAfter,affixesBefore,affixesAfter,critChanceBefore,critChanceAfter,precisionBefore,precisionAfter,critDamageBefore,critDamageAfter,protectionBefore,protectionAfter,speedBefore,speedAfter};
 }
 function recommendedEquipmentSlot(itemId,preferred=null,filterId="all"){
   const slots=equipmentFilterCompatibleSlots(itemId,filterId);
@@ -6421,6 +6457,7 @@ function equipmentCompareHtml(itemId,targetSlot=null){
     if(d) bits.push(`<span class="equipment-delta ${deltaClass(d)}">${stat} ${deltaText(d)}</span>`);
   }
   const strikeDelta=(c.strikeAfter??0)-(c.strikeBefore??0); if(Math.abs(strikeDelta)>.05) bits.push(`<span class="equipment-delta ${deltaClass(strikeDelta)}">Strike ${deltaText(strikeDelta,1)}</span>`);
+  const speedDelta=(c.speedAfter??0)-(c.speedBefore??0); if(speedDelta) bits.push(`<span class="equipment-delta ${deltaClass(speedDelta)}">Speed ${deltaText(speedDelta)}</span>`);
   const protectionDelta=(c.protectionAfter??0)-(c.protectionBefore??0);if(protectionDelta)bits.push(`<span class="equipment-delta ${deltaClass(protectionDelta)}">Protection ${deltaText(protectionDelta)}</span>`);
   const critDelta=(c.critChanceAfter??0)-(c.critChanceBefore??0);if(Math.abs(critDelta)>.001)bits.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,2)}%</span>`);
   const critDamageDelta=(c.critDamageAfter??0)-(c.critDamageBefore??0);if(Math.abs(critDamageDelta)>.001)bits.push(`<span class="equipment-delta ${deltaClass(critDamageDelta)}">Crit Damage ${deltaText(critDamageDelta,1)}%</span>`);
@@ -6621,6 +6658,7 @@ function renderEquipmentInspect(){
     }
     if(comp.hpAfter!==comp.hpBefore) lines.push(`Max HP <span class="equipment-delta ${deltaClass(comp.hpAfter-comp.hpBefore)}">${comp.hpBefore} → ${comp.hpAfter}</span>`);
     if(Math.abs(comp.strikeAfter-comp.strikeBefore)>.05) lines.push(`Basic attack <span class="equipment-delta ${deltaClass(comp.strikeAfter-comp.strikeBefore)}">${comp.strikeBefore.toFixed(1)} → ${comp.strikeAfter.toFixed(1)}</span>`);
+    if((comp.speedAfter??0)!==(comp.speedBefore??0)) lines.push(`Speed <span class="equipment-delta ${deltaClass(comp.speedAfter-comp.speedBefore)}">${comp.speedBefore} → ${comp.speedAfter}</span>`);
     if((comp.protectionAfter??0)!==(comp.protectionBefore??0)) lines.push(`Protection <span class="equipment-delta ${deltaClass(comp.protectionAfter-comp.protectionBefore)}">${comp.protectionBefore} → ${comp.protectionAfter}</span>`);
     if(Math.abs((comp.critChanceAfter??0)-(comp.critChanceBefore??0))>.001) lines.push(`Crit Chance <span class="equipment-delta ${deltaClass(comp.critChanceAfter-comp.critChanceBefore)}">${trimNumber(comp.critChanceBefore,2)}% → ${trimNumber(comp.critChanceAfter,2)}%</span>`);
     if(Math.abs((comp.critDamageAfter??0)-(comp.critDamageBefore??0))>.001) lines.push(`Crit Damage <span class="equipment-delta ${deltaClass(comp.critDamageAfter-comp.critDamageBefore)}">${trimNumber(comp.critDamageBefore,1)}% → ${trimNumber(comp.critDamageAfter,1)}%</span>`);
@@ -7069,7 +7107,11 @@ function spawnEncounter(options={}){
   S.encounter++;
   S.turn = 1;
   S.combatActor = "player";
-  S.combatExtraTurns = {player:options.surprise?1:0,enemy:0};
+  S.combatExtraTurns = {player:0,enemy:0}; // legacy field retained for save compatibility
+  S.combatTimeline = null;
+  S.reactionAvailable = true;
+  S.reactionWindow = false;
+  S.protectionSource = null;
   S.defencePrepared = null;
   S.negateNextAttack = null;
   S.stamina = Math.min(S.staminaMax,S.stamina+4);
@@ -7099,7 +7141,7 @@ function spawnEncounter(options={}){
     lv:Math.max(1,1+Math.floor(depthGrowth(S.depth)/5)+base.danger),
     hp:hpMax,hpMax,atk:Math.max(1,Math.round(expectedEnemyHitAtDepth(S.depth)*atkProfile)),
     weakness:base.weakness,revealed:knowledgeReads(base.id)>=1,
-    readUsed:false,whetstoneUsed:false,intent:null,
+    readUsed:false,whetstoneUsed:false,intent:null,heavyStage:0,backgroundCharges:[],
     blinded:false,offBalance:false,offBalanceStruck:false,feintBaitedDodge:false
   };
   S.seenFoes[base.id] = true;
@@ -7133,7 +7175,8 @@ function spawnEncounter(options={}){
   }
 
   rollIntent();
-  if(options.surprise){S.foe.surprised=true;S.foe.intent="unaware";}
+  if(options.surprise){S.foe.surprised=true;S.foe.intent="unaware";S.foe.heavyStage=0;}
+  initCombatTimeline({surprise:!!options.surprise});
   if(S.foe.revealed){
     S.foe.weaknessManualOpen = null;
     S.foe.weaknessAutoOpenUntil = S.turn;
@@ -7930,37 +7973,22 @@ function travelTick(){
 
 function rollIntent(){
   const f = S.foe;
-  const forceNonDodge = !!f?.forceNonDodge;
-  // A fresh foe cannot sensibly begin combat by recovering. Capture the opening
-  // state before rollOnce mutates f.intent so rerolls preserve the restriction.
+  if(!f)return;
+  const forceNonDodge = !!f.forceNonDodge;
   const openingIntent = S.turn === 1 && f?.intent == null;
 
   const rollOnce = () => {
-    // Off-Balance has its own mini-state machine. The foe cannot Guard, Dodge,
-    // Recover, or throw another Heavy Attack while its footing is gone.
     if(f.offBalance){
-      if(f.offBalanceStruck){
-        f.intent = "steady";
-      } else {
-        f.intent = rnd() < 0.60 ? "steady" : "offquick";
-      }
+      f.intent = f.offBalanceStruck ? "steady" : (rnd() < 0.60 ? "steady" : "offquick");
+      f.heavyStage=0;
       return;
     }
 
     const p = f.profile;
     const frac = f.hp / f.hpMax;
     let weights = {...p.intents};
-
-    // The Scrounger changes personality once wounded: recovery becomes its puzzle.
     if(p.hurtIntents && frac <= p.hurtAt) weights = {...p.hurtIntents};
-
-    // Recover is never an opening intent, and no profile may Recover before its
-    // authored wound threshold. hurtIntents may change the weights, but they do
-    // not bypass the requirement that there is actually something to recover from.
     if(weights.recover && (openingIntent || frac > (p.recoverAt ?? 0.30))) weights.recover = 0;
-
-    // The Oldhand recognises a visible Heavy commitment and tries to slip it. Its
-    // protected weakness is therefore valuable precisely because it is hard to land.
     if(p.chargedIntents && S.heavyCharge > 0){
       weights = {...p.chargedIntents};
       if(frac > (p.recoverAt ?? 0.30)) weights.recover = 0;
@@ -7968,83 +7996,196 @@ function rollIntent(){
 
     const choices = Object.entries(weights).filter(([,w]) => w > 0);
     f.intent = weightedPick(choices, ([,w]) => w)[0];
+    // Heavy is a universal two-stage commitment. The first enemy slot winds up;
+    // the next enemy slot releases. Other actions have no commitment stage.
+    f.heavyStage = f.intent === "heavy" ? 1 : 0;
   };
 
   rollOnce();
-
-  // Heavy Feint preserves the prepared Heavy but makes the foe's next declared
-  // intent non-Dodge. This used to live in a later wrapper around rollIntent().
   if(forceNonDodge){
     let guard = 0;
     while(f.intent === "dodge" && guard++ < 20) rollOnce();
-    if(f.intent === "dodge") f.intent = "guard"; // deterministic safety fallback
+    if(f.intent === "dodge"){f.intent = "guard";f.heavyStage=0;}
     f.forceNonDodge = false;
   }
 }
 
-/* v0.110.2 — committed enemy-action combat helpers. The foe chooses one action
-   before the player's response. That action is already in progress: Guard and
-   Dodge therefore affect the response immediately, while attacks resolve on the
-   short enemy beat after the player commits. Extra-turn counters deliberately
-   still support Player → Player → Enemy and Enemy → Enemy → Player sequences. */
-const ENEMY_TURN_WINDUP_MS=850;
-const ENEMY_TURN_AFTERMATH_MS=750;
+/* ============================================================
+   v0.111.0 — COMBAT TIMELINE V2
+
+   Every visible node is one global turn/action slot. Speed schedules the next
+   ordinary slot; injected slots are deliberately separate so Surprise and
+   future boss/legendary actions can add turns without rewriting Speed math.
+   ============================================================ */
+const TIMELINE_BASE_DELAY=1000;
+const TIMELINE_VISIBLE_SLOTS=5;
+const ENEMY_TURN_WINDUP_MS=650;
+const ENEMY_TURN_AFTERMATH_MS=650;
+const STAMINA_PER_ENEMY_TURN=2;
+const PLAYER_WEAPON_SPEED=Object.freeze({
+  dagger:125,shortsword:112,wand:110,sword:100,axe:100,unarmed:100,
+  bow:90,staff:90,greatsword:80
+});
 let enemyTurnTimer=null;
 let combatProtectionAftermath=null;
 function clearEnemyTurnTimer(){if(enemyTurnTimer!==null){clearTimeout(enemyTurnTimer);enemyTurnTimer=null;}}
 function combatActor(){return S?.combatActor==="enemy"?"enemy":"player";}
 function playerTurnActive(){return !!S?.foe&&!over&&!S.foe.defeated&&combatActor()==="player";}
+function enemyTurnActive(){return !!S?.foe&&!over&&!S.foe.defeated&&combatActor()==="enemy";}
+function weaponCombatSpeed(def){return Math.max(20,Number(PLAYER_WEAPON_SPEED[def?.family])||100);}
+function playerCombatSpeed(def=equippedWeaponDef()){return weaponCombatSpeed(def);}
+function playerCombatSpeedForEquipment(equipmentState=S?.equipment){
+  const def=equipmentItemDef(equipmentState?.rightHand)||UNARMED_WEAPON;
+  return weaponCombatSpeed(def);
+}
+function foeCombatSpeed(foe=S?.foe){return Math.max(20,Number(foe?.profile?.speed)||100);}
+function delayFromSpeed(speed){return TIMELINE_BASE_DELAY/Math.max(20,Number(speed)||100);}
+function playerActionDelay(_key=null){return delayFromSpeed(playerCombatSpeed());}
+function enemyActionDelay(){return delayFromSpeed(foeCombatSpeed());}
+function ensureBackgroundCharges(foe=S?.foe){
+  if(!foe)return [];
+  if(!Array.isArray(foe.backgroundCharges))foe.backgroundCharges=[];
+  return foe.backgroundCharges;
+}
+function enemyBackgroundChargeText(foe=S?.foe){
+  return ensureBackgroundCharges(foe).filter(c=>c&&c.total>0&&c.stage>0).map(c=>`${c.label||c.id||"Charge"} ${c.stage}/${c.total}`).join(" · ");
+}
+function advanceEnemyBackgroundCharges(){
+  // No live creature uses this yet. The hook intentionally exists for future
+  // Breath 1/5-style warnings that advance while the foe takes normal actions.
+  for(const c of ensureBackgroundCharges()){
+    if(c.paused||c.stage>=c.total)continue;
+    c.stage++;
+  }
+}
+function enemyActionDescriptor(foe=S?.foe){
+  if(!foe)return null;
+  const base=INTENTS[foe.intent]||INTENTS.quick;
+  if(foe.intent==="heavy"){
+    const stage=Math.max(1,Math.min(2,Number(foe.heavyStage)||1));
+    if(stage===1)return {...base,label:"Heavy attack 1/2",tell:"winding up a committed blow",kind:"charge",mult:0,stage,total:2};
+    return {...base,label:"Heavy attack 2/2",tell:"bringing the committed blow down",kind:"attack",stage,total:2};
+  }
+  return {...base,stage:1,total:1};
+}
 function foeGuardActive(foe=S?.foe){return !!foe && foe.intent==="guard";}
 function foeDodgeActive(foe=S?.foe){return !!foe && foe.intent==="dodge";}
-function combatExtraTurns(actor){
-  if(!S.combatExtraTurns||typeof S.combatExtraTurns!=="object")S.combatExtraTurns={player:0,enemy:0};
-  return Math.max(0,Math.floor(Number(S.combatExtraTurns[actor])||0));
+function enemyAttackIncoming(){return enemyActionDescriptor()?.kind==="attack";}
+function enemyReactionWindowOpen(){return enemyTurnActive()&&!!S.reactionWindow&&!!S.reactionAvailable&&enemyAttackIncoming();}
+function combatTimelineState(){
+  if(!S.combatTimeline||typeof S.combatTimeline!=="object")initCombatTimeline();
+  return S.combatTimeline;
 }
-function spendCombatExtraTurn(actor){
-  const n=combatExtraTurns(actor);
-  if(n<=0)return false;
-  S.combatExtraTurns[actor]=n-1;
-  return true;
-}
-function beginCombatTurn(actor,{rollEnemyIntent=false}={}){
-  S.combatActor=actor;
+function initCombatTimeline({surprise=false}={}){
   S.turn=Math.max(1,Math.floor(Number(S.turn)||1));
+  S.combatActor="player";
+  S.combatTimeline={
+    clock:0,playerAt:0,enemyAt:enemyActionDelay(),
+    injected:surprise?[{actor:"player",tag:"Surprise"}]:[],
+    currentInjected:false,currentTag:null
+  };
+  S.reactionAvailable=true;
+  S.reactionWindow=false;
+  S.protection=0;
+  S.protectionSource=null;
+  S.defencePrepared=null;
+  return S.combatTimeline;
+}
+function injectCombatTurn(actor,tag="Extra"){
+  if(actor!=="player"&&actor!=="enemy")return;
+  combatTimelineState().injected.push({actor,tag});
+}
+function selectNextTimelineSlot(state,{consumeInjected=true}={}){
+  if(state.injected?.length){
+    const row=consumeInjected?state.injected.shift():state.injected[0];
+    return {actor:row.actor,time:state.clock,injected:true,tag:row.tag||"Extra"};
+  }
+  // On ties the enemy acts first. This gives equal Speed a clean P→E rhythm
+  // after the player's guaranteed opening slot and lets a 2×-speed foe earn E→E.
+  if(state.enemyAt<=state.playerAt)return {actor:"enemy",time:state.enemyAt,injected:false,tag:null};
+  return {actor:"player",time:state.playerAt,injected:false,tag:null};
+}
+function simulateTimelineSlots(count=TIMELINE_VISIBLE_SLOTS){
+  if(!S?.foe)return [];
+  const real=combatTimelineState();
+  const sim={clock:Number(real.clock)||0,playerAt:Number(real.playerAt)||0,enemyAt:Number(real.enemyAt)||0,injected:(real.injected||[]).map(x=>({...x})),currentInjected:!!real.currentInjected,currentTag:real.currentTag||null};
+  const slots=[{actor:combatActor(),turn:Math.max(1,Number(S.turn)||1),current:true,injected:!!real.currentInjected,tag:real.currentTag||null}];
+  let actor=combatActor(), injected=!!real.currentInjected;
+  for(let i=1;i<count;i++){
+    if(!injected){
+      if(actor==="player")sim.playerAt=Math.max(sim.playerAt,sim.clock)+playerActionDelay();
+      else sim.enemyAt=Math.max(sim.enemyAt,sim.clock)+enemyActionDelay();
+    }
+    const next=selectNextTimelineSlot(sim);
+    sim.clock=next.time;actor=next.actor;injected=next.injected;
+    slots.push({actor,turn:(Math.max(1,Number(S.turn)||1)+i),current:false,injected:next.injected,tag:next.tag});
+  }
+  return slots;
+}
+function expireProtectionAtPlayerTurn(){
+  const remaining=Math.max(0,Math.round(Number(S.protection)||0));
+  if(remaining>0){
+    const source=S.protectionSource||defenceName();
+    say(`<p class="note"><b>${esc(source)} Protection</b>: ${remaining} unused Protection expires as you regain the initiative.</p>`);
+  }
+  S.protection=0;
+  S.protectionSource=null;
+  S.defencePrepared=null;
+  combatProtectionAftermath=null;
+}
+function beginCombatTurn(actor,{injected=false,tag=null}={}){
+  clearEnemyTurnTimer();
+  S.combatActor=actor;
+  const tl=combatTimelineState();
+  tl.currentInjected=!!injected;tl.currentTag=tag||null;
   armed=null;
+  S.reactionWindow=false;
   if(actor==="player"){
-    combatProtectionAftermath=null;
+    expireProtectionAtPlayerTurn();
+    S.reactionAvailable=true;
     S.abilityQuickUsed=false;
-    if(rollEnemyIntent&&S.foe&&!S.foe.defeated)rollIntent();
+  }else if(enemyAttackIncoming()&&S.reactionAvailable){
+    // Enemy attacks pause for the one defensive Reaction available since the
+    // last player turn. Holding it preserves that Reaction for a later attack.
+    S.reactionWindow=true;
   }
   render();
   requestRunSave();
-  if(actor==="enemy")scheduleEnemyTurn();
+  if(actor==="enemy"&&!S.reactionWindow)scheduleEnemyTurn();
 }
-function advanceFromPlayerTurn({surpriseOpening=false}={}){
-  // A numbered combat turn is one full exchange: the player's response plus
-  // the foe's already-committed action resolving. Do not advance the counter
-  // merely because control moves into the enemy-resolution beat.
-  if(surpriseOpening){
-    // The concealed opener consumes the Unaware state, then the bonus player
-    // turn sees the foe's first real committed action before the enemy can act.
-    if(S.foe){S.foe.surprised=false;S.foe.intent=null;}
-    spendCombatExtraTurn("player");
-    return beginCombatTurn("player",{rollEnemyIntent:true});
+function advanceTimelineAfter(actor,actionKey=null){
+  const tl=combatTimelineState();
+  if(!tl.currentInjected){
+    if(actor==="player")tl.playerAt=Math.max(Number(tl.playerAt)||0,Number(tl.clock)||0)+playerActionDelay(actionKey);
+    else tl.enemyAt=Math.max(Number(tl.enemyAt)||0,Number(tl.clock)||0)+enemyActionDelay();
   }
-  if(spendCombatExtraTurn("player"))return beginCombatTurn("player");
-  beginCombatTurn("enemy");
+  tl.currentInjected=false;tl.currentTag=null;
+  const next=selectNextTimelineSlot(tl);
+  tl.clock=next.time;
+  S.turn=Math.max(1,Math.floor(Number(S.turn)||1))+1;
+  beginCombatTurn(next.actor,{injected:next.injected,tag:next.tag});
 }
-function advanceFromEnemyTurn(){
-  S.turn++;
-  if(spendCombatExtraTurn("enemy")){
+function advanceFromPlayerTurn({surpriseOpening=false,actionKey=null}={}){
+  if(surpriseOpening&&S.foe){
+    S.foe.surprised=false;
+    S.foe.intent=null;
+    S.foe.heavyStage=0;
     rollIntent();
-    return beginCombatTurn("enemy");
   }
-  rollIntent();
-  beginCombatTurn("player");
+  advanceTimelineAfter("player",actionKey);
+}
+function advanceFromEnemyTurn({keepIntent=false}={}){
+  if(!keepIntent&&S.foe&&!S.foe.defeated)rollIntent();
+  advanceTimelineAfter("enemy");
 }
 function scheduleEnemyTurn(delay=ENEMY_TURN_WINDUP_MS){
-  if(enemyTurnTimer!==null||!S?.foe||over||S.foe.defeated||combatActor()!=="enemy")return;
+  if(enemyTurnTimer!==null||!enemyTurnActive()||S.reactionWindow)return;
   enemyTurnTimer=setTimeout(()=>{enemyTurnTimer=null;resolveEnemyTurn();},delay);
+}
+function recoverTimelineStamina(){
+  const before=S.stamina;
+  S.stamina=Math.min(S.staminaMax,S.stamina+STAMINA_PER_ENEMY_TURN);
+  return S.stamina-before;
 }
 
 /* ============================================================
@@ -8181,18 +8322,18 @@ function dmgSmite(){
   return {physical, radiant, total:physical + radiant};
 }
 
-function heavyMultiplier(charge=S.heavyCharge){
-  return charge >= 2 ? 4.7 : 2.7;
+function heavyMultiplier(_charge=S.heavyCharge){
+  // Timeline V2 uses one universal two-turn commitment: setup, then a 2.7× release.
+  return 2.7;
 }
-function dmgHeavy(charge=S.heavyCharge, swingOverride=null){
+function dmgHeavy(_charge=S.heavyCharge, swingOverride=null){
   const f = S.foe;
   const eff = weaknessEff();
-  const useCharge = charge || 1;
-  const mult = heavyMultiplier(useCharge);
+  const mult = heavyMultiplier();
   const attack = weaponAttackBase();
   let d = (attack*mult + (swingOverride !== null ? swingOverride : ri(0,6))) * openingBonus();
   if(eff.heavyBonus) d *= eff.heavyBonus;
-  if(eff.fullHeavyBonus && useCharge >= 2) d *= eff.fullHeavyBonus;
+  if(eff.fullHeavyBonus) d *= eff.fullHeavyBonus;
   if(eff.guardHeavyBonus && foeGuardActive(f)) d *= eff.guardHeavyBonus;
   // Heavy is the general answer to a guard: most of the blow still gets through.
   if(foeGuardActive(f)) d *= 0.85;
@@ -8217,13 +8358,13 @@ function perfectDefenceReady(){
   // A blinded attack cannot consume a prepared Perfect Defence because it misses
   // on its own. Guarding that blind swing can still build/maintain the rhythm;
   // Perfect remains reserved for the next real attack.
-  return S.defenceChain >= 1 && S.foe && !S.foe.blinded && INTENTS[S.foe.intent].kind === "attack";
+  return S.defenceChain >= 1 && S.foe && !S.foe.blinded && enemyActionDescriptor()?.kind === "attack";
 }
 function incoming(openMult=1){
   const f = S.foe;
   if(!f) return 0;
-  const I = INTENTS[f.intent];
-  if(I.kind !== "attack") return 0;
+  const I = enemyActionDescriptor(f);
+  if(!I || I.kind !== "attack") return 0;
   const learnedDefence = knowledgeDamageTakenMult(f.key);
   let d = Math.max(0, f.atk * I.mult * openMult * learnedDefence);
   // Frailty is applied after the existing Bestiary damage reduction.
@@ -8246,7 +8387,7 @@ function defenceCounterNoun(){
   if(S?.className === "Wizard") return "counter";
   return S?.loadout === "shield" ? "counter" : "riposte";
 }
-function heavyActionName(){ return S?.className === "Rogue" ? "Backstab" : "Heavy"; }
+function heavyActionName(){ return S?.className === "Rogue" ? "Backstab" : S?.className === "Wizard" ? "Arcane Bolt" : "Heavy"; }
 function sandChance(){
   if(!S.foe) return 0;
   // Sand is a broad dirty trick, not a precision strike: Dodge does not help.
@@ -8347,8 +8488,12 @@ function finishKill(out){
   S.strikeChain=0;
   S.defenceChain=0;
   S.protection=0;
+  S.protectionSource=null;
   S.defencePrepared=null;
   S.negateNextAttack=null;
+  S.reactionAvailable=false;
+  S.reactionWindow=false;
+  S.combatTimeline=null;
   S.combatActor="player";
   clearEnemyTurnTimer();
   S.abilityQuickUsed=false;
@@ -8426,12 +8571,12 @@ const ACTIONS = {
   strike:{
     label(){ return strikeName(); },
     sub(){
-      const free = boonActive("whetstone") && S.foe && !S.foe.whetstoneUsed;
+      const sharpened = boonActive("whetstone") && S.foe && !S.foe.whetstoneUsed;
       const stage = strikeStage();
       const chain = stage === 0 ? "start chain" : stage === 1 ? "2/3 momentum" : "3/3 momentum";
-      return `${free ? "0" : "3"} stamina · ${chain}`;
+      return `0 stamina · ${chain}${sharpened?" · sharpened":""}`;
     },
-    cost(){ return boonActive("whetstone") && S.foe && !S.foe.whetstoneUsed ? 0 : 3; },
+    cost(){ return 0; },
     preview(){
       const f = S.foe, stage = strikeStage(), d = dmgStrike(stage), back = incoming();
       const c = actionCost("strike");
@@ -8443,18 +8588,18 @@ const ACTIONS = {
         else t += ` · hit completes the chain, then resets`;
         if(foeDodgeActive(f)) t += ` · <span class="bad">35% miss chance</span>`;
         if(foeGuardActive(f)) t += ` · its guard soaks most of it`;
-        if(back) t += ` · take <span class="bad">~${back}</span> if it survives`;
+        if(back) t += ` · committed enemy attack: <span class="bad">~${back}</span> when its FOE turn arrives`;
         return t;
       }
 
       let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span> · <span class="cost">${c} stamina</span>`;
-      if(c === 0) s += ` · <span class="dmg">Whetstone Work</span>`;
+      if(boonActive("whetstone") && S.foe && !S.foe.whetstoneUsed) s += ` · <span class="dmg">Whetstone Work +15%</span>`;
       if(stage < 2) s += ` · hit to build <span class="dmg">${strikeName(stage+1)}</span>`;
       else s += ` · hit completes the chain, then resets`;
       if(f.offBalance) s += ` · <span class="dmg">+${Math.round((openingBonus()-1)*100)}% opening</span>`;
       if(foeDodgeActive(f)) s += ` · <span class="bad">35% miss chance · miss breaks momentum</span>`;
       if(foeGuardActive(f)) s += ` · its guard soaks most of it`;
-      if(back) s += ` · you take <span class="bad">~${back}</span> if it survives`;
+      if(back) s += ` · committed enemy attack: <span class="bad">~${back}</span> when its FOE turn arrives`;
       else s += ` · it is not attacking`;
       return s;
     },
@@ -8462,12 +8607,13 @@ const ACTIONS = {
       const f = S.foe;
       const stage = strikeStage();
       const name = strikeName(stage);
-      if(boonActive("whetstone") && !f.whetstoneUsed) f.whetstoneUsed = true;
+      const sharpened=boonActive("whetstone") && !f.whetstoneUsed;
+      if(sharpened) f.whetstoneUsed = true;
       if(foeDodgeActive(f) && rnd() < 0.35){
         S.strikeChain = 0;
         return `<p>${name} found nothing. It was already elsewhere. <b>Momentum broken.</b></p>`;
       }
-      const base = dmgStrike(stage),fx=applyOutgoingEquipmentEffects(base);
+      const base = Math.max(1,Math.round(dmgStrike(stage)*(sharpened?1.15:1))),fx=applyOutgoingEquipmentEffects(base);
       f.hp -= fx.damage;
       S.strikeChain = stage >= 2 ? 0 : stage + 1;
       const momentum = stage >= 2
@@ -8486,7 +8632,7 @@ const ACTIONS = {
       let text = `<span class="dmg">~${d.physical} Physical + ${d.radiant} Radiant</span> · <span class="cost">0 stamina</span> · 1 ability use`;
       if(foeDodgeActive(S.foe)) text += ` · <span class="bad">35% chance the Physical part misses, but Radiant still lands</span>`;
       if(foeGuardActive(S.foe)) text += ` · guard reduces the Physical part, not Radiant`;
-      if(back) text += ` · you take <span class="bad">~${back}</span> if it survives`;
+      if(back) text += ` · committed enemy attack: <span class="bad">~${back}</span> when its FOE turn arrives`;
       return text;
     },
     run(){
@@ -8513,152 +8659,78 @@ const ACTIONS = {
   heavy:{
     label(){
       if(S.className === "Rogue") return S.heavyCharge > 0 ? "Release Backstab" : "Prepare Backstab";
-      if(S.className === "Wizard") return S.heavyCharge > 0 ? "Release focus" : "Focus arcane";
-      return S.heavyCharge > 0 ? "Release heavy" : "Wind up heavy";
+      if(S.className === "Wizard") return S.heavyCharge > 0 ? "Release Arcane Bolt" : "Focus";
+      return S.heavyCharge > 0 ? "Release Heavy" : "Wind Up Heavy";
     },
     sub(){
-      if(S.className !== "Votary"){
-        if(S.className === "Rogue"){
-          if(S.heavyCharge >= 2) return `release now · guaranteed crit · 4.7×`;
-          if(S.heavyCharge === 1) return `release now · guaranteed crit · 2.7×`;
-          return `6 stamina · setup only · no damage`;
-        }
-        if(S.heavyCharge >= 2) return `fully committed · 4.7× attack`;
-        if(S.heavyCharge === 1) return `ready · 2.7× attack`;
-        return `6 stamina · prepares 2.7× attack`;
+      if(S.heavyCharge>0){
+        if(S.className==="Rogue")return "2/2 · guaranteed crit · 2.7×";
+        if(S.className==="Wizard")return "2/2 · release 2.7×";
+        return "2/2 · release 2.7×";
       }
-      if(S.heavyCharge >= 2) return "fully drawn · 4.7× attack";
-      if(S.heavyCharge === 1) return "ready · 2.7× attack";
-      return "6 stamina · prepares 2.7×";
+      if(S.className==="Rogue")return "6 stamina · setup 1/2 · no damage";
+      if(S.className==="Wizard")return "6 stamina · focus 1/2 · no damage";
+      return "6 stamina · wind up 1/2 · no damage";
     },
     cost(){ return S.heavyCharge > 0 ? 0 : 6; },
     preview(){
-      const f = S.foe;
-      if(S.className !== "Votary"){
-        if(S.heavyCharge === 0){
-          const back = incoming();
-          if(S.className === "Rogue") return `<span class="bad"><b>SETUP ONLY — NO DAMAGE THIS TURN</b></span> · prepare a <span class="dmg">2.7× guaranteed-critical Backstab</span> · <span class="cost">6 stamina</span>${back?` · the enemy action still resolves for about <span class="bad">${back} damage</span>`:""}`;
-          return `Prepare a <span class="dmg">2.7× ${attackScaleLabel()}</span> committed blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>${back?` · take <span class="bad">~${back}</span> while preparing`:""}`;
-        }
-        const d = dmgHeavy(), back = incoming(), mult = heavyMultiplier();
-        const shown=S.className==="Rogue"?criticalDamageFromBase(d,BACKSTAB_CRIT_BONUS_PCT):d;
-        return `<span class="dmg">~${shown} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span>${S.className==="Rogue"?` · <span class="dmg">guaranteed crit +${BACKSTAB_CRIT_BONUS_PCT}pp</span>`:""} · releases before the enemy action resolves${foeDodgeActive()?` · <span class="bad">70% miss chance</span>`:""}${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;
+      const f=S.foe;
+      if(S.heavyCharge===0){
+        if(S.className==="Rogue")return `<span class="bad"><b>SETUP ONLY — NO DAMAGE</b></span> · Backstab <b>1/2</b> · spend this player turn preparing · release on your next player turn · <span class="cost">6 stamina</span>`;
+        if(S.className==="Wizard")return `<span class="bad"><b>FOCUS ONLY — NO DAMAGE</b></span> · Arcane Bolt <b>1/2</b> · release on your next player turn · <span class="cost">6 stamina</span>`;
+        return `<span class="bad"><b>WIND UP — NO DAMAGE</b></span> · Heavy <b>1/2</b> · release on your next player turn · <span class="cost">6 stamina</span>`;
       }
-
-      if(S.heavyCharge === 0){
-        const back = incoming();
-        let s = `Prepare a <span class="dmg">2.7× ${attackScaleLabel()}</span> blow · <span class="cost">6 stamina</span> · <span class="bad">no damage yet</span>`;
-        if(back) s += ` · you take <span class="bad">~${back}</span> while winding up`;
-        else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
-        s += ` · next turn: Release / Wind up further / ${defenceName()}`;
-        return s;
-      }
-
-      const d = dmgHeavy(), back = incoming();
-      const mult = heavyMultiplier();
-      let s = `<span class="dmg">~${d} damage</span> · <span class="dmg">${mult.toFixed(1)}× ${attackScaleLabel()}</span> · <span class="cost">0 stamina</span> · releases before the enemy action resolves`;
-      if(f.offBalance) s += ` · <span class="dmg">+${Math.round((openingBonus()-1)*100)}% opening</span>`;
-      if(foeDodgeActive(f)) s += ` · <span class="bad">70% miss chance</span>`;
-      if(foeGuardActive(f)) s += ` · punches through most of its guard`;
-      if(back) s += ` · you take <span class="bad">~${back}</span> if it survives`;
-      else s += ` · it is not attacking`;
-      return s;
+      const d=dmgHeavy(),shown=S.className==="Rogue"?criticalDamageFromBase(d,BACKSTAB_CRIT_BONUS_PCT):d;
+      let text=`<span class="dmg">~${shown} damage</span> · <b>2/2 release</b> · <span class="dmg">2.7× ${attackScaleLabel()}</span>`;
+      if(S.className==="Rogue")text+=` · <span class="dmg">guaranteed crit +${BACKSTAB_CRIT_BONUS_PCT}pp</span>`;
+      if(foeDodgeActive(f))text+=` · <span class="bad">70% miss chance</span>`;
+      if(foeGuardActive(f))text+=` · punches through most of its guard`;
+      return text;
     },
     run(){
-      const f = S.foe;
-      if(S.heavyCharge === 0){
-        S.heavyCharge = 1;
-        if(S.className === "Rogue") return `<p class="good"><b>Backstab prepared.</b> You set up a 2.7× committed strike.</p><p class="note"><b>No damage is dealt during setup.</b> Release Backstab on a later player turn to attack.</p>`;
-        return `<p class="good">Drew back and prepared a <b>2.7×</b> heavy blow.</p>`;
+      const f=S.foe;
+      if(S.heavyCharge===0){
+        S.heavyCharge=1;
+        if(S.className==="Rogue")return `<p class="good"><b>Backstab 1/2.</b> You prepare the opening. <b>No damage yet.</b></p>`;
+        if(S.className==="Wizard")return `<p class="good"><b>Arcane Bolt 1/2.</b> You focus the spell. <b>No damage yet.</b></p>`;
+        return `<p class="good"><b>Heavy 1/2.</b> You wind up the committed blow. <b>No damage yet.</b></p>`;
       }
-
-      const mult = heavyMultiplier();
-      S.heavyCharge = 0;
-      if(foeDodgeActive(f) && rnd() < 0.70){
-        if(S.className === "Rogue") return `<p><b>Dodge.</b> The committed movement carries the foe clear and your ${mult.toFixed(1)}× Backstab misses.</p>`;
-        return `<p>Released the ${mult.toFixed(1)}× heavy swing. It slipped clear before the blow arrived.</p>`;
+      S.heavyCharge=0;
+      if(foeDodgeActive(f)&&rnd()<0.70){
+        if(S.className==="Rogue")return `<p><b>Dodge.</b> Backstab 2/2 releases into empty space.</p>`;
+        if(S.className==="Wizard")return `<p>Arcane Bolt 2/2 releases, but the ${esc(f.name)} slips clear.</p>`;
+        return `<p>Heavy 2/2 releases, but the ${esc(f.name)} slips clear.</p>`;
       }
-      const base=dmgHeavy(mult >= 4.7 ? 2 : 1),fx=applyOutgoingEquipmentEffects(base,S.className==="Rogue"?{forceCrit:true,critDamageBonusPct:BACKSTAB_CRIT_BONUS_PCT}:{});
-      f.hp -= fx.damage;
-      if(S.className === "Rogue") return `<p>Backstabbed for <b>${fx.damage}</b>${mult >= 4.7 ? " with the fully committed strike" : ""}${foeGuardActive(f) ? ", slipping through most of the guard" : ""}.</p>${fx.html}`;
-      return `<p>Brought it down hard — <b>${fx.damage}</b>${mult >= 4.7 ? " from the fully drawn blow" : ""}${foeGuardActive(f) ? ", straight through most of the guard" : ""}.</p>${fx.html}`;
-    }
-  },
-
-  draw:{
-    label(){
-      if(S.className === "Rogue") return S.heavyCharge >= 2 ? "Fully committed" : "Commit further";
-      if(S.className === "Wizard") return S.heavyCharge >= 2 ? "Fully committed" : "Focus further";
-      return S.heavyCharge >= 2 ? "Fully drawn" : "Wind up further";
-    },
-    sub(){
-      if(S.className !== "Votary") return S.heavyCharge >= 2 ? "can't commit any further" : "2 stamina · raises to 4.7×";
-      return S.heavyCharge >= 2 ? "can't draw any further" : "2 stamina · raises to 4.7×";
-    },
-    cost:2,
-    preview(){
-      if(S.heavyCharge >= 2) return `The blow is already fully drawn. Release it or ${defenceName()} to abandon it.`;
-      const back = incoming();
-      const full = dmgHeavy(2);
-      let s = `Commit another turn · <span class="cost">2 stamina</span> · raise the blow to <span class="dmg">4.7× ${attackScaleLabel()} (~${full} damage)</span>`;
-      if(back) s += ` · you take <span class="bad">~${back}</span> while drawing further`;
-      else s += ` · <span class="dmg">safe opening: it is not attacking</span>`;
-      s += ` · then Release or ${defenceName()}`;
-      return s;
-    },
-    run(){
-      S.heavyCharge = 2;
-      return `<p class="good">Drew the blow back further. It is <b>fully drawn — 4.7× attack</b>.</p>`;
+      const base=dmgHeavy(1),fx=applyOutgoingEquipmentEffects(base,S.className==="Rogue"?{forceCrit:true,critDamageBonusPct:BACKSTAB_CRIT_BONUS_PCT}:{});
+      f.hp-=fx.damage;
+      if(S.className==="Rogue")return `<p><b>Backstab 2/2.</b> Struck for <b>${fx.damage}</b>${foeGuardActive(f)?", slipping through most of the guard":""}.</p>${fx.html}`;
+      if(S.className==="Wizard")return `<p><b>Arcane Bolt 2/2.</b> The focused release struck for <b>${fx.damage}</b>${foeGuardActive(f)?", forcing through most of the guard":""}.</p>${fx.html}`;
+      return `<p><b>Heavy 2/2.</b> Brought the committed blow down for <b>${fx.damage}</b>${foeGuardActive(f)?", straight through most of the guard":""}.</p>${fx.html}`;
     }
   },
 
   guard:{
     label(){ return perfectDefenceReady() ? `Perfect ${defenceName()}` : defenceName(); },
-    sub(){
-      const r=guardRestoreAmount(),p=protectionCapacity();
-      return perfectDefenceReady()?`+${r} stamina · PERFECT`:`+${r} stamina · ${p} Protection`;
-    },
-    cost(){ return -guardRestoreAmount(); },
+    sub(){ return perfectDefenceReady()?`Reaction · PERFECT`:`Reaction · ${protectionCapacity()} Protection`; },
+    cost:0,
     preview(){
-      const f=S.foe,perfect=perfectDefenceReady(),incomingDamage=incoming();
-      const capacity=Math.max(Number(S.protection)||0,protectionCapacity());
-      const absorbed=perfect?incomingDamage:Math.min(incomingDamage,capacity);
-      const hpLeak=perfect?0:Math.max(0,incomingDamage-absorbed);
-      const full=S.stamina>=S.staminaMax;
-      let text=S.heavyCharge>0
-        ? `Abandon the prepared ${heavyActionName()} · recover <span class="cost">${guardRestoreAmount()} stamina</span>`
-        : `Recover <span class="cost">${guardRestoreAmount()} stamina</span>`;
-      if(perfect) text+=` · <span class="dmg">PERFECT: block the whole attack</span>`;
-      else text+=` · gain <span class="dmg">${protectionCapacity()} Protection</span>`;
-      if(INTENTS[f.intent].kind==="attack"){
-        if(!perfect && absorbed>0) text+=` · absorb about <span class="dmg">${absorbed}</span>`;
-        if(hpLeak>0) text+=` · about <span class="bad">${hpLeak} HP</span> breaks through`;
-        else text+=` · <span class="dmg">0 HP damage</span>`;
-      }else if(!perfect){
-        text+=` · Protection waits for the next incoming attack`;
-      }
-      if(INTENTS[f.intent].kind==="attack" && (perfect||full)){
-        const cd=counterDamage(S.loadout,perfect),noun=defenceCounterNoun();
-        text+=` · <span class="dmg">${perfect?"perfect ":"full stamina: "}${noun} ~${cd}</span>`;
-      }
-      if(f.intent==="heavy") text+=` · <span class="dmg">Heavy Attack becomes Off-Balance</span>`;
-      if(INTENTS[f.intent].kind==="attack"&&!perfect) text+=` · <span class="dmg">sets up Perfect ${defenceName()}</span>`;
+      const perfect=perfectDefenceReady(),incomingDamage=incoming(),capacity=protectionCapacity();
+      if(perfect)return `<span class="dmg">PERFECT: negate the whole incoming attack</span> · counterattack · uses your one Reaction until your next player turn`;
+      const absorbed=Math.min(incomingDamage,capacity),hpLeak=Math.max(0,incomingDamage-absorbed);
+      let text=`Gain <span class="dmg">${capacity} Protection</span> as your one Reaction · Protection remains until your next player turn and can absorb multiple enemy attacks`;
+      if(incomingDamage>0)text+=` · this hit: absorb about <span class="dmg">${absorbed}</span>${hpLeak?` · about <span class="bad">${hpLeak} HP</span> breaks through`:` · <span class="dmg">0 HP damage</span>`}`;
       return text;
     },
     run(){
-      const abandonedHeavy=S.heavyCharge>0;
-      S.heavyCharge=0;
-      S.stamina=Math.min(S.staminaMax,S.stamina+guardRestoreAmount());
-      S.protection=Math.max(Number(S.protection)||0,protectionCapacity());
-      const gained=`<b>${S.protection} Protection</b>`;
-      if(S.className==="Rogue") return `<p class="good">${abandonedHeavy?"Abandoned the prepared attack and ":""}set your weapons into a parry, gaining ${gained}.</p>`;
-      if(S.className==="Wizard"){
-        return defenceName()==="Ward"
-          ? `<p class="good">${abandonedHeavy?"Abandoned the prepared attack and ":""}raised a wand-ward, gaining ${gained}.</p>`
-          : `<p class="good">${abandonedHeavy?"Abandoned the prepared attack and ":""}braced behind the staff, gaining ${gained}.</p>`;
+      const perfect=perfectDefenceReady();
+      const source=defenceName();
+      if(!perfect){
+        S.protection=Math.max(Number(S.protection)||0,protectionCapacity());
+        S.protectionSource=source;
       }
-      if(S.loadout==="shield") return `<p class="good">${abandonedHeavy?"Let the prepared blow go, ":""}set your shield and gained ${gained}.</p>`;
-      return `<p class="good">${abandonedHeavy?"Let the prepared blow go and ":""}brought the blade into a parry, gaining ${gained}.</p>`;
+      if(S.className==="Rogue")return `<p class="good"><b>${esc(source)} Reaction.</b> ${perfect?"Perfect timing — the incoming attack will be negated.":`Prepared <b>${S.protection} Protection</b>.`}</p>`;
+      if(S.className==="Wizard")return `<p class="good"><b>${esc(source)} Reaction.</b> ${perfect?"Perfect timing — the incoming attack will be negated.":`Prepared <b>${S.protection} Protection</b>.`}</p>`;
+      return `<p class="good"><b>${esc(source)} Reaction.</b> ${perfect?"Perfect timing — the incoming attack will be negated.":`Prepared <b>${S.protection} Protection</b>.`}</p>`;
     }
   },
 
@@ -8679,7 +8751,7 @@ const ACTIONS = {
 
       let s = `<span class="dmg">${chance}% chance to cause Blinded</span> · <span class="cost">1 stamina</span>`;
       if(foeDodgeActive()) s += ` · Dodge does not reduce the chance`;
-      if(INTENTS[S.foe.intent].kind === "attack"){
+      if(enemyActionDescriptor()?.kind === "attack"){
         s += ` · success makes <span class="dmg">this attack miss</span>`;
         if(back) s += ` · failure means about <span class="bad">${back}</span> back`;
       } else {
@@ -8732,7 +8804,7 @@ const ACTIONS = {
         s = `Study this archetype · <span class="cost">${c} stamina</span> · ${reads+1}/6 knowledge · at 6: <span class="dmg">weakness payoff +5%</span>`;
       }
       if(c === 0) s += ` · <span class="dmg">Kept Watch</span>`;
-      if(back) s += ` · you take <span class="bad">~${back}</span> while watching`;
+      if(back) s += ` · committed enemy attack: <span class="bad">~${back}</span> when its FOE turn arrives`;
       else s += ` · <span class="dmg">safe to study: it is not attacking</span>`;
       return s;
     },
@@ -8787,7 +8859,7 @@ function applyLayOnHands(){
 }
 function useHoldFast(){
   const sk=abilityState("holdfast");
-  if(!playerTurnActive()||!sk||sk.cur<=0||INTENTS[S.foe.intent].kind!=="attack")return;
+  if(!playerTurnActive()||!sk||sk.cur<=0||enemyActionDescriptor()?.kind!=="attack")return;
   sk.cur--;
   closeAbilitySheet();
   armed=null;
@@ -8795,7 +8867,7 @@ function useHoldFast(){
   S.defenceChain=0;
   S.defencePrepared=null;
   S.negateNextAttack={name:abilityDisplayName("holdfast"),extraStamina:0,preserveHeavy:true};
-  say(`<p class="good"><b>${esc(abilityDisplayName("holdfast"))}.</b> You plant yourself against the committed <b>${esc(INTENTS[S.foe.intent].label)}</b>.</p><p class="note">Your turn is spent. The prepared Heavy remains prepared; the enemy attack will be negated on its turn.</p>`);
+  say(`<p class="good"><b>${esc(abilityDisplayName("holdfast"))}.</b> You plant yourself against the committed <b>${esc(enemyActionDescriptor()?.label||"attack")}</b>.</p><p class="note">Your turn is spent. The prepared Heavy remains prepared; the enemy attack will be negated on its turn.</p>`);
   const bleed=tickCombatBleeding();
   if(!bleed.alive)return;
   if(bleed.html)say(bleed.html);
@@ -8822,8 +8894,12 @@ function useWithdrawAbility(){
   S.strikeChain = 0;
   S.defenceChain = 0;
   S.protection = 0;
+  S.protectionSource = null;
   S.defencePrepared = null;
   S.negateNextAttack = null;
+  S.reactionAvailable = false;
+  S.reactionWindow = false;
+  S.combatTimeline = null;
   S.combatActor = "player";
   clearEnemyTurnTimer();
   S.abilityQuickUsed = false;
@@ -8858,18 +8934,15 @@ function actionCost(key){
   return typeof v === "function" ? v() : v;
 }
 function actionCounters(key){
-  if(!S.foe) return false;
-  const i = S.foe.intent;
-  if(key === "heavyfeint") return S.heavyCharge > 0 && foeDodgeActive();
-  if(key === "guard") return i === "heavy" || i === "quick" || i === "offquick";
-  if(key === "sand") return i === "heavy" || i === "quick" || i === "offquick";
-  if(key === "strike") return i === "recover";
-  if(key === "read") return i === "guard" || i === "dodge";
-  if(key === "heavy"){
-    if(S.heavyCharge > 0) return i === "guard" || i === "recover" || i === "steady" || S.foe.offBalance;
-    return i === "dodge" || i === "guard" || i === "recover";
+  if(!S.foe)return false;
+  const i=S.foe.intent,I=enemyActionDescriptor();
+  if(key==="sand")return I?.kind==="attack";
+  if(key==="strike")return i==="recover";
+  if(key==="read")return i==="guard"||i==="dodge"||I?.kind==="charge";
+  if(key==="heavy"){
+    if(S.heavyCharge>0)return i==="guard"||i==="recover"||i==="steady"||S.foe.offBalance;
+    return i==="dodge"||i==="guard"||i==="recover";
   }
-  if(key === "draw") return false;
   return false;
 }
 
@@ -8894,32 +8967,17 @@ function tapAction(key){
 
 function takeTurn(key){
   if(!playerTurnActive())return;
-  const A = ACTIONS[key];
-  if(!A)return;
-  const cost = actionCost(key);
-  if(cost > S.stamina) return;
+  if(S.heavyCharge>0&&key!=="heavy")return; // committed attacks release on the next player action
+  const A=ACTIONS[key];
+  if(!A||key==="guard")return; // defence now lives in the Reaction window
+  const cost=actionCost(key);
+  if(cost>S.stamina)return;
 
-  // Full-Stamina defence and Perfect state are captured on the PLAYER turn,
-  // then consumed later when the enemy's separate turn actually attacks.
-  const defendedAtFull = key === "guard" && S.stamina >= S.staminaMax;
-  const perfectDefence = key === "guard" && perfectDefenceReady();
+  if(key!=="strike")S.strikeChain=0;
+  if(cost>0)S.stamina-=cost;
 
-  if(key !== "strike") S.strikeChain = 0;
-  if(key !== "guard"){
-    S.defenceChain = 0;
-    S.defencePrepared = null;
-  }
-  if(cost > 0) S.stamina -= cost;
-
-  let out = A.run();
-  if(key === "guard"){
-    S.defencePrepared={perfect:perfectDefence,counter:defendedAtFull||perfectDefence,heavy:S.foe?.intent==="heavy",source:defenceName()};
-  }
-
-  if(S.foe.hp <= 0){
-    finishKill(out);
-    return;
-  }
+  let out=A.run();
+  if(S.foe.hp<=0){finishKill(out);return;}
 
   const bleed=tickCombatBleeding();
   if(!bleed.alive)return;
@@ -8927,39 +8985,86 @@ function takeTurn(key){
   say(out);
 
   const surpriseOpening=S.foe?.intent==="unaware"&&!!S.foe?.surprised;
-  advanceFromPlayerTurn({surpriseOpening});
+  advanceFromPlayerTurn({surpriseOpening,actionKey:key});
+}
+
+const REACTIONS=Object.freeze({
+  defend:"defend",
+  hold:"hold"
+});
+function reactionLabel(key){return key==="defend"?(perfectDefenceReady()?`Perfect ${defenceName()}`:defenceName()):"Hold Reaction";}
+function reactionSub(key){
+  if(key==="defend")return perfectDefenceReady()?"1 reaction · PERFECT":`1 reaction · ${protectionCapacity()} Protection`;
+  return "take this hit · keep reaction";
+}
+function reactionPreview(key){
+  if(key==="defend")return ACTIONS.guard.preview();
+  const hit=incoming();
+  return `Do not defend this attack${hit?` · about <span class="bad">${hit} HP</span> before existing Protection`:": it currently deals no damage"} · your one Reaction remains available for a later enemy attack before your next player turn.`;
+}
+function tapReaction(key){
+  if(!enemyReactionWindowOpen()||!REACTIONS[key])return;
+  const token=`reaction:${key}`;
+  if(armed!==token){armed=token;render();return;}
+  armed=null;
+  commitReaction(key);
+}
+function commitReaction(key){
+  if(!enemyReactionWindowOpen())return;
+  if(key==="defend"){
+    const perfect=perfectDefenceReady();
+    const counter=S.stamina>=S.staminaMax||perfect;
+    const source=defenceName();
+    const out=ACTIONS.guard.run();
+    S.defencePrepared={perfect,counter,heavy:S.foe?.intent==="heavy"&&Number(S.foe?.heavyStage)===2,source};
+    S.reactionAvailable=false;
+    S.reactionWindow=false;
+    say(out);
+  }else{
+    S.defencePrepared=null;
+    S.reactionWindow=false;
+    say(`<p class="note"><b>Reaction held.</b> You let ${esc(enemyActionDescriptor()?.label||"the attack")} come through and keep your Reaction available for a later enemy attack before your next turn.</p>`);
+  }
+  render();
+  scheduleEnemyTurn(260);
 }
 
 function resolveEnemyTurn(){
-  if(!S?.foe||over||S.foe.defeated||combatActor()!=="enemy")return;
-  const f=S.foe,I=INTENTS[f.intent];
+  if(!S?.foe||over||S.foe.defeated||!enemyTurnActive())return;
+  S.reactionWindow=false;
+  armed=null;
+  const f=S.foe,I=enemyActionDescriptor(f);
   if(!I)return;
 
   let out="";
+  let keepIntent=false;
   const prepared=S.defencePrepared;
   const negated=S.negateNextAttack;
 
-  if(I.kind==="attack"){
+  if(I.kind==="charge"){
+    // Heavy 1/2 consumes a real enemy turn but deals no damage. The same action
+    // stays committed and becomes the 2/2 release on that foe's next slot.
+    f.heavyStage=2;
+    keepIntent=true;
+    S.defencePrepared=null;
+    out+=`<p class="note"><b>${esc(I.label)}.</b> The ${esc(f.name)} spends the turn winding up. <b>No damage yet.</b> Its next enemy turn releases the blow.</p>`;
+  }else if(I.kind==="attack"){
     if(negated){
       out+=`<p class="good"><b>${esc(negated.name||"Defence")}.</b> ${esc(I.label)} was completely negated.</p>`;
       if(negated.extraStamina){
         S.stamina=Math.min(S.staminaMax,S.stamina+negated.extraStamina);
         out+=`<p class="note">Recovered <b>${negated.extraStamina} Stamina</b> while the attack passed harmlessly.</p>`;
-      }else out+=`<p class="note">No HP damage, Stamina return or counterattack.</p>`;
+      }else out+=`<p class="note">No HP damage and no counterattack.</p>`;
       if(f.blinded)f.blinded=false;
-      S.protection=0;
       S.defencePrepared=null;
       S.negateNextAttack=null;
       S.defenceChain=0;
     }else if(f.blinded){
-      out += `<p class="good">${esc(I.label)}: blinded, it attacked empty air.</p>`;
+      out+=`<p class="good">${esc(I.label)}: blinded, it attacked empty air.</p>`;
       if(prepared&&S.hp>0){
-        if(S.defenceChain<1){
-          S.defenceChain=1;
-          out+=`<p class="note">Held the defensive rhythm through the blind swing. The next real defended attack can be a <b>Perfect ${esc(defenceName())}</b>.</p>`;
-        }else out+=`<p class="note">Kept the prepared <b>Perfect ${esc(defenceName())}</b>. The blind swing did not consume it.</p>`;
+        if(S.defenceChain<1){S.defenceChain=1;out+=`<p class="note">You kept the defensive rhythm. The next Reaction can become a <b>Perfect ${esc(defenceName())}</b>.</p>`;}
+        else out+=`<p class="note">Your prepared <b>Perfect ${esc(defenceName())}</b> was not consumed by a blind miss.</p>`;
       }
-      S.protection=0;
       S.defencePrepared=null;
       f.blinded=false;
     }else{
@@ -8970,16 +9075,20 @@ function resolveEnemyTurn(){
       const hpDamage=perfect?0:Math.max(0,rawIncoming-absorbed);
 
       if(absorbed>0){
-        const source=prepared?.source||defenceName();
+        const source=prepared?.source||S.protectionSource||defenceName();
         const sourceLabel=`${perfect?"Perfect ":""}${source} Protection`;
-        const unused=Math.max(0,storedProtection-Math.min(storedProtection,absorbed));
-        combatProtectionAftermath={value:storedProtection,absorbed,source:sourceLabel};
+        const remaining=perfect?0:Math.max(0,storedProtection-absorbed);
+        if(perfect){
+          combatProtectionAftermath={value:Math.max(rawIncoming,storedProtection),absorbed,source:sourceLabel};
+          S.protection=0;
+          S.protectionSource=null;
+        }else{
+          S.protection=remaining;
+          if(remaining<=0){combatProtectionAftermath={value:storedProtection,absorbed,source:sourceLabel};S.protectionSource=null;}
+        }
         showCombatDamagePop("hero",absorbed,{protection:true});
-        out+=`<p class="note"><b>${esc(sourceLabel)}</b> absorbed <b>${absorbed}</b> damage.${unused>0?` <b>${unused}</b> unused Protection expired.`:""}</p>`;
+        out+=`<p class="note"><b>${esc(sourceLabel)}</b> absorbed <b>${absorbed}</b> damage.${remaining>0?` <b>${remaining} Protection</b> remains for later enemy attacks before your next turn.`:""}</p>`;
       }
-      // Protection is attack-bound: every unused point clears mechanically after this attack.
-      // v0.110.1 keeps a brief presentation-only ghost so the player can see it break.
-      S.protection=0;
 
       if(hpDamage>0){
         S.hp-=hpDamage;
@@ -8995,20 +9104,23 @@ function resolveEnemyTurn(){
       if(prepared&&S.hp>0){
         if(perfect){
           S.defenceChain=0;
-          out+=`<p class="good"><b>Perfect ${esc(defenceName())}.</b> The attack never got through.</p>`;
+          out+=`<p class="good"><b>Perfect ${esc(prepared.source||defenceName())}.</b> The attack never got through.</p>`;
         }else{
           S.defenceChain=1;
-          out+=`<p class="note">Kept the defensive rhythm. The next defended attack can be a <b>Perfect ${esc(defenceName())}</b>.</p>`;
+          out+=`<p class="note">Defensive rhythm established. Your next defended Reaction can become a <b>Perfect ${esc(defenceName())}</b>.</p>`;
         }
-        if(f.intent==="heavy"){
+        if(f.intent==="heavy"&&Number(f.heavyStage)===2){
           f.offBalance=true;f.offBalanceStruck=false;
           out+=`<p class="good">The committed blow carried it past its footing. <b>Off-Balance.</b></p>`;
         }
         if(prepared.counter){
           const cd=counterDamage(S.loadout,perfect),fx=applyOutgoingEquipmentEffects(cd),noun=defenceCounterNoun();
           f.hp-=fx.damage;
-          out+=`<p class="good">${perfect?`Perfect ${esc(defenceName())}`:esc(defenceName())}: ${noun} for <b>${fx.damage}</b>.</p>${fx.html}`;
+          out+=`<p class="good">${perfect?`Perfect ${esc(prepared.source||defenceName())}`:esc(prepared.source||defenceName())}: ${noun} for <b>${fx.damage}</b>.</p>${fx.html}`;
         }
+      }else if(storedProtection<=0&&hpDamage>0){
+        // Taking a real unprotected hit breaks the consecutive-defence rhythm.
+        S.defenceChain=0;
       }
       S.defencePrepared=null;
     }
@@ -9017,17 +9129,16 @@ function resolveEnemyTurn(){
       f.offBalanceStruck=true;
       out+=`<p class="note">It lashed out instead of recovering its footing. It is still <b>Off-Balance</b>.</p>`;
     }
+    if(f.intent==="heavy"&&Number(f.heavyStage)===2)f.heavyStage=0;
   }else if(f.intent==="guard"){
     S.defencePrepared=null;
-    out+=`<p class="note"><b>Guard.</b> It held the committed guard through your response.</p>`;
+    out+=`<p class="note"><b>Guard.</b> It finishes the committed defensive action.</p>`;
   }else if(f.intent==="dodge"){
     S.defencePrepared=null;
     if(f.feintBaitedDodge){
       f.feintBaitedDodge=false;
-      out+=`<p class="good"><b>Dodge.</b> It commits to empty space; the feint draws the movement out without spending your prepared attack.</p>`;
-    }else{
-      out+=`<p class="note"><b>Dodge.</b> It completed the committed evasive movement through your response.</p>`;
-    }
+      out+=`<p class="good"><b>Dodge.</b> It commits to empty space; the feint draws the movement out.</p>`;
+    }else out+=`<p class="note"><b>Dodge.</b> It completes the committed evasive movement.</p>`;
   }else if(I.heal){
     S.defencePrepared=null;
     const h=Math.round(f.hpMax*I.heal),before=f.hp;
@@ -9042,7 +9153,11 @@ function resolveEnemyTurn(){
     out+=`<p class="note"><b>${esc(I.label)}.</b> It spends the turn without attacking.</p>`;
   }
 
-  S.negateNextAttack=null;
+  if(!keepIntent)S.negateNextAttack=null;
+  advanceEnemyBackgroundCharges();
+  const recovered=recoverTimelineStamina();
+  if(recovered>0)out+=`<p class="note">Time to recover: <b>+${recovered} Stamina</b>.</p>`;
+
   if(S.hp<=0)return die(out);
   if(f.hp<=0){finishKill(out);return;}
 
@@ -9050,12 +9165,10 @@ function resolveEnemyTurn(){
   if(!bleed.alive)return;
   out+=bleed.html;
   say(out);
-  // Keep the resolved enemy action on screen briefly. Controls stay locked while
-  // damage callouts and the spent Protection bar communicate what just happened.
   enemyTurnTimer=setTimeout(()=>{
     enemyTurnTimer=null;
-    combatProtectionAftermath=null;
-    advanceFromEnemyTurn();
+    if(!S.protection)combatProtectionAftermath=null;
+    advanceFromEnemyTurn({keepIntent});
   },ENEMY_TURN_AFTERMATH_MS);
   render();
 }
@@ -9078,14 +9191,14 @@ function tapRun(){
   say(`<p class="said">Broke contact and did not look back.</p>`+(c?`<p class="hurt">It cost <b>${c}</b> on the way out.</p>`:`<p class="note">It let you go.</p>`));
   if(S.foe?.caravan)caravanCombatAbandoned(S.foe);
   clearEnemyTurnTimer();
-  S.foe=null;S.heavyCharge=0;S.strikeChain=0;S.defenceChain=0;S.protection=0;S.defencePrepared=null;S.negateNextAttack=null;S.abilityQuickUsed=false;S.combatActor="player";
+  S.foe=null;S.heavyCharge=0;S.strikeChain=0;S.defenceChain=0;S.protection=0;S.protectionSource=null;S.defencePrepared=null;S.negateNextAttack=null;S.reactionAvailable=false;S.reactionWindow=false;S.combatTimeline=null;S.abilityQuickUsed=false;S.combatActor="player";
   render();
 }
 
 function die(out){
   clearEnemyTurnTimer();
   over=true;
-  if(S){S.protection=0;S.defencePrepared=null;S.negateNextAttack=null;S.combatActor="player";}
+  if(S){S.protection=0;S.protectionSource=null;S.defencePrepared=null;S.negateNextAttack=null;S.reactionAvailable=false;S.reactionWindow=false;S.combatTimeline=null;S.combatActor="player";}
   pauseBoonClock();
   say(out + `<p class="hurt said">You did not get up.</p>`);
   saveRunNow();
@@ -9581,6 +9694,20 @@ function renderCombatLootPanel(){
   panel.innerHTML=`<div class="combat-loot-head"><div><em>Encounter resolved</em><b>Recovered</b></div><span>${items.length} find${items.length===1?"":"s"}</span></div><div class="combat-loot-items">${itemHtml}</div>${search}<div class="combat-loot-actions ${canSearch?"":"single"}">${investigate}<button class="combat-loot-btn continue" type="button" data-combat-loot-continue><b>Continue</b><span>Leave the defeated foe behind</span></button></div>`;
 }
 
+function renderCombatTimeline(){
+  const box=$("combatTimeline"),track=$("combatTimelineTrack"),summary=$("combatSpeedSummary");
+  if(!box||!track)return;
+  const f=S?.foe;
+  box.hidden=!f||!!f.defeated||over;
+  if(box.hidden){track.innerHTML="";if(summary)summary.textContent="—";return;}
+  const slots=simulateTimelineSlots(TIMELINE_VISIBLE_SLOTS);
+  track.innerHTML=slots.map(slot=>{
+    const who=slot.actor==="player"?"YOU":"FOE";
+    return `<div class="timeline-slot ${slot.actor} ${slot.current?"current":""} ${slot.injected?"injected":""}"><strong>${who}</strong><span>TURN ${slot.turn}</span></div>`;
+  }).join("");
+  if(summary)summary.textContent=`YOU ${Math.round(playerCombatSpeed())} · FOE ${Math.round(foeCombatSpeed())}`;
+}
+
 function render(){
   checkBoonExpiry();
   renderCombatHeader();
@@ -9654,13 +9781,12 @@ function render(){
     if(f.defeated){
       $("intent").classList.add("unknown");
       $("intent").classList.remove("enemy-turn");
-      $("intent").innerHTML = `<div class="intent-copy"><span class="turn-phase">Turn ${Math.max(1,Number(S.turn)||1)}</span><em>Result</em><b>Defeated</b><span class="intent-note">The foe is down.</span></div>`;
+      $("intent").innerHTML = `<div class="intent-copy"><em>Result</em><b>Defeated</b><span class="intent-note">The foe is down.</span></div>`;
     }else{
-      const enemyNow=combatActor()==="enemy";
+      const enemyNow=combatActor()==="enemy",I=enemyActionDescriptor(f),charge=enemyBackgroundChargeText(f);
       $("intent").classList.remove("unknown");
       $("intent").classList.toggle("enemy-turn",enemyNow);
-      const I = INTENTS[f.intent];
-      $("intent").innerHTML = `<div class="intent-copy"><span class="turn-phase">Turn ${Math.max(1,Number(S.turn)||1)} · ${enemyNow?"Resolving":"Your turn"}</span><em>Enemy action</em><b>${esc(I.label)}</b><span class="intent-tell">${esc(I.tell)}</span></div>`;
+      $("intent").innerHTML = `<div class="intent-copy"><em>Enemy action</em><b>${esc(I?.label||"—")}</b><span class="intent-tell">${esc(I?.tell||"")}</span>${charge?`<span class="intent-charge">${esc(charge)}</span>`:""}</div>`;
     }
     $("tell").hidden = !f.revealed;
     if(f.revealed){
@@ -9688,6 +9814,7 @@ function render(){
     $("foeStatus").innerHTML = "";
   }
 
+  renderCombatTimeline();
   renderCombatLootPanel();
   renderAbilitySheet();
   renderRestAbilityPick();
@@ -9706,7 +9833,7 @@ function render(){
     btn.querySelector("b").textContent = "Run";
     $("runSub").textContent = defeated
       ? "FOE DEFEATED\nNO ESCAPE NEEDED"
-      : S.heavyCharge>0 ? `${heavyActionName().toUpperCase()} PREPARED\nRELEASE OR ${defenceName().toUpperCase()}`
+      : S.heavyCharge>0 ? `${heavyActionName().toUpperCase()} 1/2\nRELEASE NEXT PLAYER TURN`
       : armed==="run" ? "TAP AGAIN\nTO BREAK CONTACT"
       : fatal ? `COSTS ${c} HP\nTHAT KILLS YOU`
       : c===0 ? "WILL NOT FOLLOW\nNO HP COST"
@@ -9716,7 +9843,7 @@ function render(){
   const w = equippedWeaponDef();
   $("heroStats").textContent = `STR ${effectiveStat("STR")} · CON ${effectiveStat("CON")} · DEX ${effectiveStat("DEX")} · ${w.unarmed?"unarmed":`${w.stat} weapon`}`;
   const combatPackBtn=$("btnCombatPack"),combatPackTxt=$("combatPackTxt");
-  if(combatPackBtn) combatPackBtn.disabled=!f||over||!playerTurnActive();
+  if(combatPackBtn) combatPackBtn.disabled=!f||over||!playerTurnActive()||S.heavyCharge>0;
   if(combatPackTxt){
     const bandages=S.inventory?.bandages||0;
     combatPackTxt.textContent=S.bleeding?`${bandages} bandage${bandages===1?"":"s"} · bleeding`:`${bandages} item${bandages===1?"":"s"}`;
@@ -9760,8 +9887,8 @@ function render(){
 
   renderLootHistory();
   renderEncounterWarningLocks();
-  if(f&&!f.defeated&&!over&&combatActor()==="enemy") scheduleEnemyTurn();
-  if($("btnAbilities")) $("btnAbilities").disabled = !f || over || !playerTurnActive();
+  if(f&&!f.defeated&&!over&&combatActor()==="enemy"&&!S.reactionWindow) scheduleEnemyTurn();
+  if($("btnAbilities")) $("btnAbilities").disabled = !f || over || !playerTurnActive() || S.heavyCharge>0;
   if(combatVictoryPending){
     if($("btnRun")) $("btnRun").disabled = true;
   }
@@ -9799,125 +9926,112 @@ function applyConceptChrome(){
   const seat={iconAbilities:"abilities",iconPack:"pack",iconRun:"run"};
   for(const id in seat){ const el=$(id); if(el && !el.innerHTML) el.innerHTML=uiIcon(seat[id],"glyph"); }
 }
-function actionIconName(key){ if(key==="heavy"||key==="draw"||key==="heavyfeint") return "heavy"; if(key==="guard") return "parry"; if(key==="recover") return "recover"; if(key==="sand") return "sand"; if(key==="read") return "read"; return "strike"; }
+function actionIconName(key){ if(key==="heavy") return "heavy"; if(key==="guard") return "parry"; if(key==="sand") return "sand"; if(key==="read") return "read"; if(key==="hold") return "intent"; return "strike"; }
 function intentIconName(key){ return "intent"; }
 function portraitForFoe(f){ return ""; }
 function actionBadgeText(key,counters){
-  if(key==="heavy" && S.className==="Rogue" && S.heavyCharge===0) return "Setup · no damage";
-  if(counters) return "Counters action";
-  if(key==="heavy" && S.heavyCharge===0) return "Prep 2.7×";
-  if(key==="draw") return S.heavyCharge>=2 ? "Fully drawn" : "Draw";
-  if(key==="read" && S.foe && !S.foe.readUsed){
+  if(key==="heavy"&&S.heavyCharge===0)return "1/2 · no damage";
+  if(counters)return "Counters action";
+  if(key==="read"&&S.foe&&!S.foe.readUsed){
     const reads=knowledgeReads(S.foe.key);
-    if(reads<6) return `${reads+1}/${reads<3?3:6} knowledge`;
+    if(reads<6)return `${reads+1}/${reads<3?3:6} knowledge`;
   }
   return "";
 }
-function actionSummaryText(key){
-  return actionSub(key).replace(/\s+·\s+/g,' • ').replace(/\s+—\s+/g,' • ');
-}
+function actionSummaryText(key){return actionSub(key).replace(/\s+·\s+/g,' • ').replace(/\s+—\s+/g,' • ');}
 
 function renderPad(){
-  const heavyDodge=S.heavyCharge>0&&foeDodgeActive();
-  const order=S.heavyCharge>0
-    ? (heavyDodge?["heavy","draw","guard","heavyfeint"]:["heavy","draw","guard"])
-    : ["strike","heavy","guard","recover","sand","read"];
-  $("pad").innerHTML=order.map(k=>{
+  const root=$("pad");
+  if(!root)return;
+  if(!S.foe||over||S.foe.defeated){root.innerHTML="";return;}
+
+  if(enemyReactionWindowOpen()){
+    const order=["defend","hold"];
+    root.innerHTML=order.map(k=>{
+      const token=`reaction:${k}`,isArmed=armed===token;
+      const icon=k==="defend"?"guard":"intent";
+      const cls=k==="defend"?"guard":"holdreaction";
+      return `<button class="act ${cls} ${isArmed?"armed":""}" data-reaction="${k}"><span class="act-icon">${uiIcon(icon)}</span><span class="act-copy"><b>${esc(reactionLabel(k))}</b><span class="sub">${esc(isArmed?"Tap again to commit":reactionSub(k))}</span>${k==="defend"?`<span class="act-badge">Reaction</span>`:""}</span></button>`;
+    }).join("");
+    return;
+  }
+
+  if(enemyTurnActive()){
+    root.innerHTML=`<button class="act wide" disabled><span class="act-icon">${uiIcon("intent")}</span><span class="act-copy"><b>Enemy turn</b><span class="sub">${esc(enemyActionDescriptor()?.label||"action")} is resolving</span></span></button>`;
+    return;
+  }
+
+  const order=S.heavyCharge>0?["heavy"]:["strike","heavy","sand","read"];
+  root.innerHTML=order.map(k=>{
     const cost=actionCost(k);
-    const fullyDrawn=k==="draw"&&S.heavyCharge>=2;
     const readLocked=k==="read"&&S.foe&&(S.foe.readUsed||knowledgeReads(S.foe.key)>=6);
-    const recoverEmpty=k==="recover"&&S.hp>=S.hpMax&&S.stamina>=S.staminaMax;
-    const feintInvalid=k==="heavyfeint"&&(!S.foe||!foeDodgeActive()||S.heavyCharge<=0);
-    const off=!S.foe||over||!playerTurnActive()||fullyDrawn||readLocked||recoverEmpty||feintInvalid||cost>S.stamina;
+    const off=!playerTurnActive()||readLocked||cost>S.stamina;
     const counters=S.foe&&actionCounters(k),isArmed=armed===k;
     let sub=actionSummaryText(k);
-    if(isArmed) sub="Tap again to commit";
-    else if(S.foe&&cost>S.stamina) sub=`${sub} • short`;
-    const wide=S.heavyCharge>0&&order.length===3&&k==="guard"?"wide":"";
+    if(isArmed)sub="Tap again to commit";
+    else if(cost>S.stamina)sub=`${sub} • short`;
+    const wide=S.heavyCharge>0?"wide":"";
     const badge=actionBadgeText(k,counters);
     return `<button class="act ${k} ${wide} ${isArmed?"armed":""}" data-k="${k}" ${off?"disabled":""}><span class="act-icon">${uiIcon(actionIconName(k))}</span><span class="act-copy"><b>${esc(actionLabel(k))}</b><span class="sub">${esc(sub)}</span>${badge?`<span class="act-badge">${esc(badge)}</span>`:""}</span></button>`;
   }).join("");
 }
 
-// Per-action metric pairs (design ported from the parallel GPT prototype).
-// Damage figures use pinned midpoint swings — dmgStrike/dmgHeavy roll a random
-// swing internally, and an unpinned call re-rolls on every render, so the
-// number would visibly jitter. The GPT build has that bug; this port does not.
 function combatPreviewMetrics(key){
-  if(!S.foe) return [];
+  if(!S.foe)return [];
   const metric=(label,value,tone="")=>({label,value,tone});
   try{
     if(key==="strike"){
-      const st=strikeStage();
-      const hit=foeDodgeActive()?65:100;
-      return [metric("Hit chance",`${hit}%`,hit<100?"teal":"good"),
-              metric("Est. damage",`~${dmgStrike(st, st===0?2:st===1?2.5:3)}`,"gold")];
+      const st=strikeStage(),hit=foeDodgeActive()?65:100;
+      return [metric("Hit chance",`${hit}%`,hit<100?"teal":"good"),metric("Est. damage",`~${dmgStrike(st,st===0?2:st===1?2.5:3)}`,"gold")];
     }
     if(key==="heavy"){
-      if(S.heavyCharge===0) return [metric("Stamina",`-${actionCost("heavy")}`,"gold"),metric("Prepares","2.7×","gold")];
-      const hit=foeDodgeActive()?30:100;
-      const base=dmgHeavy(S.heavyCharge,3),shown=S.className==="Rogue"?criticalDamageFromBase(base,BACKSTAB_CRIT_BONUS_PCT):base;
-      return [metric("Hit chance",`${hit}%`,hit<100?"warn":"good"),
-              metric("Est. damage",`~${shown}`,"gold")];
+      if(S.heavyCharge===0)return [metric("Stamina",`-${actionCost("heavy")}`,"gold"),metric("Stage","1/2","gold")];
+      const hit=foeDodgeActive()?30:100,base=dmgHeavy(1,3),shown=S.className==="Rogue"?criticalDamageFromBase(base,BACKSTAB_CRIT_BONUS_PCT):base;
+      return [metric("Hit chance",`${hit}%`,hit<100?"warn":"good"),metric("Est. damage",`~${shown}`,"gold")];
     }
-    if(key==="draw") return [metric("Stamina","-2","gold"),metric("Prepared","4.7×","gold")];
-    if(key==="guard"){
-      const perfect=perfectDefenceReady(),inc=incoming(),capacity=Math.max(Number(S.protection)||0,protectionCapacity());
-      const hp=perfect?0:Math.max(0,inc-Math.min(inc,capacity));
-      return [metric("Protection",perfect?"Perfect":`+${protectionCapacity()}`,"good"),metric("Est. HP",hp?`-${hp}`:"0",hp?"warn":"good")];
-    }
-    if(key==="recover"){
-      const st=Math.min(3,Math.max(0,S.staminaMax-S.stamina));
-      const hp=Math.min(2,Math.max(0,S.hpMax-S.hp));
-      return [metric("Stamina",`+${st}`,"good"),metric("HP",`+${hp}`,"good")];
-    }
-    if(key==="sand"){
-      const back=incoming();
-      return [metric("Blind chance",`${Math.round(sandChance()*100)}%`,"gold"),metric("Est. taken",`${back||0}`,back?"warn":"good")];
-    }
+    if(key==="sand")return [metric("Blind chance",`${Math.round(sandChance()*100)}%`,"gold"),metric("Stamina",`-${actionCost("sand")}`,"teal")];
     if(key==="read"){
-      const reads=knowledgeReads(S.foe.key), cost=actionCost("read");
+      const reads=knowledgeReads(S.foe.key),cost=actionCost("read");
       return [metric("Stamina",cost?`-${cost}`:"0","teal"),metric("Knowledge",`${Math.min(reads+1,6)}/${reads<3?3:6}`,"teal")];
     }
-    if(key==="heavyfeint") return [metric("Stamina","0","teal"),metric(heavyActionName(),"kept","gold")];
   }catch(_e){}
   return [];
 }
 
 function renderPreview(){
-  const p = $("preview");
-  if(!S.foe || over || !armed || armed === "run"){
-    p.classList.add("idle");
-    p.classList.remove("has-metrics");
-    const idleLine = !S.foe ? "Nothing in front of you."
-      : combatVictoryPending ? "The final blow lands. The foe is down."
-      : combatActor()==="enemy" ? `Enemy turn • ${INTENTS[S.foe.intent]?.label||"action"} is resolving.`
-      : S.heavyCharge >= 2 ? `${heavyActionName()} fully prepared • Release it, or ${defenceName()} to abandon it.`
-      : S.heavyCharge === 1 ? `${heavyActionName()} prepared • Release it, commit further, or ${defenceName()} to abandon it.`
-      : "Choose an action above. Tap once to preview it, then tap again to commit.";
-    p.innerHTML = `<div class="ttl">Selected action</div><div class="preview-body"><span class="preview-icon">${uiIcon("strike")}</span><div class="preview-copy"><div class="pick"><span class="name">Awaiting choice</span></div><div class="line">${idleLine}</div></div></div>`;
+  const p=$("preview");
+  if(!p)return;
+  const reactionToken=typeof armed==="string"&&armed.startsWith("reaction:")?armed.slice(9):null;
+  if(enemyReactionWindowOpen()){
+    if(!reactionToken){
+      p.classList.add("idle");p.classList.remove("has-metrics");
+      p.innerHTML=`<div class="ttl">Reaction</div><div class="preview-body"><span class="preview-icon">${uiIcon("guard")}</span><div class="preview-copy"><div class="pick"><span class="name">Reaction available</span></div><div class="line">${esc(enemyActionDescriptor()?.label||"Enemy attack")} is waiting. Defend now, or hold your one Reaction for a later enemy attack before your next player turn.</div></div></div>`;
+      return;
+    }
+    const key=reactionToken,label=reactionLabel(key),detail=reactionPreview(key);
+    const metrics=key==="defend"?[{label:"Protection",value:perfectDefenceReady()?"Perfect":`+${protectionCapacity()}`,tone:"good"},{label:"Incoming",value:`~${incoming()}`,tone:incoming()?"warn":"good"}]:[{label:"Reaction",value:"Kept",tone:"teal"},{label:"Incoming",value:`~${incoming()}`,tone:incoming()?"warn":"good"}];
+    p.classList.remove("idle");p.classList.add("has-metrics");
+    p.innerHTML=`<div class="ttl">Reaction</div><div class="preview-body"><span class="preview-icon">${uiIcon(key==="defend"?"guard":"intent")}</span><div class="preview-copy"><div class="pick"><span class="name">${esc(label)}</span><span class="cost">${esc(reactionSub(key))}</span></div><div class="line">${detail}</div></div><div class="preview-metrics">${metrics.map(m=>`<div class="preview-metric ${m.tone}"><span>${esc(m.label)}</span><b>${esc(m.value)}</b></div>`).join("")}</div></div>`;
+    return;
+  }
+
+  if(!S.foe||over||!armed||armed==="run"){
+    p.classList.add("idle");p.classList.remove("has-metrics");
+    const idleLine=!S.foe?"Nothing in front of you."
+      :combatVictoryPending?"The final blow lands. The foe is down."
+      :enemyTurnActive()?`Enemy turn • ${enemyActionDescriptor()?.label||"action"} is resolving.`
+      :S.heavyCharge===1?`${heavyActionName()} 1/2 is committed • your next player action releases it.`
+      :"Choose an action above. Tap once to preview it, then tap again to commit.";
+    p.innerHTML=`<div class="ttl">Selected action</div><div class="preview-body"><span class="preview-icon">${uiIcon("strike")}</span><div class="preview-copy"><div class="pick"><span class="name">Awaiting choice</span></div><div class="line">${idleLine}</div></div></div>`;
     return;
   }
   p.classList.remove("idle");
-  const badge = actionBadgeText(armed, actionCounters(armed));
-  let detail = "";
-  try{ detail = (ACTIONS[armed] && typeof ACTIONS[armed].preview === "function") ? ACTIONS[armed].preview() : ""; }
-  catch(err){ detail = ""; }
-  const metrics=combatPreviewMetrics(armed);
-  const metricHtml=metrics.length
-    ? `<div class="preview-metrics">${metrics.map(m=>`<div class="preview-metric ${m.tone||""}"><span>${esc(m.label)}</span><b>${esc(m.value)}</b></div>`).join("")}</div>`
-    : "";
+  const badge=actionBadgeText(armed,actionCounters(armed));
+  let detail="";try{detail=(ACTIONS[armed]&&typeof ACTIONS[armed].preview==="function")?ACTIONS[armed].preview():"";}catch(_e){}
+  const metrics=combatPreviewMetrics(armed),metricHtml=metrics.length?`<div class="preview-metrics">${metrics.map(m=>`<div class="preview-metric ${m.tone||""}"><span>${esc(m.label)}</span><b>${esc(m.value)}</b></div>`).join("")}</div>`:"";
   p.classList.toggle("has-metrics",metrics.length>0);
-  p.innerHTML = `<div class="ttl">Selected action</div><div class="preview-body">`
-    + `<span class="preview-icon">${uiIcon(actionIconName(armed))}</span>`
-    + `<div class="preview-copy"><div class="pick"><span class="name">${esc(actionLabel(armed))}</span>`
-    + `<span class="cost">${esc(actionSummaryText(armed))}</span></div>`
-    + (detail ? `<div class="line">${detail}</div>` : "")
-    + (badge ? `<div class="counters">${esc(badge)}</div>` : "")
-    + `</div>${metricHtml}</div>`;
+  p.innerHTML=`<div class="ttl">Selected action</div><div class="preview-body"><span class="preview-icon">${uiIcon(actionIconName(armed))}</span><div class="preview-copy"><div class="pick"><span class="name">${esc(actionLabel(armed))}</span><span class="cost">${esc(actionSummaryText(armed))}</span></div>${detail?`<div class="line">${detail}</div>`:""}${badge?`<div class="counters">${esc(badge)}</div>`:""}</div>${metricHtml}</div>`;
 }
-
-
 
 /* ============================================================
    SESSION 7.5 — vertical slice extension (v0.080)
@@ -10755,7 +10869,7 @@ function distributeGeneratedAttributes(points,pool){
 }
 function generatedStatsLines(item){
   const lines=[];
-  if(item.kind==="weapon") lines.push(`${item.stat} scaling`,`Weapon contribution +${Number(item.weaponContribution).toFixed(1)}`);
+  if(item.kind==="weapon") lines.push(`${item.stat} scaling`,`Weapon contribution +${Number(item.weaponContribution).toFixed(1)}`,`Speed ${weaponCombatSpeed(item)}`);
   else if(item.armor) lines.push(`Armor +${item.armor}`);
   else lines.push(...STAT_KEYS.filter(stat=>item.attributes?.[stat]).map(stat=>`${stat} +${item.attributes[stat]}`));
   if(item.family==="shield") lines.push(`Defensive stance Protection +${shieldProtectionBonusFromItem(item)}`);
@@ -10976,13 +11090,13 @@ const LANG_DICT = {Cor:"I", amina:"want", mi:"one", mattra:"meat", keth:"open", 
 const ALTAR_SENTENCE = ["Cor","amina","mi","mattra"];
 
 const BOSS_PROFILE = {
-  id:"warren_boss", name:"prototype warren boss", unlock:0, hp:78, atk:9, xp:32, danger:3, awareness:40,
+  id:"warren_boss", name:"prototype warren boss", unlock:0, hp:78, atk:9, xp:32, danger:3, awareness:40, speed:95,
   intents:{quick:30,heavy:25,dodge:10,guard:25,recover:10}, recoverAt:0.35,
   hurtIntents:{quick:20,heavy:50,dodge:5,guard:10,recover:15}, hurtAt:0.50,
   weakness:{id:"rage_opening",txt:"Its second wind becomes reckless. Heavy commitment is easier to punish once it is bloodied.",eff:{counterBonus:1.40,offBalanceBonus:1.40}}
 };
 const MID_BOSS_PROFILE={
-  id:"warren_shaman",name:"goblin depth-shaman",unlock:0,hp:62,atk:8,xp:26,danger:3,awareness:32,
+  id:"warren_shaman",name:"goblin depth-shaman",unlock:0,hp:62,atk:8,xp:26,danger:3,awareness:32,speed:100,
   intents:{quick:18,heavy:22,dodge:12,guard:14,recover:34},recoverAt:.62,
   hurtIntents:{quick:24,heavy:32,dodge:8,guard:12,recover:24},hurtAt:.5,
   weakness:{id:"broken_ritual",txt:"Pressure interrupts its ritual recovery and leaves it exposed.",eff:{counterBonus:1.25}}
@@ -11052,7 +11166,7 @@ creatorDraft.className = creatorDraft.className || null;
 function classAbilityDisabled(id){
   const sk=abilityState(id); if(!sk||sk.cur<=0||!S.foe||over||!playerTurnActive()) return true;
   if(["layonhands","mend"].includes(id) && (S.abilityQuickUsed||S.hp>=S.hpMax)) return true;
-  if(["holdfast","slip","ward"].includes(id) && INTENTS[S.foe.intent].kind!=="attack") return true;
+  if(["holdfast","slip","ward"].includes(id) && enemyActionDescriptor()?.kind!=="attack") return true;
   return false;
 }
 
@@ -11064,18 +11178,18 @@ function useQuickHeal(id, amount){
 }
 function useNegateAbility(id, extraStamina=0){
   const sk=abilityState(id);
-  if(!playerTurnActive()||!sk||sk.cur<=0||INTENTS[S.foe.intent].kind!=="attack")return;
+  if(!playerTurnActive()||!sk||sk.cur<=0||enemyActionDescriptor()?.kind!=="attack")return;
   sk.cur--;closeAbilitySheet();armed=null;
   S.strikeChain=0;S.defenceChain=0;S.defencePrepared=null;S.heavyCharge=0;
   S.negateNextAttack={name:abilityDisplayName(id),extraStamina:Math.max(0,Number(extraStamina)||0),preserveHeavy:false};
-  say(`<p class="good"><b>${esc(abilityDisplayName(id))}.</b> Prepared to completely negate the committed <b>${esc(INTENTS[S.foe.intent].label)}</b> when it resolves.</p>`);
+  say(`<p class="good"><b>${esc(abilityDisplayName(id))}.</b> Prepared to completely negate the committed <b>${esc(enemyActionDescriptor()?.label||"attack")}</b> when it resolves.</p>`);
   const bleed=tickCombatBleeding();if(!bleed.alive)return;if(bleed.html)say(bleed.html);
   advanceFromPlayerTurn();
 }
 
 ACTIONS.feint={
   label:"Feint I",sub:"0 stamina · DEX ability",cost:0,
-  preview(){const d=Math.max(1,Math.round((effectiveStat("DEX")*1.35+2)*(foeGuardActive()?1.5:1)*openingBonus()));const back=incoming();return `<span class="dmg">~${d} damage</span> · DEX · Guard cannot soak it${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;},
+  preview(){const d=Math.max(1,Math.round((effectiveStat("DEX")*1.35+2)*(foeGuardActive()?1.5:1)*openingBonus()));const back=incoming();return `<span class="dmg">~${d} damage</span> · DEX · Guard cannot soak it${back?` · committed enemy attack: <span class="bad">~${back}</span> when its FOE turn arrives`:""}`;},
   run(){const sk=abilityState("feint");if(!sk||sk.cur<=0)return `<p class="note">Feint is spent.</p>`;sk.cur--;let d=Math.max(1,Math.round((effectiveStat("DEX")*1.35+ri(0,4))*(foeGuardActive()?1.5:1)*openingBonus()));if(foeDodgeActive()&&rnd()<0.20)return `<p>The feint drew a reaction, but the follow-up still missed.</p>`;const fx=applyOutgoingEquipmentEffects(d);S.foe.hp-=fx.damage;return `<p>Sold the wrong line and cut through the opening for <b>${fx.damage}</b>.</p>${fx.html}${foeGuardActive()?`<p class="good">Its Guard became the opening instead of the answer.</p>`:""}`;}
 };
 ACTIONS.dirtytrick={
@@ -11085,7 +11199,7 @@ ACTIONS.dirtytrick={
 };
 ACTIONS.arcbolt={
   label:"Arc Bolt I",sub:"0 stamina · INT Arcane",cost:0,
-  preview(){const d=Math.max(1,Math.round(effectiveStat("INT")*1.25+4));const back=incoming();return `<span class="dmg">~${d} Arcane</span> · INT · ignores ordinary Guard${foeDodgeActive()?` · <span class="bad">20% miss chance</span>`:""}${back?` · take <span class="bad">~${back}</span> if it survives`:""}`;},
+  preview(){const d=Math.max(1,Math.round(effectiveStat("INT")*1.25+4));const back=incoming();return `<span class="dmg">~${d} Arcane</span> · INT · ignores ordinary Guard${foeDodgeActive()?` · <span class="bad">20% miss chance</span>`:""}${back?` · committed enemy attack: <span class="bad">~${back}</span> when its FOE turn arrives`:""}`;},
   run(){const sk=abilityState("arcbolt");if(!sk||sk.cur<=0)return `<p class="note">Arc Bolt is spent.</p>`;sk.cur--;if(foeDodgeActive()&&rnd()<0.20)return `<p>The bolt tore through empty air as the ${esc(S.foe.name)} slipped aside.</p>`;const d=Math.max(1,Math.round((effectiveStat("INT")*1.25+ri(2,6))*openingBonus())),fx=applyOutgoingEquipmentEffects(d);S.foe.hp-=fx.damage;return `<p>Arcane force struck the ${esc(S.foe.name)} for <b>${fx.damage}</b>.</p>${fx.html}${foeGuardActive()?`<p class="good">Its ordinary Guard did nothing against the spell.</p>`:""}`;}
 };
 // ----- class weapon scaling and defensive identity -----
@@ -11641,49 +11755,12 @@ function weaknessCollapsed(f=S?.foe){
 // The first Read now sets its one-turn weakness presentation directly in ACTIONS.read.run.
 
 
-// Recover is a neutral tempo action: useful when the foe cedes initiative, risky
-// when it is actually attacking. It intentionally does not stack its heal yet.
-ACTIONS.recover={
-  label:"Recover",
-  sub(){return "+2 stamina · +2 HP";},
-  cost:0,
-  preview(){
-    const stam=Math.min(2,Math.max(0,S.staminaMax-S.stamina));
-    const heal=Math.min(2,Math.max(0,S.hpMax-S.hp));
-    const back=incoming();
-    let t=`Recover <span class="cost">${stam} stamina</span> and <span class="dmg">${heal} HP</span> · consumes your turn`;
-    if(back)t+=` · <span class="bad">you still take ~${back} if it attacks</span>`;
-    else t+=` · <span class="dmg">safe breathing room: it is not attacking</span>`;
-    return t;
-  },
-  run(){
-    const beforeHp=S.hp,beforeSt=S.stamina;
-    S.stamina=Math.min(S.staminaMax,S.stamina+2);
-    S.hp=Math.min(S.hpMax,S.hp+2);
-    const healed=S.hp-beforeHp,restored=S.stamina-beforeSt;
-    if(healed>0)triggerHealFx(healed,["combat"]);
-    return `<p class="good">Caught your breath. Recovered <b>${restored} Stamina</b>${healed?` and <b>${healed} HP</b>`:""}.</p>`;
-  }
-};
+// Timeline V2 retires the dedicated Recover and prepared-Heavy Feint pad actions.
+// Basic Strike is always available at 0 Stamina; Stamina returns automatically
+// as enemy timeline turns pass. Committed Heavy/Backstab/Arcane Bolt is a strict
+// two-player-turn sequence: setup 1/2, then release 2/2.
 
-// A prepared Heavy can answer a committed Dodge with tempo rather than another
-// RNG check. Feint spends that Dodge on empty space; the next enemy action is
-// forced to be something other than Dodge while the Heavy remains prepared.
-ACTIONS.heavyfeint={
-  label:"Feint",
-  sub(){return `0 stamina · preserve ${heavyActionName()}`;},
-  cost:0,
-  preview(){return `Show the committed blow without releasing it · <span class="cost">0 stamina</span> · preserve the ${heavyActionName()} · force the foe's next action to be <span class="dmg">non-Dodge</span>`;},
-  run(){
-    if(!S.foe||!foeDodgeActive()||S.heavyCharge<=0)return `<p class="note">There is nothing useful to draw out.</p>`;
-    S.foe.forceNonDodge=true;
-    S.foe.feintBaitedDodge=true;
-    return `<p class="good">Feinted the release. The committed Dodge is drawn onto empty space, but your ${heavyActionName()} stays ready.</p>`;
-  }
-};
-
-// Six normal choices fit cleanly in the 2x3 pad. Heavy commitment remains focused;
-// Feint appears only when Dodge is specifically frustrating the prepared blow.
+// The normal pad now stays offensive/utility-focused. Defence appears only during an enemy Reaction window.
 
 // Run pressure is now uncertainty rather than an HP surcharge. Attempts reset
 // on a short 60-fathom pressure band, independent of the 500-fathom biome.
@@ -12280,7 +12357,7 @@ const INFO_CHAPTERS = [
 let infoChapterId="skill-checks";
 function infoChapterHtml(id){
   if(id==="item-value") return `<h3>Items, iLv &amp; Coinage</h3><p>Fathom sets the expected power of the world. Rarity shifts a generated item's target, but the <b>finished properties</b> decide its real Item Level.</p><div class="info-step"><b>Intrinsic Value:</b> the internal mechanical cost of the properties actually on the item. On a full 1.0 slot, roughly 1 Intrinsic Value corresponds to 1 iLv.</div><div class="info-step"><b>Slot coefficients:</b> smaller slots carry less raw power. A Ring/Earring uses 0.40; Cape/Belt/Light/Pendant 0.50; Hat/Gloves/Boots 0.60; Bottoms 0.80; full hand/Top slots 1.00. Two-handed weapons use two hand slots.</div><div class="info-step"><b>Best-fit generation:</b> the generator combines legitimate slot-native properties near its target instead of rounding one large stat and repeatedly landing on the same iLv shelf.</div><div class="info-step"><b>Critical Chance gear:</b> ordinary generated Crit Chance is restricted to weapons, gloves and rings and rolls in 0.25% steps. Ordinary eligible pieces can reach 2.5%; daggers can reach 5%. Those are ceilings, not automatic rolls: higher rarity makes high Crit rolls increasingly likely, while Common gear usually lands near the low end.</div><div class="info-step"><b>Appraised coin value:</b> appraisal starts from actual Intrinsic Value, then applies a restrained rarity/scarcity premium. A merchant may offer less or charge more; CHA modifies the transaction, not the item's combat power.</div><div class="info-step"><b>Bounded effects:</b> Boss Damage, Reflect and future Lifesteal retain item-stamped caps. Critical Damage is instead governed by WIS-derived Precision and becomes progressively more expensive to raise.</div><div class="info-example"><b>Current live generated affixes</b><br>Critical Chance · Boss Damage · Damage Reflect. Lifesteal is supported by the combat/value engine but intentionally switched off in ordinary generation while recovery pressure is being tested.</div>`;
-  if(id==="combat-stats") return `<h3>Combat stats</h3><p>The six attributes now have distinct combat jobs. None of these derived values decay merely because you descend farther.</p><div class="info-step"><b>Turns &amp; Enemy Action:</b> The turn number covers the whole exchange: your response and the foe's committed action resolving are both the same numbered turn. The counter advances only after that exchange finishes. The large red combat panel shows the foe's <b>current committed action</b> — the thing you are reacting to now. If it says Quick Attack, you may Parry before that attack resolves. If it says Guard or Dodge, that defence already affects attacks you make during this response. After you commit, the foe completes that action during its short resolution beat, then chooses a new action for your next response. Surprise can grant consecutive turns, so the sequence is not permanently forced to alternate.</div><div class="info-step"><b>One action, not two forecasts:</b> Guard and Dodge are no longer shown as separate Guarding/Dodging tags beside a different future action. Persistent conditions such as Bleeding, Blinded and Off-Balance still appear as status tags because they genuinely continue independently of the current enemy action.</div><div class="info-step"><b>CON → Protection:</b> CON still sets Max HP at 6 HP per point. A normal Guard, Parry, Ward or Brace also prepares Protection equal to your effective CON. A shield adds a flat Protection bonus derived from the shield itself.</div><div class="info-step"><b>Protection (PR):</b> 1 Protection absorbs 1 damage from the next incoming attack <em>after Armor mitigation</em>. In combat the active amount is shown as <b>PR</b> beside HP. Any damage above Protection reaches HP. After that attack resolves, every unused point of Protection disappears.</div><div class="info-example"><b>Example</b><br>50 incoming damage against 30 Protection: <b>30</b> is absorbed and <b>20 HP</b> is lost. The combat bar shows a gray -30 and a red -20. The log names the source, for example <b>Parry Protection absorbed 30 damage</b>. If the attack were only 20, only gray -20 appears and the unused 10 expires. A short aftermath beat leaves those cues visible before your next turn begins.</div><div class="info-step"><b>Defensive identities:</b> Votary uses Guard with a shield and Parry without one. Rogue uses Parry. Wizard uses Ward while wielding a wand and Brace with a two-handed staff. Perfect Defence still blocks the whole committed attack and counters.</div><div class="info-step"><b>DEX → Critical Chance:</b> 10 DEX is the neutral baseline and grants 0 Critical Chance. Every effective DEX above 10 gives +${DEX_CRIT_PER_POINT}% Critical Chance, up to a real ${DEX_CRIT_CAP_PCT}% contribution from DEX (reached at 210 effective DEX). DEX below 10 never creates negative Crit Chance. Equipment Crit Chance can push the total above that attribute cap.</div><div class="info-step"><b>WIS → Precision:</b> 10 WIS is the neutral baseline and grants 0 Precision. Every effective WIS above 10 grants 1 Precision; WIS below 10 never creates negative Precision. Critical hits start at ${BASE_CRIT_DAMAGE_PCT}% damage. The first +50 percentage points of Critical Damage costs ${PRECISION_FIRST_50_COST} Precision; each later +50-point band doubles in cost: 1000, 2000, 4000 and so on. Precision therefore never stops progressing, but base STR/DEX/INT damage remains the main damage axis.</div><div class="info-step"><b>Backstab:</b> Rogue Backstab has two explicit stages. <b>Prepare Backstab</b> spends the setup turn and deals no damage. <b>Release Backstab</b> is the actual attack: it is a guaranteed critical and adds +${BACKSTAB_CRIT_BONUS_PCT} percentage points to the Critical Damage produced by Precision. Its Crit Chance is irrelevant for that release.</div><div class="info-equation">Crit Chance = min(50%, max(0, DEX − 10) × 0.25%) + equipped Crit Chance</div><div class="info-equation">Normal crit = Precision-derived Critical Damage · Backstab = that value + 25pp</div>`;
+  if(id==="combat-stats") return `<h3>Combat stats</h3><p>Combat now runs on a visible Turn Timeline. Every YOU or FOE node is one real global turn, and the queue can naturally contain consecutive turns for either side.</p><div class="info-step"><b>Turn Timeline &amp; Speed:</b> The timeline shows the next ${TIMELINE_VISIBLE_SLOTS} action slots. Higher Speed schedules that combatant's next turn sooner. Speed is currently driven mainly by your equipped weapon and by the enemy archetype — not by DEX. Daggers are fast, balanced one-handed weapons sit near the middle, and two-handed great weapons are slower. Surprise and future special boss actions can inject extra turns without changing the underlying Speed rules.</div><div class="info-step"><b>Enemy Action:</b> The large red panel shows the foe's <b>current committed action</b>. The timeline tells you <b>when</b> the foe gets the slot that advances or resolves it. If the panel says Guard or Dodge, that action is already what you are dealing with while choosing your response. If it says Heavy Attack 1/2, the foe is committed to spending its next FOE turn winding up rather than dealing damage.</div><div class="info-step"><b>Committed attacks:</b> Heavy-type attacks cost two turns belonging to the attacker. Votary uses <b>Wind Up Heavy 1/2 → Release Heavy 2/2</b>. Rogue uses <b>Prepare Backstab 1/2 → Release Backstab 2/2</b>. Wizard uses <b>Focus 1/2 → Release Arcane Bolt 2/2</b>. Enemy Heavy follows the same rule: its first FOE turn winds up and its next FOE turn releases. Other actors may act between those two turns.</div><div class="info-step"><b>Reaction:</b> Enemy attacks do not consume your normal action. Between two of your Player Turns you have <b>one defensive Reaction</b>. When an enemy attack is about to resolve, you may spend it on Guard, Parry, Ward or Brace, or <b>Hold Reaction</b> and take that hit so the Reaction remains available for a later enemy attack before your next Player Turn.</div><div class="info-step"><b>CON → Protection:</b> CON still sets Max HP at 6 HP per point. A normal defensive Reaction prepares Protection equal to your effective CON, plus applicable equipment such as a shield. <b>Set Your Feet</b> currently increases Protection generated by a defensive Reaction by 20%.</div><div class="info-step"><b>Protection (PR):</b> 1 Protection absorbs 1 damage <em>after Armor mitigation</em>. Protection remains until your next actual Player Turn, so one Reaction can defend against several consecutive enemy attacks. When your next Player Turn begins, any unused Protection expires.</div><div class="info-example"><b>Example</b><br>You prepare <b>30 PR</b> and the timeline gives the foe two attacks before you act again. The first deals 20 damage: gray <b>-20</b>, leaving 10 PR. The second deals 20: gray <b>-10</b> and red <b>-10 HP</b>. When your next Player Turn begins, any Protection still left would expire. The log names its source, for example <b>Parry Protection absorbed 20 damage</b>.</div><div class="info-step"><b>Defensive identities:</b> Votary uses Guard with a shield and Parry without one. Rogue uses Parry. Wizard uses Ward with a wand and Brace with a two-handed staff. Perfect Defence remains exceptional: it negates that attack and counters rather than creating an unlimited perfect Protection pool.</div><div class="info-step"><b>Stamina:</b> Basic Strike costs <b>0 Stamina</b>, so receiving a Player Turn always gives you an offensive option. Heavy-type setup, Sand Throw and other stronger choices can still spend Stamina. The dedicated Recover combat action is retired; currently you recover <b>${STAMINA_PER_ENEMY_TURN} Stamina after each enemy timeline turn</b>. Defensive Reactions do not restore Stamina by default.</div><div class="info-step"><b>DEX → Critical Chance:</b> 10 DEX is the neutral baseline and grants 0 Critical Chance. Every effective DEX above 10 gives +${DEX_CRIT_PER_POINT}% Critical Chance, up to a real ${DEX_CRIT_CAP_PCT}% contribution from DEX (reached at 210 effective DEX). DEX below 10 never creates negative Crit Chance. Equipment Crit Chance can push the total above that attribute cap.</div><div class="info-step"><b>WIS → Precision:</b> 10 WIS is the neutral baseline and grants 0 Precision. Every effective WIS above 10 grants 1 Precision; WIS below 10 never creates negative Precision. Critical hits start at ${BASE_CRIT_DAMAGE_PCT}% damage. The first +50 percentage points of Critical Damage costs ${PRECISION_FIRST_50_COST} Precision; each later +50-point band doubles in cost: 1000, 2000, 4000 and so on.</div><div class="info-step"><b>Backstab:</b> Backstab's release is a guaranteed critical and adds +${BACKSTAB_CRIT_BONUS_PCT} percentage points to the Critical Damage produced by Precision. Its ordinary Crit Chance is irrelevant for that release.</div><div class="info-equation">Crit Chance = min(50%, max(0, DEX − 10) × 0.25%) + equipped Crit Chance</div><div class="info-equation">Normal crit = Precision-derived Critical Damage · Backstab = that value + 25pp</div>`;
   if(id==="aptitude") return `<h3>Attributes &amp; aptitude</h3><p>Attributes have direct combat jobs and also feed Skills. Skill checks compress enormous endless-game attributes before they touch the d100.</p><div class="info-step"><b>Combat jobs:</b> STR = physical power · CON = Max HP + Protection · DEX = finesse + Critical Chance · INT = arcane power · WIS above 10 = Precision + awareness · CHA = people/economy.</div><div class="info-step"><b>1. Find the governing attribute.</b><br>Investigation uses INT. Perception uses WIS. Stealth uses DEX, and so on.</div><div class="info-step"><b>2. Convert it into aptitude.</b><br>Every doubling of that attribute changes aptitude by about <b>${SKILL_APTITUDE_PER_DOUBLING} Rating</b>. Attribute 10 is about +0; 20 about +8; 40 about +16; 80 about +24.</div><div class="info-step"><b>3. Add aptitude to training.</b><br>Skill Rank remains the main expertise number. Class proficiency and special circumstances are added afterward.</div><div class="info-equation">Effective Rating = Skill Rank + attribute aptitude + proficiency + circumstance</div><p>This keeps attributes relevant without letting a future 2,000 INT become a ridiculous +2,000 on the die.</p>`;
   if(id==="practice") return `<h3>Practice &amp; Rank</h3><p>Skills are long-term expertise. They improve by facing meaningful situations, not by repeating a harmless button forever.</p><div class="info-step"><b>Growing Rank requirement:</b> Rank 0 starts at ${skillXpNeeded(0)} XP to advance. Each later Rank asks for ${SKILL_XP_PER_RANK_GROWTH} more XP than the previous one.</div><div class="info-step"><b>Balanced success:</b> begins around ${SKILL_BASE_PRACTICE} XP. Practice rewards rise slowly with Skill Rank so deep expertise still moves, but the requirement rises faster.</div><div class="info-step"><b>Difficult success:</b> gives more practice. Easier uncertain work gives less. Automatic/trivial checks give none.</div><div class="info-step"><b>Failure:</b> a credible failed attempt can teach a smaller amount, but failure XP fades toward zero at extreme odds so hopeless attempts are poor training.</div><div class="info-step"><b>Against the Odds:</b> a success shown at <b>${SKILL_AGAINST_ODDS_PCT}% or lower</b> earns roughly double that difficult success's XP plus a small extra bonus.</div><div class="info-step"><b>No reroll farming:</b> the same generated opportunity has one practice identity and cannot award practice repeatedly.</div><div class="info-equation">XP to next Rank = ${SKILL_XP_BASE} + (${SKILL_XP_PER_RANK_GROWTH} × current Rank)</div><p>The Rank number can continue forever. Higher Rank lowers the roll you need against the same challenge until old obstacles become automatic.</p>`;
   return `<h3>Skill checks</h3><p>Skill bonuses do not get added to the d100. They change <b>how low a number you need to roll</b>.</p><div class="info-step"><b>1. Build your Effective Rating.</b><br>Skill Rank + attribute aptitude + class proficiency + circumstances.</div><div class="info-step"><b>2. Compare it with the challenge.</b><br>The game compares your Effective Rating with that object's fixed Challenge Rating.</div><div class="info-step"><b>3. That comparison becomes a target.</b><br>More Rating means a better chance and therefore a lower <b>Need X+</b> number.</div><div class="info-step"><b>4. Roll d100.</b><br>Meet or beat the target to succeed. If it says <b>Need 47+</b>, 47–100 succeeds and 1–46 fails.</div><div class="info-example"><b>Example</b><br>Investigation Rank 20 + INT aptitude 16 = Rating 36. Against Challenge Rating 21, you are +15 ahead: about a 76% chance, shown as <b>Need 25+ on d100</b>.</div><div class="info-step"><b>Huge advantage?</b> Old trivial obstacles eventually auto-succeed with no die roll. Huge disadvantage can become an automatic failure.</div><details class="info-details"><summary>Under the hood</summary><p>Equal Rating is 50%. A +${SKILL_RATING_SPREAD} Rating gap is about 91%; −${SKILL_RATING_SPREAD} is about 9%. The exact probability curve is <code>P = 1 / (1 + 10^(-(Skill − Challenge)/${SKILL_RATING_SPREAD}))</code>. You never need to calculate it yourself.</p></details>`;
@@ -12725,6 +12802,29 @@ function migrateSave15To16(snapshot){
   }
   return next;
 }
+function migrateSave16To17(snapshot){
+  const next=cloneForSave(snapshot);next.schema=17;const state=next.state;
+  if(isSaveRecord(state)){
+    // Timeline V2 cannot safely infer a partially resolved v0.110 exchange. Resume
+    // any live encounter at a clean player slot with the current foe/HP intact.
+    state.combatActor="player";
+    state.combatTimeline=null;
+    state.reactionAvailable=true;
+    state.reactionWindow=false;
+    state.protection=0;
+    state.protectionSource=null;
+    state.defencePrepared=null;
+    state.negateNextAttack=null;
+    state.combatExtraTurns={player:0,enemy:0};
+    state.turn=Math.max(1,Math.floor(Number(state.turn)||1));
+    state.heavyCharge=Math.min(1,Math.max(0,Math.floor(Number(state.heavyCharge)||0)));
+    if(isSaveRecord(state.foe)){
+      state.foe.heavyStage=state.foe.intent==="heavy"?1:0;
+      if(!Array.isArray(state.foe.backgroundCharges))state.foe.backgroundCharges=[];
+    }
+  }
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
@@ -12740,7 +12840,8 @@ const SAVE_MIGRATIONS={
   12:migrateSave12To13,
   13:migrateSave13To14,
   14:migrateSave14To15,
-  15:migrateSave15To16
+  15:migrateSave15To16,
+  16:migrateSave16To17
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -13321,7 +13422,8 @@ function finishPuzzleFinale(){
 $("pad").addEventListener("click", e => {
   const b = e.target.closest(".act");
   if(!b || b.disabled) return;
-  tapAction(b.dataset.k);
+  if(b.dataset.reaction)return tapReaction(b.dataset.reaction);
+  if(b.dataset.k)tapAction(b.dataset.k);
 });
 
 $("btnRun").addEventListener("click", tapRun);
