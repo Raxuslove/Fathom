@@ -315,3 +315,6 @@ Riddles could give int+investigation checks for hints. You can ask for more hint
 
 
 Starter/tutorial town starting in a more peaceful looking zone like grassplanes and forests.
+
+
+I think 2x backstab should have an extra 25% crit damage and always crit, so basically with 0% crit chance it would be 150+25 
