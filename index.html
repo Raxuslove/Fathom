@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.112.2 — Combat d20 Presentation</title>
+<title>Lowfathom v0.112.2.1 — Combat d20 Hotfix</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,6 +21,7 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
+   - v0.112.2.1 combat d20 hotfix: combat d20s use Dice Box's built-in d20 theme instead of the percentile-only Fathom theme path
    - v0.112.2 combat d20 presentation: Settings can show authoritative physical d20 rolls for Player Only or All Rolls; Off preserves instant combat resolution
    - v0.112.1.1 end-turn placement hotfix: End Turn corrected to the lower-right corner of the player panel
    - v0.112.1 combat pad QOL + attack tuning: Read joins the 2-column action grid, End Turn moves into the player panel, Strike chain becomes 1.0× / 1.6× / 2.6×, and player Heavy becomes 3.2× with no accuracy penalty
@@ -186,6 +187,7 @@
    - v0.111.3: CON Protection Baseline — 10 CON is neutral for Protection while still fully counting for Max HP; reactions gain 5 base Protection plus CON above 10 and shield bonus; Counter returns to full Protection
    - v0.111.4: enemy action damage estimates move into a dedicated right-side EST. DMG block for mobile readability
    - v0.111.4.1: emergency rebuild from the v0.111.3 source baseline restores schema-19 save compatibility while retaining the v0.111.4 estimate layout
+   - v0.112.2.1: Combat d20 Hotfix — physical combat d20s use Dice Box's built-in d20 theme while retaining the dark Lowfathom color
    - v0.112.2: Combat d20 Presentation — authoritative Dice Box d20 rolls can be shown for Player Only or All Rolls, with Off for fast combat
    - v0.112.1.1: End Turn Placement Hotfix — End Turn corrected to the lower-right corner of the player panel
    - v0.112.1: Combat Pad QOL + Attack Tuning — Read fills the sixth compact action slot, End Turn moves into the player panel, Strike chain is 1.0× / 1.6× / 2.6×, and player Heavy is 3.2× with normal accuracy
@@ -4013,7 +4015,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.112.2";
+const BUILD_VERSION = "v0.112.2.1";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 3;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept"});
@@ -13806,6 +13808,7 @@ const status=document.getElementById("fathomDiceBoxStatus");
 const CDN_ORIGIN="https://unpkg.com/@3d-dice/dice-box@1.1.3/dist/";
 const assetPath="assets/";
 const FATHOM_THEME="fathomObsidian";
+const COMBAT_D20_THEME="default";
 const fathomThemePath=new URL("./assets/fathom-die/obsidian/",document.baseURI).href;
 let hideTimer=null;
 let rollToken=0;
@@ -13955,7 +13958,11 @@ window.fathomCombatDiceRoll=async payload=>{
   layer?.classList.remove("loading");
   try{diceBox.clear();}catch{}
   if(Number.isFinite(payload?.scale))await diceBox.updateConfig({scale:payload.scale});
-  const raw=await diceBox.roll("1d20",{theme:FATHOM_THEME,themeColor:"#040506"});
+  // The custom Fathom theme is a percentile-dice skin. Use Dice Box's built-in
+  // d20 theme for combat so a d20 mesh is always available, while keeping the
+  // same near-black Lowfathom color. The returned physical result remains
+  // authoritative for combat resolution.
+  const raw=await diceBox.roll("1d20",{theme:COMBAT_D20_THEME,themeColor:"#040506"});
   if(token!==rollToken)return null;
   const roll=d20Value(raw),total=roll+bonus;
   const hit=roll===20||(roll!==1&&total>=ac);
