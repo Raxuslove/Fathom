@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.112.1.1 — End Turn Placement Hotfix</title>
+<title>Lowfathom v0.112.2 — Combat d20 Presentation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,6 +21,7 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
+   - v0.112.2 combat d20 presentation: Settings can show authoritative physical d20 rolls for Player Only or All Rolls; Off preserves instant combat resolution
    - v0.112.1.1 end-turn placement hotfix: End Turn corrected to the lower-right corner of the player panel
    - v0.112.1 combat pad QOL + attack tuning: Read joins the 2-column action grid, End Turn moves into the player panel, Strike chain becomes 1.0× / 1.6× / 2.6×, and player Heavy becomes 3.2× with no accuracy penalty
    - v0.112.0 AC + Stamina combat test: player and enemy attacks both roll d20 + Attack Bonus against target AC
@@ -185,6 +186,7 @@
    - v0.111.3: CON Protection Baseline — 10 CON is neutral for Protection while still fully counting for Max HP; reactions gain 5 base Protection plus CON above 10 and shield bonus; Counter returns to full Protection
    - v0.111.4: enemy action damage estimates move into a dedicated right-side EST. DMG block for mobile readability
    - v0.111.4.1: emergency rebuild from the v0.111.3 source baseline restores schema-19 save compatibility while retaining the v0.111.4 estimate layout
+   - v0.112.2: Combat d20 Presentation — authoritative Dice Box d20 rolls can be shown for Player Only or All Rolls, with Off for fast combat
    - v0.112.1.1: End Turn Placement Hotfix — End Turn corrected to the lower-right corner of the player panel
    - v0.112.1: Combat Pad QOL + Attack Tuning — Read fills the sixth compact action slot, End Turn moves into the player panel, Strike chain is 1.0× / 1.6× / 2.6×, and player Heavy is 3.2× with normal accuracy
    - v0.112.0: AC + Stamina Combat Test — symmetric d20 Attack vs AC, logarithmic endless ratings, Armor→Defence/AC/Deflection, 3-Stamina player turns, active Guard/Parry, Counter +AC retaliation, and fixed alternation while Speed is parked
@@ -3219,7 +3221,7 @@ body.font-slab{--cf-serif:var(--slab)}
 
   <div class="fathom-dicebox-layer" id="fathomDiceBoxLayer" aria-hidden="true">
     <div class="fathom-dicebox-stage" id="fathomDiceBoxStage"></div>
-    <div class="fathom-dicebox-status" id="fathomDiceBoxStatus">Preparing percentile dice…</div>
+    <div class="fathom-dicebox-status" id="fathomDiceBoxStatus">Preparing dice…</div>
     <div class="fathom-roll-caption" id="fathomDieCaption"></div>
   </div>
 
@@ -3637,7 +3639,15 @@ body.font-slab{--cf-serif:var(--slab)}
           <button class="settings-toggle" id="btnSettingDice" type="button" aria-pressed="true">On</button>
         </div>
         <div class="settings-row stack">
-          <div class="settings-copy"><b>Dice size</b><span>Changes only the physical percentile pair. Skill chances and targets are unchanged.</span></div>
+          <div class="settings-copy"><b>Combat d20</b><span>Choose when combat pauses to show the authoritative physical d20. Player Only rolls your attacks; All Rolls also shows enemy attacks. Off keeps combat instant.</span></div>
+          <div class="settings-choice-grid" id="combatDiceChoices">
+            <button class="settings-choice" type="button" data-combat-dice="off">Off</button>
+            <button class="settings-choice" type="button" data-combat-dice="player">Player Only</button>
+            <button class="settings-choice" type="button" data-combat-dice="all">All Rolls</button>
+          </div>
+        </div>
+        <div class="settings-row stack">
+          <div class="settings-copy"><b>Dice size</b><span>Changes the physical percentile pair and combat d20. Chances, targets and results are unchanged.</span></div>
           <div class="settings-choice-grid" id="diceSizeChoices">
             <button class="settings-choice" type="button" data-dice-size="small">Small</button>
             <button class="settings-choice" type="button" data-dice-size="normal">Normal</button>
@@ -4003,13 +4013,14 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.112.1.1";
+const BUILD_VERSION = "v0.112.2";
 const SETTINGS_KEY = "lowfathom:settings";
-const SETTINGS_SCHEMA = 2;
-const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatFont:"concept"});
+const SETTINGS_SCHEMA = 3;
+const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept"});
 const COMBAT_FONT_OPTIONS=["concept","slab"];
 const ENCOUNTER_GRACE_OPTIONS = [5,15,30];
 const DICE_SIZE_OPTIONS = ["small","normal","large"];
+const COMBAT_DICE_OPTIONS = ["off","player","all"];
 let settings = {...DEFAULT_SETTINGS};
 
 const TRAVEL_TICK_MS = 500;
@@ -5295,8 +5306,16 @@ function d20HitChance(attackBonus,armorClass){
   }
   return hits/20;
 }
+let queuedCombatD20Roll=null;
+let combatDiceBusy=false;
+function consumeQueuedCombatD20(){
+  const value=queuedCombatD20Roll;
+  queuedCombatD20Roll=null;
+  return Number.isFinite(value)?Math.max(1,Math.min(20,Math.round(value))):null;
+}
 function rollD20Attack(attackBonus,armorClass){
-  const roll=ri(1,20),total=roll+(Number(attackBonus)||0);
+  const queued=consumeQueuedCombatD20();
+  const roll=queued??ri(1,20),total=roll+(Number(attackBonus)||0);
   const hit=roll===20 || (roll!==1 && total>=(Number(armorClass)||0));
   return {roll,bonus:Number(attackBonus)||0,total,ac:Number(armorClass)||0,hit,natural20:roll===20,natural1:roll===1,chance:d20HitChance(attackBonus,armorClass)};
 }
@@ -5313,6 +5332,37 @@ function playerAttackRollForAction(key,{extraMod=0,ignoreDodge=false}={}){
 function enemyAttackRollForCurrent({extraTargetAc=0}={}){
   const f=S?.foe;
   return rollD20Attack(enemyAttackBonusForIntent(f,f?.intent),playerArmorClass()+Math.round(Number(extraTargetAc)||0));
+}
+function combatDiceEnabledFor(side){
+  const mode=COMBAT_DICE_OPTIONS.includes(settings?.combatDice)?settings.combatDice:DEFAULT_SETTINGS.combatDice;
+  return mode==="all" || (mode==="player"&&side==="player");
+}
+function combatDieScaleSetting(){
+  const size=settings?.diceSize;
+  return size==="small"?3.4:size==="large"?5.2:4.25;
+}
+async function rollPhysicalCombatD20({side="player",name="Attack",bonus=0,ac=10}={}){
+  if(!combatDiceEnabledFor(side))return null;
+  if(typeof window.fathomCombatDiceRoll!=="function"||window.fathomDiceBoxFailed)return null;
+  try{
+    return await window.fathomCombatDiceRoll({name,bonus:Number(bonus)||0,ac:Number(ac)||0,scale:combatDieScaleSetting()});
+  }catch(err){
+    console.error("Combat d20 physical roll failed:",err);
+    return null;
+  }
+}
+async function queuePlayerPhysicalAttackRoll(key,{extraMod=0,ignoreDodge=false,name=null}={}){
+  if(!combatDiceEnabledFor("player"))return;
+  const bonus=playerAttackBonus()+playerAccuracyModForAction(key)+extraMod;
+  const ac=foeArmorClass(S?.foe,{includeDodge:!ignoreDodge});
+  const physical=await rollPhysicalCombatD20({side:"player",name:name||actionLabel(key),bonus,ac});
+  if(physical!=null)queuedCombatD20Roll=physical;
+}
+async function queueEnemyPhysicalAttackRoll({extraTargetAc=0,name=null}={}){
+  if(!combatDiceEnabledFor("enemy"))return;
+  const f=S?.foe,bonus=enemyAttackBonusForIntent(f,f?.intent),ac=playerArmorClass()+Math.round(Number(extraTargetAc)||0);
+  const physical=await rollPhysicalCombatD20({side:"enemy",name:name||enemyActionDescriptor(f)?.label||"Enemy attack",bonus,ac});
+  if(physical!=null)queuedCombatD20Roll=physical;
 }
 function playerHitChanceForAction(key,{extraMod=0,ignoreDodge=false}={}){
   return d20HitChance(playerAttackBonus()+playerAccuracyModForAction(key)+extraMod,foeArmorClass(S?.foe,{includeDodge:!ignoreDodge}));
@@ -8904,6 +8954,7 @@ function actionCounters(key){
   return false;
 }
 function combatActionUnavailableReason(key){
+  if(combatDiceBusy)return "Rolling d20";
   if(!playerTurnActive())return "Not your turn";
   if(!ACTIONS[key])return "Unavailable";
   if(key==="read"&&!reactionReadAvailable())return "Already studied";
@@ -8923,13 +8974,16 @@ function canUseCombatAction(key){return !combatActionUnavailableReason(key);}
    Tapping a different action just moves the arming across.
    ============================================================ */
 function tapAction(key){
-  if(over || !S.foe || combatVictoryPending || !playerTurnActive() || !canUseCombatAction(key)) return;
+  if(combatDiceBusy || over || !S.foe || combatVictoryPending || !playerTurnActive() || !canUseCombatAction(key)) return;
   if(armed !== key){armed = key;render();return;}
   armed = null;
   takeTurn(key);
 }
 
 function actionTriggersEnemyReaction(key){
+  return ["strike","heavy","smite","feint","dirtytrick","arcbolt"].includes(key);
+}
+function actionUsesPlayerAttackRoll(key){
   return ["strike","heavy","smite","feint","dirtytrick","arcbolt"].includes(key);
 }
 function finishPlayerStaminaTurn(out,actionKey=null){
@@ -8940,9 +8994,14 @@ function finishPlayerStaminaTurn(out,actionKey=null){
   const surpriseOpening=S.foe?.intent==="unaware"&&!!S.foe?.surprised;
   advanceFromPlayerTurn({surpriseOpening,actionKey});
 }
-function takeTurn(key){
-  if(!playerTurnActive()||!canUseCombatAction(key))return;
+async function takeTurn(key){
+  if(combatDiceBusy||!playerTurnActive()||!canUseCombatAction(key))return;
   const A=ACTIONS[key];if(!A)return;
+  if(actionUsesPlayerAttackRoll(key)&&combatDiceEnabledFor("player")){
+    combatDiceBusy=true;armed=null;render();
+    try{await queuePlayerPhysicalAttackRoll(key);}finally{combatDiceBusy=false;}
+    if(!S?.foe||over||combatVictoryPending||!playerTurnActive()){queuedCombatD20Roll=null;return;}
+  }
   const cost=actionCost(key);
   if(cost>0)S.stamina=Math.max(0,(Number(S.stamina)||0)-cost);
   const reactionBefore=S.foe?.reaction||null;
@@ -8968,8 +9027,13 @@ function takeTurn(key){
 // delegated data-reaction clicks harmless if stale markup survives a cached frame.
 function tapReaction(){ return; }
 
-function counterRetaliation(){
+async function counterRetaliation(){
   const f=S?.foe;if(!f)return "";
+  if(combatDiceEnabledFor("player")){
+    combatDiceBusy=true;render();
+    try{await queuePlayerPhysicalAttackRoll("strike",{name:"Counter Strike"});}finally{combatDiceBusy=false;}
+    if(!S?.foe||over){queuedCombatD20Roll=null;return "";}
+  }
   const roll=playerAttackRollForAction("strike");
   let out=attackRollLog(roll,"Counter Strike");
   if(!roll.hit){showCombatDamagePop("foe",0,{label:"COUNTER MISS · 0"});return out+`<p class="note"><b>Counter window found, retaliation missed.</b></p>`;}
@@ -8979,7 +9043,7 @@ function counterRetaliation(){
   return out+`<p class="good"><b>Counter Strike.</b> The miss opens the foe and you retaliate for <b>${fx.damage}</b>.</p>${fx.html}`;
 }
 
-function resolveEnemyTurn(){
+async function resolveEnemyTurn(){
   if(!S?.foe||over||S.foe.defeated||!enemyTurnActive())return;
   S.reactionWindow=false;
   armed=null;
@@ -9009,14 +9073,20 @@ function resolveEnemyTurn(){
       out+=`<p class="good"><b>${esc(I.label)} missed.</b> Blinded, the ${esc(f.name)} attacks empty air.</p>`;
       if(prepared?.mode==="counter"&&S.hp>0){
         out+=`<p class="good"><b>Counter successful.</b> The missed attack opens a retaliation.</p>`;
-        out+=counterRetaliation();
+        out+=await counterRetaliation();
       }
       f.blinded=false;
       S.defencePrepared=null;
     }else{
       const counterMode=prepared?.mode==="counter";
       const guardMode=prepared?.mode==="guard";
-      const attackRoll=enemyAttackRollForCurrent({extraTargetAc:counterMode?(prepared.acBonus||COUNTER_AC_BONUS):0});
+      const counterAc=counterMode?(prepared.acBonus||COUNTER_AC_BONUS):0;
+      if(combatDiceEnabledFor("enemy")){
+        combatDiceBusy=true;render();
+        try{await queueEnemyPhysicalAttackRoll({extraTargetAc:counterAc,name:I.label});}finally{combatDiceBusy=false;}
+        if(!S?.foe||over||S.foe.defeated||!enemyTurnActive()){queuedCombatD20Roll=null;return;}
+      }
+      const attackRoll=enemyAttackRollForCurrent({extraTargetAc:counterAc});
       out+=attackRollLog(attackRoll,I.label);
 
       if(!attackRoll.hit){
@@ -9024,7 +9094,7 @@ function resolveEnemyTurn(){
         out+=`<p class="good">The ${esc(f.name)} misses. <b>No HP damage.</b></p>`;
         if(counterMode&&S.hp>0){
           out+=`<p class="good"><b>Counter successful.</b> Your raised AC turns the attack aside and opens a retaliation.</p>`;
-          out+=counterRetaliation();
+          out+=await counterRetaliation();
         }
       }else{
         const incomingDamage=rollIncoming();
@@ -9084,7 +9154,7 @@ function resolveEnemyTurn(){
 }
 
 function tapRun(){
-  if(over||!S.foe||!playerTurnActive()||(Number(S.stamina)||0)<PLAYER_TURN_STAMINA)return;
+  if(combatDiceBusy||over||!S.foe||!playerTurnActive()||(Number(S.stamina)||0)<PLAYER_TURN_STAMINA)return;
   if(armed!=="run"){armed="run";render();return;}
   armed=null;
   const chance=runSuccessChance();
@@ -9904,7 +9974,7 @@ function renderHeroEndTurn(){
   btn.hidden=!show;
   if(!show){btn.classList.remove("armed");return;}
   const active=playerTurnActive(),isArmed=armed==="endturn";
-  btn.disabled=!active;
+  btn.disabled=!active||combatDiceBusy;
   btn.classList.toggle("armed",isArmed);
   btn.textContent=isArmed?"Confirm":"End Turn";
   btn.setAttribute("aria-label",isArmed?"Confirm end turn":"End turn");
@@ -11084,7 +11154,7 @@ creatorDraft.className = creatorDraft.className || null;
 
 // ----- dynamic class abilities -----
 function classAbilityDisabled(id){
-  const sk=abilityState(id); if(!sk||sk.cur<=0||!S.foe||over||!playerTurnActive()) return true;
+  const sk=abilityState(id); if(combatDiceBusy||!sk||sk.cur<=0||!S.foe||over||!playerTurnActive()) return true;
   if(["layonhands","mend"].includes(id)) return !!(S.abilityQuickUsed||S.hp>=S.hpMax);
   if((Number(S.stamina)||0)<PLAYER_TURN_STAMINA) return true;
   if(["holdfast","slip","ward"].includes(id) && enemyActionDescriptor()?.kind!=="attack") return true;
@@ -12094,6 +12164,7 @@ function normalizeSettings(value){
     if(ENCOUNTER_GRACE_OPTIONS.includes(grace)) next.encounterGraceSeconds=grace;
     if(typeof value.diceAnimation==="boolean") next.diceAnimation=value.diceAnimation;
     if(DICE_SIZE_OPTIONS.includes(value.diceSize)) next.diceSize=value.diceSize;
+    if(COMBAT_DICE_OPTIONS.includes(value.combatDice)) next.combatDice=value.combatDice;
     if(COMBAT_FONT_OPTIONS.includes(value.combatFont)) next.combatFont=value.combatFont;
   }
   return next;
@@ -12150,6 +12221,13 @@ function setDiceAnimation(enabled){
 function setDiceSize(size){
   if(!DICE_SIZE_OPTIONS.includes(size)) return;
   settings.diceSize=size;
+  saveSettingsNow();
+  renderSettingsSheet();
+}
+function setCombatDice(mode){
+  if(!COMBAT_DICE_OPTIONS.includes(mode)) return;
+  settings.combatDice=mode;
+  if(mode==="off") stopFathomDiePresentation();
   saveSettingsNow();
   renderSettingsSheet();
 }
@@ -12275,7 +12353,7 @@ const INFO_CHAPTERS = [
 let infoChapterId="skill-checks";
 function infoChapterHtml(id){
   if(id==="item-value") return `<h3>Items, iLv &amp; Coinage</h3><p>Fathom sets the expected power of the world. Rarity shifts a generated item's target, but the <b>finished properties</b> decide its real Item Level.</p><div class="info-step"><b>Intrinsic Value:</b> the internal mechanical cost of the properties actually on the item. On a full 1.0 slot, roughly 1 Intrinsic Value corresponds to 1 iLv.</div><div class="info-step"><b>Slot coefficients:</b> smaller slots carry less raw power. A Ring/Earring uses 0.40; Cape/Belt/Light/Pendant 0.50; Hat/Gloves/Boots 0.60; Bottoms 0.80; full hand/Top slots 1.00. Two-handed weapons use two hand slots.</div><div class="info-step"><b>Best-fit generation:</b> the generator combines legitimate slot-native properties near its target instead of rounding one large stat and repeatedly landing on the same iLv shelf.</div><div class="info-step"><b>Critical Chance gear:</b> ordinary generated Crit Chance is restricted to weapons, gloves and rings and rolls in 0.25% steps. Ordinary eligible pieces can reach 2.5%; daggers can reach 5%. Those are ceilings, not automatic rolls: higher rarity makes high Crit rolls increasingly likely, while Common gear usually lands near the low end.</div><div class="info-step"><b>Appraised coin value:</b> appraisal starts from actual Intrinsic Value, then applies a restrained rarity/scarcity premium. A merchant may offer less or charge more; CHA modifies the transaction, not the item's combat power.</div><div class="info-step"><b>Bounded effects:</b> Boss Damage, Reflect and future Lifesteal retain item-stamped caps. Critical Damage is instead governed by WIS-derived Precision and becomes progressively more expensive to raise.</div><div class="info-example"><b>Current live generated affixes</b><br>Critical Chance · Boss Damage · Damage Reflect. Lifesteal is supported by the combat/value engine but intentionally switched off in ordinary generation while recovery pressure is being tested.</div>`;
-  if(id==="combat-stats") return `<h3>Combat stats</h3><p>v0.112.1.1 continues the AC + 3-Stamina combat test. Player and enemy attacks use the same d20 rule.</p><div class="info-step"><b>Hit rule:</b> roll <b>d20 + Attack Bonus</b> against the target's <b>AC</b>. Equal or higher hits. Natural 1 misses and natural 20 hits.</div><div class="info-step"><b>Endless scaling:</b> large Attack and Defence Ratings are compressed logarithmically. Roughly matched progression therefore stays near the intended hit rate even as raw ratings climb.</div><div class="info-step"><b>Player turns:</b> every YOU turn refreshes to <b>3 Stamina</b>. Strike costs 1; Guard/Parry 2; Heavy/Backstab/Arcane Bolt and Counter 3. Spending 0 ends the turn automatically, or use End Turn early.</div><div class="info-step"><b>Defence Rating:</b> equipped Armor now feeds Defence Rating → AC. The old passive Armor mitigation formula is disabled.</div><div class="info-step"><b>Deflection:</b> progress between one AC point and the next gives up to about <b>8%</b> small passive damage reduction, so partial Defence Rating upgrades are not wasted.</div><div class="info-step"><b>${esc(defenceName())}:</b> costs 2 Stamina and reduces damage from the next enemy attack attempt. A shield Guard starts at 50%; non-shield Parry/Ward/Brace starts at 30%. It does not raise AC and cannot stack.</div><div class="info-step"><b>Counter:</b> costs all 3 Stamina and grants <b>+${COUNTER_AC_BONUS} AC</b> against the next enemy attack attempt. If that attack misses, you retaliate for roughly 2× Strike. If it hits, Counter gives no active damage reduction.</div><div class="info-step"><b>Player Heavy:</b> costs the full 3 Stamina, uses normal player accuracy, and deals 3.2× base damage. The Strike chain is 1.0× / 1.6× / 2.6× and resets on a miss.</div><div class="info-step"><b>Enemy attacks:</b> Quick gets +2 accuracy, normal +0, Heavy −2. Enemy Heavy still uses a literal 1/2 wind-up then 2/2 release.</div><div class="info-step"><b>Enemy Guard / Dodge:</b> Guard reduces the next relevant hit by about 50%; Dodge grants +${FOE_DODGE_AC_BONUS} AC against the next relevant player attack attempt.</div><div class="info-step"><b>Protection:</b> normally remains 0/0 in this test. The engine keeps it reserved for future persistent shield/ward abilities rather than ordinary defence.</div><div class="info-step"><b>Speed:</b> temporarily parked. Combat alternates YOU → ENEMY while this new action economy is playtested.</div><div class="info-step"><b>Crits:</b> the d20 decides hit/miss. Existing Critical Chance and Precision then resolve critical damage on successful hits; natural 20 does not replace that progression.</div>`;
+  if(id==="combat-stats") return `<h3>Combat stats</h3><p>v0.112.2 continues the AC + 3-Stamina combat test. Player and enemy attacks use the same d20 rule.</p><div class="info-step"><b>Combat dice setting:</b> Off resolves d20s instantly; Player Only shows your authoritative physical d20; All Rolls also shows enemy d20s. The number shown by Dice Box is the number combat actually uses.</div><div class="info-step"><b>Hit rule:</b> roll <b>d20 + Attack Bonus</b> against the target's <b>AC</b>. Equal or higher hits. Natural 1 misses and natural 20 hits.</div><div class="info-step"><b>Endless scaling:</b> large Attack and Defence Ratings are compressed logarithmically. Roughly matched progression therefore stays near the intended hit rate even as raw ratings climb.</div><div class="info-step"><b>Player turns:</b> every YOU turn refreshes to <b>3 Stamina</b>. Strike costs 1; Guard/Parry 2; Heavy/Backstab/Arcane Bolt and Counter 3. Spending 0 ends the turn automatically, or use End Turn early.</div><div class="info-step"><b>Defence Rating:</b> equipped Armor now feeds Defence Rating → AC. The old passive Armor mitigation formula is disabled.</div><div class="info-step"><b>Deflection:</b> progress between one AC point and the next gives up to about <b>8%</b> small passive damage reduction, so partial Defence Rating upgrades are not wasted.</div><div class="info-step"><b>${esc(defenceName())}:</b> costs 2 Stamina and reduces damage from the next enemy attack attempt. A shield Guard starts at 50%; non-shield Parry/Ward/Brace starts at 30%. It does not raise AC and cannot stack.</div><div class="info-step"><b>Counter:</b> costs all 3 Stamina and grants <b>+${COUNTER_AC_BONUS} AC</b> against the next enemy attack attempt. If that attack misses, you retaliate for roughly 2× Strike. If it hits, Counter gives no active damage reduction.</div><div class="info-step"><b>Player Heavy:</b> costs the full 3 Stamina, uses normal player accuracy, and deals 3.2× base damage. The Strike chain is 1.0× / 1.6× / 2.6× and resets on a miss.</div><div class="info-step"><b>Enemy attacks:</b> Quick gets +2 accuracy, normal +0, Heavy −2. Enemy Heavy still uses a literal 1/2 wind-up then 2/2 release.</div><div class="info-step"><b>Enemy Guard / Dodge:</b> Guard reduces the next relevant hit by about 50%; Dodge grants +${FOE_DODGE_AC_BONUS} AC against the next relevant player attack attempt.</div><div class="info-step"><b>Protection:</b> normally remains 0/0 in this test. The engine keeps it reserved for future persistent shield/ward abilities rather than ordinary defence.</div><div class="info-step"><b>Speed:</b> temporarily parked. Combat alternates YOU → ENEMY while this new action economy is playtested.</div><div class="info-step"><b>Crits:</b> the d20 decides hit/miss. Existing Critical Chance and Precision then resolve critical damage on successful hits; natural 20 does not replace that progression.</div>`;
   if(id==="aptitude") return `<h3>Attributes &amp; aptitude</h3><p>Attributes have direct combat jobs and also feed Skills. Skill checks compress enormous endless-game attributes before they touch the d100.</p><div class="info-step"><b>Combat jobs:</b> weapon scaling chooses STR, DEX or INT for Attack Rating; CON = Max HP; DEX also feeds Critical Chance; WIS above 10 = Precision + awareness; CHA = people/economy. Defence Rating currently comes from equipped Armor rather than a base attribute.</div><div class="info-step"><b>1. Find the governing attribute.</b><br>Investigation uses INT. Perception uses WIS. Stealth uses DEX, and so on.</div><div class="info-step"><b>2. Convert it into aptitude.</b><br>Every doubling of that attribute changes aptitude by about <b>${SKILL_APTITUDE_PER_DOUBLING} Rating</b>. Attribute 10 is about +0; 20 about +8; 40 about +16; 80 about +24.</div><div class="info-step"><b>3. Add aptitude to training.</b><br>Skill Rank remains the main expertise number. Class proficiency and special circumstances are added afterward.</div><div class="info-equation">Effective Rating = Skill Rank + attribute aptitude + proficiency + circumstance</div><p>This keeps attributes relevant without letting a future 2,000 INT become a ridiculous +2,000 on the die.</p>`;
   if(id==="practice") return `<h3>Practice &amp; Rank</h3><p>Skills are long-term expertise. They improve by facing meaningful situations, not by repeating a harmless button forever.</p><div class="info-step"><b>Growing Rank requirement:</b> Rank 0 starts at ${skillXpNeeded(0)} XP to advance. Each later Rank asks for ${SKILL_XP_PER_RANK_GROWTH} more XP than the previous one.</div><div class="info-step"><b>Balanced success:</b> begins around ${SKILL_BASE_PRACTICE} XP. Practice rewards rise slowly with Skill Rank so deep expertise still moves, but the requirement rises faster.</div><div class="info-step"><b>Difficult success:</b> gives more practice. Easier uncertain work gives less. Automatic/trivial checks give none.</div><div class="info-step"><b>Failure:</b> a credible failed attempt can teach a smaller amount, but failure XP fades toward zero at extreme odds so hopeless attempts are poor training.</div><div class="info-step"><b>Against the Odds:</b> a success shown at <b>${SKILL_AGAINST_ODDS_PCT}% or lower</b> earns roughly double that difficult success's XP plus a small extra bonus.</div><div class="info-step"><b>No reroll farming:</b> the same generated opportunity has one practice identity and cannot award practice repeatedly.</div><div class="info-equation">XP to next Rank = ${SKILL_XP_BASE} + (${SKILL_XP_PER_RANK_GROWTH} × current Rank)</div><p>The Rank number can continue forever. Higher Rank lowers the roll you need against the same challenge until old obstacles become automatic.</p>`;
   return `<h3>Skill checks</h3><p>Skill bonuses do not get added to the d100. They change <b>how low a number you need to roll</b>.</p><div class="info-step"><b>1. Build your Effective Rating.</b><br>Skill Rank + attribute aptitude + class proficiency + circumstances.</div><div class="info-step"><b>2. Compare it with the challenge.</b><br>The game compares your Effective Rating with that object's fixed Challenge Rating.</div><div class="info-step"><b>3. That comparison becomes a target.</b><br>More Rating means a better chance and therefore a lower <b>Need X+</b> number.</div><div class="info-step"><b>4. Roll d100.</b><br>Meet or beat the target to succeed. If it says <b>Need 47+</b>, 47–100 succeeds and 1–46 fails.</div><div class="info-example"><b>Example</b><br>Investigation Rank 20 + INT aptitude 16 = Rating 36. Against Challenge Rating 21, you are +15 ahead: about a 76% chance, shown as <b>Need 25+ on d100</b>.</div><div class="info-step"><b>Huge advantage?</b> Old trivial obstacles eventually auto-succeed with no die roll. Huge disadvantage can become an automatic failure.</div><details class="info-details"><summary>Under the hood</summary><p>Equal Rating is 50%. A +${SKILL_RATING_SPREAD} Rating gap is about 91%; −${SKILL_RATING_SPREAD} is about 9%. The exact probability curve is <code>P = 1 / (1 + 10^(-(Skill − Challenge)/${SKILL_RATING_SPREAD}))</code>. You never need to calculate it yourself.</p></details>`;
@@ -12337,6 +12415,9 @@ function renderSettingsSheet(){
   }
   document.querySelectorAll("[data-dice-size]").forEach(btn=>{
     btn.classList.toggle("selected",btn.dataset.diceSize===settings.diceSize);
+  });
+  document.querySelectorAll("[data-combat-dice]").forEach(btn=>{
+    btn.classList.toggle("selected",btn.dataset.combatDice===settings.combatDice);
   });
   document.querySelectorAll("[data-combat-font]").forEach(btn=>{
     btn.classList.toggle("selected",btn.dataset.combatFont===settings.combatFont);
@@ -13603,6 +13684,10 @@ $("diceSizeChoices").addEventListener("click", e => {
   const b=e.target.closest("[data-dice-size]");
   if(b) setDiceSize(b.dataset.diceSize);
 });
+$("combatDiceChoices").addEventListener("click", e => {
+  const b=e.target.closest("[data-combat-dice]");
+  if(b) setCombatDice(b.dataset.combatDice);
+});
 $("btnResetSkillDiagnostics").addEventListener("click", resetSkillDiagnostics);
 $("btnOpenInfo").addEventListener("click", openInfoSheet);
 $("btnInfoBack").addEventListener("click", closeInfoSheet);
@@ -13758,7 +13843,7 @@ const ready=Promise.race([initAttempt,initTimeout]).then(()=>{
   window.fathomDiceBoxReady=true;
   window.fathomDiceBoxFailed=false;
   layer?.classList.remove("loading");
-  if(status)status.textContent="Percentile dice ready";
+  if(status)status.textContent="Dice ready";
   console.info("Fathom ready (v0.088.9 Session 9E combat opening fixes + v0.088.8 Skill resolver null-roll fix + v0.088.7 native d100 parser + matte obsidian theme)");
   return diceBox;
 }).catch(err=>{
@@ -13804,6 +13889,14 @@ function percentileValue(results){
   console.error("Unexpected Dice Box d100 result:",results);
   throw new Error("Percentile roll returned an unreadable result");
 }
+function d20Value(results){
+  const list=Array.isArray(results)?results:[results];
+  const die=list.find(item=>String(item?.dieType||"").toLowerCase()==="d20"||Number(item?.sides)===20) || list[0];
+  const value=Number(die?.value ?? die?.result);
+  if(Number.isFinite(value)&&value>=1&&value<=20)return Math.round(value);
+  console.error("Unexpected Dice Box d20 result:",results);
+  throw new Error("Combat d20 returned an unreadable result");
+}
 window.fathomDiceBoxClear=()=>{
   clearTimeout(hideTimer);
   try{diceBox.clear();}catch{}
@@ -13844,6 +13937,40 @@ window.fathomDiceBoxRoll=async payload=>{
     layer?.setAttribute("aria-hidden","true");
   },success?1350:1650);
   return result.total;
+};
+
+window.fathomCombatDiceRoll=async payload=>{
+  const token=++rollToken;
+  clearTimeout(hideTimer);
+  layer?.classList.add("active","loading");
+  layer?.setAttribute("aria-hidden","false");
+  const bonus=Number(payload?.bonus)||0,ac=Number(payload?.ac)||0,sign=bonus>=0?"+":"";
+  if(caption){
+    caption.className="fathom-roll-caption";
+    caption.innerHTML=`${payload?.name||"Attack"} · d20 ${sign}${bonus} vs AC <strong>${ac}</strong>`;
+  }
+  const initialized=await ready;
+  if(token!==rollToken)return null;
+  if(!initialized)throw new Error("Dice Box unavailable after initialization attempt");
+  layer?.classList.remove("loading");
+  try{diceBox.clear();}catch{}
+  if(Number.isFinite(payload?.scale))await diceBox.updateConfig({scale:payload.scale});
+  const raw=await diceBox.roll("1d20",{theme:FATHOM_THEME,themeColor:"#040506"});
+  if(token!==rollToken)return null;
+  const roll=d20Value(raw),total=roll+bonus;
+  const hit=roll===20||(roll!==1&&total>=ac);
+  const natural=roll===20?" · NAT 20":roll===1?" · NAT 1":"";
+  if(caption){
+    caption.className=`fathom-roll-caption${hit?"":" failure"}`;
+    caption.innerHTML=`d20 <strong>${roll}</strong> ${sign}${bonus} = ${total} · AC ${ac}${natural} · ${hit?"HIT":"MISS"}`;
+  }
+  clearTimeout(hideTimer);
+  await new Promise(resolve=>setTimeout(resolve,hit?650:800));
+  if(token!==rollToken)return null;
+  try{diceBox.clear();}catch{}
+  layer?.classList.remove("active","loading");
+  layer?.setAttribute("aria-hidden","true");
+  return roll;
 };
 </script>
 </body>
