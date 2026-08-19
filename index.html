@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.112.2.1 — Combat d20 Hotfix</title>
+<title>Lowfathom v0.112.2.2 — Combat d20 Roll Repair</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,6 +21,7 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
+   - v0.112.2.2 combat d20 roll repair: switch Dice Box themes through updateConfig before rolling; add a fail-safe timeout so combat can never remain locked waiting for physics
    - v0.112.2.1 combat d20 hotfix: combat d20s use Dice Box's built-in d20 theme instead of the percentile-only Fathom theme path
    - v0.112.2 combat d20 presentation: Settings can show authoritative physical d20 rolls for Player Only or All Rolls; Off preserves instant combat resolution
    - v0.112.1.1 end-turn placement hotfix: End Turn corrected to the lower-right corner of the player panel
@@ -187,6 +188,7 @@
    - v0.111.3: CON Protection Baseline — 10 CON is neutral for Protection while still fully counting for Max HP; reactions gain 5 base Protection plus CON above 10 and shield bonus; Counter returns to full Protection
    - v0.111.4: enemy action damage estimates move into a dedicated right-side EST. DMG block for mobile readability
    - v0.111.4.1: emergency rebuild from the v0.111.3 source baseline restores schema-19 save compatibility while retaining the v0.111.4 estimate layout
+   - v0.112.2.2: Combat d20 Roll Repair — combat switches to the built-in d20 theme through Dice Box configuration before the roll, with timeout fallback to prevent combat lockups
    - v0.112.2.1: Combat d20 Hotfix — physical combat d20s use Dice Box's built-in d20 theme while retaining the dark Lowfathom color
    - v0.112.2: Combat d20 Presentation — authoritative Dice Box d20 rolls can be shown for Player Only or All Rolls, with Off for fast combat
    - v0.112.1.1: End Turn Placement Hotfix — End Turn corrected to the lower-right corner of the player panel
@@ -4015,7 +4017,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.112.2.1";
+const BUILD_VERSION = "v0.112.2.2";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 3;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept"});
@@ -5345,11 +5347,11 @@ function combatDieScaleSetting(){
 }
 async function rollPhysicalCombatD20({side="player",name="Attack",bonus=0,ac=10}={}){
   if(!combatDiceEnabledFor(side))return null;
-  if(typeof window.fathomCombatDiceRoll!=="function"||window.fathomDiceBoxFailed)return null;
+  if(typeof window.fathomCombatDiceRoll!=="function"||window.fathomDiceBoxFailed||window.fathomCombatDiceFailed)return null;
   try{
     return await window.fathomCombatDiceRoll({name,bonus:Number(bonus)||0,ac:Number(ac)||0,scale:combatDieScaleSetting()});
   }catch(err){
-    console.error("Combat d20 physical roll failed:",err);
+    console.error("Combat d20 physical roll failed; resolving with the normal internal d20 instead:",err);
     return null;
   }
 }
@@ -13818,6 +13820,7 @@ const diceBox=new DiceBox({
   assetPath,
   origin:CDN_ORIGIN,
   theme:FATHOM_THEME,
+  preloadThemes:[COMBAT_D20_THEME],
   externalThemes:{[FATHOM_THEME]:fathomThemePath},
   themeColor:"#040506",
   offscreen:false,
@@ -13839,7 +13842,15 @@ const diceBox=new DiceBox({
 
 window.fathomDiceBoxReady=false;
 window.fathomDiceBoxFailed=false;
+window.fathomCombatDiceFailed=false;
 const INIT_TIMEOUT_MS=12000;
+const COMBAT_D20_TIMEOUT_MS=6500;
+function diceTimeout(promise,ms,label){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error(`${label} timed out after ${ms}ms`)),ms))
+  ]);
+}
 const initAttempt=diceBox.init();
 const initTimeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error(`Dice Box init timed out after ${INIT_TIMEOUT_MS}ms`)),INIT_TIMEOUT_MS));
 const ready=Promise.race([initAttempt,initTimeout]).then(()=>{
@@ -13919,11 +13930,13 @@ window.fathomDiceBoxRoll=async payload=>{
   if(!initialized)throw new Error("Dice Box unavailable after initialization attempt");
   layer?.classList.remove("loading");
   try{diceBox.clear();}catch{}
-  if(Number.isFinite(payload?.scale)) await diceBox.updateConfig({scale:payload.scale});
+  const fathomConfig={theme:FATHOM_THEME,themeColor:"#040506"};
+  if(Number.isFinite(payload?.scale))fathomConfig.scale=payload.scale;
+  await diceBox.updateConfig(fathomConfig);
 
   // Dice Box's native 1d100 roll already creates the complete percentile pair.
   // Do not add another d10 here: that would create an accidental third die.
-  const raw=await diceBox.roll("1d100",{theme:FATHOM_THEME,themeColor:"#040506"});
+  const raw=await diceBox.roll("1d100");
   if(token!==rollToken)return null;
   const result=percentileValue(raw);
   const target=Math.max(1,Math.min(100,Math.round(Number(payload?.target)||51)));
@@ -13952,32 +13965,47 @@ window.fathomCombatDiceRoll=async payload=>{
     caption.className="fathom-roll-caption";
     caption.innerHTML=`${payload?.name||"Attack"} · d20 ${sign}${bonus} vs AC <strong>${ac}</strong>`;
   }
-  const initialized=await ready;
-  if(token!==rollToken)return null;
-  if(!initialized)throw new Error("Dice Box unavailable after initialization attempt");
-  layer?.classList.remove("loading");
-  try{diceBox.clear();}catch{}
-  if(Number.isFinite(payload?.scale))await diceBox.updateConfig({scale:payload.scale});
-  // The custom Fathom theme is a percentile-dice skin. Use Dice Box's built-in
-  // d20 theme for combat so a d20 mesh is always available, while keeping the
-  // same near-black Lowfathom color. The returned physical result remains
-  // authoritative for combat resolution.
-  const raw=await diceBox.roll("1d20",{theme:COMBAT_D20_THEME,themeColor:"#040506"});
-  if(token!==rollToken)return null;
-  const roll=d20Value(raw),total=roll+bonus;
-  const hit=roll===20||(roll!==1&&total>=ac);
-  const natural=roll===20?" · NAT 20":roll===1?" · NAT 1":"";
-  if(caption){
-    caption.className=`fathom-roll-caption${hit?"":" failure"}`;
-    caption.innerHTML=`d20 <strong>${roll}</strong> ${sign}${bonus} = ${total} · AC ${ac}${natural} · ${hit?"HIT":"MISS"}`;
+  try{
+    const initialized=await diceTimeout(ready,COMBAT_D20_TIMEOUT_MS,"Combat dice initialization");
+    if(token!==rollToken)return null;
+    if(!initialized)throw new Error("Dice Box unavailable after initialization attempt");
+    layer?.classList.remove("loading");
+    try{diceBox.clear();}catch{}
+
+    // Dice Box selects its active theme through configuration. The previous
+    // combat integration passed a theme object to roll(), which left the box
+    // on the percentile-only Fathom theme and could leave the d20 promise
+    // waiting forever. Switch to the built-in d20 theme first, then roll the
+    // simple notation exactly as Dice Box expects.
+    const combatConfig={theme:COMBAT_D20_THEME,themeColor:"#040506"};
+    if(Number.isFinite(payload?.scale))combatConfig.scale=payload.scale;
+    await diceTimeout(diceBox.updateConfig(combatConfig),COMBAT_D20_TIMEOUT_MS,"Combat d20 theme load");
+    const raw=await diceTimeout(diceBox.roll("1d20"),COMBAT_D20_TIMEOUT_MS,"Combat d20 roll");
+    if(token!==rollToken)return null;
+
+    const roll=d20Value(raw),total=roll+bonus;
+    const hit=roll===20||(roll!==1&&total>=ac);
+    const natural=roll===20?" · NAT 20":roll===1?" · NAT 1":"";
+    if(caption){
+      caption.className=`fathom-roll-caption${hit?"":" failure"}`;
+      caption.innerHTML=`d20 <strong>${roll}</strong> ${sign}${bonus} = ${total} · AC ${ac}${natural} · ${hit?"HIT":"MISS"}`;
+    }
+    clearTimeout(hideTimer);
+    await new Promise(resolve=>setTimeout(resolve,hit?650:800));
+    window.fathomCombatDiceFailed=false;
+    return roll;
+  }catch(err){
+    window.fathomCombatDiceFailed=true;
+    if(status)status.textContent="Combat die unavailable — using instant rolls";
+    console.error("Physical combat d20 failed; disabling it for this session and falling back to internal combat rolls:",err);
+    throw err;
+  }finally{
+    if(token===rollToken){
+      try{diceBox.clear();}catch{}
+      layer?.classList.remove("active","loading");
+      layer?.setAttribute("aria-hidden","true");
+    }
   }
-  clearTimeout(hideTimer);
-  await new Promise(resolve=>setTimeout(resolve,hit?650:800));
-  if(token!==rollToken)return null;
-  try{diceBox.clear();}catch{}
-  layer?.classList.remove("active","loading");
-  layer?.setAttribute("aria-hidden","true");
-  return roll;
 };
 </script>
 </body>
