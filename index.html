@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.114.0 — Natural-d20 Crit Playtest</title>
+<title>Lowfathom v0.114.1.1 — Companion Torch Asset Micro Patch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,6 +21,8 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
+   - v0.114.1.1 companion torch asset micro patch: temporary escorts now use assets/ui/companion-torch.png beside the player lantern instead of the provisional CSS-drawn torch
+   - v0.114.1 combat UI containment guard: selected-action cards now grow to fit wrapped content, metric columns stack vertically instead of competing for narrow width, and common combat text/grid children receive overflow safety so long dynamic values stay inside their frames
    - v0.114.0 Natural-d20 Crit Playtest + selected-action containment: natural 20 is now the live critical hit at ×2 damage for both sides; the hidden DEX/gear crit roll and WIS Precision damage scaling are parked; Rogue Backstab uses the same baseline crit rule while its replacement identity is undecided; new Crit Chance affix generation is paused; selected-action metrics now use a real grid column so Counter text cannot escape its frame
    - v0.113.2 Counter & Merchant Marker QOL: Counter retaliations auto-hit once triggered; merchant caravan road slots use the travelling-merchant marker instead of the generic sudden-event marker
    - v0.113.1 Enemy Turn UI Cleanup: removes the redundant disabled Enemy Turn action-pad card; enemy-resolution status now lives only in the Awaiting choice panel
@@ -532,18 +534,17 @@ button{
 .route-speech.thought.show{transform:translate(13px,calc(-100% - 27px))}
 .route-speech.thought::after{left:15px;bottom:-10px;width:7px;height:7px;border-radius:50%;transform:none;border:1px solid var(--speech-edge)}
 .route-speech.thought::before{content:"";position:absolute;left:8px;bottom:-17px;width:4px;height:4px;border-radius:50%;background:var(--speech-fill);border:1px solid var(--speech-edge)}
-/* The player's lantern remains the main route anchor. A second, smaller light is
-   intentionally CSS-drawn for now so Phase 7 has no hard dependency on a new asset. */
-.trail-marker.has-companion::after{
-  content:"";position:absolute;left:2px;top:22px;width:4px;height:12px;border-radius:2px 2px 1px 1px;
-  background:linear-gradient(180deg,#9b7342,#4a3425);box-shadow:0 1px 3px rgba(0,0,0,.72);opacity:.95;
-}
+/* v0.114.1.1: temporary companions use the authored torch asset beside the
+   player's lantern. The route marker remains the only positioning anchor, so
+   escort presentation does not alter any proven map/camera math. */
 .trail-marker.has-companion::before{
-  content:"";position:absolute;left:-1px;top:13px;width:10px;height:13px;border-radius:55% 45% 60% 40%;
-  background:radial-gradient(circle at 55% 68%,#ffd68a 0 18%,#e9933d 28% 56%,rgba(188,77,28,.92) 66%,rgba(188,77,28,0) 74%);
-  filter:drop-shadow(0 0 5px rgba(239,162,75,.75)) drop-shadow(0 0 11px rgba(219,116,40,.38));opacity:.95;
+  content:"";position:absolute;left:-12px;top:11px;width:18px;height:27px;
+  background:center/contain no-repeat url("./assets/ui/companion-torch.png");
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.72)) drop-shadow(0 0 5px rgba(239,162,75,.42));
+  opacity:.96;transition:opacity .14s ease;pointer-events:none;
 }
-.trail-marker.companion-hidden::before,.trail-marker.companion-hidden::after{opacity:0}
+.trail-marker.has-companion::after{content:none;display:none}
+.trail-marker.companion-hidden::before{opacity:0}
 .safe-hollow-card{
   margin:auto 12px 12px;padding:11px 12px 12px;
   border:1px solid var(--lamp-dim);background:var(--travel-surface);
@@ -2865,7 +2866,7 @@ body.font-slab{--cf-serif:var(--slab)}
 
 /* selected action — earns its space by carrying hit chance and damage ---------- */
 .arena.combat-mode .preview{
-  position:relative;display:flex;flex-direction:column;height:146px;overflow:hidden;
+  position:relative;display:flex;flex-direction:column;height:auto;min-height:146px;overflow:hidden;
   margin:4px 12px 0;padding:5px 9px 6px;border-radius:0;clip-path:none;box-shadow:none;
   border:9px solid transparent;
   border-image:url("./assets/ui/frame-button.png") 30 fill / 9px / 0 stretch;
@@ -2884,7 +2885,7 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode .preview .pick{margin:0 0 2px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .arena.combat-mode .preview .name{font-family:var(--cf-serif);font-size:20px;font-weight:600;line-height:1.05;color:var(--cf-gold-hi);text-transform:none}
 .arena.combat-mode .preview .cost{font-family:var(--cond);font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--cf-caps)}
-.arena.combat-mode .preview .line{margin-top:3px;font-family:var(--cf-serif);font-size:12px;letter-spacing:.015em;line-height:1.3;color:#cfcbc0;text-transform:none;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.arena.combat-mode .preview .line{margin-top:3px;font-family:var(--cf-serif);font-size:12px;letter-spacing:.015em;line-height:1.3;color:#cfcbc0;text-transform:none;display:block;overflow:visible;overflow-wrap:anywhere;word-break:normal}
 .arena.combat-mode .preview .line .dmg{color:#e2b571}
 .arena.combat-mode .preview .line .bad{color:#d97a5e}
 .arena.combat-mode .preview .line .cost{font-family:inherit;font-size:inherit;letter-spacing:normal;text-transform:none;color:#9fb6b3}
@@ -2896,18 +2897,26 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode .preview .commit{display:none}
 .arena.combat-mode .preview-metrics{
   position:static;align-self:stretch;min-width:0;max-width:122px;overflow:hidden;
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  display:grid;grid-template-columns:minmax(0,1fr);grid-auto-rows:minmax(0,1fr);
 }
 .arena.combat-mode .preview.has-metrics .preview-copy{padding-right:0}
 .arena.combat-mode .preview-metric{
-  min-width:60px;padding:4px 8px 3px;border-left:1px solid rgba(160,140,95,.22);
-  display:flex;flex-direction:column;justify-content:flex-end;text-align:center;min-height:0;
+  min-width:0;padding:4px 7px 3px;border-left:1px solid rgba(160,140,95,.22);
+  display:flex;flex-direction:column;justify-content:center;text-align:center;min-height:0;overflow:hidden;
 }
-.arena.combat-mode .preview-metric span{font-family:var(--cond);font-size:6.5px;letter-spacing:.13em;text-transform:uppercase;color:#93917d;white-space:nowrap}
-.arena.combat-mode .preview-metric b{margin-top:4px;font-family:var(--cf-serif);font-size:19px;font-weight:600;line-height:1;color:#dfad5a;white-space:nowrap}
+.arena.combat-mode .preview-metric + .preview-metric{border-top:1px solid rgba(160,140,95,.14)}
+.arena.combat-mode .preview-metric span{font-family:var(--cond);font-size:6.5px;letter-spacing:.13em;text-transform:uppercase;color:#93917d;white-space:normal;overflow-wrap:anywhere}
+.arena.combat-mode .preview-metric b{margin-top:3px;font-family:var(--cf-serif);font-size:clamp(14px,4.2vw,19px);font-weight:600;line-height:1.02;color:#dfad5a;white-space:normal;overflow-wrap:anywhere}
 .arena.combat-mode .preview-metric.good b{color:#7ec27a}
 .arena.combat-mode .preview-metric.teal b{color:#78c8c3}
 .arena.combat-mode .preview-metric.warn b{color:#d06d50}
+
+/* v0.114.1: reusable combat-card containment guard. Dynamic strings such as
+   changing hit chances, translated labels and future longer action descriptions
+   must shrink/wrap inside their own grid/flex track rather than painting over
+   adjacent cards. Prefer growing the owning card over reducing readability. */
+.arena.combat-mode :where(.preview-body,.preview-copy,.preview-metrics,.preview-metric,.act,.mact,.botbtn,.hero,.foe,.intent){min-width:0;max-width:100%}
+.arena.combat-mode :where(.preview,.act,.mact,.botbtn,.hero,.foe,.intent) :where(p,b,strong,span,small,em){max-width:100%;overflow-wrap:anywhere;word-break:normal}
 
 /* abilities / backpack / run ------------------------------------------------------
    Three compact command cards, but with the concept-art hierarchy intact:
@@ -4099,7 +4108,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.114.0";
+const BUILD_VERSION = "v0.114.1.1";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 3;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept"});
