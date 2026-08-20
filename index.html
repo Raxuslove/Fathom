@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.113.0 — Rescue / Escort System</title>
+<title>Lowfathom v0.113.1 — Enemy Turn UI Cleanup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,6 +21,7 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
+   - v0.113.1 Enemy Turn UI Cleanup: removes the redundant disabled Enemy Turn action-pad card; enemy-resolution status now lives only in the Awaiting choice panel
    - v0.113.0 Rescue / Escort System: adds the Zeshava Brightsong missing-physician chain, clue tracking, Persuasion + Deception Skills, temporary companion presence/chatter, escort danger, and automatic destination handoff
    - v0.112.3 caravan event + quest reward pass: removes passing caravans, makes damaged-wagon help an Athletics check with no automatic silver, and adds settlement quest reward confirmation
    - v0.112.2.4 combat dice stability repair: combat d20 colors are assigned on the individual roll object, enemy rolls are serialized through one physical-roll queue, and timeout cleanup is hardened
@@ -4092,7 +4093,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.113.0";
+const BUILD_VERSION = "v0.113.1";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 3;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept"});
@@ -10535,11 +10536,16 @@ function actionSummaryText(key){return actionSub(key).replace(/\s+·\s+/g,' • 
 function renderPad(){
   const root=$("pad");
   if(!root)return;
-  if(!S.foe||over||S.foe.defeated){root.innerHTML="";return;}
+  if(!S.foe||over||S.foe.defeated){root.hidden=false;root.innerHTML="";return;}
   if(enemyTurnActive()){
-    root.innerHTML=`<button class="act wide" disabled><span class="act-icon">${uiIcon("intent")}</span><span class="act-copy"><b>Enemy turn</b><span class="sub">${esc(enemyActionDescriptor()?.label||"action")} is resolving</span></span></button>`;
+    // v0.113.1: enemy-resolution status is already shown in the Awaiting choice
+    // preview panel. Hide the action pad instead of duplicating that information
+    // in a disabled Enemy Turn card.
+    root.hidden=true;
+    root.innerHTML="";
     return;
   }
+  root.hidden=false;
   const order=["strike","guard","heavy","counter","sand","read"];
   root.innerHTML=order.map((k,i)=>{
     const reason=combatActionUnavailableReason(k),off=!!reason,isArmed=armed===k,counters=S.foe&&actionCounters(k);
