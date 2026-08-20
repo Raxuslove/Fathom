@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.112.3 — Caravan Event & Quest Reward Pass</title>
+<title>Lowfathom v0.113.0 — Rescue / Escort System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,6 +21,7 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
+   - v0.113.0 Rescue / Escort System: adds the Zeshava Brightsong missing-physician chain, clue tracking, Persuasion + Deception Skills, temporary companion presence/chatter, escort danger, and automatic destination handoff
    - v0.112.3 caravan event + quest reward pass: removes passing caravans, makes damaged-wagon help an Athletics check with no automatic silver, and adds settlement quest reward confirmation
    - v0.112.2.4 combat dice stability repair: combat d20 colors are assigned on the individual roll object, enemy rolls are serialized through one physical-roll queue, and timeout cleanup is hardened
    - v0.112.2.3 all-rolls dice serialization: enemy turns cannot re-enter while a physical d20 is resolving; enemy combat dice use a crimson d20 for instant side recognition
@@ -502,6 +503,44 @@ button{
 }
 .caravan-early-warning[hidden]{display:none}
 .caravan-early-warning b{font-family:var(--slab);font-size:12px;color:#d4d7d9;font-weight:600}
+
+/* ---------- v0.113.0: temporary-companion presence + route speech ---------- */
+.route-speech{
+  --speech-fill:rgba(2,6,8,.96);--speech-edge:#9a8257;--speech-text:#d4cec1;
+  position:absolute;z-index:10;max-width:min(66%,280px);min-width:92px;padding:7px 10px;
+  border:1px solid var(--speech-edge);border-radius:12px;background:var(--speech-fill);
+  box-shadow:0 7px 20px rgba(0,0,0,.42),inset 0 0 0 1px rgba(255,255,255,.025);
+  font-family:var(--slab);font-size:13px;line-height:1.3;color:var(--speech-text);pointer-events:none;
+  transform:translate(13px,calc(-100% - 18px));transform-origin:left bottom;
+  opacity:0;transition:opacity .16s ease,transform .16s ease;
+}
+.route-speech[hidden]{display:none}
+.route-speech.show{opacity:1;transform:translate(13px,calc(-100% - 22px))}
+.route-speech::after{
+  content:"";position:absolute;left:13px;bottom:-7px;width:12px;height:12px;
+  background:var(--speech-fill);border-right:1px solid var(--speech-edge);border-bottom:1px solid var(--speech-edge);
+  transform:rotate(45deg);
+}
+.route-speech .route-speech-name{display:block;margin-bottom:2px;font-family:var(--cond);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--speech-edge)}
+.route-speech.player{--speech-fill:rgba(1,4,6,.97);--speech-edge:#b4945e;--speech-text:#d7d0c2}
+.route-speech.npc{--speech-fill:rgba(6,20,23,.96);--speech-edge:#7f9da0;--speech-text:#c9d5d2}
+.route-speech.whisper{opacity:.90;border-style:dashed;font-size:12px;font-style:italic;box-shadow:0 5px 15px rgba(0,0,0,.34)}
+.route-speech.thought{border-radius:17px;font-style:italic;transform:translate(13px,calc(-100% - 23px))}
+.route-speech.thought.show{transform:translate(13px,calc(-100% - 27px))}
+.route-speech.thought::after{left:15px;bottom:-10px;width:7px;height:7px;border-radius:50%;transform:none;border:1px solid var(--speech-edge)}
+.route-speech.thought::before{content:"";position:absolute;left:8px;bottom:-17px;width:4px;height:4px;border-radius:50%;background:var(--speech-fill);border:1px solid var(--speech-edge)}
+/* The player's lantern remains the main route anchor. A second, smaller light is
+   intentionally CSS-drawn for now so Phase 7 has no hard dependency on a new asset. */
+.trail-marker.has-companion::after{
+  content:"";position:absolute;left:2px;top:22px;width:4px;height:12px;border-radius:2px 2px 1px 1px;
+  background:linear-gradient(180deg,#9b7342,#4a3425);box-shadow:0 1px 3px rgba(0,0,0,.72);opacity:.95;
+}
+.trail-marker.has-companion::before{
+  content:"";position:absolute;left:-1px;top:13px;width:10px;height:13px;border-radius:55% 45% 60% 40%;
+  background:radial-gradient(circle at 55% 68%,#ffd68a 0 18%,#e9933d 28% 56%,rgba(188,77,28,.92) 66%,rgba(188,77,28,0) 74%);
+  filter:drop-shadow(0 0 5px rgba(239,162,75,.75)) drop-shadow(0 0 11px rgba(219,116,40,.38));opacity:.95;
+}
+.trail-marker.companion-hidden::before,.trail-marker.companion-hidden::after{opacity:0}
 .safe-hollow-card{
   margin:auto 12px 12px;padding:11px 12px 12px;
   border:1px solid var(--lamp-dim);background:var(--travel-surface);
@@ -3387,6 +3426,7 @@ body.font-slab{--cf-serif:var(--slab)}
             <div class="trail-label-layer" id="trailLabelsLarge"></div>
           </div>
           <div class="trail-marker" id="trailMarkerLarge"><i></i></div>
+          <div class="route-speech player" id="routeSpeechBubble" hidden aria-live="polite"><span class="route-speech-name" id="routeSpeechName"></span><span id="routeSpeechText"></span></div>
           <div class="caravan-early-warning" id="caravanEarlyWarning" hidden aria-live="polite"></div>
         </div>
       </div>
@@ -4052,7 +4092,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.112.3";
+const BUILD_VERSION = "v0.113.0";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 3;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept"});
@@ -4140,6 +4180,21 @@ const QUEST_DEFS = Object.freeze([
     reward:Object.freeze({goldPerUnit:10,maxGold:50})
   }),
   Object.freeze({
+    id:"grey-lantern-missing-physician",title:"Missing Physician",kind:"rescue-escort",
+    giverTownId:"grey-lantern",giverLocationId:"guild",giverName:"Grey Lantern Guild Hall",
+    targetTownId:"lantern-city",targetLocationId:"guild",targetNpcName:"Lantern City Guild Representative",targetName:"Lantern City · Lower Gate",repeatable:false,
+    interactionId:"zeshava-contract",rescueInteractionId:"zeshava-found",arrivalInteractionId:"zeshava-arrival",
+    subject:Object.freeze({id:"zeshava-brightsong",name:"Zeshava Brightsong",role:"Physician / Herbalist"}),
+    summary:"Find Zeshava Brightsong, a physician who never arrived in Lantern City, and escort them there if they are still alive.",
+    details:"Search the Grey Lantern–Lantern City road for signs of Zeshava Brightsong. If you find them alive, see them safely to Lantern City. Payment is made on arrival.",
+    lore:"Grey Lantern sent a physician down-road. Lantern City sent word back when Zeshava Brightsong failed to arrive.",
+    objectives:Object.freeze([
+      Object.freeze({id:"writ",type:"quest-proof",required:1,issuedQty:1,item:Object.freeze({id:"quest-grey-lantern-writ",name:"Grey Lantern Guild Writ",desc:"A sealed Guild writ naming Zeshava Brightsong and authorizing you to search for them.",onAbandon:"discard"})}),
+      Object.freeze({id:"satchel",type:"quest-clue",required:1,item:Object.freeze({id:"quest-zeshava-satchel",name:"Zeshava's Medicine Satchel",desc:"A battered physician's satchel bearing Zeshava Brightsong's mark. Several wrapped medicines remain inside.",onAbandon:"convert",mundaneName:"Medicine Satchel"})})
+    ]),
+    reward:Object.freeze({gold:80})
+  }),
+  Object.freeze({
     id:"lantern-city-deepglass",title:"Deepglass Forwarding Order",kind:"quota-delivery",
     giverTownId:"lantern-city",giverLocationId:"guild",giverName:"Lantern City Guild Hall",
     targetTownId:"ashwick",targetLocationId:"guild",targetNpcName:"Toren Kest",targetName:"Toren Kest · Ashwick Guild Hall",repeatable:false,
@@ -4222,18 +4277,31 @@ function questPromisedRewardText(inst){
 }
 function questProgressText(inst){
   const def=questDefById(inst?.definitionId);if(!def)return "";syncQuestObjectiveProgress(inst);
+  if(def.kind==="rescue-escort"){
+    const r=inst.rescue||{},name=def.subject?.name||"Missing traveller";
+    if(r.stage==="completed")return `${name} delivered to ${townDefById(inst.targetTownId)?.name||"the destination"}`;
+    if(r.stage==="failed")return `Rescue failed`;
+    if(r.stage==="escorting")return `Escorting ${name} · ${formatDepth(S?.depth||inst.acceptedAtDepth)} / ${formatDepth(inst.targetDepth)} fathoms`;
+    if(r.stage==="located")return `${name} located`;
+    return `${Math.max(0,Number(r.leads)||0)} / 2 leads found`;
+  }
   const obj=def.objectives?.[0],state=inst.objectives?.[obj?.id];
   if(obj?.type==="quota-item")return `${state?.current||0} / ${state?.required||obj.required} ${obj.item.name}${(state?.required||obj.required)===1?"":"s"}`;
   return state?`${state.current||0} / ${state.required||1}`:"";
 }
-function questAtTownLocation(townId,locationId){return QUEST_DEFS.find(q=>q.giverTownId===townId&&q.giverLocationId===locationId)||null;}
+function questsAtTownLocation(townId,locationId){return QUEST_DEFS.filter(q=>q.giverTownId===townId&&q.giverLocationId===locationId);}
+function questAtTownLocation(townId,locationId){return questsAtTownLocation(townId,locationId)[0]||null;}
 function questTurnInsAtTownLocation(townId,locationId){
-  return questInstances("active").filter(inst=>{const def=questDefById(inst.definitionId);return (inst.targetTownId||def?.targetTownId)===townId&&(inst.targetLocationId||def?.targetLocationId)===locationId;});
+  return questInstances("active").filter(inst=>{const def=questDefById(inst.definitionId);return def?.kind!=="rescue-escort"&&(inst.targetTownId||def?.targetTownId)===townId&&(inst.targetLocationId||def?.targetLocationId)===locationId;});
 }
 function questDestinationText(inst){
   const def=questDefById(inst?.definitionId);if(!inst||!def)return "—";
+  if(def.kind==="rescue-escort"&&!['escorting','completed'].includes(inst.rescue?.stage)){
+    const from=townDefById(def.giverTownId),to=townDefById(def.targetTownId);
+    return `${from?.name||"Source"} → ${to?.name||"next settlement"} road · whereabouts unknown`;
+  }
   const town=townDefById(inst.targetTownId||def.targetTownId),loc=townLocationById(town,inst.targetLocationId||def.targetLocationId),npc=inst.targetNpcName||def.targetNpcName;
-  if(town)return `${town.name} · ${loc?.name||def.targetName||"Destination"}${npc?` · ${npc}`:""} · ${formatDepth(inst.targetDepth)} fathoms`;
+  if(town)return `${town.name} · ${def.kind==="rescue-escort"?"Lower Gate":(loc?.name||def.targetName||"Destination")}${npc&&def.kind!=="rescue-escort"?` · ${npc}`:""} · ${formatDepth(inst.targetDepth)} fathoms`;
   return `${formatDepth(inst.targetDepth)} fathoms · ${def.targetName||"Quest destination"}`;
 }
 function findClearQuestDepth(desired){
@@ -4251,8 +4319,9 @@ function acceptQuest(defId){
   const targetDepth=targetTown?Number(targetTown.depth):findClearQuestDepth(originDepth+Number(def.targetOffset||0));
   const objectives={};for(const obj of def.objectives||[])objectives[obj.id]={current:0,required:Math.max(1,Number(obj.required)||1)};
   const inst={instanceId,definitionId:def.id,status:"active",acceptedAt:Date.now(),acceptedAtDepth:originDepth,acceptedTownId:def.giverTownId,targetDepth,targetTownId:def.targetTownId||null,targetLocationId:def.targetLocationId||null,targetNpcName:def.targetNpcName||null,expiresAtDepth:def.expiresAfterDepth?roundQuarter(originDepth+Number(def.expiresAfterDepth)):null,objectives,promisedRewards:{...(def.reward||{})},result:null,inactiveReason:null};
+  if(def.kind==="rescue-escort")inst.rescue=createRescueQuestState(def,inst);
   S.quests.instances.push(inst);
-  for(const obj of def.objectives||[])if(obj.type==="delivery-item"&&obj.issuedQty)addQuestItem(inst,obj,obj.issuedQty,"issued");
+  for(const obj of def.objectives||[])if(obj.issuedQty)addQuestItem(inst,obj,obj.issuedQty,"issued");
   if(!targetTown)nudgePendingMerchantFromDepth(targetDepth,5);
   markCharacterNotice("quests");travelLogAdd(`<b>Quest accepted:</b> ${esc(def.title)} · destination ${esc(questDestinationText(inst))}.`,"beat");saveRunNow();renderTown();renderCharacterSheet();renderTrail();return true;
 }
@@ -4311,7 +4380,13 @@ function completeTownQuestTurnIn(instanceId){
   const ok=resolveQuestDelivery(inst,{resumeTravel:false});if(ok){renderTown();renderCharacterSheet();renderPack(false);renderTrail();showQuestRewardConfirmation(inst);}return ok;
 }
 function makeQuestInactive(instanceId,reason="Destination missed"){
-  const inst=questInstanceById(instanceId);if(!inst||inst.status!=="active")return false;inst.status="inactive";inst.inactiveReason=reason;inst.inactiveAt=Date.now();markCharacterNotice("quests");requestRunSave();return true;
+  const inst=questInstanceById(instanceId);if(!inst||inst.status!=="active")return false;
+  inst.status="inactive";inst.inactiveReason=reason;inst.inactiveAt=Date.now();
+  if(questDefById(inst.definitionId)?.kind==="rescue-escort"){
+    if(inst.rescue)inst.rescue.stage="failed";
+    clearTemporaryCompanion(inst.instanceId);
+  }
+  markCharacterNotice("quests");requestRunSave();return true;
 }
 function passQuestTurnIn(instanceId){
   const inst=questInstanceById(instanceId);if(!inst)return false;const def=questDefById(inst.definitionId),resume=S.travelEvent?.priorMode||"descend";makeQuestInactive(instanceId,"Delivery point passed");S.travelEvent=null;S.travelMode=resume==="explore"?"stopped":resume;resumeBoonClock();travelLogAdd(`<b>${esc(def?.title||"Quest")} becomes inactive.</b> The delivery point has been left behind.`,"note");saveRunNow();render();return true;
@@ -4329,10 +4404,198 @@ function normalizeQuestState(){
       else if(!inst.targetTownId&&Number(S.depth)>Number(inst.targetDepth)+TRAVEL_STEP&&S.travelEvent?.questInstanceId!==inst.instanceId){inst.status="inactive";inst.inactiveReason="Delivery point missed";}
       else if(inst.targetTownId&&ensureTownState()?.departed?.[inst.targetTownId]){inst.status="inactive";inst.inactiveReason="Destination left behind";}
     }
+    if(inst.status!=="active"&&def.kind==="rescue-escort"){
+      if(inst.rescue&&inst.status!=="completed")inst.rescue.stage="failed";
+      if(S.temporaryCompanion?.questInstanceId===inst.instanceId)S.temporaryCompanion=null;
+    }
     syncQuestObjectiveProgress(inst);
   }
 }
 function activeQuestDestinationLandmarks(){return questInstances("active").filter(inst=>!inst.targetTownId).map(inst=>({depth:Number(inst.targetDepth)||0,title:questDefById(inst.definitionId)?.targetName||"Quest destination"}));}
+
+/* ============================================================
+   v0.113.0 — RESCUE / ESCORT FOUNDATION
+
+   Rescue quests remain ordinary persistent Quest Engine instances. Their
+   authored clue beats live inside inst.rescue, while a single lightweight
+   temporaryCompanion record handles route presence between rescue and handoff.
+   No companion combat AI, HP bar or second combat turn is created here.
+   ============================================================ */
+let routeSpeechTimer=null;
+let routeSpeechPriority=0;
+function clearRouteSpeech(){
+  if(routeSpeechTimer){clearTimeout(routeSpeechTimer);routeSpeechTimer=null;}
+  routeSpeechPriority=0;
+  const box=$("routeSpeechBubble");if(!box)return;
+  box.classList.remove("show");box.hidden=true;
+}
+function showRouteSpeech({speaker="",text="",who="npc",type="normal",duration=4200,priority=1}={}){
+  const box=$("routeSpeechBubble");if(!box||!text||priority<routeSpeechPriority)return false;
+  if(routeSpeechTimer){clearTimeout(routeSpeechTimer);routeSpeechTimer=null;}
+  routeSpeechPriority=priority;
+  box.className=`route-speech ${who==="player"?"player":"npc"}${type&&type!=="normal"?` ${type}`:""}`;
+  $("routeSpeechName").textContent=speaker||"";$("routeSpeechName").hidden=!speaker;
+  $("routeSpeechText").textContent=text;box.hidden=false;
+  requestAnimationFrame(()=>box.classList.add("show"));
+  routeSpeechTimer=setTimeout(()=>{box.classList.remove("show");setTimeout(()=>{box.hidden=true;routeSpeechPriority=0;},180);routeSpeechTimer=null;},Math.max(1200,Number(duration)||4200));
+  return true;
+}
+function ensureTemporaryCompanion(){
+  if(!S)return null;
+  const c=S.temporaryCompanion;
+  if(!c||typeof c!=="object"||Array.isArray(c)){S.temporaryCompanion=null;return null;}
+  c.status=c.status||"following";c.hiddenForCombat=!!c.hiddenForCombat;
+  c.nextBarkDepth=Number(c.nextBarkDepth)||((Number(S.depth)||0)+ri(24,40));
+  return c;
+}
+function temporaryCompanionActive(){const c=ensureTemporaryCompanion();return !!c&&c.status==="following";}
+function temporaryCompanionForQuest(instanceId){const c=ensureTemporaryCompanion();return c?.questInstanceId===instanceId?c:null;}
+function startTemporaryCompanion(inst){
+  const def=questDefById(inst?.definitionId);if(!inst||!def||def.kind!=="rescue-escort")return false;
+  const name=def.subject?.name||"Traveller";
+  S.temporaryCompanion={id:def.subject?.id||`escort-${inst.instanceId}`,name,role:def.subject?.role||"Traveller",questInstanceId:inst.instanceId,destinationTownId:inst.targetTownId||def.targetTownId,status:"following",hiddenForCombat:false,nextBarkDepth:(Number(S.depth)||0)+ri(24,40),joinedAtDepth:Number(S.depth)||0};
+  inst.rescue=inst.rescue||{};inst.rescue.stage="escorting";inst.rescue.joinedAtDepth=Number(S.depth)||0;
+  if(!Number.isFinite(Number(inst.rescue.pursuitDepth))){
+    const target=Number(inst.targetDepth)||Number(townDefById(inst.targetTownId)?.depth)||((Number(S.depth)||0)+50);
+    inst.rescue.pursuitDepth=findClearRescueDepth((Number(S.depth)||0)+(target-(Number(S.depth)||0))*.56,(Number(S.depth)||0)+12,target-8);
+  }
+  markCharacterNotice("quests");travelLogAdd(`<b>${esc(name)}</b> joins you for the road to ${esc(townDefById(inst.targetTownId)?.name||"the next settlement")}.`,"beat");requestRunSave();return true;
+}
+function clearTemporaryCompanion(instanceId=null){
+  const c=ensureTemporaryCompanion();if(!c||instanceId&&c.questInstanceId!==instanceId)return false;
+  S.temporaryCompanion=null;requestRunSave();return true;
+}
+function companionTravelLines(){return ["Did you hear that?!","Keep your voice down.","I thought I saw movement.","They're still out there.","How much farther?"];}
+function maybeCompanionTravelBark(){
+  const c=ensureTemporaryCompanion();if(!c||c.status!=="following"||c.hiddenForCombat||S.foe||S.travelEvent||encounterWarningActive()||S.travelMode!=="descend")return false;
+  if((Number(S.depth)||0)+.001<Number(c.nextBarkDepth||Infinity))return false;
+  c.nextBarkDepth=(Number(S.depth)||0)+ri(24,40);requestRunSave();
+  return showRouteSpeech({speaker:c.name,text:pick(companionTravelLines()),who:"npc",type:rnd()<.28?"whisper":"normal",duration:4300,priority:1});
+}
+function companionEncounterWarningBark(){
+  const c=ensureTemporaryCompanion();if(!c||c.status!=="following")return;
+  showRouteSpeech({speaker:c.name,text:pick(["I'm going to hide!","Something's coming. I'll hide.","They're here—I'm hiding!"]),who:"npc",type:"normal",duration:4200,priority:3});
+}
+function companionEnterCombat(){const c=ensureTemporaryCompanion();if(c)c.hiddenForCombat=true;}
+function companionLeaveCombat(line="Is it over?"){
+  const c=ensureTemporaryCompanion();if(!c)return;
+  c.hiddenForCombat=false;c.nextBarkDepth=Math.max(Number(c.nextBarkDepth)||0,(Number(S.depth)||0)+ri(20,34));requestRunSave();
+  setTimeout(()=>showRouteSpeech({speaker:c.name,text:line,who:"npc",type:"normal",duration:4200,priority:3}),120);
+}
+function positionRouteSpeech(marker){
+  const box=$("routeSpeechBubble");if(!box||!marker)return;
+  box.style.left=marker.style.left||"40%";box.style.top=marker.style.top||"50%";
+}
+function findClearRescueDepth(desired,minDepth,maxDepth){
+  let d=roundQuarter(clamp(Number(desired)||0,Number(minDepth)||0,Number(maxDepth)||Number(desired)||0));
+  const min=Number(minDepth)||0,max=Math.max(min,Number(maxDepth)||d);
+  for(let i=0;i<80;i++){
+    if(routeDepthClear(d,4)&&TOWN_DEFS.every(t=>Math.abs(Number(t.depth)-d)>=6))return d;
+    const offset=(i%2===0?1:-1)*(Math.floor(i/2)+1)*.75;d=roundQuarter(clamp((Number(desired)||d)+offset,min,max));
+  }
+  return roundQuarter(clamp(Number(desired)||min,min,max));
+}
+function rescueDepthDifficulty(depth){return Math.max(0,Math.floor(Math.log2(1+Math.max(0,Number(depth)||0)/500)));}
+function rescueSkillChallenge(depth,difficulty=0){return authoredChallenge(10+rescueDepthDifficulty(depth)+Math.max(0,Number(difficulty)||0));}
+function createRescueQuestState(def,inst){
+  const origin=Number(inst.acceptedAtDepth)||Number(townDefById(def.giverTownId)?.depth)||0,target=Number(inst.targetDepth)||Number(townDefById(def.targetTownId)?.depth)||origin+120,span=Math.max(60,target-origin);
+  const track=findClearRescueDepth(origin+span*.22,origin+14,target-36);
+  const satchel=findClearRescueDepth(origin+span*.48,track+18,target-26);
+  const hideout=findClearRescueDepth(origin+span*.72,satchel+18,target-14);
+  return {stage:"searching",leads:0,trackDepth:track,satchelDepth:satchel,hideoutDepth:hideout,pursuitDepth:null,tracksResolved:false,satchelResolved:false,hideoutResolved:false,pursuitResolved:false,trackAttempts:{investigation:false,survival:false},hideoutAttempts:{perception:false,survival:false},satchelInsight:false,enemyLabel:"goblins"};
+}
+function ensureRescueQuestState(inst){
+  const def=questDefById(inst?.definitionId);if(!inst||def?.kind!=="rescue-escort")return null;
+  if(!inst.rescue||typeof inst.rescue!=="object"||Array.isArray(inst.rescue))inst.rescue=createRescueQuestState(def,inst);
+  inst.rescue.trackAttempts=inst.rescue.trackAttempts&&typeof inst.rescue.trackAttempts==="object"?inst.rescue.trackAttempts:{investigation:false,survival:false};
+  inst.rescue.hideoutAttempts=inst.rescue.hideoutAttempts&&typeof inst.rescue.hideoutAttempts==="object"?inst.rescue.hideoutAttempts:{perception:false,survival:false};
+  inst.rescue.leads=Math.max(0,Math.min(2,Number(inst.rescue.leads)||0));
+  return inst.rescue;
+}
+function activeRescueQuests(){return questInstances("active").filter(inst=>questDefById(inst.definitionId)?.kind==="rescue-escort");}
+function rescueQuestItem(inst,objectiveId){const obj=questObjectiveDef(inst,objectiveId);return obj?questItemCount(inst.instanceId,obj.id):0;}
+function addRescueLead(inst){const r=ensureRescueQuestState(inst);if(!r)return 0;r.leads=Math.min(2,(Number(r.leads)||0)+1);markCharacterNotice("quests");requestRunSave();return r.leads;}
+function crossedRescueBeat(beforeDepth,afterDepth){
+  for(const inst of activeRescueQuests()){
+    const r=ensureRescueQuestState(inst);if(!r)continue;
+    const beats=r.stage==="escorting"?[["pursuit",r.pursuitDepth,r.pursuitResolved]]:[["tracks",r.trackDepth,r.tracksResolved],["satchel",r.satchelDepth,r.satchelResolved],["hideout",r.hideoutDepth,r.hideoutResolved]];
+    for(const [type,depth,resolved] of beats){if(!resolved&&Number.isFinite(Number(depth))&&Number(depth)>beforeDepth+.0001&&Number(depth)<=afterDepth+.0001)return {type,depth:Number(depth),inst};}
+  }
+  return null;
+}
+function rescueEventBase(inst,beat){
+  const r=ensureRescueQuestState(inst),prior=S.travelMode||"descend";S.depth=Number(beat.depth)||S.depth;S.exploreElapsedMs=0;S.exploreDepth=S.depth;S.travelMode="stopped";S.travelSinceEvent=0;pauseBoonClock();
+  return {questInstanceId:inst.instanceId,priorMode:prior,rescueKind:beat.type,rescueDepth:Number(beat.depth)||S.depth,enemyLabel:r?.enemyLabel||"creatures"};
+}
+function beginRescueHideout(inst,automatic=false){
+  const r=ensureRescueQuestState(inst);if(!r)return false;r.hideoutResolved=true;r.stage="located";
+  S.travelEvent={id:"rescue-hideout",kind:"Missing person",title:"A hidden refuge",text:"The trail ends at a cramped recess off the route. Something is moving outside it.",rollHtml:automatic?`<b>Trail:</b> the clues point here clearly.`:"",questInstanceId:inst.instanceId,priorMode:"descend",rescueKind:"hideout",enemyLabel:r.enemyLabel};
+  travelLogAdd(`<b>The trail leads to a hidden refuge.</b> Someone may still be alive inside.`,"beat");render();
+  showRouteSpeech({speaker:S.name,text:"That has to be the place.",who:"player",type:"thought",duration:3900,priority:2});return true;
+}
+function beginRescueBeat(beat){
+  const inst=beat?.inst,r=ensureRescueQuestState(inst);if(!inst||!r)return false;
+  const base=rescueEventBase(inst,beat);
+  if(beat.type==="tracks"){
+    S.travelEvent={id:"rescue-clue",kind:"Missing person",title:"Tracks leave the road",text:"Fresh-looking prints break away from the main descent. The marks are uneven, as if whoever made them was moving in haste.",rollHtml:"",...base};
+    travelLogAdd(`<b>Possible clue.</b> Tracks leave the main road near ${formatDepth(S.depth)} fathoms.`,"note");render();
+    showRouteSpeech({speaker:S.name,text:"Those tracks leave the main route.",who:"player",type:"thought",duration:3900,priority:2});return true;
+  }
+  if(beat.type==="satchel"){
+    S.travelEvent={id:"rescue-clue",kind:"Missing person",title:"A bag in the rubble",text:"A battered medical satchel lies caught between two stones. Several wrapped medicines are still inside.",rollHtml:"",...base};
+    travelLogAdd(`<b>Possible clue.</b> A medical satchel lies abandoned beside the route.`,"note");render();
+    showRouteSpeech({speaker:S.name,text:"A medical bag?",who:"player",type:"thought",duration:3600,priority:2});return true;
+  }
+  if(beat.type==="hideout"){
+    if(r.leads>=2)return beginRescueHideout(inst,true);
+    S.travelEvent={id:"rescue-search",kind:"Missing person",title:"Something off the route",text:"For a moment there is a sound beyond the main path—too faint to place, then gone.",rollHtml:"",...base};
+    travelLogAdd(`<b>The trail is uncertain.</b> Something may be hidden off the route here.`,"note");render();
+    showRouteSpeech({speaker:S.name,text:"Was that a voice?",who:"player",type:"thought",duration:3600,priority:2});return true;
+  }
+  if(beat.type==="pursuit")return beginEscortDangerEvent(inst,base);
+  return false;
+}
+function resumeRescueTravel(ev=S?.travelEvent){
+  const resume=ev?.priorMode||"descend";S.travelEvent=null;S.travelMode=resume==="descend"?"descend":"stopped";S.travelSinceEvent=0;resumeBoonClock();saveRunNow();render();return true;
+}
+function failRescueQuest(inst,reason="Rescue failed"){
+  if(!inst||inst.status!=="active")return false;const def=questDefById(inst.definitionId),r=ensureRescueQuestState(inst);if(r)r.stage="failed";
+  inst.status="inactive";inst.inactiveReason=reason;inst.inactiveAt=Date.now();clearTemporaryCompanion(inst.instanceId);markCharacterNotice("quests");
+  travelLogAdd(`<b>${esc(def?.title||"Rescue")} failed.</b> ${esc(reason)}.`,"danger");saveRunNow();return true;
+}
+function completeRescueQuest(inst){
+  if(!inst||inst.status!=="active")return false;const def=questDefById(inst.definitionId),reward=Math.max(0,Math.round(Number(inst.promisedRewards?.gold)||0));
+  removeQuestItems(inst.instanceId,null,Infinity);S.gold=(S.gold||0)+reward;inst.status="completed";inst.completedAt=Date.now();inst.inactiveReason=null;inst.result={reward,full:true,rescued:def?.subject?.name||"Traveller",delivered:1,required:1};
+  if(inst.rescue)inst.rescue.stage="completed";clearTemporaryCompanion(inst.instanceId);markCharacterNotice("quests");travelLogAdd(`<b>${esc(def?.title||"Rescue")} completed.</b> ${esc(def?.subject?.name||"The traveller")} reached ${esc(townDefById(inst.targetTownId)?.name||"the destination")} · received ${esc(formatGold(reward))}.`,"good");saveRunNow();return true;
+}
+function maybeStartEscortArrival(town){
+  const c=ensureTemporaryCompanion();if(!town||!c||c.status!=="following"||c.destinationTownId!==town.id||activeInteraction())return false;
+  const inst=questInstanceById(c.questInstanceId),def=questDefById(inst?.definitionId);if(!inst||inst.status!=="active"||def?.kind!=="rescue-escort")return false;
+  return startInteraction(def.arrivalInteractionId||"zeshava-arrival",{questInstanceId:inst.instanceId,townId:town.id,rescuedName:def.subject?.name||c.name});
+}
+function beginEscortDangerEvent(inst,base=null){
+  const r=ensureRescueQuestState(inst),c=temporaryCompanionForQuest(inst.instanceId);if(!r||!c)return false;
+  const prior=base?.priorMode||S.travelMode||"descend";r.pursuitResolved=true;S.travelMode="stopped";pauseBoonClock();
+  S.travelEvent={id:"escort-danger",kind:"Escort",title:"Movement behind you",text:`${c.name} stops dead. The same ${r.enemyLabel||"creatures"} that drove them into hiding may have found the trail again.`,rollHtml:"",questInstanceId:inst.instanceId,priorMode:prior,rescueKind:"pursuit"};
+  travelLogAdd(`<b>Escort danger.</b> ${esc(c.name)} recognizes movement behind you.`,"danger");render();
+  showRouteSpeech({speaker:c.name,text:"That's them.",who:"npc",type:"whisper",duration:4300,priority:3});return true;
+}
+function startRescueThreatCombat(inst,{guardian=false,pursuit=false}={}){
+  if(!inst||inst.status!=="active")return false;const profile=chooseFoeProfile(),tag={questInstanceId:inst.instanceId,profileId:profile.id};S.travelEvent=null;
+  travelLogAdd(guardian?`A <b>${esc(profile.name)}</b> prowls between you and the refuge.`:`The pursuers close in. You stand between them and <b>${esc(questDefById(inst.definitionId)?.subject?.name||"your companion")}</b>.`,"danger");
+  return spawnEncounter({profile,...(guardian?{rescueGuardian:tag}:{escortThreat:tag})});
+}
+function rescueCombatVictory(foe){
+  const tag=foe?.rescueGuardian||foe?.escortThreat;if(!tag)return false;const inst=questInstanceById(tag.questInstanceId),def=questDefById(inst?.definitionId);if(!inst||inst.status!=="active")return false;
+  if(foe.rescueGuardian){const r=ensureRescueQuestState(inst);if(r)r.stage="located";queueInteraction(def.rescueInteractionId||"zeshava-found",{questInstanceId:inst.instanceId,enemyLabel:r?.enemyLabel||"creatures",resumeMode:"stopped"});travelLogAdd(`<b>The refuge is clear.</b> You can finally reach whoever is hiding inside.`,"beat");}
+  else travelLogAdd(`<b>The pursuit breaks.</b> ${esc(def.subject?.name||"Your companion")} can keep moving with you.`,"good");
+  requestRunSave();return true;
+}
+function rescueCombatAbandoned(foe){
+  const tag=foe?.rescueGuardian||foe?.escortThreat;if(!tag)return false;const inst=questInstanceById(tag.questInstanceId);if(!inst||inst.status!=="active")return false;
+  if(foe.rescueGuardian)return failRescueQuest(inst,"You fled the refuge and left it behind");
+  return failRescueQuest(inst,`${questDefById(inst.definitionId)?.subject?.name||"The traveller"} was lost when you broke from the pursuit`);
+}
 
 /* ============================================================
    v0.108.0 — GAME-WIDE NPC INTERACTION ENGINE
@@ -4344,6 +4607,76 @@ function activeQuestDestinationLandmarks(){return questInstances("active").filte
    existing engines instead.
    ============================================================ */
 const INTERACTION_DEFS=Object.freeze({
+  "zeshava-contract":Object.freeze({
+    id:"zeshava-contract",kind:"Guild contract",start:"briefing",
+    nodes:Object.freeze({
+      briefing:Object.freeze({
+        speaker:"Guild Representative",
+        text:()=>`We got word from Brightsong's family in Lantern City. Zeshava Brightsong, a physician we sent down-road, never arrived. Find out what happened. If they're alive, see them safely to Lantern City. Payment is ${formatGold(questDefById("grey-lantern-missing-physician")?.reward?.gold||0)} on arrival.`,
+        choices:Object.freeze([
+          Object.freeze({id:"accept",label:"I'll find them.",sub:()=>"accept the missing-person contract",next:"accepted",style:"reward",effects:Object.freeze([Object.freeze({type:"acceptQuest",questId:"grey-lantern-missing-physician"})])}),
+          Object.freeze({id:"decline",label:"Not this time.",sub:"leave the contract on the board",end:true,style:"leave"})
+        ])
+      }),
+      accepted:Object.freeze({
+        speaker:"Guild Representative",text:"Take this writ. It names Brightsong and carries Grey Lantern's seal. If you find them, get them to Lantern City. They'll settle the payment there.",
+        choices:Object.freeze([Object.freeze({id:"leave",label:"Take the writ",sub:"return to Grey Lantern",end:true,wide:true,style:"reward"})])
+      })
+    })
+  }),
+  "zeshava-found":Object.freeze({
+    id:"zeshava-found",kind:"Missing person",start:"wary",
+    nodes:Object.freeze({
+      wary:Object.freeze({
+        speaker:"Zeshava Brightsong",text:"Stop there. Who are you?",
+        choices:Object.freeze([
+          Object.freeze({id:"persuade",label:"I was sent by Grey Lantern's Guild.",sub:"Persuasion · earn practice even if the writ is needed",style:"skill",skill:Object.freeze({id:"persuasion",challenge:()=>rescueSkillChallenge(S?.depth||0,0),practiceSource:"zeshava-trust"}),success:"trusted",failure:"skeptical"})
+        ])
+      }),
+      skeptical:Object.freeze({
+        speaker:"Zeshava Brightsong",text:"Anyone could say that. I need more than your word.",
+        choices:Object.freeze([
+          Object.freeze({id:"writ",label:"Show the Guild Writ",sub:"Grey Lantern's seal is proof enough",next:"trusted",showWhen:Object.freeze({type:"questItemAtLeast",objectiveId:"writ",amount:1})}),
+          Object.freeze({id:"satchel",label:"Show the medicine satchel",sub:"return the equipment you found on the road",next:"satchel-proof",showWhen:Object.freeze({type:"questItemAtLeast",objectiveId:"satchel",amount:1})})
+        ])
+      }),
+      "satchel-proof":Object.freeze({
+        speaker:"Zeshava Brightsong",text:"That's mine. I dropped it when I ran. All right—you're telling the truth.",
+        choices:Object.freeze([Object.freeze({id:"continue",label:"What happened?",sub:"hear them out",next:"trusted",wide:true})])
+      }),
+      trusted:Object.freeze({
+        speaker:"Zeshava Brightsong",text:active=>`Thank you. I've been holed up in here for days. I lost most of my equipment when the ${active?.context?.enemyLabel||"creatures"} came after me, and every time I thought they'd gone I heard them searching again. I can't make the rest of the road alone.`,
+        choices:Object.freeze([
+          Object.freeze({id:"escort",label:"Come with me.",sub:"escort Zeshava to Lantern City",next:"joining",style:"reward"}),
+          Object.freeze({id:"leave",label:"I can't take you.",sub:"leaving them here permanently fails the rescue",next:"abandon-confirm",style:"leave"})
+        ])
+      }),
+      joining:Object.freeze({
+        speaker:"Zeshava Brightsong",text:"Then stay close. I won't get in your way if something finds us.",onEnterEffects:Object.freeze([Object.freeze({type:"hook",name:"start-rescue-companion"})]),
+        choices:Object.freeze([Object.freeze({id:"leave",label:"Move on together",sub:"Zeshava now accompanies you",end:true,wide:true,style:"reward"})])
+      }),
+      "abandon-confirm":Object.freeze({
+        speaker:"Zeshava Brightsong",text:"If you leave now, I can't follow you down alone.",
+        choices:Object.freeze([
+          Object.freeze({id:"back",label:"Come with me.",sub:"take responsibility for the escort",next:"joining",style:"reward"}),
+          Object.freeze({id:"abandon",label:"Leave anyway",sub:"the rescue fails when you continue downward",end:true,style:"leave",effects:Object.freeze([Object.freeze({type:"hook",name:"fail-rescue-abandoned"})])})
+        ])
+      })
+    })
+  }),
+  "zeshava-arrival":Object.freeze({
+    id:"zeshava-arrival",kind:"Escort handoff",start:"thanks",
+    nodes:Object.freeze({
+      thanks:Object.freeze({
+        speaker:"Zeshava Brightsong",text:"We made it. I thought I was going to die back there. Thank you.",
+        choices:Object.freeze([Object.freeze({id:"continue",label:"Continue",sub:"someone is waiting at the gate",next:"representative",wide:true})])
+      }),
+      representative:Object.freeze({
+        speaker:"Lantern City Guild Representative",text:active=>`Brightsong. We had word to watch for you. The contract is fulfilled. Here's the promised ${formatGold(questInstanceById(active?.context?.questInstanceId)?.promisedRewards?.gold||0)}.`,
+        choices:Object.freeze([Object.freeze({id:"reward",label:"Receive payment",sub:"complete the rescue and enter Lantern City",end:true,wide:true,style:"reward",effects:Object.freeze([Object.freeze({type:"hook",name:"complete-rescue-arrival"})])})])
+      })
+    })
+  }),
   "caravan-survivors":Object.freeze({
     id:"caravan-survivors",kind:"Caravan survivors",start:"thanks",endHook:"resolve-helped-caravan",
     nodes:Object.freeze({
@@ -4558,6 +4891,7 @@ function ensureInteractionState(){
 }
 function interactionDef(id){return INTERACTION_DEFS[id]||null;}
 function interactionNodeText(node,active){return typeof node?.text==="function"?(node.text(active)||""):(node?.text||"");}
+function interactionChoiceSub(choice,active){return typeof choice?.sub==="function"?(choice.sub(active)||""):(choice?.sub||"");}
 function activeInteraction(){return ensureInteractionState()?.active||null;}
 function interactionConditionMet(condition,active=activeInteraction()){
   if(!condition)return true;
@@ -4565,6 +4899,7 @@ function interactionConditionMet(condition,active=activeInteraction()){
   if(condition.any)return condition.any.some(c=>interactionConditionMet(c,active));
   if(condition.not)return !interactionConditionMet(condition.not,active);
   if(condition.type==="inventoryAtLeast")return Number(S?.inventory?.[condition.key])>=Number(condition.amount||1);
+  if(condition.type==="questItemAtLeast"){const inst=questInstanceById(active?.context?.questInstanceId);return !!inst&&questItemCount(inst.instanceId,condition.objectiveId)>=Number(condition.amount||1);}
   if(condition.type==="questAbsent")return !questInstanceForDefinition(condition.questId);
   if(condition.type==="contextEquals")return active?.context?.[condition.key]===condition.value;
   return true;
@@ -4639,6 +4974,9 @@ function activateQueuedInteraction(){
   enterInteractionNode(st.active,st.active.nodeId);saveRunNow();render();return true;
 }
 const INTERACTION_HOOKS={
+  "start-rescue-companion":active=>{const inst=questInstanceById(active?.context?.questInstanceId);return startTemporaryCompanion(inst)?`<b>Escort:</b> ${esc(questDefById(inst?.definitionId)?.subject?.name||"Traveller")} is accompanying you.`:"";},
+  "fail-rescue-abandoned":active=>{const inst=questInstanceById(active?.context?.questInstanceId);failRescueQuest(inst,"You left Zeshava Brightsong in the refuge");return "";},
+  "complete-rescue-arrival":active=>{const inst=questInstanceById(active?.context?.questInstanceId);if(!inst)return "";const ok=completeRescueQuest(inst);if(ok)setTimeout(()=>showQuestRewardConfirmation(inst),0);return ok?`<b>Quest completed:</b> ${esc(questDefById(inst.definitionId)?.title||"Rescue")}`:"";},
   "resolve-helped-caravan":active=>{
     const outcome=active?.context?.outcome||"helped-attacked";recordCaravanResolution(outcome,pendingCaravan());
     if(S&&!over){S.travelMode=active?.context?.resumeMode==="descend"?"descend":"stopped";S.travelSinceEvent=0;resumeBoonClock();}
@@ -4662,7 +5000,7 @@ function renderInteraction(){
   $("interactionKind").textContent=def.kind||"Conversation";$("interactionSpeaker").textContent=node.speaker||"Traveller";$("interactionText").textContent=interactionNodeText(node,active);
   const result=$("interactionResult"),html=active.nodeResults?.[active.nodeId]||"";result.hidden=!html;result.innerHTML=html;
   const actions=$("interactionActions");actions.innerHTML=(node.choices||[]).filter(choice=>interactionConditionMet(choice.showWhen,active)).map(choice=>{
-    const enabled=interactionConditionMet(choice.enabledWhen,active),sub=enabled?(choice.sub||""):(choice.disabledSub||choice.sub||"Unavailable");
+    const enabled=interactionConditionMet(choice.enabledWhen,active),baseSub=interactionChoiceSub(choice,active),sub=enabled?baseSub:(choice.disabledSub||baseSub||"Unavailable");
     const cls=["interaction-choice",choice.wide?"wide":"",choice.style||""].filter(Boolean).join(" ");
     return `<button class="${cls}" type="button" data-interaction-choice="${esc(choice.id)}"${enabled?"":" disabled"}><b>${esc(choice.label||"Continue")}</b><span>${esc(sub)}</span></button>`;
   }).join("");
@@ -4674,7 +5012,7 @@ async function handleInteractionChoice(choiceId){
   let resultHtml=applyInteractionEffects(choice.beforeEffects,active,`choice:${active.nodeId}:${choice.id}:before`);
   let target=choice.next||null;
   if(choice.skill){
-    const challenge=authoredChallenge(Number(choice.skill.challengeRank)||12),check=await runActiveSkillCheck(choice.skill.id,challenge,Number(choice.skill.circumstance)||0);
+    const challenge=typeof choice.skill.challenge==="function"?Number(choice.skill.challenge(active)):Number.isFinite(Number(choice.skill.challenge))?Number(choice.skill.challenge):authoredChallenge(Number(choice.skill.challengeRank)||12),check=await runActiveSkillCheck(choice.skill.id,challenge,Number(choice.skill.circumstance)||0);
     const practiceKey=`interaction:${choice.skill.practiceSource||choice.id}:${active.context?.eventId||active.sessionId}`;
     const practice=awardSkillPractice(choice.skill.id,practiceKey,check);
     resultHtml=[resultHtml,formatSkillCheck(check)+practiceText(choice.skill.id,practice)].filter(Boolean).join("<br>");
@@ -5107,9 +5445,11 @@ const SKILL_DEFS = {
   stealth:{name:"Stealth", stat:"DEX", desc:"Conceal yourself from creature Awareness and control how encounters begin."},
   acrobatics:{name:"Acrobatics", stat:"DEX", desc:"Balance, tumble, squeeze through and control precise movement."},
   athletics:{name:"Athletics", stat:"STR", desc:"Climb, force, haul, jump and overcome obstacles through physical power."},
-  survival:{name:"Survival", stat:"WIS", desc:"Read tracks, terrain, signs of danger and the practical conditions of the delve."}
+  survival:{name:"Survival", stat:"WIS", desc:"Read tracks, terrain, signs of danger and the practical conditions of the delve."},
+  persuasion:{name:"Persuasion", stat:"CHA", desc:"Win trust, reassure, negotiate and convince someone through presence and honest argument."},
+  deception:{name:"Deception", stat:"CHA", desc:"Mislead, bluff and maintain a convincing falsehood under pressure."}
 };
-const SKILL_ORDER = ["perception","investigation","stealth","acrobatics","athletics","survival"];
+const SKILL_ORDER = ["perception","investigation","stealth","acrobatics","athletics","survival","persuasion","deception"];
 
 /* Session 9E: displayed Skill Rank is an Elo-like logarithmic expertise rating.
    A fixed rating gap always means the same relative competence at Rank 10 or 1000.
@@ -5187,7 +5527,7 @@ let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 20;
+const SAVE_SCHEMA = 21;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -5813,6 +6153,7 @@ function newDelver(profile){
     lootHistory:[], pendingLoot:null, combatLog:[], concealment:null, stealthOpportunitySeq:0,pendingMerchant:null,merchantVisits:0,merchantHistory:[],
     caravans:{pending:null,history:[],routeRolls:{},warning:null,nextSerial:1,activeMerchant:null},
     interactionState:{active:null,pending:null,nextSerial:1},
+    temporaryCompanion:null,
     townState:{currentId:null,visited:{},departed:{},services:{}},
     quests:{instances:[],nextSerial:1,exploreAccumulator:0},
     turn:1, combatActor:"player", combatExtraTurns:{player:0,enemy:0}, combatTimeline:null, reactionMax:3, reactionPoints:3, reactionAvailable:false, reactionWindow:false, protectionMax:0, protectionSource:null, defencePrepared:null, negateNextAttack:null, foe:null
@@ -6957,7 +7298,22 @@ function toggleEquipmentList(){
 
 let questListView="active";
 let charExpandedQuest=null;
-function questStatusLabel(inst){if(inst.status==="completed")return inst.result?.full?"Completed":"Partial completion";if(inst.status==="inactive")return inst.inactiveReason||"Inactive";return "Active";}
+function questBoundItemCount(inst){
+  const def=questDefById(inst?.definitionId);if(!inst||!def)return 0;
+  return (def.objectives||[]).reduce((total,obj)=>total+questItemCount(inst.instanceId,obj.id),0);
+}
+function questStatusLabel(inst){
+  if(inst.status==="completed")return inst.result?.full?"Completed":"Partial completion";
+  if(inst.status==="inactive")return inst.inactiveReason||"Inactive";
+  const def=questDefById(inst.definitionId);
+  if(def?.kind==="rescue-escort")return inst.rescue?.stage==="escorting"?"Escorting":inst.rescue?.stage==="located"?"Located":"Searching";
+  return "Active";
+}
+function questResultText(inst){
+  const def=questDefById(inst?.definitionId),result=inst?.result||{};
+  if(def?.kind==="rescue-escort")return `${result.rescued||def.subject?.name||"Traveller"} reached ${townDefById(inst.targetTownId)?.name||"the destination"} · ${formatGold(result.reward||0)} paid`;
+  return `${result.delivered||0}/${result.required||0} delivered · ${formatGold(result.reward||0)} paid`;
+}
 function renderQuestPage(){
   const root=$("charQuests");if(!root||!S)return;normalizeQuestState();
   const activeCount=questInstances("active").length;if($("charQuestSummary"))$("charQuestSummary").textContent=activeCount?`${activeCount} active`:"none active";
@@ -6966,8 +7322,8 @@ function renderQuestPage(){
   root.innerHTML=list.length?list.map(inst=>{
     const def=questDefById(inst.definitionId);syncQuestObjectiveProgress(inst);const progress=questProgressText(inst),open=charExpandedQuest===inst.instanceId;
     const reward=inst.status==="completed"?`${formatGold(inst.result?.reward||0)} received`:questPromisedRewardText(inst);
-    const obj=def?.objectives?.[0],held=obj?questItemCount(inst.instanceId,obj.id):0;
-    const detail=`<div class="quest-detail" ${open?"":"hidden"}><div class="quest-detail-grid"><b>Given by</b><span>${esc(def?.giverName||"—")}</span><b>Destination</b><span>${esc(questDestinationText(inst))}</span><b>Objective</b><span>${esc(def?.details||def?.summary||"—")}</span><b>Progress</b><span>${esc(progress)}</span><b>Quest items</b><span>${held} bound to this contract instance</span><b>Promised</b><span>${esc(questPromisedRewardText(inst))}</span>${inst.status==="completed"?`<b>Result</b><span>${inst.result?.delivered||0}/${inst.result?.required||0} delivered · ${formatGold(inst.result?.reward||0)} paid</span>`:""}${inst.status==="inactive"?`<b>Status</b><span>${esc(inst.inactiveReason||"Inactive")}</span>`:""}</div>${def?.lore?`<p class="quest-lore">${esc(def.lore)}</p>`:""}</div>`;
+    const held=questBoundItemCount(inst);
+    const detail=`<div class="quest-detail" ${open?"":"hidden"}><div class="quest-detail-grid"><b>Given by</b><span>${esc(def?.giverName||"—")}</span><b>Destination</b><span>${esc(questDestinationText(inst))}</span><b>Objective</b><span>${esc(def?.details||def?.summary||"—")}</span><b>Progress</b><span>${esc(progress)}</span><b>Quest items</b><span>${held} bound to this contract instance</span><b>Promised</b><span>${esc(questPromisedRewardText(inst))}</span>${inst.status==="completed"?`<b>Result</b><span>${esc(questResultText(inst))}</span>`:""}${inst.status==="inactive"?`<b>Status</b><span>${esc(inst.inactiveReason||"Inactive")}</span>`:""}</div>${def?.lore?`<p class="quest-lore">${esc(def.lore)}</p>`:""}</div>`;
     return `<div class="quest-entry ${inst.status}"><div class="quest-entry-main"><div class="quest-entry-copy"><b>${esc(def?.title||inst.definitionId)}</b><p>${esc(def?.summary||"")}</p></div><div class="quest-entry-side"><strong>${esc(questStatusLabel(inst))}</strong><span>${esc(progress)}</span><span>${esc(reward)}</span></div></div><div class="quest-entry-actions"><button class="more" type="button" data-quest-more="${esc(inst.instanceId)}">${open?"Hide details":"See more"}</button>${inst.status==="inactive"?`<button class="warn" type="button" data-quest-delete="${esc(inst.instanceId)}">Delete</button>`:""}</div>${detail}</div>`;
   }).join(""):`<div class="quest-empty">${questListView==="active"?"No active quests.":questListView==="inactive"?"No inactive quests.":"No completed quests yet."}</div>`;
 }
@@ -7376,6 +7732,7 @@ function renderPack(rememberView=true){
 
 function spawnEncounter(options={}){
   if(S) S.travelEvent = null;
+  companionEnterCombat();
   closePack();
   closeCharacterSheet();
   closeSettingsSheet(false);
@@ -7424,6 +7781,8 @@ function spawnEncounter(options={}){
     readUsed:false,whetstoneUsed:false,intent:null,heavyStage:0,backgroundCharges:[],
     blinded:false,offBalance:false,offBalanceStruck:false,feintBaitedDodge:false,reaction:null,noDodgeNextReaction:false
   };
+  if(options.rescueGuardian)S.foe.rescueGuardian=cloneForSave(options.rescueGuardian);
+  if(options.escortThreat)S.foe.escortThreat=cloneForSave(options.escortThreat);
   S.seenFoes[base.id] = true;
   if(firstSeen) markCharacterNotice("bestiary");
   if(options.caravan)S.foe.caravan={...options.caravan};
@@ -7491,6 +7850,43 @@ function renderTravelEvent(){
   const roll=$("travelEventRoll"),actions=$("travelEventActions");
   roll.hidden=!ev.rollHtml;
   roll.innerHTML=ev.rollHtml||"";
+
+  if(ev.id==="rescue-clue"){
+    const inst=questInstanceById(ev.questInstanceId),r=ensureRescueQuestState(inst),challenge=rescueSkillChallenge(ev.rescueDepth||S.depth,0);
+    roll.hidden=!ev.rollHtml;roll.innerHTML=ev.rollHtml||"";
+    if(ev.rescueKind==="tracks"){
+      if(ev.stage==="result"){actions.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="rescue-clue-continue"><b>Continue</b><span>leave this clue behind and keep descending</span></button>`;return;}
+      const inv=!r?.trackAttempts?.investigation?`<button class="travel-event-btn investigate" data-event-action="rescue-tracks-investigation"><b>Examine the tracks</b><span>${skillCheckPreview("investigation",challenge)} · Investigation</span></button>`:"";
+      const surv=!r?.trackAttempts?.survival?`<button class="travel-event-btn skill" data-event-action="rescue-tracks-survival"><b>Follow the signs</b><span>${skillCheckPreview("survival",challenge)} · Survival</span></button>`:"";
+      actions.innerHTML=`${inv}${surv}<button class="travel-event-btn ignore ${inv&&surv?"wide":""}" data-event-action="rescue-tracks-leave"><b>Keep moving</b><span>leave these tracks behind permanently</span></button>`;return;
+    }
+    if(ev.rescueKind==="satchel"){
+      if(ev.stage==="result"){actions.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="rescue-clue-continue"><b>Continue</b><span>carry the satchel deeper</span></button>`;return;}
+      actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="rescue-satchel-investigate"><b>Search the satchel</b><span>${skillCheckPreview("investigation",challenge)} · Investigation · identify what happened</span></button><button class="travel-event-btn skill" data-event-action="rescue-satchel-take"><b>Take the satchel</b><span>no check · secure it as quest evidence</span></button><button class="travel-event-btn ignore wide" data-event-action="rescue-satchel-leave"><b>Leave it</b><span>this clue will be behind you</span></button>`;return;
+    }
+  }
+
+  if(ev.id==="rescue-search"){
+    const inst=questInstanceById(ev.questInstanceId),r=ensureRescueQuestState(inst),difficulty=(r?.leads||0)>0?0:1,challenge=rescueSkillChallenge(ev.rescueDepth||S.depth,difficulty);
+    roll.hidden=!ev.rollHtml;roll.innerHTML=ev.rollHtml||"";
+    if(ev.stage==="lost"){actions.innerHTML=`<button class="travel-event-btn wide ignore" data-event-action="rescue-search-lost"><b>Move on</b><span>the hiding place is left behind · quest fails</span></button>`;return;}
+    const per=!r?.hideoutAttempts?.perception?`<button class="travel-event-btn investigate" data-event-action="rescue-hideout-perception"><b>Listen carefully</b><span>${skillCheckPreview("perception",challenge)} · Perception${(r?.leads||0)?" · clue advantage":""}</span></button>`:"";
+    const surv=!r?.hideoutAttempts?.survival?`<button class="travel-event-btn skill" data-event-action="rescue-hideout-survival"><b>Read the terrain</b><span>${skillCheckPreview("survival",challenge)} · Survival${(r?.leads||0)?" · clue advantage":""}</span></button>`:"";
+    actions.innerHTML=`${per}${surv}<button class="travel-event-btn ignore ${per&&surv?"wide":""}" data-event-action="rescue-search-leave"><b>Keep descending</b><span>leave whatever is here behind</span></button>`;return;
+  }
+
+  if(ev.id==="rescue-hideout"){
+    roll.hidden=!ev.rollHtml;roll.innerHTML=ev.rollHtml||"";
+    actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="rescue-hideout-approach"><b>Reach the refuge</b><span>clear the creature prowling outside, then check who is inside</span></button><button class="travel-event-btn ignore" data-event-action="rescue-hideout-leave"><b>Leave it behind</b><span>permanently fail the rescue</span></button>`;return;
+  }
+
+  if(ev.id==="escort-danger"){
+    const inst=questInstanceById(ev.questInstanceId),challenge=rescueSkillChallenge(S.depth,0);
+    roll.hidden=!ev.rollHtml;roll.innerHTML=ev.rollHtml||"";
+    if(ev.stage==="result"){actions.innerHTML=`<button class="travel-event-btn wide skill" data-event-action="escort-danger-continue"><b>Keep moving</b><span>the danger has passed for now</span></button>`;return;}
+    if(ev.stage==="spotted"){actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="escort-danger-fight"><b>Stand your ground</b><span>fight the pursuer using normal combat</span></button><button class="travel-event-btn ignore" data-event-action="escort-danger-abandon"><b>Break away alone</b><span>escape the pursuit · lose Zeshava · quest fails</span></button>`;return;}
+    actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="escort-danger-stealth"><b>Hide together</b><span>${skillCheckPreview("stealth",challenge)} · Stealth</span></button><button class="travel-event-btn skill" data-event-action="escort-danger-survival"><b>Find another route</b><span>${skillCheckPreview("survival",challenge)} · Survival</span></button><button class="travel-event-btn skill" data-event-action="escort-danger-fight"><b>Stand your ground</b><span>fight immediately</span></button><button class="travel-event-btn ignore wide" data-event-action="escort-danger-abandon"><b>Break away alone</b><span>leave Zeshava behind · quest fails</span></button>`;return;
+  }
 
   if(ev.id==="quest-turnin"){
     const inst=questInstanceById(ev.questInstanceId),def=questDefById(inst?.definitionId),obj=def?.objectives?.[0],count=obj?questItemCount(inst.instanceId,obj.id):0;
@@ -7664,6 +8060,69 @@ async function attemptGlintInvestigation(informed=false){
 async function handleTravelEventAction(action){
   const ev=S?.travelEvent;
   if(!ev) return;
+
+  if(ev.id==="rescue-clue"){
+    const inst=questInstanceById(ev.questInstanceId),r=ensureRescueQuestState(inst);if(!inst||!r)return;
+    if(action==="rescue-clue-continue")return resumeRescueTravel(ev);
+    if(action==="rescue-tracks-leave"){r.tracksResolved=true;travelLogAdd(`You leave the tracks behind without committing to the trail.`,"note");return resumeRescueTravel(ev);}
+    if(action==="rescue-tracks-investigation"||action==="rescue-tracks-survival"){
+      const skill=action.endsWith("investigation")?"investigation":"survival";if(r.trackAttempts[skill])return;r.trackAttempts[skill]=true;
+      const challenge=rescueSkillChallenge(ev.rescueDepth||S.depth,0),check=await runActiveSkillCheck(skill,challenge),practice=awardSkillPractice(skill,`rescue-tracks:${inst.instanceId}:${skill}`,check),html=formatSkillCheck(check)+practiceText(skill,practice);
+      if(check.success){r.tracksResolved=true;addRescueLead(inst);ev.stage="result";ev.title="The trail holds";ev.text=skill==="survival"?"The prints keep a consistent downward line before disappearing back toward the main route. Whoever made them was fleeing, not wandering.":"The stride, scuffs and broken dust all point to one traveller moving fast and under pressure.";ev.rollHtml=html;travelLogAdd(`<b>Lead found.</b> The tracks belong to a single traveller moving downward in haste.`,"good");}
+      else if(r.trackAttempts.investigation&&r.trackAttempts.survival){r.tracksResolved=true;ev.stage="result";ev.title="The trail breaks apart";ev.text="You try both the marks themselves and the surrounding terrain, but cannot recover a direction you trust.";ev.rollHtml=html;travelLogAdd(`The first trail goes cold. Other evidence may still lie farther down.`,"note");}
+      else{ev.rollHtml=html;ev.text="The signs refuse to resolve cleanly. Another approach may still tell you something.";}
+      saveRunNow();render();return;
+    }
+    if(action==="rescue-satchel-leave"){r.satchelResolved=true;travelLogAdd(`You leave the medical satchel where it fell.`,"note");return resumeRescueTravel(ev);}
+    if(action==="rescue-satchel-take"||action==="rescue-satchel-investigate"){
+      let html="";
+      if(action==="rescue-satchel-investigate"){
+        const challenge=rescueSkillChallenge(ev.rescueDepth||S.depth,0),check=await runActiveSkillCheck("investigation",challenge),practice=awardSkillPractice("investigation",`rescue-satchel:${inst.instanceId}`,check);html=formatSkillCheck(check)+practiceText("investigation",practice);r.satchelInsight=!!check.success;
+      }
+      if(!rescueQuestItem(inst,"satchel")){const obj=questObjectiveDef(inst,"satchel");if(obj)addQuestItem(inst,obj,1,"rescue-clue");addRescueLead(inst);}
+      r.satchelResolved=true;ev.stage="result";ev.title="Zeshava's satchel";ev.text=r.satchelInsight?"The owner's mark is Zeshava Brightsong's. The torn strap and scattered wrapping suggest it was dropped during a sudden flight.":"The owner's mark is Zeshava Brightsong's. Whatever happened, the physician came through here.";ev.rollHtml=html;
+      travelLogAdd(`<b>Lead found.</b> You recover <b>Zeshava's Medicine Satchel</b> as quest evidence.`,"good");saveRunNow();render();return;
+    }
+    return;
+  }
+
+  if(ev.id==="rescue-search"){
+    const inst=questInstanceById(ev.questInstanceId),r=ensureRescueQuestState(inst);if(!inst||!r)return;
+    if(action==="rescue-search-leave"||action==="rescue-search-lost"){
+      r.hideoutResolved=true;failRescueQuest(inst,"The trail went cold and Zeshava's hiding place was left behind");return resumeRescueTravel(ev);
+    }
+    if(action==="rescue-hideout-perception"||action==="rescue-hideout-survival"){
+      const skill=action.endsWith("perception")?"perception":"survival";if(r.hideoutAttempts[skill])return;r.hideoutAttempts[skill]=true;
+      const difficulty=(r.leads||0)>0?0:1,challenge=rescueSkillChallenge(ev.rescueDepth||S.depth,difficulty),check=await runActiveSkillCheck(skill,challenge),practice=awardSkillPractice(skill,`rescue-hideout:${inst.instanceId}:${skill}`,check),html=formatSkillCheck(check)+practiceText(skill,practice);
+      if(check.success){beginRescueHideout(inst,false);S.travelEvent.rollHtml=html;saveRunNow();render();return;}
+      if(r.hideoutAttempts.perception&&r.hideoutAttempts.survival){ev.stage="lost";ev.title="Nothing you can trust";ev.text="You search the sound and the terrain from two different angles, but the route gives you nothing solid. Going farther means leaving this stretch behind.";ev.rollHtml=html;}
+      else{ev.rollHtml=html;ev.text="You cannot place it yet. There is still another way to read the signs before you move on.";}
+      saveRunNow();render();return;
+    }
+    return;
+  }
+
+  if(ev.id==="rescue-hideout"){
+    const inst=questInstanceById(ev.questInstanceId);if(!inst)return;
+    if(action==="rescue-hideout-approach")return startRescueThreatCombat(inst,{guardian:true});
+    if(action==="rescue-hideout-leave"){failRescueQuest(inst,"You found the refuge but chose to leave Zeshava behind");return resumeRescueTravel(ev);}
+    return;
+  }
+
+  if(ev.id==="escort-danger"){
+    const inst=questInstanceById(ev.questInstanceId);if(!inst)return;
+    if(action==="escort-danger-continue")return resumeRescueTravel(ev);
+    if(action==="escort-danger-abandon"){failRescueQuest(inst,"You broke from the pursuit and left Zeshava behind");return resumeRescueTravel(ev);}
+    if(action==="escort-danger-fight")return startRescueThreatCombat(inst,{pursuit:true});
+    if(action==="escort-danger-stealth"||action==="escort-danger-survival"){
+      const skill=action.endsWith("stealth")?"stealth":"survival",challenge=rescueSkillChallenge(S.depth,0),check=await runActiveSkillCheck(skill,challenge),practice=awardSkillPractice(skill,`escort-danger:${inst.instanceId}:${skill}`,check),html=formatSkillCheck(check)+practiceText(skill,practice);
+      ev.rollHtml=html;
+      if(check.success){ev.stage="result";ev.title=skill==="stealth"?"The second light disappears":"A quieter route";ev.text=skill==="stealth"?"You smother the lights and wait. The movement passes without finding either of you.":"You find a narrow continuation that rejoins the main descent below the searchers.";travelLogAdd(`<b>${esc(SKILL_DEFS[skill].name)} succeeds.</b> The escort avoids another fight.`,"good");}
+      else{ev.stage="spotted";ev.title="They found the trail";ev.text="The attempt buys only seconds. Something turns toward you in the dark.";travelLogAdd(`The pursuers find you. The escort cannot slip past cleanly.`,"danger");}
+      saveRunNow();render();return;
+    }
+    return;
+  }
 
   if(ev.id==="stealth-contact"){
     const profile=profileById(ev.profileId) || FOES.find(f=>f.id===ev.profileId);
@@ -7918,7 +8377,12 @@ function enterTown(def){
   S.travelMode="stopped";S.travelSinceEvent=0;
   state.currentId=def.id;state.visited[def.id]=true;
   travelLogAdd(`You reach <b>${esc(def.name)}</b> at <b>${formatDepth(def.depth)} fathoms</b>. The descent waits beyond its lower gate.`,"beat");
-  render();requestRunSave();
+  render();
+  // Escort handoffs resolve at the gate before normal town browsing. The town
+  // itself is already active underneath the Interaction Engine, so closing the
+  // handoff conversation drops the player directly into the normal town map.
+  if(maybeStartEscortArrival(def)){requestRunSave();return true;}
+  requestRunSave();
   return true;
 }
 function openTownLocation(id){
@@ -8006,7 +8470,8 @@ function openTownMerchantService(serviceId){
 }
 function townLocationQuestMarkerClass(townId,loc){
   if(questTurnInsAtTownLocation(townId,loc.id).length)return " quest-target";
-  const offered=questAtTownLocation(townId,loc.id);if(offered&&!questInstanceForDefinition(offered.id))return " quest-available";
+  const offered=questsAtTownLocation(townId,loc.id);
+  if(offered.some(def=>!questInstanceForDefinition(def.id)))return " quest-available";
   return "";
 }
 function townQuestTurnInStatus(loc){
@@ -8029,12 +8494,13 @@ function townLocationStatusText(loc){
   if(loc.service==="herbalist") return turnIn||"Bandages are available now. Direct healer services are reserved for a later town-service hook.";
   if(loc.service==="guild"){
     if(turnIn)return turnIn;
-    const def=questAtTownLocation(currentTown()?.id,loc.id),inst=def?questInstanceForDefinition(def.id):null;
-    if(!def)return "No contracts are posted here yet.";
-    if(inst?.status==="active")return `${def.title} is active · ${questProgressText(inst)} · ${questDestinationText(inst)}.`;
-    if(inst?.status==="completed")return `${def.title} has already been resolved.`;
-    if(inst?.status==="inactive")return `${def.title} is no longer active. Review or delete it from Character → Quests.`;
-    return `${def.title} is available · ${def.summary}`;
+    const defs=questsAtTownLocation(currentTown()?.id,loc.id);
+    if(!defs.length)return "No contracts are posted here yet.";
+    const available=defs.filter(def=>!questInstanceForDefinition(def.id));
+    if(available.length)return available.map(def=>`${def.title} available · ${def.summary}`).join(" ");
+    const active=defs.map(def=>[def,questInstanceForDefinition(def.id)]).filter(([,inst])=>inst?.status==="active");
+    if(active.length)return active.map(([def,inst])=>`${def.title} active · ${questProgressText(inst)} · ${questDestinationText(inst)}.`).join(" ");
+    return defs.map(def=>{const inst=questInstanceForDefinition(def.id);return inst?.status==="completed"?`${def.title} resolved.`:`${def.title} inactive.`;}).join(" ");
   }
   return turnIn||loc.status||"";
 }
@@ -8046,9 +8512,14 @@ function townLocationActionsHtml(loc){
   if(loc.service==="tavern"){const def=currentTown(),cost=townLodgingCost(def),afford=canAffordTownLodging(def);return `${turnIn}<button class="town-location-action primary" type="button" data-town-service="tavern-rest" ${afford&&!S.pendingBoonChoice?"":"disabled"}>Rent room · ${formatGold(cost)}</button>`;}
   if(loc.service==="herbalist") return `${turnIn}<button class="town-location-action primary" type="button" data-town-service="herbalist">Buy Bandages</button><button class="town-location-action" type="button" disabled>Healer services · later phase</button>`;
   if(loc.service==="guild"){
-    const def=questAtTownLocation(currentTown()?.id,loc.id),inst=def?questInstanceForDefinition(def.id):null;let offered="";
-    if(def){if(inst)offered=`<button class="town-location-action" type="button" disabled>${inst.status==="active"?"Contract active":inst.status==="completed"?"Contract completed":"Contract inactive"}</button>`;else offered=`<button class="town-location-action primary" type="button" data-town-service="quest-accept" data-quest-def="${esc(def.id)}">Accept · ${esc(def.title)}</button>`;}
-    else if(!turnIn)offered=`<button class="town-location-action" type="button" disabled>No contracts posted</button>`;
+    const defs=questsAtTownLocation(currentTown()?.id,loc.id);
+    let offered=defs.map(def=>{
+      const inst=questInstanceForDefinition(def.id);
+      if(inst)return `<button class="town-location-action" type="button" disabled>${esc(def.title)} · ${inst.status==="active"?"active":inst.status==="completed"?"completed":"inactive"}</button>`;
+      if(def.interactionId)return `<button class="town-location-action primary" type="button" data-town-service="quest-interact" data-quest-def="${esc(def.id)}">Discuss · ${esc(def.title)}</button>`;
+      return `<button class="town-location-action primary" type="button" data-town-service="quest-accept" data-quest-def="${esc(def.id)}">Accept · ${esc(def.title)}</button>`;
+    }).join("");
+    if(!defs.length&&!turnIn)offered=`<button class="town-location-action" type="button" disabled>No contracts posted</button>`;
     return `${turnIn}${offered}`;
   }
   return `${turnIn}<button class="town-location-action" type="button" disabled>Service unavailable</button>`;
@@ -8169,6 +8640,8 @@ function runTravelTickCore(){
   if(S.travelMode==="side") return sideTravelTick();
 
   if(S.travelMode==="descend" && !S.foe && !S.travelEvent){
+    const rescueBeat=crossedRescueBeat(S.depth,S.depth+TRAVEL_STEP);
+    if(rescueBeat)return beginRescueBeat(rescueBeat);
     const questTarget=crossedActiveQuestTarget(S.depth,S.depth+TRAVEL_STEP);
     if(questTarget)return beginQuestTurnIn(questTarget);
     const caravan=crossedPendingCaravan(S.depth,S.depth+TRAVEL_STEP);
@@ -8248,6 +8721,10 @@ function runTravelTickCore(){
     nextFoe();
     return;
   }
+
+  // Flavor chatter is evaluated only after this tick has proven not to create
+  // an encounter, so an idle line can never accidentally look like a warning.
+  if(S.travelMode==="descend")maybeCompanionTravelBark();
 
   renderTravel();
   renderCombatHeader();
@@ -8722,11 +9199,13 @@ function schedulePostCombatReveal(f=S?.foe){
 function finalizeCombatVictory(foe){
   if(combatVictoryPending!==foe) return;
   clearCombatVictoryTimer();
+  const companionWasFollowing=temporaryCompanionActive();
   if(S?.travelEvent?.id==="loot-found") S.travelEvent=null;
   S.pendingLoot=null;
   if(S?.foe===foe) S.foe=null;
   combatVictoryPending=null;
   if(ensureInteractionState()?.pending){activateQueuedInteraction();return;}
+  if(companionWasFollowing)companionLeaveCombat();
   render();
 }
 
@@ -8822,6 +9301,7 @@ function finishKill(out){
   }
 
   if(wasCaravan)caravanCombatVictory(f);
+  rescueCombatVictory(f);
 
   const drops=[...S._lootFoundCurrent];
   delete S._lootFoundCurrent;
@@ -9265,8 +9745,11 @@ function tapRun(){
   travelLogAdd(`You break contact and hold at <b>${formatDepth(S.depth)} fathoms</b>.`,"danger");
   say(`<p class="said">Broke contact and did not look back.</p>`+(c?`<p class="hurt">It cost <b>${c}</b> on the way out.</p>`:`<p class="note">It let you go.</p>`));
   if(S.foe?.caravan)caravanCombatAbandoned(S.foe);
+  const rescueAbandoned=rescueCombatAbandoned(S.foe);
+  const companionStillFollowing=temporaryCompanionActive();
   clearEnemyTurnTimer();
   S.foe=null;S.heavyCharge=0;S.strikeChain=0;S.defenceChain=0;S.protection=0;S.protectionMax=0;S.protectionSource=null;S.defencePrepared=null;S.negateNextAttack=null;S.reactionAvailable=false;S.reactionWindow=false;S.combatTimeline=null;S.abilityQuickUsed=false;S.combatActor="player";
+  if(companionStillFollowing&&!rescueAbandoned)companionLeaveCombat("Are they gone?");
   render();
 }
 
@@ -9583,6 +10066,10 @@ function applyTrailCamera(target,cameraDepth){
   marker.style.left=`${(markerX/TRAIL_W)*100}%`;
   marker.style.top=`${(markerY/TRAIL_H)*100}%`;
   marker.classList.toggle("exploring",S.travelMode==="explore"||S.travelMode==="side");
+  const companion=ensureTemporaryCompanion();
+  marker.classList.toggle("has-companion",!!companion&&companion.status==="following");
+  marker.classList.toggle("companion-hidden",!!companion&&companion.status==="following"&&companion.hiddenForCombat);
+  if(target.key==="large")positionRouteSpeech(marker);
 }
 
 function applyTrailCameras(cameraDepth){
@@ -12197,6 +12684,9 @@ function queueEncounterWarning(options={}){
     startedAt:performance.now(),deadline:performance.now()+durationMs,
     variantIndex:ri(0,2)
   };
+  // The companion reacts only after the game's normal encounter warning has
+  // already begun. This keeps chatter from becoming a hidden danger detector.
+  companionEncounterWarningBark();
   armed=null;
   travelLogAdd(options.sideBoss
     ? `<b>A passage guardian waits ahead.</b> Combat is imminent.`
@@ -12993,6 +13483,19 @@ function migrateSave19To20(snapshot){
   }
   return next;
 }
+function migrateSave20To21(snapshot){
+  const next=cloneForSave(snapshot);next.schema=21;
+  const state=isSaveRecord(next.state)?next.state:null;
+  if(state){
+    state.skills=isSaveRecord(state.skills)?state.skills:{};
+    for(const id of ["persuasion","deception"]){
+      if(!isSaveRecord(state.skills[id]))state.skills[id]={rank:0,xp:0};
+    }
+    if(!("temporaryCompanion" in state))state.temporaryCompanion=null;
+    next.state=state;
+  }
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
@@ -13012,7 +13515,8 @@ const SAVE_MIGRATIONS={
   16:migrateSave16To17,
   17:migrateSave17To18,
   18:migrateSave18To19,
-  19:migrateSave19To20
+  19:migrateSave19To20,
+  20:migrateSave20To21
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -13209,6 +13713,12 @@ function normalizeRestoredRun(){
   S.charNotices=S.charNotices||{overview:false,status:false,skills:false,equipment:false,bestiary:false,abilities:false,quests:false,journal:false};
   for(const k of ["overview","status","skills","equipment","bestiary","abilities","quests","journal"])if(!(k in S.charNotices))S.charNotices[k]=false;
   S.skillRankNotices=S.skillRankNotices||{};
+  S.skills=(S.skills&&typeof S.skills==="object"&&!Array.isArray(S.skills))?S.skills:{};
+  for(const id of SKILL_ORDER){
+    if(!S.skills[id]||typeof S.skills[id]!=="object"||Array.isArray(S.skills[id]))S.skills[id]={rank:0,xp:0};
+    S.skills[id].rank=Math.max(0,Math.floor(Number(S.skills[id].rank)||0));
+    S.skills[id].xp=Math.max(0,Number(S.skills[id].xp)||0);
+  }
   S.hollowStates=S.hollowStates||{};
   S.bossDefeated=S.bossDefeated||{};S.midBossDefeated=S.midBossDefeated||{};
   S.seenFoes=S.seenFoes||{};
@@ -13242,6 +13752,8 @@ function normalizeRestoredRun(){
   S.inventory.equipment=Array.isArray(S.inventory.equipment)?S.inventory.equipment:[];
   ensureEquipmentState();
   normalizeQuestState();
+  for(const inst of activeRescueQuests())ensureRescueQuestState(inst);
+  ensureTemporaryCompanion();
   syncEquipmentHpCeiling();
   if(!settings.characterIndicators) clearCurrentCharacterIndicators();
   if(S.foe){
@@ -13364,6 +13876,9 @@ function restoreRun(snapshot){
       else encounterWarningFrame=requestAnimationFrame(encounterWarningLoop);
     }
     if(S.activeHollow) startHollowTimer();
+    // A reload made at the destination gate must not strand an active escort
+    // inside town without its handoff conversation.
+    if(!over&&!S.foe&&!encounterWarningState&&currentTown()&&!activeInteraction())maybeStartEscortArrival(currentTown());
     return true;
   }finally{
     restoringRun=false;
@@ -13438,6 +13953,10 @@ $("townLocationActions")?.addEventListener("click",e=>{
   else if(service.dataset.townService==="herbalist") openTownMerchantService("herbalist");
   else if(service.dataset.townService==="quest-deliver") completeTownQuestTurnIn(service.dataset.questInstance);
   else if(service.dataset.townService==="tavern-rest") restAtTownTavern();
+  else if(service.dataset.townService==="quest-interact"){
+    const def=questDefById(service.dataset.questDef);
+    if(def?.interactionId)startInteraction(def.interactionId,{questDefId:def.id,townId:currentTown()?.id});
+  }
   else if(service.dataset.townService==="quest-accept") acceptQuest(service.dataset.questDef);
 });
 $("btnTownCancelLeave")?.addEventListener("click",()=>{townDepartureArmed=false;renderTown();});
