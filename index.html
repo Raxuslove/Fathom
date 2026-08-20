@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.112.2.4 — Combat Dice Stability Repair</title>
+<title>Lowfathom v0.112.3 — Caravan Event & Quest Reward Pass</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,6 +21,7 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
+   - v0.112.3 caravan event + quest reward pass: removes passing caravans, makes damaged-wagon help an Athletics check with no automatic silver, and adds settlement quest reward confirmation
    - v0.112.2.4 combat dice stability repair: combat d20 colors are assigned on the individual roll object, enemy rolls are serialized through one physical-roll queue, and timeout cleanup is hardened
    - v0.112.2.3 all-rolls dice serialization: enemy turns cannot re-enter while a physical d20 is resolving; enemy combat dice use a crimson d20 for instant side recognition
    - v0.112.2.2 combat d20 roll repair: switch Dice Box themes through updateConfig before rolling; add a fail-safe timeout so combat can never remain locked waiting for physics
@@ -582,6 +583,27 @@ button{
 .interaction-choice:disabled b,.interaction-choice:disabled span{color:#414b54}
 @media (max-width:380px){
   .interaction-head h2{font-size:18px}.interaction-copy p{font-size:14px}.interaction-choice{min-height:54px;padding:8px 9px}
+}
+
+/* ---------- v0.112.3: quest reward confirmation ---------- */
+.quest-reward-sheet{
+  position:absolute;inset:0;z-index:47;display:flex;align-items:center;justify-content:center;
+  padding:18px;background:rgba(1,4,6,.74);
+}
+.quest-reward-sheet[hidden]{display:none}
+.quest-reward-panel{
+  width:min(100%,360px);border:1px solid var(--lamp-dim);background:#020608;
+  box-shadow:0 18px 46px rgba(0,0,0,.55);
+}
+.quest-reward-head{padding:10px 12px 8px;background:#010406;border-bottom:1px solid var(--rule)}
+.quest-reward-head em{display:block;font-style:normal;font-family:var(--cond);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--lamp-dim)}
+.quest-reward-head h2{margin:2px 0 0;font-family:var(--slab);font-size:18px;line-height:1.15;font-weight:600;color:var(--bone)}
+.quest-reward-copy{padding:13px 12px;background:#020608}
+.quest-reward-copy p{margin:0;font-family:var(--slab);font-size:15px;line-height:1.45;color:#c8c3b7}
+.quest-reward-close{
+  width:100%;min-height:50px;border:0;border-top:1px solid var(--rule);background:#081014;
+  padding:11px 12px calc(11px + env(safe-area-inset-bottom));
+  font-family:var(--cond);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--lamp);
 }
 
 .travel-log-wrap{
@@ -3454,6 +3476,14 @@ body.font-slab{--cf-serif:var(--slab)}
     </div>
   </section>
 
+  <section class="quest-reward-sheet" id="questRewardSheet" hidden aria-live="polite" aria-label="Quest reward received">
+    <div class="quest-reward-panel" role="dialog" aria-modal="true" aria-labelledby="questRewardTitle">
+      <div class="quest-reward-head"><em>Quest complete</em><h2 id="questRewardTitle">Reward received</h2></div>
+      <div class="quest-reward-copy"><p id="questRewardText">You have received your promised reward.</p></div>
+      <button class="quest-reward-close" id="btnQuestRewardClose" type="button">Continue</button>
+    </div>
+  </section>
+
   <div class="pack-sheet" id="packSheet" hidden>
     <div class="pack-scrim" id="packScrim"></div>
     <div class="pack-panel">
@@ -4022,7 +4052,7 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.112.2.2";
+const BUILD_VERSION = "v0.112.3";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 3;
 const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept"});
@@ -4253,11 +4283,32 @@ function resolveQuestDelivery(inst,{resumeTravel=false}={}){
   if(resumeTravel){const resume=S.travelEvent?.priorMode||"descend";S.travelEvent=null;S.travelMode=resume==="explore"?"stopped":resume;resumeBoonClock();}
   saveRunNow();render();return true;
 }
+function questRewardConfirmationParts(inst){
+  const parts=[],result=inst?.result||{};
+  const gold=Math.max(0,Math.round(Number(result.reward)||0));
+  if(gold>0)parts.push(formatGold(gold));
+  const items=Array.isArray(result.rewardItems)?result.rewardItems:[];
+  for(const row of items){
+    if(!row)continue;
+    const qty=Math.max(1,Math.floor(Number(row.qty)||1)),name=String(row.name||row.label||"item");
+    parts.push(`${qty>1?`${qty} × `:""}${name}`);
+  }
+  return parts;
+}
+function showQuestRewardConfirmation(inst){
+  const sheet=$("questRewardSheet");if(!sheet||!inst)return false;
+  const def=questDefById(inst.definitionId),parts=questRewardConfirmationParts(inst);
+  $("questRewardTitle").textContent=def?.title||"Quest reward";
+  $("questRewardText").textContent=parts.length?`You have received ${parts.join(" · ")}.`:"You have received the promised reward.";
+  sheet.hidden=false;
+  return true;
+}
+function closeQuestRewardConfirmation(){const sheet=$("questRewardSheet");if(sheet)sheet.hidden=true;}
 function completeQuestTurnIn(instanceId){return resolveQuestDelivery(questInstanceById(instanceId),{resumeTravel:true});}
 function completeTownQuestTurnIn(instanceId){
   const inst=questInstanceById(instanceId),def=questDefById(inst?.definitionId),town=currentTown();if(!inst||!def||!town||inst.status!=="active")return false;
   if((inst.targetTownId||def.targetTownId)!==town.id||(inst.targetLocationId||def.targetLocationId)!==townLocationOpenId)return false;
-  const ok=resolveQuestDelivery(inst,{resumeTravel:false});if(ok){renderTown();renderCharacterSheet();renderPack(false);renderTrail();}return ok;
+  const ok=resolveQuestDelivery(inst,{resumeTravel:false});if(ok){renderTown();renderCharacterSheet();renderPack(false);renderTrail();showQuestRewardConfirmation(inst);}return ok;
 }
 function makeQuestInactive(instanceId,reason="Destination missed"){
   const inst=questInstanceById(instanceId);if(!inst||inst.status!=="active")return false;inst.status="inactive";inst.inactiveReason=reason;inst.inactiveAt=Date.now();markCharacterNotice("quests");requestRunSave();return true;
@@ -4423,7 +4474,6 @@ const INTERACTION_DEFS=Object.freeze({
       thanks:Object.freeze({
         speaker:"Caravan Master",
         text:"That's got it. Another stretch like that and we'd have lost the wheel entirely.",
-        onEnterEffects:Object.freeze([Object.freeze({type:"gold",min:3,max:7})]),
         choices:Object.freeze([
           Object.freeze({id:"wounded",label:"Anyone hurt?",sub:"check whether the crew needs treatment",next:"wounded"}),
           Object.freeze({id:"more",label:"Need anything else?",sub:"see whether anything still needs doing",next:"more"}),
@@ -4649,7 +4699,6 @@ const CARAVAN_ROUTE_DEFS=Object.freeze([
   Object.freeze({
     id:"grey-lantern__lantern-city",fromTownId:"grey-lantern",toTownId:"lantern-city",
     pool:Object.freeze([
-      Object.freeze({type:"passing",weight:4}),
       Object.freeze({type:"merchant",weight:2}),
       Object.freeze({type:"damaged",weight:3}),
       Object.freeze({type:"attacked",weight:2})
@@ -4658,7 +4707,6 @@ const CARAVAN_ROUTE_DEFS=Object.freeze([
   Object.freeze({
     id:"lantern-city__ashwick",fromTownId:"lantern-city",toTownId:"ashwick",
     pool:Object.freeze([
-      Object.freeze({type:"passing",weight:2}),
       Object.freeze({type:"merchant",weight:2}),
       Object.freeze({type:"damaged",weight:1}),
       Object.freeze({type:"attacked",weight:4})
@@ -4666,7 +4714,6 @@ const CARAVAN_ROUTE_DEFS=Object.freeze([
   })
 ]);
 const CARAVAN_DEFAULT_POOL=Object.freeze([
-  Object.freeze({type:"passing",weight:4}),
   Object.freeze({type:"merchant",weight:2}),
   Object.freeze({type:"damaged",weight:2}),
   Object.freeze({type:"attacked",weight:2})
@@ -4701,12 +4748,12 @@ function caravanRouteForDepth(depth){
   })||null;
 }
 function weightedCaravanType(route){
-  const pool=route?.pool?.length?route.pool:CARAVAN_DEFAULT_POOL;
+  const pool=(route?.pool?.length?route.pool:CARAVAN_DEFAULT_POOL).filter(row=>row?.type!=="passing");
   const total=pool.reduce((n,row)=>n+Math.max(0,Number(row.weight)||0),0);
-  if(total<=0)return "passing";
+  if(total<=0)return "merchant";
   let roll=rnd()*total;
   for(const row of pool){roll-=Math.max(0,Number(row.weight)||0);if(roll<=0)return row.type;}
-  return pool[pool.length-1]?.type||"passing";
+  return pool[pool.length-1]?.type||"merchant";
 }
 function scheduleCaravanAtRoadSlot(depth){
   const c=ensureCaravanState();if(!c||c.pending)return c?.pending||null;
@@ -4718,7 +4765,17 @@ function scheduleCaravanAtRoadSlot(depth){
   };
   requestRunSave();return c.pending;
 }
-function pendingCaravan(){return ensureCaravanState()?.pending||null;}
+function pendingCaravan(){
+  const c=ensureCaravanState(),event=c?.pending||null;
+  if(event?.type==="passing"){
+    const route=caravanRouteById(event.routeId)||caravanRouteForDepth(event.depth);
+    event.type=weightedCaravanType(route);
+    event.warningChecked=false;event.warningShown=false;
+    if(c)c.warning=null;
+    requestRunSave();
+  }
+  return event;
+}
 function caravanRouteLabel(event=pendingCaravan()){
   const route=caravanRouteById(event?.routeId),b=caravanRouteBounds(route);
   if(b){
@@ -4764,7 +4821,7 @@ function caravanEventCopy(event){
   if(event.type==="merchant")return {title:"A merchant caravan has halted",text:"A travelling trader and several pack animals have stopped beside the route."};
   if(event.type==="damaged")return {title:"A caravan has broken down",text:"One wagon sits at an angle with a damaged wheel while the crew works around it."};
   if(event.type==="attacked")return {title:"A caravan is under attack",text:"A caravan has been hit beside the route. Fighting is still underway around the wagons."};
-  return {title:"A caravan passes through",text:"A small caravan occupies the route for a moment before continuing on its way."};
+  return {title:"A caravan has halted",text:"A caravan has stopped on the route and its crew are dealing with a problem."};
 }
 function beginCaravanEvent(event=pendingCaravan()){
   if(!S||!event||S.foe||S.travelEvent||currentTown())return false;
@@ -7421,6 +7478,13 @@ function renderTravelEvent(){
   if(!card) return;
   card.hidden=!ev;
   if(!ev) return;
+  if(ev.id==="caravan"&&ev.caravanType==="passing"){
+    const event=pendingCaravan();
+    if(event&&event.type!=="passing"){
+      const copy=caravanEventCopy(event);
+      ev.caravanType=event.type;ev.title=copy.title;ev.text=copy.text;ev.routeId=event.routeId;
+    }
+  }
   $("travelEventKind").textContent=ev.kind||"Exploration";
   $("travelEventTitle").textContent=ev.title||"";
   $("travelEventText").textContent=ev.text||"";
@@ -7463,12 +7527,9 @@ function renderTravelEvent(){
       actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="caravan-trade"><b>Trade</b><span>use the normal merchant buy/sell system</span></button><button class="travel-event-btn ignore" data-event-action="caravan-move"><b>Move Along</b><span>safe · immediate · no penalty</span></button>`;
       return;
     }
-    if(ev.caravanType==="passing"){
-      actions.innerHTML=`<button class="travel-event-btn investigate" data-event-action="caravan-greet"><b>Have a word</b><span>talk with someone from the caravan</span></button><button class="travel-event-btn ignore" data-event-action="caravan-move"><b>Move Along</b><span>safe · immediate · no penalty</span></button>`;
-      return;
-    }
     const stealChallenge=authoredChallenge(ev.caravanType==="attacked"?14:12);
-    const helpSub=ev.caravanType==="attacked"?"enter the fight using normal combat":"help the crew get the wagon moving";
+    const damagedHelpChallenge=authoredChallenge(12);
+    const helpSub=ev.caravanType==="attacked"?"enter the fight using normal combat":`${skillCheckPreview("athletics",damagedHelpChallenge)} · Athletics · brace and shift the wagon`;
     actions.innerHTML=`<button class="travel-event-btn skill" data-event-action="${ev.caravanType==="attacked"?"caravan-help-attacked":"caravan-help-damaged"}"><b>Help</b><span>${helpSub}</span></button><button class="travel-event-btn investigate" data-event-action="caravan-steal"><b>Take advantage</b><span>${skillCheckPreview("stealth",stealChallenge)} · Stealth</span></button><button class="travel-event-btn ignore wide" data-event-action="caravan-move"><b>Move Along</b><span>safe · immediate · no penalty</span></button>`;
     return;
   }
@@ -7655,10 +7716,22 @@ async function handleTravelEventAction(action){
     }
     if(action==="caravan-help-damaged"){
       if(!event)return;
+      const challenge=authoredChallenge(12),check=await runActiveSkillCheck("athletics",challenge),practice=awardSkillPractice("athletics",`caravan-wheel:${event.id}`,check);
+      const resultHtml=formatSkillCheck(check)+practiceText("athletics",practice);
+      if(!check.success){
+        travelLogAdd(`You put your weight into the wagon, but the wheel will not shift cleanly enough to free it.`,"note");
+        return caravanSetResult("The wheel will not budge","You strain against the wagon with the crew, but the axle stays pinned. You leave them working at another approach.",resultHtml,"help-damaged-failed");
+      }
       const context={eventId:event.id,routeId:event.routeId,caravanType:event.type,direction:event.direction,resumeMode:ev.priorMode||"descend",outcome:"helped-damaged"};
       S.travelEvent=null;
-      travelLogAdd(`You help the damaged caravan brace the wagon and get the wheel stable again.`,"good");
-      return startInteraction("caravan-damaged",context);
+      travelLogAdd(`Athletics pays off: together you brace the wagon and shift the wheel back into a workable position.`,"good");
+      const started=startInteraction("caravan-damaged",context);
+      if(started){
+        const active=activeInteraction();
+        if(active)active.nodeResults[active.nodeId]=resultHtml;
+        saveRunNow();render();
+      }
+      return started;
     }
     if(action==="caravan-accept-quest"){
       if(!questInstanceForDefinition("caravan-sealed-dispatch"))acceptQuest("caravan-sealed-dispatch");
@@ -13548,6 +13621,7 @@ $("btnBrowseDescend").addEventListener("click", () => startTravel("descend"));
 $("btnBrowseStop").addEventListener("click", stopTravel);
 $("btnCampHere").addEventListener("click", campAtHollow);
 $("btnLeaveHollow").addEventListener("click", () => leaveHollow(false));
+$("btnQuestRewardClose")?.addEventListener("click",closeQuestRewardConfirmation);
 $("travelEventActions").addEventListener("click", e => {
   const b = e.target.closest("[data-event-action]");
   if(!b) return;
