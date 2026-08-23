@@ -318,3 +318,7 @@ Starter/tutorial town starting in a more peaceful looking zone like grassplanes 
 
 
 I think 2x backstab should have an extra 25% crit damage and always crit, so basically with 0% crit chance it would be 150+25 
+
+NPC Identity Generator, roughly:
+
+NPC needs creating → choose species → choose sex/name set where applicable → choose first name → choose surname/clan name → assign profession/role

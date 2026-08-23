@@ -22,5 +22,3 @@ I need to remove the goblin image in the combat. It was just temporarily there.
 Instead of "heavy" Call the attack for the rogue class "Backstab" 
 
 (can be added to a future patch instead of having a micro patch)
-
-In combat Counters are auto hit if the enemy fails their attack thanks to the counter. So don't need to roll for it.

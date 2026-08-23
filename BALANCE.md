@@ -1,19 +1,37 @@
 # Fathom — Balance & Systems Reference
 
-**Build reference:** v0.112.2.4  
-**Purpose:** human/design reference for live math and system rules. This file is not read by the game.  
-**Rule:** values below describe the current build unless explicitly marked parked/deferred. Constants are tuning targets and may change after playtesting.
+**Build reference:** v0.114.1.3 canonical systems + Active World direction through v0.203.3  
+**Purpose:** human/design reference for canonical math/system rules while Lowfathom moves to the free-moving Active World. This file is not read by the game.  
+**Rule:** v0.114.1.3 remains the source of truth for mature combat, equipment, Skills, quests, economy and progression unless explicitly superseded below. v0.203.3 is the current working Active World build, but its instanced town/side-passage experiments and bridge-specific behavior are **not** automatically design canon. Constants are tuning targets and may change after playtesting.
 
 ## 1. World / depth pacing
 
+### Canonical depth structure
+
 - One major **Stratum / biome = 500 fathoms**.
 - Enemy progression uses expected values for the current depth — **never the player's live stats**.
-- Ordinary Safe Hollows begin about 20 fathoms into a stratum and keep an approximately **30-fathom** rhythm.
+- Authored settlement depths currently remain **Grey Lantern 150**, **Lantern City 450**, **Ashwick 550**. Departure continues deeper and is intended to remain one-way where the settlement rules say so.
+- Ordinary Safe Hollows begin about 20 fathoms into a stratum and target an approximately **30-fathom depth rhythm**.
 - A special staging Hollow appears **8 fathoms before** each 500-fathom boss boundary.
-- Run-pressure resets and side-passage opportunities use their own **60-fathom** cadence.
-- Rest recovery requires **20 active travel units** after each Rest; Rest heals **25% Max HP**.
+- Side-passage opportunities retain an approximately **60-fathom opportunity rhythm** as a pacing target. In Active World this means generating a real branch in the cavern, **not** opening a passage popup when a timer/depth threshold fires.
+- Run-pressure reset pacing may continue to use its own 60-fathom rhythm, but its Active World presentation must be spatial rather than an unexplained interruption where possible.
+
+### Recovery rules carried from v0.114
+
+- Rest heals **25% Max HP**.
+- The legacy recharge rule is **20 active travel units after each Rest**. Active World must preserve approximately the same recovery pressure, but the exact mapping from legacy travel units to continuous world movement/distance is **not yet locked**. Do not silently equate one world tile/pixel with one legacy travel unit.
 - Camp Supply healing = **50% Max HP**. New delvers start with **2 Camp Supplies**.
 - Hollow **Sheltered** respite = **+10% Defence Rating for 3 completed encounters**.
+
+### Active World direction — supersedes the passive travel presentation
+
+- Gameplay is now intended to be **free-moving, landscape, top-down Canvas exploration**.
+- **Up on the screen = deeper.** Upward world progress increases Fathoms; lateral movement is exploration at roughly the same depth.
+- The current large camera/zoom is intentional: the player should feel small inside an enormous, mysterious cavern. Desktop may render farther than phone without forcing distant AI to simulate at full cost.
+- Depth remains the canonical progression coordinate because combat scaling, item generation, strata, settlements, quests and bosses already depend on it. The HUD should read depth directly from world position without forcing a full legacy DOM render every small movement increment.
+- World generation should be chunk/sector based, connected and effectively endless. It must allow meaningful lateral wandering and avoid sealed enemy/object pockets.
+- Chests, Safe Hollows, caravans, merchants, quest objects, bosses, side passages and settlements should have **physical world presence** before their interaction UI appears.
+- **Towns/cities and side passages must remain part of the same continuous world. They are not intended to be instanced maps.** v0.203.x experiments that teleport into separate town/passage spaces are implementation debt, not the target design.
 
 ## 2. Depth progression spine
 
@@ -235,7 +253,9 @@ d20 + Attack Bonus >= target AC  → hit
 - Natural **1 always misses**.
 - Natural **20 always hits**.
 - Therefore the current absolute hit-chance bounds are **5%–95%**.
-- Natural 20 is not automatically a critical hit; Crit is a separate system.
+- Natural **20 automatically hits and is a Critical Hit for ×2 damage** for both player and enemy.
+- Natural 1 is never a crit because it always misses.
+- The current baseline critical range is natural 20 only. A future expanded range such as 19–20 remains accuracy-neutral: 19 only crits if `19 + Attack Bonus` already meets AC; natural 20 remains the automatic hit.
 
 Enemy attack accuracy modifiers:
 
@@ -307,7 +327,7 @@ Cost = full 3-Stamina turn
 Player accuracy modifier = 0
 ```
 
-- Rogue Backstab uses this Heavy slot, **guarantees a crit on hit**, and adds **+25 percentage points Crit Damage** to that crit.
+- Rogue **Backstab currently uses the same Heavy damage/accuracy rule and the same natural-20 ×2 Critical Hit rule as other attacks**. Its previous guaranteed crit and +25 percentage-point Crit Damage bonus are parked while Backstab's replacement identity is undecided.
 - Heavy punches through most enemy Guard: ordinary enemy Guard reduces Heavy by only **15%** rather than 50%.
 
 ### Opening / Off-Balance
@@ -381,8 +401,8 @@ Damage reduction = 0%
 ```
 
 - If that enemy attack misses, Counter opens a retaliation.
-- Counter retaliation makes its **own normal player d20 attack roll**.
-- On hit, retaliation is approximately `2 × Strike-1 damage`, then applies the foe's known Counter weakness if one exists.
+- Once Counter has caused/claimed the miss, its retaliation **automatically hits**; there is no second d20 roll.
+- The guaranteed retaliation is approximately `2 × Strike-1 damage`, then applies the foe's known Counter weakness if one exists.
 - If the enemy attack hits, the player takes normal damage and receives no retaliation.
 
 ### Sand Throw
@@ -412,47 +432,54 @@ Protection capacity
 - Two-handed weapon use suppresses the shield contribution.
 - Future Protection is intended to be a persistent/stackable special resource rather than the default defensive layer.
 
-## 13. Critical Chance and Precision
+## 13. Natural-d20 Critical Hits and parked legacy Crit progression
 
-The d20 decides **hit/miss**. Crit resolves only after a successful hit unless an action explicitly forces one.
+### Live v0.114.0+ Crit rule
 
-### Critical Chance
+The authoritative attack d20 now owns Crit resolution. There is **no second hidden Crit roll**.
+
+```text
+Natural 1  = automatic miss
+Natural 20 = automatic hit + Critical Hit
+Critical damage = ×2 final base attack damage before separate additive effects such as Boss Damage
+Baseline critical range = 20 only
+```
+
+- This rule applies to **both player and enemy attacks**.
+- On enemy attacks, the normal incoming roll already includes passive Deflection; a natural-20 Crit doubles that rolled damage, then active Guard/Parry reduction is applied afterward.
+- A future expanded Crit range remains accuracy-neutral: a 19 may crit only if the attack already hits AC. Natural 20 retains its automatic-hit rule.
+- Rogue Backstab no longer guarantees a Crit during this playtest; it uses the same natural-20 baseline while its future identity is undecided.
+
+### Parked legacy DEX / gear Critical Chance
+
+The following formulas remain in the code/reference for rollback or later redesign but **do not modify live Critical Hits**:
 
 ```text
 DEX crit = max(0, effective DEX - 10) × 0.25%
 DEX-derived cap = 50%
-Total Crit Chance = DEX crit + gear Crit, capped at 100%
+Legacy total Crit Chance = DEX crit + gear Crit, capped at 100%
 ```
 
-Ordinary generated Crit gear:
+Existing Crit Chance affixes may still be stamped on saved items and remain visible for compatibility. They are mechanically parked. New procedural Crit Chance generation is disabled.
 
-- legal on weapons, gloves and rings;
-- rolls in **0.25% steps**;
-- ordinary eligible-piece hard cap = **2.5%**;
-- daggers can reach **5%**;
-- rarity raises the chance of rolling toward the cap, not the cap itself.
+### Parked legacy WIS Precision / variable Crit Damage
 
-### Precision / Crit Damage
+These formulas are likewise retained only for rollback/design work:
 
 ```text
 Precision = max(0, effective WIS - 10)
-Base Crit Damage = 150%
+Legacy base Crit Damage = 150%
 ```
 
-Crit Damage remains endless but increasingly expensive:
+Legacy Precision used progressively more expensive +50 percentage-point Crit Damage bands (500, 1,000, 2,000, 4,000... Precision). **None of that modifies the current fixed natural-d20 ×2 Crit.**
 
-- first **+50 percentage points** costs 500 Precision;
-- next +50 costs 1,000;
-- next +50 costs 2,000;
-- then 4,000, 8,000, etc.
-
-Each band scales linearly while being filled.
+DEX and WIS continue to matter through their other attribute/Skill roles; only their former Crit Chance/Precision combat jobs are parked.
 
 ## 14. Live equipment affixes
 
 Current procedural generation toggles:
 
-- **Critical Chance:** enabled.
+- **Critical Chance:** **generation disabled / mechanically parked**. Existing stamped Crit affixes remain stored for compatibility and possible rollback.
 - **Boss Damage:** enabled.
 - **Damage Reflect:** enabled.
 - **Lifesteal:** mechanically supported but disabled from ordinary random generation.
@@ -462,12 +489,12 @@ Current affix IV units:
 
 | Affix | IV / unit | Effect / unit | Ordinary max units |
 |---|---:|---|---:|
-| Crit Chance | 2.5 | +0.25% Crit | 10; dagger weapon 20 |
+| Crit Chance | 2.5 | legacy +0.25% Crit | 10; dagger weapon 20 |
 | Boss Damage | 8 | +1% Boss Damage; +2 damage/action cap | 15 |
 | Damage Reflect | 6 | +1%; +1 damage/hit cap | 15 |
 | Lifesteal | 25 | +1%; +1 HP/action heal cap | 8 |
 
-Generated items normally use at most 1 affix type at Common or below, 2 through Rare, and 3 at Epic+.
+Generated items normally use at most 1 affix type at Common or below, 2 through Rare, and 3 at Epic+. **Crit Chance is excluded from new generation during the natural-d20 Crit playtest, so currently live generated affixes are Boss Damage and Damage Reflect; Lifesteal remains supported but disabled.**
 
 ## 15. Rarity ladder
 
@@ -646,7 +673,7 @@ Base practice   = 10 × (1 + Rank / 200)
 
 - Perception is primarily passive: it decides whether the delver notices glints, side-passage signs and similar opportunities before an active decision appears.
 - Investigation is primarily active and can improve the quality/productivity of successful examination.
-- Concealment I has **2 uses** and lasts **10 minutes of active travel** per use; the timer freezes while travel is held or combat is active.
+- Concealment I has **2 uses** and lasts **10 minutes of active travel** per use in the canonical v0.114 system; the timer freezes while travel is held or combat is active. In Active World, preserve the intent as active exploration time rather than letting menu/combat time consume the effect; the exact migration hook should be explicit, not inferred from old travel ticks.
 - Enemy Awareness is authored content identity, not a universal depth multiplier.
 - Concealment compares effective Stealth Rating against creature Awareness.
 - Success can allow **Ambush** or **Let them pass**; passing grants no combat XP/loot and preserves concealment, while ambushing or being detected breaks it.
@@ -665,7 +692,7 @@ Prefer objective consequences such as:
 - Attack Rating / Attack Bonus change;
 - AC change;
 - Deflection change;
-- Crit Chance / Crit Damage change;
+- live natural-d20 Crit rules; parked Crit Chance/Crit Damage affixes may be shown for compatibility but must not be presented as current combat upgrades;
 - live affix changes;
 - iLv / Gear Level change shown neutrally.
 
@@ -676,4 +703,75 @@ Prefer objective consequences such as:
 - Real dual-wield attack behavior remains unfinished.
 - Broader procedural affix catalogue is registered but mostly disabled until each property has a proven use and balance price.
 - Class armor restrictions are not part of the current design.
+- **Legacy DEX/gear Crit Chance and WIS Precision/Crit Damage:** parked during the natural-d20 ×2 Crit playtest.
+- **Rogue Backstab guaranteed Crit/+25pp Crit Damage:** parked; replacement identity unresolved.
+- **Active World migration:** exact conversion of legacy travel-unit timers/recharges to continuous movement remains unfinished.
+- **Instanced Active World towns/side passages:** explicitly not the target design; these must become continuous-world spaces.
 
+
+
+## 22. Active World spatial/system integration rules
+
+These rules describe the intended conversion architecture. They are design constraints for the main v0.203.3 Active World line, not claims that every item is already working correctly.
+
+### Main vs reference build
+
+- **v0.203.3 Active World is the main working build and must remain the foundation.** Preserve its free-moving Canvas, current world scale/zoom, continuous movement, roaming-enemy concept and landscape direction.
+- **v0.114.1.3 is the canonical system/UI reference.** When an established system in Active World behaves differently from the mature v0.114 version without an explicit design decision, restore/adapt the v0.114 behavior rather than inventing a parallel replacement.
+
+### Spatial ownership
+
+The Canvas world owns:
+
+```text
+world position
+camera
+continuous movement
+terrain/chunks
+collision
+world entities and sprites
+spatial interaction range
+physical placement of encounters/locations
+```
+
+Canonical Lowfathom systems own:
+
+```text
+character state
+combat math and turn state
+items/equipment/rarity/economy
+Skills/Abilities/Bestiary
+quests and interaction state
+merchant/town services
+Rest/Camp effects
+XP/attributes/progression
+save integrity and migrations
+```
+
+Adapters should connect them explicitly. Example: a visible goblin touches the player → canonical combat starts for that archetype; canonical death/loot resolves → a physical loot bag can be created at that world position.
+
+### Required physical-world behavior
+
+- **Enemies:** visible, modest roaming, collision-aware, reachable spawns, no sealed rock pockets, no casual roaming through protected Hollows. AI activity radius and render radius should be separate.
+- **Loot:** enemy rewards may appear physically as `assets/ui/bag_coins.png`; walking over or pressing Interact/E opens the canonical recovered-loot flow. No fake bag when nothing dropped.
+- **Chests:** keep procedural chests, but use sparse sector/chunk placement rather than per-floor-tile rolls.
+- **Safe Hollows:** physically carved protected outcroppings/clearings with a campfire; canonical Hollow/Rest/Camp rules activate through spatial interaction.
+- **Side passages:** literal traversable branches connected to the same terrain. No teleport to an instanced side-passage map.
+- **Settlements:** Grey Lantern, Lantern City and Ashwick are constructed areas embedded directly into the same world coordinates. Buildings physically represent canonical Market/Tavern/Herbalist/Guild services. No detached rectangular town instance.
+- **Caravans / wandering merchants:** visible wagon/camp/traveler world entities first; canonical Interaction Engine/merchant UI opens after approach/interact.
+- **Quest/rescue objects:** clues, satchels, tracks, hideouts, bosses and similar beats should have physical causes in the world instead of appearing solely because a depth threshold was crossed.
+- **Temporary companions:** an active escort such as Zeshava must have a visible follower presence; underlying quest/escort state remains canonical.
+
+### In-world combat presentation
+
+Combat remains the canonical turn-based system but occurs visually in the world where the encounter happened. Free movement locks while combat is active; combat UI overlays the Canvas. Player/enemy attack animation may use short lunges/bumps purely as visual feedback — the bump is **not** the input or hit-resolution system.
+
+Current layout target:
+
+- top-left: live Fathoms;
+- top-center in combat: enemy name/HP/Intent;
+- bottom-center: player name/level/HP/XP;
+- right side: compact combat actions;
+- left side: one collapsible log region, Delve Log outside combat and Combat Log during combat, same coordinates.
+
+The correct Settings art is `assets/ui/glyph-gear.png`. Inventory should be accessible with **I** on keyboard.

@@ -1,27 +1,14 @@
 {
-  "id": "/Fathom/",
-  "name": "Fathom",
-  "short_name": "Fathom",
-  "description": "A mobile-first permadeath descent RPG.",
-  "start_url": "/Fathom/",
-  "scope": "/Fathom/",
-  "display": "standalone",
-  "background_color": "#0f1317",
-  "theme_color": "#0f1317",
-  "orientation": "portrait-primary",
-  "prefer_related_applications": false,
-  "icons": [
-    {
-      "src": "/Fathom/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/Fathom/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
+  "name":"Lowfathom",
+  "short_name":"Lowfathom",
+  "start_url":"./index.html",
+  "scope":"./",
+  "display":"standalone",
+  "orientation":"landscape",
+  "background_color":"#010406",
+  "theme_color":"#010406",
+  "icons":[
+    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png"},
+    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png"}
   ]
 }
