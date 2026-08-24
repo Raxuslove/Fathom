@@ -4,27 +4,39 @@ const DIRS={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
 const BASE_ENTITY_MARGIN_TILES=4;
 const AI_RADIUS_TILES=11;
 const ROAMER_RETENTION_MULTIPLIER=2.4;
-// v0.203.15: ordinary foes are authored by deterministic ecology sectors rather
-// than a per-floor-tile lottery. This creates quiet stretches, lone roamers and
-// occasional readable nests without accidental screen-filling clusters.
-const ORDINARY_ECOLOGY_SECTOR_TILES=24;
-// v0.205.1: increase ordinary roaming density by exactly 25% in expectation
-// while preserving the existing lone:nest mix among active ecology sectors.
-// Old expected bodies/sector: .27 + .08*3 = .51. New: .3375 + .10*3 = .6375.
-const ORDINARY_ECOLOGY_QUIET_SHARE=.5625;
-const ORDINARY_ECOLOGY_LONE_SHARE=.3375;
-const ORDINARY_LOCAL_ACTIVE_CAP=6;
+// Ordinary foes use deterministic ecology sectors, but every creature now owns
+// its own spawn chance. Adding a new species therefore does NOT dilute the rate of
+// any existing species. The chances live on the foe profiles in legacy.js.
+const ORDINARY_ECOLOGY_SECTOR_TILES=20;
+const ORDINARY_LOCAL_ACTIVE_CAP=16;
+const ECOLOGY_SPAWN_RATE_MULTIPLIER=2;
 const FOE_SPRITE_SIZE=32;
+const PLAYER_SPRITE_SIZE=32;
+const PLAYER_SPRITE_DIR='./assets/player/';
+const PLAYER_SPRITE_FILES=Object.freeze({
+  Votary:'knight-lantern-player.png',
+  Rogue:'rogue-lantern-player.png',
+  Wizard:'mage-lantern-player.png'
+});
 const FOE_SPRITE_FILES={
   cutter:'goblin-cutter.png',
   scrounger:'goblin-cutter.png',
   skitter:'goblin-skitter.png',
   shieldback:'goblin-shieldback.png',
   mauler:'goblin-mauler.png',
-  oldhand:'goblin-oldhand.png'
+  oldhand:'goblin-oldhand.png',
+  slime:'slime1-right.png',
+  slime2:'slime2-right.png'
 };
-const FOE_SPRITE_DIRS=['./assets/ui/','./assets/enemies/','./assets/'];
+const FOE_SPRITE_DIRS=['./assets/creatures/','./assets/ui/','./assets/enemies/','./assets/'];
+function stableCreatureSeed(value){
+  const str=String(value||'');let h=2166136261;
+  for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}
+  return h>>>0;
+}
 const LOOT_BAG_FILE='./assets/ui/bag_coins.png';
+const LOOT_BAG_LIFETIME_MS=60000;
+const LOOT_BAG_BLINK_MS=10000;
 const COMPANION_TORCH_FILE='./assets/ui/companion-torch.png';
 const ORDINARY_HOLLOW_FIRST=20;
 const ORDINARY_HOLLOW_GAP=30;
@@ -132,7 +144,7 @@ const WORLD_SNAPSHOT_VERSION=2035;
 const LIVE_TERRAIN_LOCK_TY=1000000000;
 
 export class World{
-  constructor(canvas,{seed=41729,onEncounter,onToast,onInteract,onLoot,onDepth,onSettlementEnter,onSettlementLeave,onLocationTitle,onEnterSide,onLeaveSide,onPassWorldEvent,onHostile,onMinimapZoom,getDetectionRadius,getProfiles,getTowns,getWorldEvents,getCompanion,getSideArea}={}){
+  constructor(canvas,{seed=41729,onEncounter,onToast,onInteract,onLoot,onLootExpired,onDepth,onSettlementEnter,onSettlementLeave,onLocationTitle,onEnterSide,onLeaveSide,onPassWorldEvent,onHostile,onMinimapZoom,getDetectionRadius,getProfiles,getTowns,getWorldEvents,getCompanion,getSideArea,getPlayerClass}={}){
     this.canvas=canvas;
     this.ctx=canvas.getContext('2d',{alpha:false});
     this.ctx.imageSmoothingEnabled=false;
@@ -141,6 +153,7 @@ export class World{
     this.onToast=onToast;
     this.onInteract=onInteract;
     this.onLoot=onLoot;
+    this.onLootExpired=typeof onLootExpired==='function'?onLootExpired:null;
     this.onDepth=onDepth;
     this.onSettlementEnter=onSettlementEnter;
     this.onSettlementLeave=onSettlementLeave;
@@ -154,6 +167,7 @@ export class World{
     this.getWorldEvents=getWorldEvents||(()=>[]);
     this.getCompanion=getCompanion||(()=>null);
     this.getSideArea=getSideArea||(()=>null);
+    this.getPlayerClass=typeof getPlayerClass==='function'?getPlayerClass:(()=>'Votary');
     this.worldEvents=[];
     this.worldEventSignature='';
     this.persistentEventSites=[];
@@ -173,9 +187,10 @@ export class World{
     this.sideOrganicStartDepth=0;
     this.sideVarietyStartDepth=0;
 
-    this.player={x:TILE*.5,y:0,deepestY:0,r:7,speed:95,dir:'up',moving:false};
+    this.player={x:TILE*.5,y:0,deepestY:0,r:7,speed:95,dir:'up',facing:'right',moving:false};
     this.camera={x:0,y:-80};
     this.zoom=1.15;
+    this.atmosphereEffectsEnabled=true;
     this.exploredCells=new Set();
     this.explorationAnchor='';
     // v0.203.9.1 performance: terrain is deterministic across frames, so cache
@@ -236,6 +251,7 @@ export class World{
     this.combatPlayerInRange=false;
     this.combatEnemyThreatRange=10;
     this.combatThreatActive=false;
+    this.combatPlayerAttacking=false;
     this.autoApproach=false;
     this.onHostile=typeof onHostile==='function'?onHostile:null;
     this.getDetectionRadius=typeof getDetectionRadius==='function'?getDetectionRadius:null;
@@ -245,6 +261,7 @@ export class World{
     this.companionTorch.img.onerror=()=>this.companionTorch.ready=false;
     this.companionTorch.img.src=COMPANION_TORCH_FILE;
     this.foeSprites=new Map();
+    this.playerSprites=new Map();
     this.lootBagSprite={img:new Image(),ready:false};
     this.lootBagSprite.img.onload=()=>this.lootBagSprite.ready=true;
     this.lootBagSprite.img.onerror=()=>this.lootBagSprite.ready=false;
@@ -264,7 +281,7 @@ export class World{
     // A restore is also a runtime-world handoff (slot switch/new delver). Never
     // carry transient actors, passed-event flags, or terrain caches across runs.
     this.roamers.clear();this.bossActors.clear();this.passedWorldEvents.clear();
-    this.activeEntities=[];this.particles=[];this.animations=[];this.combatFoe=null;this.combatEntityId=null;this.combat=false;this.combatPlayerRange=10;this.combatPlayerMelee=true;this.combatPlayerInRange=false;this.combatEnemyThreatRange=10;this.combatThreatActive=false;this.autoApproach=false;this.nearby=null;
+    this.activeEntities=[];this.particles=[];this.animations=[];this.combatFoe=null;this.combatEntityId=null;this.combat=false;this.combatPlayerRange=10;this.combatPlayerMelee=true;this.combatPlayerInRange=false;this.combatEnemyThreatRange=10;this.combatThreatActive=false;this.combatPlayerAttacking=false;this.autoApproach=false;this.nearby=null;
     this.worldEvents=[];this.worldEventSignature='';this.towns=[];this.townPlanCache=[];this.townSignature='';
     this.activeSide=null;this.activeSidePlan=null;this.sideSignature='';this.transitionLock='';this.sideWasInside=false;this.locationTitleZone='';
     this.companionVisual={x:0,y:0,ready:false,id:null};this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.sideGeometryCache.clear();
@@ -302,6 +319,10 @@ export class World{
     let x=migratedReturn&&Number.isFinite(Number(migratedReturn.x))?Number(migratedReturn.x):Number.isFinite(Number(data?.x))?Number(data.x):TILE*.5;
     let y=migratedReturn&&Number.isFinite(Number(migratedReturn.y))?Number(migratedReturn.y):Number.isFinite(Number(data?.y))?Number(data.y):yFromDepth(legacyDepth);
     let deepest=migratedReturn&&Number.isFinite(Number(migratedReturn.deepestY))?Number(migratedReturn.deepestY):Number.isFinite(Number(data?.deepestY))?Number(data.deepestY):Math.min(y,yFromDepth(legacyDepth));
+    if(!data&&Math.max(0,Number(legacyDepth)||0)<=.001){
+      const home=this.townPlans().find(t=>t.current&&t.depth<=.001);
+      if(home){x=home.originX;y=home.originY+home.layoutH*.24;deepest=0;}
+    }
     const topologyFallbackTy=data?Math.floor(Math.min(deepest,yFromDepth(legacyDepth))/TILE)-12:-8;
     this.antTopologyStartTy=savedTopologyTy('antTopologyStartTy',topologyFallbackTy);
     // v0.203.8 changes the ant-colony geometry again. Existing v0.203.7 saves
@@ -349,11 +370,13 @@ export class World{
     this.defeated=new Set(data?.defeated||[]);
     this.opened=new Set(data?.opened||[]);
     this.visitedSettlements=new Set(data?.visited||[]);
-    this.sealedTownGates=new Set(data?.sealedTownGates||[]);
-    this.lootBags=new Map((data?.lootBags||[]).filter(v=>v&&v.id&&v.recordId).map(v=>[
-      String(v.id),
-      {type:'loot',id:String(v.id),recordId:String(v.recordId),x:Number(v.x)||0,y:Number(v.y)||0}
-    ]));
+    this.sealedTownGates=new Set();
+    const lootRestoreNow=Date.now();
+    this.lootBags=new Map((data?.lootBags||[]).filter(v=>v&&v.id&&v.recordId).map(v=>{
+      const createdAt=Number.isFinite(Number(v.createdAt))?Number(v.createdAt):lootRestoreNow;
+      const expiresAt=Number.isFinite(Number(v.expiresAt))?Number(v.expiresAt):createdAt+LOOT_BAG_LIFETIME_MS;
+      return [String(v.id),{type:'loot',id:String(v.id),recordId:String(v.recordId),x:Number(v.x)||0,y:Number(v.y)||0,createdAt,expiresAt}];
+    }));
     this.exploredCells=new Set(Array.isArray(data?.exploredCells)?data.exploredCells.map(String):[]);
     this.explorationAnchor='';
 
@@ -393,7 +416,7 @@ export class World{
       visited:[...this.visitedSettlements],
       sealedTownGates:[...this.sealedTownGates],
       exploredCells:[...this.exploredCells],
-      lootBags:[...this.lootBags.values()].map(b=>({id:b.id,recordId:b.recordId,x:b.x,y:b.y}))
+      lootBags:[...this.lootBags.values()].map(b=>({id:b.id,recordId:b.recordId,x:b.x,y:b.y,createdAt:b.createdAt,expiresAt:b.expiresAt}))
     };
   }
 
@@ -501,11 +524,65 @@ export class World{
     return actor;
   }
 
+  worldActorBodyRadius(actor,fallback=9){
+    if(actor?.type==='boss')return COMBAT_BOSS_BODY_RADIUS;
+    if(actor?.type==='midboss')return COMBAT_MIDBOSS_BODY_RADIUS;
+    return Math.max(7,Number(fallback)||COMBAT_FOE_BODY_RADIUS);
+  }
+
+  worldActorCollidesOther(actor,x,y,r=9){
+    const seen=new Set(),others=[];
+    const push=e=>{if(!e||e===actor||seen.has(e)||!['foe','midboss','boss'].includes(e.type)||e.combatEvading)return;seen.add(e);others.push(e);};
+    if(this.combatFoe)push(this.combatFoe);
+    for(const e of this.activeEntities)push(e);
+    for(const e of this.roamers.values())push(e);
+    for(const e of this.bossActors.values())push(e);
+    const selfR=this.worldActorBodyRadius(actor,r);
+    for(const other of others){
+      const otherR=this.worldActorBodyRadius(other,9),min=selfR+otherR+2;
+      const nextDist=Math.hypot(x-other.x,y-other.y);
+      if(nextDist>=min)continue;
+      // If two actors somehow start overlapped, allow a step only when it increases
+      // their separation. This lets the crowd untangle instead of freezing forever.
+      const currentDist=Math.hypot(actor.x-other.x,actor.y-other.y);
+      if(nextDist<=currentDist+.01)return true;
+    }
+    return false;
+  }
+
   moveWorldActor(actor,dx,dy,r=9){
-    const maxStep=Math.max(1,Math.min(TILE*.20,r*.65)),steps=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/maxStep)),sx=dx/steps,sy=dy/steps;
+    const startX=actor.x,startY=actor.y,maxStep=Math.max(1,Math.min(TILE*.20,r*.65)),steps=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/maxStep)),sx=dx/steps,sy=dy/steps;
     for(let i=0;i<steps;i++){
-      const nx=actor.x+sx;if(!this.collides(nx,actor.y,r,{ignoreBossGate:true}))actor.x=nx;
-      const ny=actor.y+sy;if(!this.collides(actor.x,ny,r,{ignoreBossGate:true}))actor.y=ny;
+      const beforeX=actor.x,beforeY=actor.y;
+      const nx=actor.x+sx;
+      if(!this.collides(nx,actor.y,r,{ignoreBossGate:true})&&!this.worldActorCollidesOther(actor,nx,actor.y,r))actor.x=nx;
+      const ny=actor.y+sy;
+      if(!this.collides(actor.x,ny,r,{ignoreBossGate:true})&&!this.worldActorCollidesOther(actor,actor.x,ny,r))actor.y=ny;
+      if(Math.hypot(actor.x-beforeX,actor.y-beforeY)<.01){
+        const mag=Math.hypot(sx,sy)||1,stepMag=Math.max(1,Math.min(maxStep,mag));
+        if(actor._avoidSide!==1&&actor._avoidSide!==-1)actor._avoidSide=hash2(Math.floor(actor.x),Math.floor(actor.y),this.seed+9181)>.5?1:-1;
+        for(const sign of [actor._avoidSide,-actor._avoidSide]){
+          const px=(-sy/mag)*stepMag*sign,py=(sx/mag)*stepMag*sign,tx=actor.x+px,ty=actor.y+py;
+          if(!this.collides(tx,ty,r,{ignoreBossGate:true})&&!this.worldActorCollidesOther(actor,tx,ty,r)){actor.x=tx;actor.y=ty;actor._avoidSide=sign;break;}
+        }
+      }
+    }
+    return Math.hypot(actor.x-startX,actor.y-startY);
+  }
+
+  separateWorldActors(entities=this.activeEntities){
+    const seen=new Set(),actors=[];
+    const add=e=>{if(!e||seen.has(e)||!['foe','midboss','boss'].includes(e.type))return;seen.add(e);actors.push(e);};
+    add(this.combatFoe);for(const e of entities||[])add(e);
+    for(let pass=0;pass<2;pass++)for(let i=0;i<actors.length;i++)for(let j=i+1;j<actors.length;j++){
+      const a=actors[i],b=actors[j],ar=this.worldActorBodyRadius(a,9),br=this.worldActorBodyRadius(b,9),min=ar+br+2;
+      let dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy);
+      if(dist>=min)continue;
+      if(dist<.001){const sign=hash2(i,j,this.seed+9199)>.5?1:-1;dx=sign;dy=1;dist=Math.SQRT2;}
+      const nx=dx/dist,ny=dy/dist,push=(min-dist)*.52;
+      const ax=a.x-nx*push,ay=a.y-ny*push,bx=b.x+nx*push,by=b.y+ny*push;
+      if(!this.collides(ax,ay,ar,{ignoreBossGate:true})){a.x=ax;a.y=ay;}
+      if(!this.collides(bx,by,br,{ignoreBossGate:true})){b.x=bx;b.y=by;}
     }
   }
 
@@ -846,7 +923,11 @@ export class World{
 
   makeTownPlan(town){
     if(!town)return null;
-    const city=town.kind==='city',layoutW=(city?17:14)*TOWN_TILE,layoutH=(city?11:9.5)*TOWN_TILE;
+    const city=town.kind==='city',village=town.kind==='village';
+    // Settlements are physical world spaces. Fathom 0 gets a broad, leafy
+    // village footprint; the major city is larger and denser rather than being
+    // represented by a single illustrated map.
+    const layoutW=(city?24:village?20:16)*TOWN_TILE,layoutH=(city?16:village?14:11)*TOWN_TILE;
     const depth=Math.max(0,Number(town.depth)||0),entryTy=Math.floor(yFromDepth(depth)/TILE),entryTx=this.corridorCenter(entryTy);
     const entryY=yFromDepth(depth),halfW=layoutW*.59,halfH=layoutH*.56;
     // New terrain can recess settlements into a cavern pocket in either wall.
@@ -858,7 +939,7 @@ export class World{
     const originX=(entryTx+.5)*TILE+pocketSign*offsetTiles*TOWN_TILE;
     const originY=entryY-layoutH*.34;
     const shallowGateY=originY+halfH,deepGateY=originY-halfH,gateY=deepGateY;
-    const shallowJoinY=shallowGateY+TOWN_TILE*(6.5+(city?1:0)),deepJoinY=deepGateY-TOWN_TILE*(6.5+(city?1:0));
+    const approachExtra=city?2:(village?1:0),shallowJoinY=shallowGateY+TOWN_TILE*(6.5+approachExtra),deepJoinY=deepGateY-TOWN_TILE*(6.5+approachExtra);
     const shallowJoinTy=Math.floor(shallowJoinY/TILE),deepJoinTy=Math.floor(deepJoinY/TILE);
     const shallowJoinX=(this.corridorCenter(shallowJoinTy)+.5)*TILE,deepJoinX=(this.corridorCenter(deepJoinTy)+.5)*TILE;
     // The approach turns to face each gate before crossing the wall, so a long
@@ -875,10 +956,27 @@ export class World{
       {id:'wall-deep-left',x:originX-(TOWN_GATE_HALF_WIDTH+wallSideW/2),y:deepGateY,w:wallSideW,h:TOWN_WALL_THICKNESS},
       {id:'wall-deep-right',x:originX+(TOWN_GATE_HALF_WIDTH+wallSideW/2),y:deepGateY,w:wallSideW,h:TOWN_WALL_THICKNESS}
     ];
-    const pos={market:{x:originX+TOWN_TILE*2.10,y:originY+TOWN_TILE*1.55},inn:{x:originX-layoutW*.38,y:originY+layoutH*.22},herbalist:{x:originX+layoutW*.39,y:originY+layoutH*.08},guild:{x:originX-layoutW*.27,y:originY-layoutH*.36},'lower-gate':{x:originX,y:deepGateY+TOWN_TILE*1.35}};
+    const pos={market:{x:originX+TOWN_TILE*2.10,y:originY+TOWN_TILE*1.40},inn:{x:originX-layoutW*.37,y:originY+layoutH*.22},herbalist:{x:originX+layoutW*.37,y:originY+layoutH*.09},guild:{x:originX-layoutW*.25,y:originY-layoutH*.36},'lower-gate':{x:originX,y:deepGateY+TOWN_TILE*1.35}};
     const buildings=[];
-    const locations=(town.locations||[]).map((loc,i)=>{const p=pos[loc.id]||{x:originX+(i%2?1:-1)*layoutW*.35,y:originY+(i-2)*TOWN_TILE*1.6};if(TOWN_BUILDING_IDS.has(loc.id)){const w=(loc.id==='guild'?5.6:4.8)*TOWN_TILE,h=(loc.id==='guild'?4.1:3.6)*TOWN_TILE;buildings.push({id:loc.id,x:p.x,y:p.y-TOWN_TILE*.55,w,h});return {...loc,x:p.x,y:p.y+h/2+TOWN_TILE*.35};}return {...loc,x:p.x,y:p.y};});
-    const stalls=[{x:originX-TOWN_TILE*2.7,y:originY+TOWN_TILE*.45,w:TOWN_TILE*2.0,h:TOWN_TILE*1.15},{x:originX+TOWN_TILE*.85,y:originY-TOWN_TILE*.15,w:TOWN_TILE*2.0,h:TOWN_TILE*1.15},{x:originX-TOWN_TILE*.7,y:originY+TOWN_TILE*2.2,w:TOWN_TILE*2.0,h:TOWN_TILE*1.05}];
+    const locations=(town.locations||[]).map((loc,i)=>{const p=pos[loc.id]||{x:originX+(i%2?1:-1)*layoutW*.35,y:originY+(i-2)*TOWN_TILE*1.6};if(TOWN_BUILDING_IDS.has(loc.id)){const w=(loc.id==='guild'?5.6:4.8)*TOWN_TILE,h=(loc.id==='guild'?4.1:3.6)*TOWN_TILE;buildings.push({id:loc.id,x:p.x,y:p.y-TOWN_TILE*.55,w,h,service:true});return {...loc,x:p.x,y:p.y+h/2+TOWN_TILE*.35};}return {...loc,x:p.x,y:p.y};});
+
+    // Non-service houses are still real geometry: they draw, collide and shape
+    // the streets, but they do not open arbitrary menus. This is what makes a
+    // settlement read as a place rather than three buttons standing in a field.
+    const decorative=village?[
+      [-.479,.446,3.8,3.0],[-.146,.417,3.5,2.8],[.156,.432,3.8,3.0],[.438,.387,3.8,3.0],
+      [.458,-.313,3.7,3.0],[.219,-.357,3.6,2.9],[.021,-.432,3.6,2.9],[-.469,-.089,3.8,3.0]
+    ]:city?[
+      [-.495,.430,4.0,3.1],[-.252,.443,3.7,3.0],[0,.443,3.8,3.0],[.252,.443,4.2,3.2],[.495,.417,3.8,3.0],
+      [-.521,-.247,4.0,3.1],[-.017,-.469,4.1,3.1],[.217,-.456,4.0,3.1],[.451,-.404,4.0,3.1],[.521,-.182,3.8,3.0]
+    ]:[];
+    decorative.forEach((d,i)=>buildings.push({id:`house-${i+1}`,x:originX+layoutW*d[0],y:originY+layoutH*d[1],w:TOWN_TILE*d[2],h:TOWN_TILE*d[3],decorative:true,variant:i%4}));
+    const stalls=[
+      {x:originX-TOWN_TILE*2.7,y:originY+TOWN_TILE*.45,w:TOWN_TILE*2.0,h:TOWN_TILE*1.15},
+      {x:originX+TOWN_TILE*.85,y:originY-TOWN_TILE*.15,w:TOWN_TILE*2.0,h:TOWN_TILE*1.15},
+      {x:originX-TOWN_TILE*.7,y:originY+TOWN_TILE*2.2,w:TOWN_TILE*2.0,h:TOWN_TILE*1.05},
+      ...(city||village?[{x:originX+TOWN_TILE*3.0,y:originY+TOWN_TILE*2.05,w:TOWN_TILE*1.8,h:TOWN_TILE*1.05}]:[])
+    ];
     const signX=originX+TOWN_TILE*1.55,signY=shallowGateY+TOWN_TILE*1.65;
     const approachT=.34,approachSignX=shallowJoinX+(shallowBendX-shallowJoinX)*approachT+(pocketSign>0?-TOWN_TILE*1.4:TOWN_TILE*1.4),approachSignY=shallowJoinY+(shallowBendY-shallowJoinY)*approachT;
     return {...town,depth,placement:pocket?'pocket':'route',pocketSign,entryX:shallowJoinX,entryY,entryTx,entryTy,originX,originY,layoutW,layoutH,halfW,halfH,shallowGateY,deepGateY,gateY,deepRoadEndY,shallowJoinX,shallowJoinY,shallowBendX,shallowBendY,deepJoinX,deepJoinY,deepBendX,deepBendY,wallSegs,signX,signY,approachSignX,approachSignY,locations,buildings,stalls};
@@ -930,7 +1028,7 @@ export class World{
   townRectHit(x,y,r,rect){return x+r>rect.x-rect.w/2&&x-r<rect.x+rect.w/2&&y+r>rect.y-rect.h/2&&y-r<rect.y+rect.h/2;}
 
   updateTownDepartureSeals(){
-    for(const t of this.townPlans())if(t.departed&&this.player.y<t.deepGateY-TOWN_TILE*.70)this.sealedTownGates.add(t.id);
+    if(this.sealedTownGates.size)this.sealedTownGates.clear();
   }
 
   townObstacleCollides(x,y,r){
@@ -939,11 +1037,6 @@ export class World{
       if(t.buildings.some(b=>this.townRectHit(x,y,r,b)))return true;
       if(t.stalls.some(b=>this.townRectHit(x,y,r,b)))return true;
       if(t.wallSegs.some(b=>this.townRectHit(x,y,r,b)))return true;
-      const atDeepGate=Math.abs(y-t.deepGateY)<r+TOWN_TILE*.24&&Math.abs(x-t.originX)<TOWN_GATE_HALF_WIDTH+r;
-      // The lower/deeper gate is the only progression gate. It is visible and
-      // aligned with this exact collider. The shallow entrance is always open.
-      if(!t.departed&&atDeepGate)return true;
-      if(t.departed&&this.sealedTownGates.has(t.id)&&atDeepGate)return true;
     }
     return false;
   }
@@ -1034,6 +1127,11 @@ export class World{
     return this.zoom;
   }
 
+  setAtmosphereEffectsEnabled(enabled=true){
+    this.atmosphereEffectsEnabled=!!enabled;
+    return this.atmosphereEffectsEnabled;
+  }
+
   logicalViewW(){return Math.max(1,(this.viewW||1)/(this.zoom||1));}
   logicalViewH(){return Math.max(1,(this.viewH||1)/(this.zoom||1));}
 
@@ -1054,6 +1152,19 @@ export class World{
     const rx=Math.max(8,Math.ceil(this.logicalViewW()/(TILE*2))+BASE_ENTITY_MARGIN_TILES);
     const ry=Math.max(8,Math.ceil(this.logicalViewH()/(TILE*2))+BASE_ENTITY_MARGIN_TILES);
     return{rx,ry};
+  }
+
+  getPlayerSprite(className){
+    const key=PLAYER_SPRITE_FILES[className]?className:'Votary';
+    let rec=this.playerSprites.get(key);
+    if(rec)return rec.ready?rec.img:null;
+    const img=new Image();
+    rec={img,ready:false};
+    this.playerSprites.set(key,rec);
+    img.onload=()=>rec.ready=true;
+    img.onerror=()=>rec.ready=false;
+    img.src=PLAYER_SPRITE_DIR+PLAYER_SPRITE_FILES[key];
+    return null;
   }
 
   getFoeSprite(id){
@@ -1173,7 +1284,8 @@ export class World{
 
   start(){this.last=performance.now();requestAnimationFrame(t=>this.loop(t));}
   setInputEnabled(v){this.inputEnabled=!!v;if(!v){this.joy.x=this.joy.y=0;this.player.moving=false;}}
-  setCombat(v){this.combat=!!v;if(!this.combat){this.combatFoe=null;this.combatEntityId=null;this.combatPlayerRange=10;this.combatPlayerMelee=true;this.combatPlayerInRange=false;this.combatEnemyThreatRange=10;this.combatThreatActive=false;this.playerReachGuideVisible=false;this.autoApproach=false;}}
+  setCombat(v){this.combat=!!v;if(!this.combat){this.combatFoe=null;this.combatEntityId=null;this.combatPlayerRange=10;this.combatPlayerMelee=true;this.combatPlayerInRange=false;this.combatEnemyThreatRange=10;this.combatThreatActive=false;this.combatPlayerAttacking=false;this.playerReachGuideVisible=false;this.autoApproach=false;}}
+  setCombatPlayerAttacking(v=true){this.combatPlayerAttacking=!!v;}
   setAutoApproach(v=true){this.autoApproach=!!v;}
   setJoystick(x,y){this.joy.x=clamp(x,-1,1);this.joy.y=clamp(y,-1,1);if(Math.hypot(this.joy.x,this.joy.y)>.08)this.autoApproach=false;}
   keyDown(code){this.keys.add(code);if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'].includes(code))this.autoApproach=false;}
@@ -1212,6 +1324,16 @@ export class World{
     return{x,y};
   }
 
+  manualMovementAwayFrom(entity=this.combatFoe){
+    if(!entity)return false;
+    const m=this.movementVector(),ml=Math.hypot(m.x,m.y);if(ml<=.08)return false;
+    const dx=entity.x-this.player.x,dy=entity.y-this.player.y,dl=Math.hypot(dx,dy);if(dl<=.001)return false;
+    // Negative dot = the deliberate input points away from the current target.
+    // A small dead zone preserves side-strafing/kiting without keeping a stale
+    // attack order when the player clearly turns and leaves the engagement.
+    return (m.x*dx+m.y*dy)/(ml*dl)<-.18;
+  }
+
   refreshWorldEvents(){
     const next=(this.getWorldEvents()||[]).filter(Boolean);
     const sig=next.map(e=>`${e.type}:${e.id}:${Number(e.depth||0).toFixed(2)}`).sort().join('|');
@@ -1243,6 +1365,7 @@ export class World{
   }
 
   update(dt){
+    this.expireLootBags();
     this.refreshWorldEvents();this.refreshTowns();this.refreshSidePlan();
     this.ensurePlayerSafe();
     if(this.inputEnabled){
@@ -1252,7 +1375,7 @@ export class World{
       if(wantsMove){
         this.autoApproach=false;
         if(Math.abs(m.y)>=Math.abs(m.x))this.player.dir=m.y<0?'up':'down';
-        else this.player.dir=m.x<0?'left':'right';
+        else{this.player.dir=m.x<0?'left':'right';this.player.facing=this.player.dir;}
         // Only count real displacement as movement. Holding the stick/key into a
         // wall must not advance travel timers or schedule world events.
         this.player.moving=this.movePlayer(m.x*this.player.speed*dt,m.y*this.player.speed*dt);
@@ -1260,7 +1383,7 @@ export class World{
         const gap=this.combatSurfaceGap(this.combatFoe),stop=Math.max(0,Number(this.combatPlayerRange)||0)-.75;
         if(gap>stop){
           const dx=this.combatFoe.x-this.player.x,dy=this.combatFoe.y-this.player.y,len=Math.hypot(dx,dy)||1,step=Math.min(this.player.speed*dt,Math.max(0,gap-stop));
-          if(step>.01){if(Math.abs(dy)>=Math.abs(dx))this.player.dir=dy<0?'up':'down';else this.player.dir=dx<0?'left':'right';this.player.moving=this.movePlayer(dx/len*step,dy/len*step);}
+          if(step>.01){if(Math.abs(dy)>=Math.abs(dx))this.player.dir=dy<0?'up':'down';else{this.player.dir=dx<0?'left':'right';this.player.facing=this.player.dir;}this.player.moving=this.movePlayer(dx/len*step,dy/len*step);}
         }else this.autoApproach=false;
       }
     }else this.player.moving=false;
@@ -1275,6 +1398,7 @@ export class World{
     this.camera.y+=(this.player.y-40-this.camera.y)*follow;
     this.activeEntities=this.dynamicEntities();
     if(this.inputEnabled){this.updateRoamers(dt,this.activeEntities);this.updateBossActors(dt,this.activeEntities);}
+    this.separateWorldActors(this.activeEntities);
     this.updateNearby(this.activeEntities);
     this.updateCompanion(dt);
     this.updateAnimations(dt);
@@ -1300,29 +1424,21 @@ export class World{
     if(this.hasActiveThreats()||!this.inputEnabled)return;
     const current=this.townPlans().find(t=>t.current)||null;
     if(current){
-      // Walking back out through the shallow gate simply leaves the settlement
-      // context. It is not a teleport and does not mark the town permanently
-      // departed; walking back through the gate activates it again.
-      if(this.player.y>current.shallowGateY+TILE*.85&&Math.abs(this.player.x-current.originX)<=TOWN_GATE_HALF_WIDTH+TILE){
-        const key=`leave-town:${current.id}`;
-        if(this.transitionLock!==key){
-          this.transitionLock=key;
-          this.onSettlementLeave?.(current);
-        }
+      const aligned=Math.abs(this.player.x-current.originX)<=TOWN_GATE_HALF_WIDTH+TILE;
+      const leftShallow=this.player.y>current.shallowGateY+TILE*.85;
+      const leftDeep=this.player.y<current.deepGateY-TILE*.85;
+      if(aligned&&(leftShallow||leftDeep)){
+        const key=`leave-town:${current.id}:${leftDeep?'deep':'shallow'}`;
+        if(this.transitionLock!==key){this.transitionLock=key;this.onSettlementLeave?.(current);}
         return;
       }
     }else{
       for(const t of this.townPlans()){
-        if(t.departed)continue;
-        const crossedShallow=this.player.y< t.shallowGateY-TILE*.35 && this.player.y>t.deepGateY-TILE*.5;
+        const insideVertical=this.player.y<t.shallowGateY-TILE*.35&&this.player.y>t.deepGateY+TILE*.35;
         const aligned=Math.abs(this.player.x-t.originX)<=TOWN_GATE_HALF_WIDTH+TILE*.65;
-        if(crossedShallow&&aligned){
+        if(insideVertical&&aligned){
           const key=`enter-town:${t.id}`;
-          if(this.transitionLock!==key){
-            this.transitionLock=key;
-            this.visitedSettlements.add(t.id);
-            this.onSettlementEnter?.(t);
-          }
+          if(this.transitionLock!==key){this.transitionLock=key;this.visitedSettlements.add(t.id);this.onSettlementEnter?.(t);}
           return;
         }
       }
@@ -1982,9 +2098,19 @@ export class World{
     if(!recordId)return null;
     const key=String(id||`loot:${recordId}`);
     if(this.lootBags.has(key))return this.lootBags.get(key);
-    const bag={type:'loot',id:key,recordId:String(recordId),x:Number(x)||this.player.x,y:Number(y)||this.player.y};
+    const createdAt=Date.now();
+    const bag={type:'loot',id:key,recordId:String(recordId),x:Number(x)||this.player.x,y:Number(y)||this.player.y,createdAt,expiresAt:createdAt+LOOT_BAG_LIFETIME_MS};
     this.lootBags.set(key,bag);
     return bag;
+  }
+
+  expireLootBags(now=Date.now()){
+    let changed=false;
+    for(const [id,bag] of [...this.lootBags]){
+      if(Number(bag?.expiresAt)>now)continue;
+      this.lootBags.delete(id);changed=true;this.onLootExpired?.(bag);
+    }
+    return changed;
   }
 
   removeLootBag(id){if(!id)return false;return this.lootBags.delete(String(id));}
@@ -1993,7 +2119,7 @@ export class World{
     let e=this.roamers.get(id);
     if(!e){
       const x=(tx+.5)*TILE,y=(ty+.5)*TILE;
-      e={type:'foe',id,tx,ty,homeTx:tx,homeTy:ty,homeX:x,homeY:y,x,y,foe,targetX:x,targetY:y,roamTimer:1+hash2(tx,ty,this.seed+341)*2.5,speed:12+hash2(tx,ty,this.seed+721)*10};
+      e={type:'foe',id,tx,ty,homeTx:tx,homeTy:ty,homeX:x,homeY:y,x,y,foe,targetX:x,targetY:y,facing:'right',roamTimer:1+hash2(tx,ty,this.seed+341)*2.5,speed:12+hash2(tx,ty,this.seed+721)*10};
       this.roamers.set(id,e);
     }
     e.foe=foe;
@@ -2009,35 +2135,49 @@ export class World{
     return this.isSpawnAccessible(tx,ty);
   }
 
-  ordinaryEcologySectorSpawns(sx,sy){
-    const size=ORDINARY_ECOLOGY_SECTOR_TILES,kind=hash2(sx,sy,this.seed+3601);
-    if(kind<ORDINARY_ECOLOGY_QUIET_SHARE)return[];
-    const nest=kind>=ORDINARY_ECOLOGY_QUIET_SHARE+ORDINARY_ECOLOGY_LONE_SHARE;
-    const count=nest?2+Math.floor(hash2(sx,sy,this.seed+3607)*3):1;
-    const x0=sx*size,y0=sy*size;
-    let anchor=null;
-    // Find one stable walkable anchor anywhere in the sector. A handful of
-    // deterministic probes is enough for broad caverns without doing a full scan.
-    for(let i=0;i<28;i++){
-      const tx=x0+1+Math.floor(hash2(sx*37+i,sy*19-i,this.seed+3613)*(size-2));
-      const ty=y0+1+Math.floor(hash2(sx*23-i,sy*41+i,this.seed+3617)*(size-2));
-      if(this.ordinaryEcologySpawnTile(tx,ty)){anchor={tx,ty};break;}
+  ecologySpawnChance(profile,depth){
+    const d=Math.max(0,Number(depth)||0),bands=Array.isArray(profile?.ecology)?profile.ecology:[];
+    for(const band of bands){
+      const min=Math.max(0,Number(band?.min)||0),max=band?.max==null?Infinity:Number(band.max);
+      if(d>=min&&d<max){
+        // Creature frequency is now scaled separately from which creatures exist.
+        // Doubling this multiplier increases overall ecology pressure without
+        // forcing us to rebalance every individual authored profile by hand.
+        return clamp((Number(band?.chance)||0)*ECOLOGY_SPAWN_RATE_MULTIPLIER,0,.98);
+      }
     }
-    if(!anchor)return[];
-    const out=[anchor];
-    if(!nest)return out;
+    return 0;
+  }
 
-    // A nest is a genuine local group: additional bodies stay near the anchor
-    // instead of being independent random points scattered across the sector.
-    for(let i=1;i<count;i++){
+  ecologyProfilesAtDepth(profiles,depth){
+    const d=Math.max(0,Number(depth)||0);
+    return (profiles||[]).filter(f=>d>=Number(f.unlock||0)&&(f.maxDepth==null||d<Number(f.maxDepth))&&this.ecologySpawnChance(f,d)>0);
+  }
+
+  ordinaryEcologySectorSpawns(sx,sy,profiles){
+    const size=ORDINARY_ECOLOGY_SECTOR_TILES,x0=sx*size,y0=sy*size;
+    const depth=depthFromY((y0+size*.5)*TILE),eligible=this.ecologyProfilesAtDepth(profiles,depth),out=[];
+    if(!eligible.length)return out;
+
+    // Each profile gets a deterministic roll keyed by its own id. Crucially, the
+    // roll does not use array position or pool size: adding another monster later
+    // cannot change whether an existing monster passed its spawn roll.
+    for(const foe of eligible){
+      const creatureSeed=stableCreatureSeed(foe.id),chance=this.ecologySpawnChance(foe,depth);
+      const roll=hash2(sx+(creatureSeed%1009),sy-(creatureSeed%1013),this.seed+3701+(creatureSeed%1000003));
+      if(roll>=chance)continue;
+
       let placed=null;
-      for(let attempt=0;attempt<24;attempt++){
-        const angle=hash2(sx*71+i*13,sy*67+attempt,this.seed+3623)*Math.PI*2;
-        const radius=2+Math.floor(hash2(sx*29+attempt,sy*31+i,this.seed+3631)*6);
-        const tx=anchor.tx+Math.round(Math.cos(angle)*radius),ty=anchor.ty+Math.round(Math.sin(angle)*radius);
-        if(tx<=x0||tx>=x0+size-1||ty<=y0||ty>=y0+size-1)continue;
-        if(out.some(p=>Math.hypot(p.tx-tx,p.ty-ty)<2.4))continue;
-        if(this.ordinaryEcologySpawnTile(tx,ty)){placed={tx,ty};break;}
+      // Position selection is also keyed to this creature, so its home does not
+      // slide around merely because another profile is added to the catalogue.
+      for(let attempt=0;attempt<36;attempt++){
+        const tx=x0+1+Math.floor(hash2(sx*37+attempt+(creatureSeed%97),sy*19-attempt,this.seed+3719+(creatureSeed%7919))*(size-2));
+        const ty=y0+1+Math.floor(hash2(sx*23-attempt,sy*41+attempt+(creatureSeed%89),this.seed+3733+(creatureSeed%7877))*(size-2));
+        if(!this.ordinaryEcologySpawnTile(tx,ty))continue;
+        // Only reject an exact occupied tile. Nearby monsters are allowed: their
+        // independent successful rolls are real ecology, not a shared spawn pie.
+        if(out.some(sp=>sp.tx===tx&&sp.ty===ty))continue;
+        placed={tx,ty,foe};break;
       }
       if(placed)out.push(placed);
     }
@@ -2051,20 +2191,19 @@ export class World{
     const profiles=this.getProfiles();
     if(!profiles.length)return candidates;
     for(let sy=sy0;sy<=sy1;sy++)for(let sx=sx0;sx<=sx1;sx++){
-      for(const sp of this.ordinaryEcologySectorSpawns(sx,sy)){
+      for(const sp of this.ordinaryEcologySectorSpawns(sx,sy,profiles)){
         if(Math.abs(sp.tx-ptx)>rx+3||Math.abs(sp.ty-pty)>ry+3)continue;
-        const id=this.entityId('foe',sp.tx,sp.ty);
+        // Sector + profile id gives each species its own persistent population
+        // identity. A later species addition cannot rename/replace this creature.
+        const id=`ecofoe:${sx}:${sy}:${sp.foe.id}`;
         if(this.defeated.has(id)||id===this.combatEntityId)continue;
-        const depth=depthFromY(sp.ty*TILE),eligible=profiles.filter(f=>depth>=Number(f.unlock||0));
-        const pool=eligible.length?eligible:profiles,foe=pool[Math.floor(hash2(sp.tx,sp.ty,this.seed+990)*pool.length)];
-        if(!foe)continue;
-        const e=this.getRoamer(id,sp.tx,sp.ty,foe);
+        const e=this.getRoamer(id,sp.tx,sp.ty,sp.foe);
         const dx=e.x-this.player.x,dy=e.y-this.player.y;
         candidates.push({e,dist2:dx*dx+dy*dy});
       }
     }
-    // Hard local cap: random geography can no longer create an accidental wall
-    // of ordinary hostiles. Side-passage ecology and authored bosses are separate.
+    // The probabilities are independent; this cap is only a safety valve for the
+    // number of simultaneous nearby actors, not a weighting mechanism.
     candidates.sort((a,b)=>a.dist2-b.dist2||String(a.e.id).localeCompare(String(b.e.id)));
     return candidates.slice(0,ORDINARY_LOCAL_ACTIVE_CAP).map(v=>v.e);
   }
@@ -2100,7 +2239,7 @@ export class World{
         const rangeAllowanceTiles=clamp(Math.max(0,(Number(this.combatPlayerRange)||10)-10)/TILE*1.15,0,10),leash=(12+rangeAllowanceTiles)*TILE;
         if(!e.combatEvading&&Math.hypot(this.player.x-homeX,this.player.y-homeY)>leash){e.combatEvading=true;e.hostile=false;e.combatTelegraph='';}
         if(e.combatEvading){
-          const dx=homeX-e.x,dy=homeY-e.y,len=Math.hypot(dx,dy)||1,step=Math.min(len,150*dt);if(step>0)this.moveWorldActor(e,dx/len*step,dy/len*step,10);
+          const dx=homeX-e.x,dy=homeY-e.y,len=Math.hypot(dx,dy)||1,step=Math.min(len,150*dt);if(Math.abs(dx)>.1)e.facing=dx<0?'left':'right';if(step>0)this.moveWorldActor(e,dx/len*step,dy/len*step,10);
           if(len<8){e.x=homeX;e.y=homeY;e.targetX=homeX;e.targetY=homeY;e.combatEvading=false;e.hostile=false;e.combatTelegraph='';if(Number.isFinite(Number(e.combatHpMax)))e.combatHp=e.combatHpMax;if(e.combatLegacyState&&Number.isFinite(Number(e.combatLegacyState.hpMax)))e.combatLegacyState.hp=e.combatLegacyState.hpMax;}
           continue;
         }
@@ -2109,15 +2248,16 @@ export class World{
         // the player and the dodge telegraph is functionally dishonest.
         if(e.combatTelegraph==='HEAVY')continue;
         const gap=this.combatSurfaceGap(e),dx=this.player.x-e.x,dy=this.player.y-e.y,len=Math.hypot(dx,dy)||1,desired=2;
+        if(Math.abs(dx)>.1)e.facing=dx<0?'left':'right';
         if(gap>desired){const step=Math.min(Math.max(0,gap-desired),Math.max(48,Number(e.speed)||80)*dt);if(step>0)this.moveWorldActor(e,dx/len*step,dy/len*step,10);}
         continue;
       }
       e.roamTimer-=dt;let dx=e.targetX-e.x,dy=e.targetY-e.y,dist=Math.hypot(dx,dy);
       if(e.roamTimer<=0||dist<2){this.pickRoamTarget(e);dx=e.targetX-e.x;dy=e.targetY-e.y;dist=Math.hypot(dx,dy);}
       if(dist>1){
-        const step=Math.min(dist,e.speed*dt),nx=e.x+dx/dist*step,ny=e.y+dy/dist*step,ntx=Math.floor(nx/TILE),nty=Math.floor(ny/TILE),sidePlan=e.sidePlanId?this.sidePlanById(e.sidePlanId):null;
+        const step=Math.min(dist,e.speed*dt),nx=e.x+dx/dist*step,ny=e.y+dy/dist*step,ntx=Math.floor(nx/TILE),nty=Math.floor(ny/TILE),sidePlan=e.sidePlanId?this.sidePlanById(e.sidePlanId):null;if(Math.abs(dx)>.1)e.facing=dx<0?'left':'right';
         const legal=sidePlan?(!this.collides(nx,ny,7)&&this.sidePlanCarvesFloor(sidePlan,ntx,nty)&&!this.hollowSafeZone(ntx,nty)&&!this.townEnemyExclusionAtTile(ntx,nty)&&!this.bossExclusionAtTile(ntx,nty)):(!this.collides(nx,ny,7)&&this.isSpawnAccessible(ntx,nty)&&!this.hollowSafeZone(ntx,nty)&&!this.townEnemyExclusionAtTile(ntx,nty)&&!this.bossExclusionAtTile(ntx,nty)&&!this.sideCarvesFloor(ntx,nty));
-        if(legal){e.x=nx;e.y=ny;}else this.pickRoamTarget(e);
+        if(legal&&!this.worldActorCollidesOther(e,nx,ny,7)){e.x=nx;e.y=ny;}else this.pickRoamTarget(e);
       }
     }
   }
@@ -2162,17 +2302,26 @@ export class World{
     const out=[],seen=new Set(),plans=[];
     if(this.activeSidePlan){plans.push(this.activeSidePlan);seen.add(this.activeSidePlan.id);}
     for(const p of this.persistentSidePlans)if(p&&!seen.has(p.id)){seen.add(p.id);plans.push(p);}
-    const goblins=this.getProfiles().filter(f=>/goblin/i.test(String(f?.name||'')));
-    if(!goblins.length)return out;
+    const profiles=this.getProfiles();
+    if(!profiles.length)return out;
     for(const plan of plans){
       if(!plan||Number(plan.depth||0)<this.sideOrganicStartDepth)continue;
-      for(const sp of this.sideEcologySpawnPoints(plan)){
+      const points=this.sideEcologySpawnPoints(plan);
+      if(!points.length)continue;
+      const d=Math.max(0,Number(plan.depth)||0),eligible=this.ecologyProfilesAtDepth(profiles,d),usedPoints=new Set();
+      for(const foe of eligible){
+        const creatureSeed=stableCreatureSeed(foe.id),chance=this.ecologySpawnChance(foe,d);
+        const roll=hash2((Number(plan.shapeSeed)||plan.mouthTx)+(creatureSeed%997),plan.mouthTy-(creatureSeed%991),this.seed+3761+(creatureSeed%100003));
+        if(roll>=chance)continue;
+        const startIndex=Math.floor(hash2(creatureSeed%10007,Number(plan.shapeSeed)||0,this.seed+3767)*points.length);
+        let pointIndex=-1;
+        for(let step=0;step<points.length;step++){const idx=(startIndex+step)%points.length;if(!usedPoints.has(idx)){pointIndex=idx;break;}}
+        if(pointIndex<0)continue;
+        usedPoints.add(pointIndex);
+        const sp=points[pointIndex];
         if(Math.abs(sp.tx-ptx)>rx+5||Math.abs(sp.ty-pty)>ry+5)continue;
-        const id=`sidefoe:${plan.id}:${sp.index}`;
+        const id=`sidefoe:${plan.id}:${foe.id}`;
         if(this.defeated.has(id)||id===this.combatEntityId)continue;
-        const d=Math.max(0,depthFromY(sp.ty*TILE)),eligible=goblins.filter(f=>d>=Number(f.unlock||0));
-        const pool=eligible.length?eligible:goblins,foe=pool[Math.floor(hash2(sp.tx,sp.ty,this.seed+3563)*pool.length)];
-        if(!foe)continue;
         const e=this.getRoamer(id,sp.tx,sp.ty,foe);e.sidePlanId=String(plan.id);out.push(e);
       }
     }
@@ -2345,12 +2494,17 @@ export class World{
     const homeX=Number.isFinite(Number(entity.homeX))?Number(entity.homeX):(Number.isFinite(Number(entity.spawnX))?Number(entity.spawnX):Number(entity.x)||0),homeY=Number.isFinite(Number(entity.homeY))?Number(entity.homeY):(Number.isFinite(Number(entity.spawnY))?Number(entity.spawnY):Number(entity.y)||0);
     this.combatFoe={...entity,x:entity.x,y:entity.y,combatHomeX:homeX,combatHomeY:homeY,combatHp:Number.isFinite(Number(entity.combatHp))?Number(entity.combatHp):null,combatHpMax:Number.isFinite(Number(entity.combatHpMax))?Number(entity.combatHpMax):null,combatTelegraph:'',combatEvading:false,hostile:!!(hostile||entity.hostile),renderOffsetX:0,renderOffsetY:0};
     this.autoApproach=!!autoApproach;
+    this.combatPlayerAttacking=false;
   }
   stashCombatTarget(legacyState=null){
     const f=this.combatFoe,id=this.combatEntityId;if(!f||!id){this.setCombat(false);return null;}
     const source=this.roamers.get(id)||this.bossActors.get(id);
-    if(source){source.x=f.x;source.y=f.y;source.hostile=!!f.hostile;source.combatHp=Number.isFinite(Number(f.combatHp))?Number(f.combatHp):source.combatHp;source.combatHpMax=Number.isFinite(Number(f.combatHpMax))?Number(f.combatHpMax):source.combatHpMax;source.combatLegacyState=legacyState||source.combatLegacyState||null;source.combatTelegraph='';source.combatEvading=false;}
-    this.combat=false;this.combatFoe=null;this.combatEntityId=null;this.autoApproach=false;this.playerReachGuideVisible=false;return source||null;
+    if(source){
+      const evading=!!legacyState?.evading;
+      source.x=f.x;source.y=f.y;source.hostile=evading?false:!!f.hostile;source.combatHp=Number.isFinite(Number(f.combatHp))?Number(f.combatHp):source.combatHp;source.combatHpMax=Number.isFinite(Number(f.combatHpMax))?Number(f.combatHpMax):source.combatHpMax;source.combatLegacyState=legacyState||source.combatLegacyState||null;source.combatTelegraph='';source.combatEvading=evading;
+      if(evading){source.targetX=Number(source.homeX)||source.x;source.targetY=Number(source.homeY)||source.y;if('aggro' in source)source.aggro=true;}
+    }
+    this.combat=false;this.combatFoe=null;this.combatEntityId=null;this.combatPlayerAttacking=false;this.autoApproach=false;this.playerReachGuideVisible=false;return source||null;
   }
 
   // Retained as a no-op compatibility hook for older bridge code. Physical
@@ -2381,19 +2535,22 @@ export class World{
       roamer.x=Number(roamer.homeX)||((Number(roamer.homeTx)||0)+.5)*TILE;
       roamer.y=Number(roamer.homeY)||((Number(roamer.homeTy)||0)+.5)*TILE;
       roamer.targetX=roamer.x;roamer.targetY=roamer.y;roamer.pause=0;
+      roamer.combatEvading=false;roamer.hostile=false;roamer.combatTelegraph='';roamer.combatLegacyState=null;
+      if(Number.isFinite(Number(roamer.combatHpMax)))roamer.combatHp=roamer.combatHpMax;
       return;
     }
     const actor=this.bossActors.get(id);
-    if(actor){actor.x=Number(actor.spawnX)||actor.x;actor.y=Number(actor.spawnY)||actor.y;actor.aggro=false;actor.tx=Math.floor(actor.x/TILE);actor.ty=Math.floor(actor.y/TILE);}
+    if(actor){actor.x=Number(actor.spawnX)||actor.x;actor.y=Number(actor.spawnY)||actor.y;actor.aggro=false;actor.hostile=false;actor.combatEvading=false;actor.combatTelegraph='';actor.combatLegacyState=null;if(Number.isFinite(Number(actor.combatHpMax)))actor.combatHp=actor.combatHpMax;actor.tx=Math.floor(actor.x/TILE);actor.ty=Math.floor(actor.y/TILE);}
   }
 
   endCombat({defeated=false}={}){
     if(defeated&&this.combatEntityId){this.defeated.add(this.combatEntityId);this.roamers.delete(this.combatEntityId);}
-    this.combat=false;this.combatFoe=null;this.combatEntityId=null;this.combatPlayerRange=10;this.combatPlayerMelee=true;this.combatPlayerInRange=false;this.combatEnemyThreatRange=10;this.combatThreatActive=false;this.autoApproach=false;
+    this.combat=false;this.combatFoe=null;this.combatEntityId=null;this.combatPlayerRange=10;this.combatPlayerMelee=true;this.combatPlayerInRange=false;this.combatEnemyThreatRange=10;this.combatThreatActive=false;this.combatPlayerAttacking=false;this.autoApproach=false;
   }
 
-  bumpPlayer(text=''){if(!this.combatFoe)return;this.bump(this.player,this.combatFoe,12,.20,()=>{if(text)this.spawnText(this.combatFoe.x,this.combatFoe.y,text);});}
-  bumpFoe(text=''){if(!this.combatFoe)return;this.bump(this.combatFoe,this.player,12,.20,()=>{if(text)this.spawnText(this.player.x,this.player.y,text);});}
+  bumpPlayer(text='',amount=12,duration=.20){if(!this.combatFoe)return;this.bump(this.player,this.combatFoe,amount,duration,()=>{if(text)this.spawnText(this.combatFoe.x,this.combatFoe.y,text);});}
+  bumpFoe(text='',amount=12,duration=.20){if(!this.combatFoe)return;this.bump(this.combatFoe,this.player,amount,duration,()=>{if(text)this.spawnText(this.player.x,this.player.y,text);});}
+  bumpActor(attacker,target,amount=12,duration=.20){if(!attacker||!target)return;this.bump(attacker,target,amount,duration);}
   bump(attacker,target,amount=12,duration=.20,onImpact){
     const dx=target.x-attacker.x,dy=target.y-attacker.y,len=Math.hypot(dx,dy)||1;
     this.animations.push({who:attacker,dx:dx/len*amount,dy:dy/len*amount,t:0,duration,impact:false,onImpact});
@@ -2429,6 +2586,7 @@ export class World{
     this.drawWorldEventRoutes();
     this.drawActiveSideRoute();
     this.drawTownOverlays();
+    if(this.atmosphereEffectsEnabled&&stratumIndex(depthFromY(this.player.y))===0)this.drawForestAtmosphere();
     this.drawCombatRangeGuide();
     // Depth-sort world actors against the delver. This matters for the enlarged
     // 250-fathom miniboss: whichever sprite is physically lower on screen should
@@ -2447,8 +2605,322 @@ export class World{
     this.drawDepthDirection();
   }
 
+  drawForestTile(tx,ty,s,wall,n){
+    const c=this.ctx,x=Math.floor(s.x),y=Math.floor(s.y);
+    if(wall){
+      // Forest Plains collision is still real world geometry, but its solid mass
+      // reads as roots, trunks, damp growth and buried stone rather than open-air forest.
+      const grove=hash2(Math.floor(tx/6),Math.floor(ty/6),this.seed+8101),stone=hash2(tx*5,ty*7,this.seed+8129);
+      c.fillStyle=grove>.54?'#0f170d':'#10180e';c.fillRect(x,y,TILE+1,TILE+1);
+      c.fillStyle=n>.50?'#162111':'#182413';c.fillRect(x+2,y+2,TILE-4,TILE-3);
+      if(grove>.74){
+        c.fillStyle='#2f291b';c.fillRect(x+7,y-1,10,TILE+2);c.fillStyle='#483826';c.fillRect(x+9,y-1,3,TILE+2);
+        c.fillStyle='#253119';c.fillRect(x+2,y+17,20,5);c.fillRect(x+4,y+13,5,10);c.fillRect(x+15,y+12,5,11);
+      }else if(n>.76){
+        c.fillStyle='#27331a';c.fillRect(x+4,y+15,16,4);c.fillRect(x+7,y+10,4,10);
+      }
+      if(stone>.82){
+        c.fillStyle='#425047';c.fillRect(x+3,y+6,4,9);c.fillRect(x+5,y+4,7,3);c.fillStyle='#697464';c.fillRect(x+6,y+5,3,1);
+      }else if(stone<.10){
+        c.fillStyle='#51604e';c.fillRect(x+13,y+8,6,5);c.fillStyle='#364034';c.fillRect(x+12,y+12,8,3);
+      }
+      const floorBelow=!this.isWall(tx,ty+1),floorAbove=!this.isWall(tx,ty-1),floorLeft=!this.isWall(tx-1,ty),floorRight=!this.isWall(tx+1,ty);
+      c.fillStyle='rgba(93,108,58,.26)';
+      if(floorBelow)c.fillRect(x,y+TILE-3,TILE,3);if(floorAbove)c.fillRect(x,y,TILE,3);if(floorLeft)c.fillRect(x,y,3,TILE);if(floorRight)c.fillRect(x+TILE-3,y,3,TILE);
+      c.fillStyle='rgba(21,27,15,.28)';
+      if(floorAbove)c.fillRect(x,y,TILE,6);
+    }else{
+      const path=Math.abs(tx-this.corridorCenter(ty))<=3,fleck=hash2(tx*3,ty*5,this.seed+8117),damp=hash2(tx*7,ty*11,this.seed+8161);
+      c.fillStyle=path?'#262518':(n>.55?'#1a2515':'#1c2816');c.fillRect(x,y,TILE+1,TILE+1);
+      if(path){c.fillStyle='rgba(95,76,44,.23)';c.fillRect(x,y+9,TILE,7);c.fillStyle='rgba(58,52,31,.18)';c.fillRect(x,y+5,TILE,2);}
+      if(fleck>.48){c.fillStyle='#314023';c.fillRect(x+4,y+5,2,4);c.fillRect(x+16,y+14,3,2);}
+      if(fleck>.79){c.fillStyle='#535a37';c.fillRect(x+9,y+17,2,2);c.fillRect(x+12,y+6,1,3);}
+      if(fleck<.05){c.fillStyle='#566250';c.fillRect(x+6,y+11,11,3);c.fillStyle='#6f7666';c.fillRect(x+9,y+7,3,7);} // buried stone/ruin rib
+      if(fleck>.95){c.fillStyle='#a57939';c.fillRect(x+3,y+18,2,2);c.fillRect(x+19,y+8,2,2);} // warm spores / fireflies
+      if(damp>.72){c.fillStyle='rgba(37,55,32,.28)';c.fillRect(x+1,y+15,7,4);c.fillRect(x+13,y+3,6,3);} // damp moss bands
+      if(damp<.08){c.fillStyle='#7d8667';c.fillRect(x+10,y+13,1,3);c.fillRect(x+12,y+14,1,2);c.fillStyle='#d9caa1';c.fillRect(x+9,y+12,1,1);c.fillRect(x+13,y+13,1,1);} // pale fungi
+    }
+  }
+
+  drawForestAtmosphere(){
+    const c=this.ctx,w=this.logicalViewW(),h=this.logicalViewH();
+    c.save();
+
+    // Irregular overhead ceiling mass. This remains the main cue that the Forest
+    // Plains sit inside a cavern rather than beneath open sky.
+    const segW=Math.ceil(w/7),leftWorld=Math.floor((this.camera.x-w/2)/TILE),topWorld=Math.floor((this.camera.y-h/2)/TILE);
+    for(let i=-1;i<=7;i++){
+      const seedX=leftWorld+i*5,cap=28+Math.floor(hash2(seedX,topWorld,this.seed+8201)*32),width=segW+18+Math.floor(hash2(seedX,topWorld,this.seed+8207)*16),x=i*segW-9;
+      c.fillStyle='rgba(8,12,7,.28)';c.fillRect(x,0,width,cap);
+      c.fillStyle='rgba(18,24,13,.24)';
+      for(let j=0;j<3;j++){
+        const rx=x+4+Math.floor(hash2(seedX,j,this.seed+8213)*(Math.max(12,width-12))),len=8+Math.floor(hash2(seedX,j,this.seed+8221)*22),rw=1+Math.floor(hash2(seedX,j,this.seed+8229)*2);
+        c.fillRect(rx,cap-2,rw,len);
+      }
+    }
+
+    // Side-wall pressure: blocky cavern edges pushing inward from both sides.
+    for(let i=0;i<6;i++){
+      const y=12+i*Math.floor(h/7),lw=14+Math.floor(hash2(leftWorld,i,this.seed+8249)*22),rw=14+Math.floor(hash2(leftWorld,i,this.seed+8261)*22),hh=30+Math.floor(hash2(leftWorld,i,this.seed+8273)*34);
+      c.fillStyle='rgba(9,12,8,.07)';c.fillRect(0,y,lw,hh);c.fillRect(w-rw,y+4,rw,Math.max(14,hh-6));
+      c.fillStyle='rgba(20,26,15,.045)';c.fillRect(lw-4,y+3,4,Math.max(10,hh-10));c.fillRect(w-rw,y+8,4,Math.max(10,hh-14));
+    }
+
+    // Bottom-edge intrusion keeps the space feeling bounded below without choking
+    // the player area. It should be present, but weaker than the ceiling.
+    const bottomBandH=20+Math.floor(hash2(leftWorld,topWorld,this.seed+8331)*10);
+    c.fillStyle='rgba(9,12,8,.055)';
+    for(let i=-1;i<=7;i++){
+      const seedX=leftWorld+i*7,bh=bottomBandH+Math.floor(hash2(seedX,topWorld,this.seed+8339)*18),bw=segW+12+Math.floor(hash2(seedX,topWorld,this.seed+8347)*20),x=i*segW-6;
+      c.fillRect(x,h-bh,bw,bh);
+      if(hash2(seedX,topWorld,this.seed+8353)>.38){
+        c.fillStyle='rgba(18,24,13,.04)';
+        c.fillRect(x+6,h-bh-8,4,8+Math.floor(hash2(seedX,3,this.seed+8361)*9));
+        c.fillRect(x+bw-10,h-bh-5,3,6+Math.floor(hash2(seedX,5,this.seed+8369)*7));
+        c.fillStyle='rgba(9,12,8,.15)';
+      }
+    }
+
+    // Root/stone silhouettes near the upper edges.
+    c.fillStyle='rgba(31,41,23,.22)';
+    for(let i=0;i<9;i++){
+      const px=10+Math.floor(hash2(leftWorld,i,this.seed+8291)*(w-20)),py=4+Math.floor(hash2(topWorld,i,this.seed+8299)*26),pw=8+Math.floor(hash2(leftWorld,i,this.seed+8303)*12),ph=5+Math.floor(hash2(leftWorld,i,this.seed+8311)*10);
+      c.fillRect(px,py,pw,ph);c.fillRect(px+Math.floor(pw*.35),py+ph,2,6+Math.floor(hash2(i,leftWorld,this.seed+8317)*10));
+    }
+
+    // Side and bottom root/stone silhouettes so the enclosure reads from every edge.
+    c.fillStyle='rgba(25,33,18,.17)';
+    for(let i=0;i<10;i++){
+      const py=14+Math.floor(hash2(topWorld,i,this.seed+8377)*(h-44)),ph=8+Math.floor(hash2(leftWorld,i,this.seed+8387)*16),pw=4+Math.floor(hash2(leftWorld,i,this.seed+8393)*7);
+      if(i<5)c.fillRect(0,py,pw,ph); else c.fillRect(w-pw,py,pw,ph);
+      const bx=8+Math.floor(hash2(leftWorld,i,this.seed+8401)*(w-16)),bw=6+Math.floor(hash2(topWorld,i,this.seed+8407)*14),bh=4+Math.floor(hash2(leftWorld,i,this.seed+8413)*8);
+      c.fillRect(bx,h-bh-2,bw,bh);
+    }
+
+    // Broad edge-darkening keeps distant forest pockets feeling enclosed and subterranean.
+    let grad=c.createRadialGradient(w/2,h*.52,Math.min(w,h)*.15,w/2,h*.52,Math.max(w,h)*.80);
+    grad.addColorStop(0,'rgba(14,18,10,0)');
+    grad.addColorStop(.66,'rgba(10,13,8,.09)');
+    grad.addColorStop(1,'rgba(5,7,5,.28)');
+    c.fillStyle=grad;c.fillRect(0,0,w,h);
+
+    // Directional vignette: strongest on top, medium on the sides, lightest on the bottom.
+    grad=c.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,'rgba(6,8,6,.19)');
+    grad.addColorStop(.18,'rgba(6,8,6,.11)');
+    grad.addColorStop(.55,'rgba(6,8,6,0)');
+    grad.addColorStop(1,'rgba(6,8,6,.07)');
+    c.fillStyle=grad;c.fillRect(0,0,w,h);
+    grad=c.createLinearGradient(0,0,w,0);
+    grad.addColorStop(0,'rgba(6,8,6,.15)');
+    grad.addColorStop(.12,'rgba(6,8,6,.08)');
+    grad.addColorStop(.30,'rgba(6,8,6,0)');
+    grad.addColorStop(.70,'rgba(6,8,6,0)');
+    grad.addColorStop(.88,'rgba(6,8,6,.08)');
+    grad.addColorStop(1,'rgba(6,8,6,.15)');
+    c.fillStyle=grad;c.fillRect(0,0,w,h);
+
+    // A faint misty screen softens the openness without making the biome too dark.
+    c.globalCompositeOperation='screen';
+    grad=c.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,'rgba(170,182,150,.018)');
+    grad.addColorStop(.45,'rgba(130,144,116,.010)');
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=grad;c.fillRect(0,0,w,h*.72);
+    c.restore();
+  }
+
+
+  forestForegroundToScreen(x,y,parallax=1.14){
+    // Proper near-plane parallax: scale the object's camera-relative distance.
+    // The old formula scaled the absolute camera coordinate, which could push
+    // foreground pieces out of view as depth increased.
+    return{
+      x:(x-this.camera.x)*parallax+this.logicalViewW()/2,
+      y:(y-this.camera.y)*parallax+this.logicalViewH()/2
+    };
+  }
+
+  drawForegroundStalactite(x,y,len,baseW,alpha=.28){
+    const c=this.ctx,segments=Math.max(5,Math.ceil(len/8));
+    c.save();
+    c.globalAlpha=alpha;
+    c.fillStyle='#070a07';
+    for(let i=0;i<segments;i++){
+      const t=i/segments,segTop=Math.round(y+t*len),segH=Math.max(3,Math.ceil(len/segments));
+      const wobble=(i%3===1?1:(i%4===2?-1:0)),segW=Math.max(2,Math.round(baseW*(1-t*.84)));
+      c.fillRect(Math.round(x-segW/2+wobble),segTop,segW,segH);
+    }
+    // A faint ridge prevents the silhouette becoming an unreadable flat black bar.
+    c.globalAlpha=alpha*.36;
+    c.fillStyle='#35402b';
+    c.fillRect(Math.round(x-baseW*.22),Math.round(y+3),Math.max(1,Math.round(baseW*.16)),Math.max(5,Math.round(len*.34)));
+    c.restore();
+  }
+
+  drawForestForeground(){
+    const c=this.ctx,w=this.logicalViewW(),h=this.logicalViewH(),sector=TILE*9;
+    const left=this.camera.x-w/2,top=this.camera.y-h/2;
+    const sx0=Math.floor(left/sector)-2,sx1=Math.ceil((left+w)/sector)+2;
+    const sy0=Math.floor(top/sector)-2,sy1=Math.ceil((top+h)/sector)+2;
+
+    c.save();
+    c.imageSmoothingEnabled=false;
+
+    // TOP FOREGROUND — large near-plane stalactites. These are genuinely tied to
+    // world coordinates and use stronger near-plane parallax, so they visibly pass
+    // by as the delver moves rather than behaving like a static vignette.
+    for(let sy=sy0;sy<=sy1;sy++)for(let sx=sx0;sx<=sx1;sx++){
+      const roll=hash2(sx,sy,this.seed+8501);
+      if(roll<.34)continue;
+
+      const wx=(sx+.08+hash2(sx,sy,this.seed+8513)*.84)*sector;
+      const wy=(sy+.02+hash2(sx,sy,this.seed+8521)*.18)*sector;
+      const s=this.forestForegroundToScreen(wx,wy,1.18);
+      const len=40+Math.floor(hash2(sx,sy,this.seed+8527)*64);
+      const baseW=11+Math.floor(hash2(sx,sy,this.seed+8531)*15);
+
+      // Only stalactites whose attachment point is at/near the visible ceiling are
+      // drawn. This prevents "floating" spikes in the middle of the forest.
+      if(s.x<-baseW-18||s.x>w+baseW+18||s.y<-70||s.y>86)continue;
+
+      const edgeBias=Math.min(1,Math.abs(s.x-w/2)/(w*.5));
+      const alpha=.22+.10*edgeBias;
+      this.drawForegroundStalactite(s.x,s.y,len,baseW,alpha);
+
+      // Short ceiling shelf at the attachment point helps them read as hanging.
+      c.fillStyle=`rgba(7,10,7,${Math.min(.28,alpha*.82)})`;
+      c.fillRect(Math.round(s.x-baseW*.78),Math.round(s.y-5),Math.round(baseW*1.56),7);
+    }
+
+    // SIDE FOREGROUND — moving blocky cavern pressure driven by world-Y bands.
+    // These replace the "stuck to the monitor" feel of the old side blocks.
+    for(let sy=sy0;sy<=sy1;sy++){
+      const bandY=(sy+.18+hash2(sy,41,this.seed+8621)*.64)*sector;
+      const s=this.forestForegroundToScreen(this.camera.x,bandY,1.13);
+      const hh=42+Math.floor(hash2(sy,43,this.seed+8629)*72);
+      if(s.y+hh<-30||s.y>h+30)continue;
+
+      const lw=14+Math.floor(hash2(sy,47,this.seed+8633)*34);
+      const rw=14+Math.floor(hash2(sy,53,this.seed+8641)*34);
+      const notchL=5+Math.floor(hash2(sy,59,this.seed+8647)*14);
+      const notchR=5+Math.floor(hash2(sy,61,this.seed+8653)*14);
+
+      c.fillStyle='rgba(6,9,6,.20)';
+      c.fillRect(0,Math.round(s.y),lw,hh);
+      c.fillRect(w-rw,Math.round(s.y+8),rw,Math.max(18,hh-12));
+
+      c.fillStyle='rgba(28,36,22,.10)';
+      c.fillRect(Math.max(0,lw-notchL),Math.round(s.y+7),notchL,Math.max(12,hh-18));
+      c.fillRect(w-rw,Math.round(s.y+15),notchR,Math.max(10,hh-24));
+    }
+
+    // BOTTOM FOREGROUND — world-anchored rock/root tips entering from below.
+    // Drawing from each moving tip down to the screen edge makes the lower mass
+    // feel like near terrain passing in front of the camera.
+    for(let sy=sy0;sy<=sy1;sy++)for(let sx=sx0;sx<=sx1;sx++){
+      if(hash2(sx,sy,this.seed+8663)<.62)continue;
+      const wx=(sx+.10+hash2(sx,sy,this.seed+8671)*.80)*sector;
+      const wy=(sy+.72+hash2(sx,sy,this.seed+8677)*.24)*sector;
+      const s=this.forestForegroundToScreen(wx,wy,1.12);
+      if(s.x<-40||s.x>w+40||s.y<h-120||s.y>h+55)continue;
+
+      const bw=14+Math.floor(hash2(sx,sy,this.seed+8681)*28);
+      const tipH=8+Math.floor(hash2(sx,sy,this.seed+8689)*22);
+      const topY=Math.round(s.y-tipH);
+
+      c.fillStyle='rgba(7,10,7,.17)';
+      c.fillRect(Math.round(s.x-bw/2),topY,bw,Math.max(4,h-topY+8));
+      c.fillStyle='rgba(30,38,23,.08)';
+      c.fillRect(Math.round(s.x-bw*.18),topY+3,Math.max(2,Math.round(bw*.18)),Math.max(5,Math.min(18,h-topY)));
+    }
+
+    c.restore();
+  }
+
+
+  drawForestRockFrame(){
+    const c=this.ctx,w=this.logicalViewW(),h=this.logicalViewH();
+    c.save();
+    c.imageSmoothingEnabled=false;
+
+    // A viewport rock frame sells the idea that the player is looking through an
+    // opening within a massive cavern. This is intentionally screen-space rather
+    // than world-space: it behaves like a near camera-edge layer and keeps the UI
+    // unobstructed because UI renders later.
+    const segTop=Math.ceil(w/9),segSide=Math.ceil(h/7),segBottom=Math.ceil(w/8);
+
+    const drawRockBlock=(x,y,bw,bh,seedA,seedB)=>{
+      c.fillStyle='#231f18';c.fillRect(Math.round(x),Math.round(y),Math.round(bw),Math.round(bh));
+      c.fillStyle='#40392c';
+      c.fillRect(Math.round(x+2),Math.round(y+2),Math.max(2,Math.round(bw*.34)),Math.max(2,Math.round(bh*.18)));
+      if(hash2(seedA,seedB,this.seed+8753)>.45)c.fillRect(Math.round(x+bw*.55),Math.round(y+bh*.18),Math.max(2,Math.round(bw*.18)),Math.max(2,Math.round(bh*.12)));
+      c.fillStyle='#605842';
+      c.fillRect(Math.round(x+1),Math.round(y+1),Math.max(1,Math.round(bw*.14)),Math.max(1,Math.round(bh*.10)));
+      if(hash2(seedA,seedB,this.seed+8761)>.58){
+        c.fillStyle='#2f4422';
+        c.fillRect(Math.round(x+bw*.08),Math.round(y+bh*.72),Math.max(2,Math.round(bw*.22)),Math.max(2,Math.round(bh*.10)));
+      }
+    };
+
+    // Top rocky lip.
+    for(let i=-1;i<=9;i++){
+      const bw=segTop+10+Math.floor(hash2(i,1,this.seed+8701)*18),bh=22+Math.floor(hash2(i,2,this.seed+8707)*22),x=i*segTop-6,y=-2;
+      drawRockBlock(x,y,bw,bh,i,10);
+      if(hash2(i,3,this.seed+8713)>.40){
+        const len=10+Math.floor(hash2(i,4,this.seed+8719)*24),sx=x+6+Math.floor(hash2(i,5,this.seed+8723)*Math.max(6,bw-12)),sw=2+Math.floor(hash2(i,6,this.seed+8729)*3);
+        c.fillStyle='#16130e';c.fillRect(Math.round(sx),Math.round(y+bh-1),sw,len);
+      }
+    }
+
+    // Left and right rocky walls.
+    for(let i=-1;i<=7;i++){
+      const by=i*segSide+4;
+      const lw=18+Math.floor(hash2(i,11,this.seed+8731)*26),lh=segSide+10+Math.floor(hash2(i,12,this.seed+8737)*14);
+      const rw=18+Math.floor(hash2(i,13,this.seed+8741)*26),rh=segSide+10+Math.floor(hash2(i,14,this.seed+8749)*14);
+      drawRockBlock(-2,by,lw,lh,i,20);
+      drawRockBlock(w-rw+2,by+2,rw,rh,i,21);
+    }
+
+    // Bottom rocky lip, lighter than the top so it does not crush the player area.
+    for(let i=-1;i<=8;i++){
+      const bw=segBottom+10+Math.floor(hash2(i,31,this.seed+8771)*18),bh=14+Math.floor(hash2(i,32,this.seed+8777)*16),x=i*segBottom-5,y=h-bh+2;
+      drawRockBlock(x,y,bw,bh,i,30);
+    }
+
+    // Inner shadow immediately under the rock edges. This is what makes the edge
+    // frame feel like solid depth rather than decorative trim.
+    let grad=c.createLinearGradient(0,0,0,66);
+    grad.addColorStop(0,'rgba(0,0,0,.22)');
+    grad.addColorStop(.28,'rgba(0,0,0,.10)');
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=grad;c.fillRect(0,0,w,66);
+
+    grad=c.createLinearGradient(0,0,48,0);
+    grad.addColorStop(0,'rgba(0,0,0,.17)');
+    grad.addColorStop(.55,'rgba(0,0,0,.07)');
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=grad;c.fillRect(0,0,48,h);
+
+    grad=c.createLinearGradient(w,0,w-48,0);
+    grad.addColorStop(0,'rgba(0,0,0,.17)');
+    grad.addColorStop(.55,'rgba(0,0,0,.07)');
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=grad;c.fillRect(w-48,0,48,h);
+
+    grad=c.createLinearGradient(0,h,0,h-34);
+    grad.addColorStop(0,'rgba(0,0,0,.11)');
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=grad;c.fillRect(0,h-34,w,34);
+
+    c.restore();
+  }
+
+
   drawTile(tx,ty){
-    const c=this.ctx,s=this.worldToScreen(tx*TILE,ty*TILE),wall=this.isWall(tx,ty),depth=depthFromY(ty*TILE),si=stratumIndex(depth)%4,n=hash2(tx,ty,this.seed+si*31);
+    const c=this.ctx,s=this.worldToScreen(tx*TILE,ty*TILE),wall=this.isWall(tx,ty),depth=depthFromY(ty*TILE),stratum=stratumIndex(depth);
+    const si=stratum===2?0:(stratum%4),n=hash2(tx,ty,this.seed+si*31);
+    if(stratum===0){this.drawForestTile(tx,ty,s,wall,hash2(tx,ty,this.seed+8009));return;}
     if(wall){
       const cols=['#10171b','#11181c','#15181b','#11161a'];
       c.fillStyle=cols[si];c.fillRect(Math.floor(s.x),Math.floor(s.y),TILE+1,TILE+1);
@@ -2571,9 +3043,15 @@ export class World{
   drawTownPlan(t){
     const c=this.ctx,center=this.worldToScreen(t.originX,t.originY);
     c.save();
-    c.globalAlpha=.16;c.fillStyle='#6d624e';c.beginPath();c.ellipse(center.x,center.y,t.layoutW*.58,t.layoutH*.56,0,0,Math.PI*2);c.fill();c.globalAlpha=1;
-    const roadTop=this.worldToScreen(t.originX-TOWN_TILE*1.35,t.deepRoadEndY),roadBottom=this.worldToScreen(t.originX+TOWN_TILE*1.35,t.entryY+TOWN_TILE*2.2);
-    c.fillStyle='rgba(85,72,52,.28)';c.fillRect(Math.round(roadTop.x),Math.round(roadTop.y),Math.round(roadBottom.x-roadTop.x),Math.round(roadBottom.y-roadTop.y));
+    c.globalAlpha=.18;c.fillStyle=t.kind==='village'?'#5e6b35':'#6d624e';c.beginPath();c.ellipse(center.x,center.y,t.layoutW*.58,t.layoutH*.56,0,0,Math.PI*2);c.fill();c.globalAlpha=1;
+    // Main street, cross-lane and central square are drawn geometry beneath the
+    // buildings. The settlement reference is used for layout language only; no
+    // settlement image is composited into the world.
+    const roadTop=this.worldToScreen(t.originX-TOWN_TILE*1.55,t.deepGateY),roadBottom=this.worldToScreen(t.originX+TOWN_TILE*1.55,t.shallowGateY);
+    c.fillStyle=t.kind==='village'?'rgba(111,92,50,.42)':'rgba(85,72,52,.34)';c.fillRect(Math.round(roadTop.x),Math.round(roadTop.y),Math.round(roadBottom.x-roadTop.x),Math.round(roadBottom.y-roadTop.y));
+    const laneL=this.worldToScreen(t.originX-t.layoutW*.34,t.originY-TOWN_TILE*.75),laneR=this.worldToScreen(t.originX+t.layoutW*.34,t.originY+TOWN_TILE*.75);
+    c.fillRect(Math.round(laneL.x),Math.round(laneL.y),Math.round(laneR.x-laneL.x),Math.round(laneR.y-laneL.y));
+    c.save();c.globalAlpha=.34;c.strokeStyle=t.kind==='village'?'#817447':'#6c604a';c.lineWidth=6;c.beginPath();c.arc(Math.round(center.x),Math.round(center.y+TOWN_TILE*.75),TOWN_TILE*2.15,0,Math.PI*2);c.stroke();c.restore();
 
     // Physical perimeter wall. The shallow and deep gate gaps are the only ways
     // through the settlement wall; collision uses the exact same rectangles.
@@ -2584,22 +3062,15 @@ export class World{
       if(wall.w>wall.h)c.fillRect(Math.round(p.x),Math.round(p.y),Math.round(wall.w),3);
       else c.fillRect(Math.round(p.x),Math.round(p.y),3,Math.round(wall.h));
     }
-    const shallow=this.worldToScreen(t.originX,t.shallowGateY),gate=this.worldToScreen(t.originX,t.deepGateY);
-    c.fillStyle='#394044';
-    c.fillRect(Math.round(shallow.x-TOWN_GATE_HALF_WIDTH-5),Math.round(shallow.y-9),6,19);c.fillRect(Math.round(shallow.x+TOWN_GATE_HALF_WIDTH-1),Math.round(shallow.y-9),6,19);
-    c.fillRect(Math.round(gate.x-TOWN_GATE_HALF_WIDTH-5),Math.round(gate.y-9),6,19);c.fillRect(Math.round(gate.x+TOWN_GATE_HALF_WIDTH-1),Math.round(gate.y-9),6,19);
-    const lowerClosed=!t.departed||this.sealedTownGates.has(t.id);
-    if(lowerClosed){
-      c.fillStyle=t.departed?'#62513f':'#8d7149';c.fillRect(Math.round(gate.x-TOWN_GATE_HALF_WIDTH),Math.round(gate.y-4),Math.round(TOWN_GATE_HALF_WIDTH*2),8);
-      c.fillStyle='#b68d4f';for(let gx=gate.x-TOWN_GATE_HALF_WIDTH+6;gx<gate.x+TOWN_GATE_HALF_WIDTH-3;gx+=10)c.fillRect(Math.round(gx),Math.round(gate.y-10),3,20);
-    }
+    // The wall intentionally leaves open road mouths on both sides. No gate,
+    // bars, posts or one-way lock are drawn here anymore.
 
     for(const building of t.buildings)this.drawTownBuilding(building,t);
     for(const stall of t.stalls){const p=this.worldToScreen(stall.x-stall.w/2,stall.y-stall.h/2);c.fillStyle='#4a3828';c.fillRect(Math.round(p.x),Math.round(p.y),stall.w,stall.h);c.fillStyle='#8b7047';c.fillRect(Math.round(p.x),Math.round(p.y),stall.w,4);}
     const lamps=[[t.originX-t.layoutW*.24,t.originY+t.layoutH*.20],[t.originX+t.layoutW*.25,t.originY+t.layoutH*.22],[t.originX-t.layoutW*.19,t.originY-t.layoutH*.27],[t.originX+t.layoutW*.20,t.originY-t.layoutH*.24]];
     for(const [x,y] of lamps){const p=this.worldToScreen(x,y);c.fillStyle='#6e5030';c.fillRect(Math.round(p.x-1),Math.round(p.y-3),3,10);c.fillStyle='#e1b65d';c.fillRect(Math.round(p.x-3),Math.round(p.y-7),7,6);c.globalAlpha=.09;c.fillRect(Math.round(p.x-11),Math.round(p.y-15),23,22);c.globalAlpha=1;}
-    const folk=[[-58,38],[62,55],[-18,-45],[74,-28]];
-    for(const [ox,oy] of folk){const p=this.worldToScreen(t.originX+ox*(t.kind==='city'?1.2:1),t.originY+oy*(t.kind==='city'?1.12:1));c.fillStyle='#777060';c.fillRect(Math.round(p.x-3),Math.round(p.y-5),6,10);c.fillStyle='#a69472';c.fillRect(Math.round(p.x-2),Math.round(p.y-8),4,4);}
+    const folk=t.kind==='city'?[[-92,76],[88,82],[-38,-72],[112,-44],[-118,12],[18,92],[70,-92],[-8,-8]]:t.kind==='village'?[[-72,58],[70,62],[-30,-62],[82,-34],[-85,-18],[15,76]]:[[-58,38],[62,55],[-18,-45],[74,-28]];
+    for(const [ox,oy] of folk){const p=this.worldToScreen(t.originX+ox,t.originY+oy);c.fillStyle='#777060';c.fillRect(Math.round(p.x-3),Math.round(p.y-5),6,10);c.fillStyle='#a69472';c.fillRect(Math.round(p.x-2),Math.round(p.y-8),4,4);}
 
     // Settlement identity is presented as a screen-space arrival title by the
     // world bridge. Never paint the settlement name onto cavern terrain.
@@ -2607,27 +3078,36 @@ export class World{
   }
 
   drawTownBuilding(b,t){
-    const c=this.ctx,p=this.worldToScreen(b.x-b.w/2,b.y-b.h/2),loc=t.locations.find(l=>l.id===b.id);
-    c.fillStyle=b.id==='guild'?'#25272a':'#292821';c.fillRect(Math.round(p.x),Math.round(p.y),b.w,b.h);
-    c.fillStyle='#4c4a3d';c.fillRect(Math.round(p.x),Math.round(p.y),b.w,5);
-    c.fillStyle='#151a1b';c.fillRect(Math.round(p.x+b.w/2-8),Math.round(p.y+b.h-16),16,16);
-    c.fillStyle='#d1a354';c.fillRect(Math.round(p.x+8),Math.round(p.y+12),5,6);c.fillRect(Math.round(p.x+b.w-13),Math.round(p.y+12),5,6);
-    // Building labels are local signage, not floating map labels. Only show them
-    // when the delver is close enough to plausibly read the sign.
-    if(Math.hypot(this.player.x-b.x,this.player.y-b.y)<=TOWN_TILE*9){
-      c.save();c.textAlign='center';c.font='8px monospace';c.fillStyle='#a9a292';c.fillText((loc?.name||b.id).toUpperCase(),Math.round(p.x+b.w/2),Math.round(p.y-4));c.restore();
+    const c=this.ctx,p=this.worldToScreen(b.x-b.w/2,b.y-b.h/2),loc=t.locations.find(l=>l.id===b.id),v=Number(b.variant)||0;
+    const village=t.kind==='village';
+    c.fillStyle=b.id==='guild'?'#25272a':village?(v%2?'#302b20':'#342e21'):'#292821';c.fillRect(Math.round(p.x),Math.round(p.y),b.w,b.h);
+    // Sloped roof impression built from stepped pixels; the rectangle beneath it
+    // remains the exact collision body.
+    c.fillStyle=village?(v%3===0?'#4e4329':'#453a29'):'#4c4a3d';c.fillRect(Math.round(p.x-3),Math.round(p.y),b.w+6,6);c.fillRect(Math.round(p.x+2),Math.round(p.y-4),b.w-4,4);
+    c.fillStyle='#151a1b';c.fillRect(Math.round(p.x+b.w/2-7),Math.round(p.y+b.h-15),14,15);
+    if(!b.decorative||v%2===0){c.fillStyle=village?'#c49b51':'#d1a354';c.fillRect(Math.round(p.x+8),Math.round(p.y+12),5,6);if(b.w>70)c.fillRect(Math.round(p.x+b.w-13),Math.round(p.y+12),5,6);}
+    if(village&&b.decorative&&v%3===1){c.fillStyle='#26311e';c.fillRect(Math.round(p.x+3),Math.round(p.y+b.h-5),b.w-6,5);}
+    // Only service buildings carry readable labels. Ordinary homes stay scenery.
+    if(loc&&Math.hypot(this.player.x-b.x,this.player.y-b.y)<=TOWN_TILE*9){
+      c.save();c.textAlign='center';c.font='8px monospace';c.fillStyle='#a9a292';c.fillText(loc.name.toUpperCase(),Math.round(p.x+b.w/2),Math.round(p.y-7));c.restore();
     }
   }
 
-  drawFoeSprite(id,x,y,bob=0,visualScale=1){
+  drawFoeSprite(id,x,y,bob=0,visualScale=1,facing='right'){
     const c=this.ctx,sprite=this.getFoeSprite(id),size=FOE_SPRITE_SIZE*Math.max(.5,Number(visualScale)||1);
     c.save();c.translate(Math.round(x),Math.round(y+bob));
     c.fillStyle='rgba(0,0,0,.5)';c.fillRect(-10*visualScale,11,20*visualScale,3);
     if(sprite){
       const scale=Math.min(size/sprite.naturalWidth,size/sprite.naturalHeight),w=Math.max(1,Math.round(sprite.naturalWidth*scale)),h=Math.max(1,Math.round(sprite.naturalHeight*scale));
-      c.imageSmoothingEnabled=false;c.drawImage(sprite,Math.round(-w/2),Math.round(11-h),w,h);
+      c.imageSmoothingEnabled=false;
+      // Creature art is authored in its default right-facing orientation. Mirror
+      // the render for left-facing movement/combat so hostiles visually track the
+      // delver without requiring duplicate directional assets per creature.
+      if(facing==='left'){c.save();c.scale(-1,1);c.drawImage(sprite,Math.round(-w/2),Math.round(11-h),w,h);c.restore();}
+      else c.drawImage(sprite,Math.round(-w/2),Math.round(11-h),w,h);
     }else{
-      c.fillStyle='#6c7e55';c.fillRect(-7,-6,14,13);c.fillStyle='#879565';c.fillRect(-5,-9,10,5);c.fillStyle='#111';c.fillRect(-3,-6,2,2);c.fillRect(2,-6,2,2);c.fillStyle='#8e5b39';c.fillRect(-8,6,5,4);c.fillRect(3,6,5,4);
+      if(String(id||'').startsWith('slime')){c.fillStyle='#5b7c58';c.fillRect(-9,1,18,10);c.fillRect(-6,-3,12,6);c.fillStyle='#9fcf91';c.fillRect(-4,-1,3,2);c.fillStyle='#1b2420';c.fillRect(2,0,2,2);}
+      else{c.fillStyle='#6c7e55';c.fillRect(-7,-6,14,13);c.fillStyle='#879565';c.fillRect(-5,-9,10,5);c.fillStyle='#111';c.fillRect(-3,-6,2,2);c.fillRect(2,-6,2,2);c.fillStyle='#8e5b39';c.fillRect(-8,6,5,4);c.fillRect(3,6,5,4);}
     }
     c.restore();
   }
@@ -2683,16 +3163,20 @@ export class World{
   drawEntity(e){
     const c=this.ctx,s=this.worldToScreen(e.x,e.y);
     if(['foe','midboss','boss'].includes(e.type)&&e.combatTelegraph==='HEAVY'){const r=this.combatCenterRadiusForReach(Number(e.combatThreatRange)||14,e),pulse=.48+.15*Math.sin(this.time*10);c.save();c.globalAlpha=.08;c.fillStyle='#b64b43';c.beginPath();c.arc(Math.round(s.x),Math.round(s.y),r,0,Math.PI*2);c.fill();c.globalAlpha=pulse;c.strokeStyle='#d45a50';c.lineWidth=2;c.beginPath();c.arc(Math.round(s.x),Math.round(s.y),r,0,Math.PI*2);c.stroke();c.restore();}
-    if(e.type==='foe')this.drawFoeSprite(e.foe?.id,s.x,s.y,Math.sin(this.time*5+e.tx)*1.1);
+    if(e.type==='foe')this.drawFoeSprite(e.foe?.id,s.x,s.y,Math.sin(this.time*5+e.tx)*1.1,1,e.facing||'right');
     else if(e.type==='chest'){
       c.fillStyle='#5f3f24';c.fillRect(Math.round(s.x-8),Math.round(s.y-5),16,11);c.fillStyle='#b17d3e';c.fillRect(Math.round(s.x-8),Math.round(s.y-5),16,3);c.fillStyle='#c8a15a';c.fillRect(Math.round(s.x-1),Math.round(s.y-2),3,4);
     }else if(e.type==='glint'){
       const a=.45+.45*Math.sin(this.time*5);c.fillStyle=`rgba(225,193,123,${a})`;c.fillRect(Math.round(s.x),Math.round(s.y-4),1,9);c.fillRect(Math.round(s.x-4),Math.round(s.y),9,1);
     }else if(e.type==='hollow')this.drawHollow(s,e.kind==='stage');
     else if(e.type==='loot'){
+      const remaining=Number(e.expiresAt)-Date.now(),blink=Number.isFinite(remaining)&&remaining<=LOOT_BAG_BLINK_MS;
+      c.save();
+      if(blink)c.globalAlpha=.18+.82*(.5+.5*Math.sin(this.time*14));
       const img=this.lootBagSprite.ready?this.lootBagSprite.img:null;c.fillStyle='rgba(0,0,0,.48)';c.fillRect(Math.round(s.x-8),Math.round(s.y+6),16,3);
       if(img){const max=24,scale=Math.min(max/img.naturalWidth,max/img.naturalHeight),w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));c.imageSmoothingEnabled=false;c.drawImage(img,Math.round(s.x-w/2),Math.round(s.y+8-h),w,h);}
       else{c.fillStyle='#8f6a3b';c.fillRect(Math.round(s.x-7),Math.round(s.y-4),14,12);c.fillStyle='#caa35c';c.fillRect(Math.round(s.x-5),Math.round(s.y-7),10,4);c.fillStyle='#e1bd67';c.fillRect(Math.round(s.x-2),Math.round(s.y),4,4);}
+      c.restore();
     }else if(e.type==='settlement'){
       c.fillStyle='#453b2b';c.fillRect(Math.round(s.x-14),Math.round(s.y-9),28,18);c.fillStyle='#8f7950';c.fillRect(Math.round(s.x-16),Math.round(s.y-11),32,4);c.fillStyle='#e2b765';c.fillRect(Math.round(s.x-8),Math.round(s.y-2),4,5);c.fillRect(Math.round(s.x+5),Math.round(s.y-2),4,5);
     }else if(e.type==='signpost'){
@@ -2789,9 +3273,10 @@ export class World{
 
   drawCombatFoe(f){
     const s=this.worldToScreen(f.x+(f.renderOffsetX||0),f.y+(f.renderOffsetY||0)),bob=Math.sin(this.time*5)*.7;
-    if(f.type==='midboss')this.drawFoeSprite(f.foe?.id||f.foeId||f.event?.profileId||'cutter',s.x,s.y,bob,MID_BOSS_VISUAL_SCALE);
+    const facing=f.x>this.player.x?'left':'right';
+    if(f.type==='midboss')this.drawFoeSprite(f.foe?.id||f.foeId||f.event?.profileId||'cutter',s.x,s.y,bob,MID_BOSS_VISUAL_SCALE,facing);
     else if(f.type==='boss')this.drawBossSprite(s.x,s.y,true,bob);
-    else this.drawFoeSprite(f.foe?.id||f.id,s.x,s.y,bob);
+    else this.drawFoeSprite(f.foe?.id||f.id,s.x,s.y,bob,1,facing);
     const hpMax=Math.max(1,Number(f.combatHpMax)||0),hp=clamp(Number(f.combatHp)||0,0,hpMax);
     if(Number.isFinite(Number(f.combatHpMax))&&hpMax>0){
       const c=this.ctx,w=f.type==='boss'?38:(f.type==='midboss'?32:26),y=Math.round(s.y-(f.type==='boss'?42:(f.type==='midboss'?35:27)));
@@ -2805,10 +3290,62 @@ export class World{
 
   drawPlayer(){
     const c=this.ctx,p=this.player,s=this.worldToScreen(p.x+(p.renderOffsetX||0),p.y+(p.renderOffsetY||0)),walk=p.moving?Math.sin(this.time*12)*1.2:0;
+    const className=String(this.getPlayerClass?.()||'Votary'),sprite=this.getPlayerSprite(className);
+    let facing=p.facing==='left'?'left':'right';
+    // In combat, visual facing belongs to the target rather than movement input.
+    // This lets the player kite without visually turning their back while attacks
+    // are still being aimed at the engaged enemy.
+    if(this.combatPlayerAttacking&&this.combatFoe&&!this.combatFoe.combatEvading){
+      const dx=this.combatFoe.x-p.x;
+      if(Math.abs(dx)>.75)facing=dx<0?'left':'right';
+    }
     c.save();c.translate(Math.round(s.x),Math.round(s.y+walk));
-    c.fillStyle='rgba(0,0,0,.55)';c.fillRect(-7,8,14,3);c.fillStyle='#2f444f';c.fillRect(-6,-6,12,13);c.fillStyle='#b49f7d';c.fillRect(-4,-10,8,5);c.fillStyle='#171c20';c.fillRect(-5,-11,10,3);c.fillStyle='#d8b661';const lx=p.dir==='left'?-8:p.dir==='right'?6:4;c.fillRect(lx,-1,3,5);c.fillStyle='#825c33';c.fillRect(lx+1,4,1,4);c.restore();
+    c.fillStyle='rgba(0,0,0,.55)';c.fillRect(-7,8,14,3);
+
+    // Lantern light belongs to the delver, not the whole screen. Keep it slightly
+    // off-center toward the held lantern so the glow feels attached to the sprite.
+    // The sprite's lantern sits on the opposite side from the previous pass, so
+    // the glow anchor is intentionally mirrored here.
+    const lanternX=facing==='left'?8:-8,lanternY=3;
+    const flicker=.95+.035*Math.sin(this.time*13)+.025*Math.sin(this.time*19+1.7);
+    c.save();
+    c.globalCompositeOperation='screen';
+    let grad=c.createRadialGradient(lanternX,lanternY,0,lanternX,lanternY,19*flicker);
+    grad.addColorStop(0,'rgba(255,226,166,.42)');
+    grad.addColorStop(.24,'rgba(247,197,108,.24)');
+    grad.addColorStop(.62,'rgba(233,176,82,.10)');
+    grad.addColorStop(1,'rgba(244,189,101,0)');
+    c.fillStyle=grad;c.beginPath();c.arc(lanternX,lanternY,19*flicker,0,Math.PI*2);c.fill();
+    grad=c.createRadialGradient(lanternX,lanternY,0,lanternX,lanternY,33*flicker);
+    grad.addColorStop(0,'rgba(233,176,82,.12)');
+    grad.addColorStop(.58,'rgba(214,150,68,.055)');
+    grad.addColorStop(1,'rgba(214,150,68,0)');
+    c.fillStyle=grad;c.beginPath();c.arc(lanternX,lanternY,33*flicker,0,Math.PI*2);c.fill();
+    c.restore();
+
+    if(sprite){
+      const scale=Math.min(PLAYER_SPRITE_SIZE/sprite.naturalWidth,PLAYER_SPRITE_SIZE/sprite.naturalHeight),w=Math.max(1,Math.round(sprite.naturalWidth*scale)),h=Math.max(1,Math.round(sprite.naturalHeight*scale));
+      c.imageSmoothingEnabled=false;
+      // Player art is authored facing right. Keep the last horizontal facing while
+      // moving vertically and mirror only for leftward travel.
+      if(facing==='left'){c.save();c.scale(-1,1);c.drawImage(sprite,Math.round(-w/2),Math.round(11-h),w,h);c.restore();}
+      else c.drawImage(sprite,Math.round(-w/2),Math.round(11-h),w,h);
+      c.fillStyle='rgba(255,224,163,.88)';c.fillRect(Math.round(lanternX-1),Math.round(lanternY-2),3,3);
+      c.fillStyle='rgba(208,131,59,.92)';c.fillRect(Math.round(lanternX),Math.round(lanternY+1),1,2);
+    }else{
+      // Preserve the old delver marker as a resilient fallback if an asset is
+      // missing or still loading.
+      c.fillStyle='#2f444f';c.fillRect(-6,-6,12,13);c.fillStyle='#b49f7d';c.fillRect(-4,-10,8,5);c.fillStyle='#171c20';c.fillRect(-5,-11,10,3);c.fillStyle='#d8b661';const lx=facing==='left'?-8:6;c.fillRect(lx,-1,3,5);c.fillStyle='#825c33';c.fillRect(lx+1,4,1,4);
+    }
+    c.restore();
   }
 
-  drawParticle(p){const c=this.ctx,s=this.worldToScreen(p.x,p.y-(1-p.life/p.max)*18);c.save();c.globalAlpha=clamp(p.life/p.max,0,1);c.font='bold 10px monospace';c.textAlign='center';c.fillStyle=p.tone==='enemy'?'#d46b5f':p.tone==='status'?'#a7aa9a':'#e0bd78';c.fillText(p.text,s.x,s.y-14);c.restore();}
+  drawParticle(p){
+    const c=this.ctx,s=this.worldToScreen(p.x,p.y-(1-p.life/p.max)*18),tone=String(p.tone||'player');
+    c.save();c.globalAlpha=clamp(p.life/p.max,0,1);c.textAlign='center';
+    c.font=(tone==='playerMiss'||tone==='enemyMiss')?'bold 12px monospace':'bold 10px monospace';
+    c.fillStyle=tone==='playerHit'?'#f2f0e9':tone==='playerCrit'?'#e0bd78':tone==='playerMiss'?'#6fa7d8':tone==='enemyMiss'?'#355f8c':tone==='enemyCrit'?'#862d2a':tone==='poison'?'#69aa62':tone==='heal'?'#7fc77a':tone==='enemy'?'#d46b5f':tone==='status'?'#a7aa9a':'#e0bd78';
+    c.fillText(p.text,s.x,s.y-14);c.restore();
+  }
   drawDepthDirection(){const c=this.ctx;c.save();c.globalAlpha=.42;c.textAlign='center';c.font='9px monospace';c.fillStyle='#8b7650';c.fillText('↑ DEEPER',this.logicalViewW()/2,Math.max(116,this.logicalViewH()*.18));c.restore();}
 }

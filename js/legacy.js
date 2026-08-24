@@ -95,6 +95,8 @@ const INTENTS = {
 const FOES = [
   {
     id:"cutter", name:"goblin cutter", unlock:0, hp:32, atk:7, xp:9, danger:0, awareness:-8, speed:105,
+    defenceProfile:1.00, armorProfile:0.50, accuracyProfile:1.00,
+    ecology:[{min:150,chance:0.26}],
     intents:{quick:55, heavy:15, dodge:10, guard:10, recover:10}, recoverAt:0.35,
     weakness:{
       id:"overcommit",
@@ -103,7 +105,34 @@ const FOES = [
     }
   },
   {
+    id:"slime", name:"slime", unlock:0, maxDepth:500, hp:32, atk:5, xp:9, danger:0, awareness:-12, speed:68,
+    defenceProfile:0.70, armorProfile:0.10, accuracyProfile:0.80,
+    ecology:[{min:0,max:150,chance:0.45},{min:150,max:500,chance:0.30}],
+    intents:{quick:35, heavy:10, dodge:0, guard:15, recover:40}, recoverAt:0.45,
+    weakness:{
+      id:"soft_core",
+      txt:"Its body gives way under committed force. Heavy attacks that land deal +40% damage.",
+      eff:{heavyBonus:1.40}
+    }
+  },
+  {
+    // Second authored slime sprite. It intentionally shares the current slime
+    // mechanics while the creature is being playtested; it remains a separate
+    // profile so its spawn frequency can be tuned without changing slime 1.
+    id:"slime2", name:"slime", unlock:0, maxDepth:500, hp:32, atk:5, xp:9, danger:0, awareness:-12, speed:68,
+    defenceProfile:0.70, armorProfile:0.10, accuracyProfile:0.80,
+    ecology:[{min:0,max:150,chance:0.35},{min:150,max:500,chance:0.25}],
+    intents:{quick:35, heavy:10, dodge:0, guard:15, recover:40}, recoverAt:0.45,
+    weakness:{
+      id:"soft_core",
+      txt:"Its body gives way under committed force. Heavy attacks that land deal +40% damage.",
+      eff:{heavyBonus:1.40}
+    }
+  },
+  {
     id:"scrounger", name:"goblin scrounger", unlock:4, hp:30, atk:6, xp:10, danger:0, awareness:0, speed:95,
+    defenceProfile:0.95, armorProfile:0.30, accuracyProfile:0.95,
+    ecology:[{min:150,chance:0.22}],
     intents:{quick:35, heavy:10, dodge:30, guard:25, recover:0},
     hurtIntents:{quick:15, heavy:5, dodge:25, guard:15, recover:40}, hurtAt:0.65,
     weakness:{
@@ -113,7 +142,9 @@ const FOES = [
     }
   },
   {
-    id:"skitter", name:"goblin skitter", unlock:8, hp:27, atk:6, xp:11, danger:1, awareness:10, speed:125,
+    id:"skitter", name:"goblin skitter", unlock:8, hp:27, atk:6, xp:11, danger:0, awareness:10, speed:125,
+    defenceProfile:1.20, armorProfile:0.10, accuracyProfile:0.95,
+    ecology:[{min:150,chance:0.18}],
     intents:{quick:35, heavy:5, dodge:45, guard:5, recover:10}, recoverAt:0.30,
     weakness:{
       id:"frail_frame",
@@ -122,7 +153,9 @@ const FOES = [
     }
   },
   {
-    id:"shieldback", name:"goblin shieldback", unlock:14, hp:38, atk:6, xp:12, danger:1, awareness:-4, speed:90,
+    id:"shieldback", name:"goblin shieldback", unlock:14, hp:40, atk:5, xp:12, danger:1, awareness:-4, speed:88,
+    defenceProfile:1.15, armorProfile:0.90, accuracyProfile:0.90,
+    ecology:[{min:150,chance:0.16}],
     intents:{quick:25, heavy:10, dodge:5, guard:45, recover:15}, recoverAt:0.35,
     weakness:{
       id:"braced_wrong",
@@ -131,7 +164,9 @@ const FOES = [
     }
   },
   {
-    id:"mauler", name:"goblin mauler", unlock:22, hp:34, atk:8, xp:14, danger:1, awareness:-6, speed:82,
+    id:"mauler", name:"goblin mauler", unlock:22, hp:36, atk:8, xp:14, danger:1, awareness:-6, speed:82,
+    defenceProfile:0.95, armorProfile:0.50, accuracyProfile:1.00,
+    ecology:[{min:150,chance:0.14}],
     intents:{quick:30, heavy:50, dodge:5, guard:5, recover:10}, recoverAt:0.28,
     weakness:{
       id:"top_heavy",
@@ -141,6 +176,8 @@ const FOES = [
   },
   {
     id:"oldhand", name:"goblin oldhand", unlock:32, hp:42, atk:8, xp:16, danger:2, awareness:18, speed:100,
+    defenceProfile:1.10, armorProfile:0.65, accuracyProfile:1.10,
+    ecology:[{min:150,chance:0.10}],
     intents:{quick:30, heavy:20, dodge:20, guard:20, recover:10}, recoverAt:0.30,
     chargedIntents:{quick:20, heavy:5, dodge:50, guard:20, recover:5},
     weakness:{
@@ -161,8 +198,9 @@ const HIT_VERBS = ["Struck","Cut into","Caught","Opened up","Got through on","La
    length does not make the minute-to-minute delve sparse or punitive.
    ============================================================ */
 const STRATA_NAMED = [
-  "The Goblin Warren",
+  "The Forest Plains",
   "The Abandoned Mines",
+  "The Goblin Warren",
   "The Underbarrow Crypts",
   "The Drowned Undertemple",
   "The Wyrm's Vault"
@@ -170,12 +208,12 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.205.1 · Floating Windows & Minimap QOL";
+const BUILD_VERSION = "v0.212.2 · Unified HUD Card Styling";
 const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 5;
 const MINIMAP_SIZE_OPTIONS=["small","medium","large","extra"];
 const MINIMAP_ZOOM_OPTIONS=[0,1,2,3,4];
-const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept",worldZoom:"standard",minimapSize:"medium",minimapZoom:2});
+const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept",worldZoom:"standard",worldShadows:true,minimapSize:"medium",minimapZoom:2});
 const WINDOW_LAYOUT_KEY="lowfathom:window-layout:v1";
 const COMBAT_FONT_OPTIONS=["concept","slab"];
 const ENCOUNTER_GRACE_OPTIONS = [5,15,30];
@@ -201,20 +239,20 @@ const TRAIL_H = 154;
 const TRAIL_MARKER_Y = 77;             // visually centered while the route slopes downward
 const TRAIL_VERTICAL_ZOOM = 0.80;      // compact minimap route height
 
-/* v0.106.1 recovery/economy test spacing. Grey Lantern is Town A at 150 fathoms,
-   Lantern City is the test city at 450, and Ashwick remains the temporary Town C
-   at 550 so every authored delivery still moves strictly deeper. Ashwick continues
-   to reuse Grey Lantern art until its own settlement pass. */
+/* v0.206.0 opening-world pass. Grey Lantern is now the physical Fathom 0
+   starting village. Lantern City remains the major settlement at 450 fathoms and
+   Ashwick remains the next authored stop at 550. The old illustrated settlement
+   images are retained only for dormant legacy UI compatibility; live play uses
+   walkable Canvas geometry. */
 const TOWN_DEFS = Object.freeze([
   Object.freeze({
-    id:"grey-lantern",name:"Grey Lantern",kind:"town",depth:150,
+    id:"grey-lantern",name:"Grey Lantern",kind:"village",depth:0,
     image:"./assets/ui/town-grey-lantern.png",aspectRatio:"4 / 4.55",focusY:"43%",
     locations:Object.freeze([
       Object.freeze({id:"market",name:"Market",type:"Trade",x:49.0,y:44.0,description:"The central market district.",service:"market"}),
       Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"Grey Lantern's tavern and rest house.",service:"tavern"}),
       Object.freeze({id:"herbalist",name:"Herbalist",type:"Medicine",x:70.0,y:45.0,description:"The herbalist's shop and treatment room.",service:"herbalist"}),
       Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:80.0,y:28.5,description:"A hall used by delvers, guards, and local employers.",service:"guild"}),
-      Object.freeze({id:"lower-gate",name:"Lower Gate",type:"Departure",x:48.5,y:83.0,description:"The road out of Grey Lantern continues deeper.",status:"Departure is permanent; you cannot travel back to this town.",departure:true})
     ])
   }),
   Object.freeze({
@@ -225,7 +263,6 @@ const TOWN_DEFS = Object.freeze([
       Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"A large rest house serving delvers and caravan crews.",service:"tavern"}),
       Object.freeze({id:"herbalist",name:"Herbalist",npcName:"Mara Venn",type:"Medicine",x:70.0,y:45.0,description:"Mara Venn keeps a medicine shop here and receives field samples for Grey Lantern.",service:"herbalist"}),
       Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:80.0,y:28.5,description:"Lantern City's Guild Hall posts work for the road below.",service:"guild"}),
-      Object.freeze({id:"lower-gate",name:"Lower Gate",type:"Departure",x:48.5,y:83.0,description:"The lower road leaves Lantern City and continues into the dark.",status:"Departure is permanent; you cannot travel back to this city.",departure:true})
     ])
   }),
   Object.freeze({
@@ -236,7 +273,6 @@ const TOWN_DEFS = Object.freeze([
       Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"A small rest house near the lower road.",service:"tavern"}),
       Object.freeze({id:"herbalist",name:"Herbalist",type:"Medicine",x:70.0,y:45.0,description:"A local herbalist serving the settlement.",service:"herbalist"}),
       Object.freeze({id:"guild",name:"Guild Hall",npcName:"Toren Kest",type:"Contracts",x:80.0,y:28.5,description:"Quartermaster Toren Kest receives Guild material forwarded from Lantern City.",service:"guild"}),
-      Object.freeze({id:"lower-gate",name:"Lower Gate",type:"Departure",x:48.5,y:83.0,description:"The descent continues beyond Ashwick.",status:"Departure is permanent; you cannot travel back to this town.",departure:true})
     ])
   })
 ]);
@@ -664,9 +700,9 @@ function beginEscortDangerEvent(inst,base=null){
   showRouteSpeech({speaker:c.name,text:"That's them.",who:"npc",type:"whisper",duration:4300,priority:3});return true;
 }
 function startRescueThreatCombat(inst,{guardian=false,pursuit=false}={}){
-  if(!inst||inst.status!=="active")return false;const profile=chooseFoeProfile(),tag={questInstanceId:inst.instanceId,profileId:profile.id};S.travelEvent=null;
+  if(!inst||inst.status!=="active")return false;const profile=chooseFoeProfile(),tag={questInstanceId:inst.instanceId,profileId:profile.id},depth=Math.max(0,Number(S?.depth)||0);S.travelEvent=null;
   travelLogAdd(guardian?`A <b>${esc(profile.name)}</b> prowls between you and the refuge.`:`The pursuers close in. You stand between them and <b>${esc(questDefById(inst.definitionId)?.subject?.name||"your companion")}</b>.`,"danger");
-  return spawnEncounter({profile,...(guardian?{rescueGuardian:tag}:{escortThreat:tag})});
+  return requestScriptedRealtimeCombat({profileId:profile.id,worldEntityId:`scripted:${guardian?"rescue-guardian":"escort-pursuit"}:${inst.instanceId}`,encounterDepth:depth,...(guardian?{rescueGuardian:tag}:{escortThreat:tag})});
 }
 function rescueCombatVictory(foe){
   const tag=foe?.rescueGuardian||foe?.escortThreat;if(!tag)return false;const inst=questInstanceById(tag.questInstanceId),def=questDefById(inst?.definitionId);if(!inst||inst.status!=="active")return false;
@@ -1365,20 +1401,81 @@ const ATTRIBUTE_VALUE_COST = 40;
 const GENERATED_ILVL_VARIANCE = 0.06;
 const GENERATED_VALUE_TOLERANCE = 0.08;
 const ARMOR_CURVE_CONSTANT = 2.5;
+// v0.209.0 neutral ordinary-enemy curve. At matched progression, a baseline
+// goblin should sit comfortably inside EVEN rather than behaving like an equal
+// duel-to-the-death. Archetypes then redistribute this budget through their
+// explicit HP / attack / defence / armor / accuracy / speed profiles.
+const ENEMY_HP_CURVE_MULTIPLIER = 3.5;
+const ENEMY_ATTACK_HP_DIVISOR = 10.5;
+const ENEMY_BASE_DEFENCE_PROFILE = 1.00;
+const ENEMY_BASE_ARMOR_PROFILE = 0.50;
+const ENEMY_BASE_ACCURACY_PROFILE = 1.00;
+// v0.210.0 realistic player benchmark. At the neutral enemy-level curve,
+// displayed levels supply about 0.60G total attribute points. The combat
+// benchmark intentionally spends roughly half on the weapon's primary stat,
+// one quarter on CON, and leaves one quarter for DEF/utility/build identity.
+const EXPECTED_PRIMARY_GROWTH = 0.30;
+const EXPECTED_CON_GROWTH = 0.15;
+// v0.213.0 neutral weapon benchmark. One-handed + shield and two-handed builds
+// should sit on opposite sides of the same world curve rather than balancing the
+// entire world against the weaker offensive configuration. 1.5 hand-slot budgets
+// is the neutral midpoint: 1H retains a defensive tradeoff; 2H retains an offensive edge.
+const EXPECTED_WEAPON_HAND_COEFFICIENT = 1.50;
+// Threat models readable Heavy telegraphs rather than pretending every wind-up
+// lands. The default assumes a competent player avoids about half of them.
+const WORLD_COMBAT_HEAVY_WINDUP_MS = 1200;
+const WORLD_COMBAT_HEAVY_EXPECTED_LAND_RATE = 0.50;
+// XP is decoupled from combat-stat growth. Once early levels are past, a neutral
+// Cutter reward targets roughly this many kills per fathom to hold the level curve.
+const XP_TARGET_KILLS_PER_FATHOM = 0.75;
+const XP_NEUTRAL_PROFILE_BASE = 9;
 const SLOT_BUDGET_COEFFICIENTS = Object.freeze({
   rightHand:1.00,leftHand:1.00,top:1.00,bottoms:0.80,hat:0.60,gloves:0.60,boots:0.60,
   cape:0.50,belt:0.50,light:0.50,necklace:0.50,earLeft:0.40,earRight:0.40,
   ring1:0.40,ring2:0.40,ring3:0.40,ring4:0.40
 });
 function depthGrowth(depth=S?.depth||0){ return Math.pow(Math.max(0,Number(depth)||0),BALANCE_DEPTH_EXPONENT); }
-function expectedPrimaryAtDepth(depth=S?.depth||0){ return 13 + 0.60*depthGrowth(depth); }
-function expectedConAtDepth(depth=S?.depth||0){ return 12 + 0.30*depthGrowth(depth); }
+function expectedPrimaryAtDepth(depth=S?.depth||0){ return 13 + EXPECTED_PRIMARY_GROWTH*depthGrowth(depth); }
+function expectedConAtDepth(depth=S?.depth||0){ return 12 + EXPECTED_CON_GROWTH*depthGrowth(depth); }
 function expectedMaxHpAtDepth(depth=S?.depth||0){ return expectedConAtDepth(depth)*6; }
-function expectedStrikeAtDepth(depth=S?.depth||0){ return expectedPrimaryAtDepth(depth); }
-function expectedEnemyHitAtDepth(depth=S?.depth||0){ return expectedMaxHpAtDepth(depth)/9; }
-function expectedMediumArmorAtDepth(depth=S?.depth||0){ return 3*expectedPrimaryAtDepth(depth); }
 // Algebraically identical to the old 19.5 + 0.90G budget curve divided by 0.195.
 function expectedItemLevelAtDepth(depth=S?.depth||0){ return Math.max(1,Math.round(100 + (0.90/0.195)*depthGrowth(depth))); }
+function expectedWeaponContributionAtDepth(depth=S?.depth||0){
+  return expectedItemLevelAtDepth(depth)*EXPECTED_WEAPON_HAND_COEFFICIENT/WEAPON_VALUE_COST;
+}
+function expectedWeaponAttackBaseAtDepth(depth=S?.depth||0){
+  return 0.5*expectedPrimaryAtDepth(depth)+expectedWeaponContributionAtDepth(depth);
+}
+// Legacy helper name retained for dormant/modal callers, but the live enemy HP
+// spine is now explicitly based on current Weapon Attack Base.
+function expectedStrikeAtDepth(depth=S?.depth||0){ return expectedWeaponAttackBaseAtDepth(depth); }
+function expectedEnemyHitAtDepth(depth=S?.depth||0){ return expectedMaxHpAtDepth(depth)/ENEMY_ATTACK_HP_DIVISOR; }
+function expectedMediumArmorAtDepth(depth=S?.depth||0){ return 3*expectedWeaponAttackBaseAtDepth(depth); }
+function expectedNeutralEnemyLevelAtDepth(depth=S?.depth||0){ return Math.max(1,1+Math.floor(depthGrowth(depth)/5)); }
+function expectedLevelBandStartDepth(level){
+  const L=Math.max(1,Math.floor(Number(level)||1));
+  return L<=1?0:Math.pow(5*(L-1),1/BALANCE_DEPTH_EXPONENT);
+}
+function neutralXpRewardAtDepth(depth=S?.depth||0){
+  const L=expectedNeutralEnemyLevelAtDepth(depth),start=expectedLevelBandStartDepth(L),end=expectedLevelBandStartDepth(L+1);
+  const span=Math.max(1,end-start),needed=Math.max(1,xpToNext(L));
+  // Preserve the deliberately brisk opening if the flat-density target would
+  // award less than the original neutral Cutter reward.
+  return Math.max(XP_NEUTRAL_PROFILE_BASE,needed/(span*XP_TARGET_KILLS_PER_FATHOM));
+}
+// v0.213.0: player Armor expectation is derived from the equipment economy rather
+// than an arbitrary fraction of iLv. Ordinary body protection uses Top, Bottoms,
+// Hat, Gloves and Boots (3.6 total slot coefficients). Generated armor spends
+// 64–92% of its IV on native Armor; 78% is the midpoint. Shields are deliberately
+// excluded from the neutral benchmark so equipping one remains a defensive advantage.
+const PLAYER_ARMOR_BENCHMARK_BODY_SLOT_COEFFICIENT = 3.60;
+const PLAYER_ARMOR_BENCHMARK_NATIVE_SHARE = 0.78;
+const PLAYER_DEF_PHYSICAL_DR_CAP = 0.60;
+const PLAYER_DEF_PHYSICAL_DR_SCALE = 20;
+function expectedPlayerArmorAtDepth(depth=S?.depth||0){
+  const bodyIv=expectedItemLevelAtDepth(depth)*PLAYER_ARMOR_BENCHMARK_BODY_SLOT_COEFFICIENT;
+  return Math.max(1,(bodyIv*PLAYER_ARMOR_BENCHMARK_NATIVE_SHARE)/ARMOR_VALUE_COST);
+}
 function intrinsicValueFromLevel(ilvl,coefficient=1){ return Math.max(0,(Number(ilvl)||0)*Math.max(0.01,Number(coefficient)||1)*INTRINSIC_VALUE_PER_ILVL); }
 function itemLevelFromIntrinsic(value,coefficient=1){ return Math.max(0,Math.round((Number(value)||0)/(Math.max(0.01,Number(coefficient)||1)*INTRINSIC_VALUE_PER_ILVL))); }
 
@@ -1517,7 +1614,7 @@ const BOONS = {
   },
   setfeet:{
     id:"setfeet", name:"Set Your Feet",
-    desc:"Your Defence Rating is 20% higher."
+    desc:"Your Armor is 20% more effective at preventing enemy hits."
   },
   poultice:{
     id:"poultice", name:"Poultice",
@@ -1566,7 +1663,7 @@ const ABILITY_DEFS = {
 };
 const ABILITY_ORDER = ["layonhands","holdfast","smite","withdraw"];
 
-const STAT_KEYS = ["STR","CON","DEX","INT","WIS","CHA","RSL"];
+const STAT_KEYS = ["STR","CON","DEX","INT","WIS","CHA","DEF"];
 const FOLK_TRAITS = {
   "Human":    {adaptive:true, desc:"Adaptable · choose +2 / +1 / −2", flavor:"No single inheritance decides the road ahead."},
   "Half-Elf": {mods:{CHA:2,WIS:1,CON:-1}, flavor:"Between traditions, quick to read people and changing situations."},
@@ -1589,7 +1686,7 @@ const TRADE_OPTIONS = [
   "Caravan Hand"
 ];
 const ORIGIN_OPTIONS = ["Market Town","Border Village","River Country","Hill Country","Forest Edge","Old City"];
-const STARTING_STATS = {STR:10,CON:10,DEX:10,INT:10,WIS:10,CHA:10,RSL:10};
+const STARTING_STATS = {STR:10,CON:10,DEX:10,INT:10,WIS:10,CHA:10,DEF:10};
 
 /* v0.075: Skills are practiced competencies. Class features such as Smite and
    Lay On Hands are Abilities. Skills improve through meaningful use rather than
@@ -1660,6 +1757,14 @@ let creatorDraft = {name:"", folk:null, trade:null, origin:null, className:null,
 let combatExpandedAbility = null;
 let charExpandedAbility = null;
 let charView = "overview";
+// v0.208.0: Journal/Bestiary moved out of the Character sheet into one
+// persistent, non-modal leather notebook window.
+let journalBookChapter="bestiary";
+let journalBestiaryPage=0;
+let journalChroniclePage=0;
+let journalDetailId=null;
+let journalSpecimen=null;
+
 let equipmentListExpanded = false;
 let equipmentInspectSlot = null;
 let equipmentInspectItemId = null;
@@ -1682,7 +1787,7 @@ let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 24;
+const SAVE_SCHEMA = 30;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -1843,21 +1948,28 @@ function defenceRatingEffectMultiplier(){
   if(S?.hollowRespite?.remaining>0) mult*=1.10;
   return mult;
 }
-function playerDefenceRatingForEquipment(equipmentState=S?.equipment,{includeEffects=false}={}){
-  const raw=Math.max(0,D20_DEFENCE_BASELINE_RATING*(effectiveStatForEquipment("RSL",equipmentState)/10));
+function playerDefenceRatingForEquipment(equipmentState=S?.equipment,{includeEffects=false,depth=S?.depth||0}={}){
+  // Armor is the player's hit-avoidance layer. Combat must normalize it against
+  // the enemy's physical encounter depth, not the run's deepest-ever fathom.
+  // Otherwise backtracking makes shallow creatures inherit deep-zone accuracy.
+  const expected=expectedPlayerArmorAtDepth(depth);
+  const ratio=Math.max(0,equipmentArmorFor(equipmentState))/Math.max(.0001,expected);
+  const raw=D20_DEFENCE_BASELINE_RATING*ratio;
   return raw*(includeEffects?defenceRatingEffectMultiplier():1);
 }
-function playerDefenceRating(){ return playerDefenceRatingForEquipment(S?.equipment,{includeEffects:true}); }
+function playerDefenceRating(depth=S?.depth||0){ return playerDefenceRatingForEquipment(S?.equipment,{includeEffects:true,depth}); }
 function playerDefenceSnapshot(){ return defenceSnapshotFromRating(playerDefenceRating()); }
 function playerArmorClass(){ return playerDefenceSnapshot().ac; }
 function playerDeflection(){ return playerDefenceSnapshot().deflection; }
 function foeAttackRating(foe=S?.foe,depth=S?.depth||0){
-  const profile=Math.max(0.1,Number(foe?.profile?.accuracyProfile)||1);
-  return expectedPrimaryAtDepth(depth)*profile;
+  const raw=Number(foe?.profile?.accuracyProfile);
+  const profile=Math.max(0,Number.isFinite(raw)?raw:ENEMY_BASE_ACCURACY_PROFILE);
+  return expectedWeaponAttackBaseAtDepth(depth)*profile;
 }
 function foeDefenceRating(foe=S?.foe,depth=S?.depth||0){
-  const profile=Math.max(0.1,Number(foe?.profile?.defenceProfile)||1);
-  return expectedMediumArmorAtDepth(depth)*profile;
+  const raw=Number(foe?.profile?.defenceProfile);
+  const profile=Math.max(0,Number.isFinite(raw)?raw:ENEMY_BASE_DEFENCE_PROFILE);
+  return 3*expectedWeaponAttackBaseAtDepth(depth)*profile;
 }
 function foeDefenceSnapshot(foe=S?.foe,depth=S?.depth||0){ return defenceSnapshotFromRating(foeDefenceRating(foe,depth)); }
 function foeArmorClass(foe=S?.foe,{includeDodge=true}={}){
@@ -2028,7 +2140,13 @@ function spawnWeight(profile, depth){
   return Math.max(0.5, 2.2 - Math.abs(depth - (profile.unlock + 18))/24);
 }
 function chooseFoeProfile(){
-  const available = FOES.filter(f => S.depth >= f.unlock);
+  let available = FOES.filter(f => S.depth >= f.unlock && (f.maxDepth==null || S.depth < f.maxDepth));
+  // Forest Plains encounter fallback mirrors the physical ecology gates:
+  // both slime profiles may appear before 150; woodland goblins begin at 150.
+  if(Number(S.depth||0)<150){
+    const slimes=available.filter(f=>String(f.id||"").startsWith("slime"));
+    if(slimes.length)available=slimes;
+  }
 
   // Session 3 playtest rule: once a new archetype is unlocked, guarantee its first
   // appearance before returning to the weighted pool. RNG should not hide content
@@ -2039,12 +2157,13 @@ function chooseFoeProfile(){
   return weightedPick(available, f => spawnWeight(f,S.depth));
 }
 function xpReward(f){
-  // v0.203.15: XP scales on the same sublinear endless curve as enemy power.
-  // The old (1 + depth/100) multiplier made later versions of the same goblin
-  // disproportionately valuable and exploded boss rewards by 500 fathoms.
-  const depth=Math.max(0,Number(S.depth)||0);
-  const depthFactor=expectedPrimaryAtDepth(depth)/expectedPrimaryAtDepth(0);
-  const base = Math.max(1, Math.round(f.profile.xp * depthFactor));
+  // v0.210.0: XP owns its own progression spine. Combat benchmarks can now be
+  // tuned without silently changing levelling speed. A neutral Cutter targets
+  // ~0.75 kills/fathom after the brisk opening, while stronger profiles retain
+  // their authored relative XP values.
+  const depth=Math.max(0,Number(f?.encounterDepth??S.depth)||0);
+  const neutral=neutralXpRewardAtDepth(depth),profileBase=Math.max(1,Number(f?.profile?.xp)||XP_NEUTRAL_PROFILE_BASE);
+  const base=Math.max(1,Math.round(neutral*(profileBase/XP_NEUTRAL_PROFILE_BASE)));
   return boonActive("makingplan") ? Math.max(1, Math.round(base * 1.20)) : base;
 }
 function folkModifiers(folk, draft=creatorDraft){
@@ -2314,9 +2433,9 @@ function newDelver(profile){
     folkChoices:chosen.folk === "Human" ? {plus2:chosen.humanPlus2,plus1:chosen.humanPlus1,minus2:chosen.humanMinus2} : null,
     folkMods:{...startingFolkMods},
     level:1, xp:0, statPoints:0, kills:0, gold:0,
-    STR:starting.STR, CON:starting.CON, DEX:starting.DEX, INT:starting.INT, WIS:starting.WIS, CHA:starting.CHA, RSL:starting.RSL,
+    STR:starting.STR, CON:starting.CON, DEX:starting.DEX, INT:starting.INT, WIS:starting.WIS, CHA:starting.CHA, DEF:starting.DEF,
     hpMax:0, hp:0, staminaMax:3, stamina:3, reactionMax:3, reactionPoints:3, protection:0, protectionMax:0,
-    combatResources:{energy:100,focus:0,mana:100}, worldCombatGuardUntil:0, worldCombatQueuedPower:null,
+    combatResources:{momentum:0,focus:100,mana:100}, worldCombatGuardUntil:0, worldCombatQueuedPower:null, worldRecoverReadyAt:0,
     heavyCharge:0, strikeChain:0, defenceChain:0,
     loadout:cls === "Votary" ? (equipmentItemIsShield(startingEquipment.leftHand)?"shield":"sword") : cls === "Rogue" ? "rogue" : "staff",
     depth:0, encounter:0, seenFoes:{}, seenTravelEvents:{}, travelEvent:null,
@@ -2327,7 +2446,7 @@ function newDelver(profile){
     inventory:{
       campSupplies:STARTING_CAMP_SUPPLIES, bandages:1, meat:0, rope:0, water:1,
       rogueTools:cls==="Rogue"?1:0, lexicon:cls==="Wizard"?1:0, reliquary:cls==="Votary"?1:0,
-      misc:{}, questItems:[], weapons:[], equipment:[...startingEquipmentBag], passageKey:null
+      misc:{}, questItems:[], weapons:[], equipment:[...startingEquipmentBag], equipmentAcquiredOrder:{}, equipmentAcquiredSeq:0, passageKey:null
     },
     generatedItems:{},
     equipment:{...startingEquipment},
@@ -2345,7 +2464,7 @@ function newDelver(profile){
     caravans:{pending:null,history:[],routeRolls:{},warning:null,nextSerial:1,activeMerchant:null},
     interactionState:{active:null,pending:null,nextSerial:1},
     temporaryCompanion:null,
-    townState:{currentId:null,visited:{},departed:{},services:{}},
+    townState:{currentId:"grey-lantern",visited:{"grey-lantern":true},departed:{},services:{}},
     quests:{instances:[],nextSerial:1,exploreAccumulator:0},
     turn:1, combatActor:"player", combatExtraTurns:{player:0,enemy:0}, combatTimeline:null, reactionMax:3, reactionPoints:3, reactionAvailable:false, reactionWindow:false, protectionMax:0, protectionSource:null, defencePrepared:null, negateNextAttack:null, foe:null
   };
@@ -2368,8 +2487,8 @@ function newDelver(profile){
   $("restAbilityPick").hidden = true;
   $("charSheet").hidden = true;
 
-  travelLogAdd(`The way down waits. Choose how you want to move.`, "note");
-  say(`<p class="note">The way down waits. Choose how you want to move.</p>`);
+  travelLogAdd(`You begin in <b>Grey Lantern</b>, the village at Fathom 0. The lower gate leads into the Forest Plains.`, "beat");
+  say(`<p class="note">You begin in Grey Lantern. Walk the village, prepare, then leave through the lower gate when you are ready.</p>`);
   travelLogAdd(`<b>${esc(classInfo.name)}</b> specialization: ${esc(classInfo.specialization)}.`,"good");
   travelLogAdd(`Starting kit: <b>${esc(equipmentItemDef(startingEquipment.rightHand)?.name||"Unarmed")}</b>${startingEquipment.leftHand?` + <b>${esc(equipmentItemDef(startingEquipment.leftHand)?.name||"")}</b>`:""} · Salvage Top · Salvage Bottoms · Salvage Boots.`,"note");
   if(cls==="Rogue") travelLogAdd(`Rogue proficiency: <b>+5 Sleight of Hand Rating</b>. Rogue Tools are packed and ready.`,"note");
@@ -2599,9 +2718,10 @@ function triggerHealFx(amount, targets=["combat"]){
   const seen = new Set();
   const roots = [];
   for(const target of targets){
-    const root = target === "travel" ? $("travelHp")?.parentElement
+    const persistentHp = $("worldPlayerHp")?.parentElement;
+    const root = target === "travel" ? (persistentHp || $("travelHp")?.parentElement)
       : target === "character" ? $("charHpBar")
-      : $("heroBar");
+      : (persistentHp || $("heroBar"));
     if(root && !seen.has(root)){
       seen.add(root);
       roots.push(root);
@@ -2709,7 +2829,7 @@ function availableStatPoints(){
   return Math.max(0,(S?.statPoints || 0) - statPointDraftTotal());
 }
 function statPointHint(stat){
-  return ({STR:"physical power + Athletics",CON:"Max HP",DEX:"finesse + DEX Skills + Crit",INT:"arcane power + INT Skills",WIS:"Perception + Precision",CHA:"social / conviction",RSL:"Defence Rating / chance to be hit"})[stat] || "";
+  return ({STR:"physical power + Athletics",CON:"Max HP",DEX:"finesse + DEX Skills + Crit",INT:"arcane power + INT Skills",WIS:"Perception + Precision",CHA:"social / conviction",DEF:"physical damage reduction + tank scaling"})[stat] || "";
 }
 function combatEstimateRange(base,mult,swingMax){
   const lo=Math.max(1,Math.round(base*mult));
@@ -2729,30 +2849,30 @@ function neutralCounterEstimate(perfect=false){
 }
 function renderCharacterCombatStats(){
   const root=$("charCombatStats");if(!root||!S)return;
-  const attack=playerAttackRating(),defence=playerDefenceRating(),armor=equipmentArmorFor(),mitigation=armorMitigation();
+  const attack=playerAttackRating(),armor=equipmentArmorFor(),mitigation=armorMitigation();
+  const expectedArmor=expectedPlayerArmorAtDepth(S.depth),standardEnemyHit=worldCombatStandardEnemyHitChanceForEquipment(S.equipment);
   const basicMax=Math.max(1,Math.round(weaponAttackBase()*0.80)),basicMin=Math.max(1,Math.floor(basicMax*0.75));
   const aff=equipmentAffixTotals(),atkStat=attackStatKey(),atkValue=attackStatValue(),weapon=equippedWeaponDef(),weaponPart=weaponContribution(weapon);
   const dexCrit=dexCritChanceForEquipment(),gearCrit=aff.crit.pct||0,totalCrit=criticalChance();
-  const precision=precisionForEquipment(),critDamage=criticalDamagePct(),rsl=effectiveStat("RSL");
+  const precision=precisionForEquipment(),critDamage=criticalDamagePct(),def=effectiveStat("DEF");
   const fmtPct=(n,d=1)=>`${trimNumber(Math.max(0,Number(n)||0),d)}%`;
   const spec=worldCombatPowerSpec(),primary=weaponPrimaryResource();
   const rows=[
     {label:"Attack Rating",value:trimNumber(attack,1),sub:`${atkStat} ${atkValue} and weapon contribution ${Number.isInteger(weaponPart)?weaponPart:weaponPart.toFixed(1)} set your offensive rating. Realtime accuracy compares this directly with enemy Defence Rating.`,cls:"offense"},
-    {label:"Basic Attack",value:`${basicMin}–${basicMax} raw damage`,sub:`Successful Basics roll 75–100% of an 80% Basic Max Hit, keeping the old average while tightening ordinary RNG. Armor and Crit resolve afterward.`,cls:"offense"},
-    {label:spec.label,value:`${trimNumber(spec.mult,2)}× committed power`,sub:`Uses ${cap(primary)}. Heavy/Finisher behavior remains immediate; Mana power is typed magic so physical Armor does not reduce it.`,cls:"offense"},
-    {label:"Defence Rating",value:trimNumber(defence,1),sub:`RSL ${rsl} × 3.9${defenceRatingEffectMultiplier()!==1?` × temporary effects ${trimNumber(defenceRatingEffectMultiplier(),2)}`:""}. Defence Rating changes the chance enemies connect; Armor does not.`,cls:"defense"},
-    {label:"RSL · Resilience",value:String(rsl),sub:`Your avoidance attribute. Base RSL 10 gives 39 Defence Rating before temporary effects.`,cls:"defense"},
-    {label:"Armor",value:trimNumber(armor,0),sub:`Total equipped Armor. Armor reduces physical damage only after an attack successfully connects.`,cls:"defense"},
-    {label:"Physical Damage Reduction",value:fmtPct(mitigation*100,1),sub:`At this depth, Armor equal to the expected medium benchmark gives about 28.57% mitigation. Successful hits are always clamped to at least 1 final damage.`,cls:"defense"},
-    {label:"Guard",value:`${Math.round(WORLD_COMBAT_GUARD_REDUCTION*100)}% after Armor`,sub:`Costs ${WORLD_COMBAT_GUARD_COST} Energy and reduces the next incoming physical hit after Armor mitigation.`,cls:"defense"},
+    {label:"Basic Attack",value:`${basicMin}–${basicMax} raw damage`,sub:`Successful Basics roll 75–100% of an 80% Basic Max Hit, keeping the old average while tightening ordinary RNG. Enemy Armor and Crit resolve afterward.`,cls:"offense"},
+    {label:spec.label,value:`${trimNumber(spec.mult,2)}× committed power`,sub:`Uses ${cap(primary)}. Heavy and Snipe resolve immediately; Mana power is typed magic so physical enemy Armor does not reduce it.`,cls:"offense"},
+    {label:"Armor",value:trimNumber(armor,0),sub:`Armor determines how often physical enemies connect. Expected ordinary Armor here is about ${trimNumber(expectedArmor,0)}; your current Armor gives a standard-accuracy enemy about ${fmtPct(standardEnemyHit*100,1)} Hit Chance${defenceRatingEffectMultiplier()!==1?` while temporary Armor-avoidance effects are active`:`.`}`,cls:"defense"},
+    {label:"DEF · Defense",value:String(def),sub:`DEF reduces physical damage after a hit connects and can scale tank abilities. It is optional specialization rather than required accuracy progression.`,cls:"defense"},
+    {label:"Physical Damage Reduction",value:fmtPct(mitigation*100,1),sub:`60% × DEF / (DEF + 20). DEF 10 gives 20% reduction; the curve approaches but never reaches 60%. Successful hits are always clamped to at least 1 final damage.`,cls:"defense"},
+    {label:"Guard",value:`${Math.round(WORLD_COMBAT_GUARD_REDUCTION*100)}% after DEF`,sub:`Costs ${WORLD_COMBAT_GUARD_COST} ${cap(primary)} and reduces the next incoming physical hit after DEF mitigation. Guard keeps its old cost for this resource playtest.`,cls:"defense"},
     {label:"Critical Chance",value:fmtPct(totalCrit,2),sub:`${fmtPct(dexCrit,2)} from DEX + ${fmtPct(gearCrit,2)} from equipped Crit gear. Crit rolls only after accuracy succeeds.`,cls:"utility"},
     {label:"Critical Damage",value:fmtPct(critDamage,1),sub:`Base 150%. WIS above 10 becomes Precision; each +50 percentage-point band costs twice as much Precision as the previous one.`,cls:"utility"},
     {label:"Precision",value:trimNumber(precision,0),sub:`Precision = max(0, effective WIS − 10). It raises Crit Damage, not Crit Chance.`,cls:"utility"},
-    {label:"Resources",value:"Energy · Focus · Mana",sub:`All three pools remain available. The equipped weapon determines which pool is primary; current primary is ${cap(primary)}.`,cls:"utility"},
+    {label:"Resources",value:"Momentum · Focus · Mana",sub:`Momentum is earned by martial aggression; Focus is a prepared ranged pool that recovers with time; Mana keeps its spell economy. Current primary is ${cap(primary)}.`,cls:"utility"},
     {label:"Boss Damage",value:`+${fmtPct(aff.bossDamage.pct)}`,sub:aff.bossDamage.pct>0?`Bonus cap +${aff.bossDamage.bonusCap}/action`:"No current Boss Damage gear bonus.",cls:"utility"},
-    {label:"Lifesteal",value:fmtPct(aff.lifesteal.pct),sub:aff.lifesteal.pct>0?`Heal cap ${aff.lifesteal.healCap} HP/action`:"No current Lifesteal gear bonus.",cls:"utility"},
-    {label:"Damage Reflect",value:fmtPct(aff.reflect.pct),sub:aff.reflect.pct>0?`Return cap ${aff.reflect.damageCap} damage/hit`:"No current Damage Reflect gear bonus.",cls:"utility"}
+    {label:"Lifesteal",value:fmtPct(aff.lifesteal.pct),sub:aff.lifesteal.pct>0?`Heal cap ${aff.lifesteal.healCap} HP/action`:"No current Lifesteal gear bonus.",cls:"utility"}
   ];
+  if(aff.reflect.pct>0)rows.push({label:"Legacy Damage Reflect",value:fmtPct(aff.reflect.pct),sub:`Return cap ${aff.reflect.damageCap} damage/hit. Damage Reflect no longer rolls on newly generated gear; existing saved items are grandfathered.`,cls:"utility"});
   root.innerHTML=rows.map(r=>`<div class="char-combat-stat ${r.cls}"><em>${esc(r.label)}</em><b>${esc(r.value)}</b><small>${esc(r.sub)}</small></div>`).join("");
 }
 
@@ -3137,6 +3257,32 @@ function ensureEquipmentState(){
   if(RARITY_TEST_WEAPONS.includes(S.equipment.rightHand)) S.equipment.rightHand=null;
   const main=S.equipment.rightHand;
   S.equippedWeapon=(main && equipmentItemDef(main))?main:null;
+  ensureEquipmentAcquisitionOrder();
+}
+function ensureEquipmentAcquisitionOrder(){
+  if(!S?.inventory)return;
+  const current=(S.inventory.equipmentAcquiredOrder && typeof S.inventory.equipmentAcquiredOrder==="object" && !Array.isArray(S.inventory.equipmentAcquiredOrder))?S.inventory.equipmentAcquiredOrder:{};
+  let seq=Math.max(0,Number(S.inventory.equipmentAcquiredSeq)||0);
+  const owned=[...new Set([...(S.inventory.equipment||[]),...Object.values(S.equipment||{}).filter(Boolean)])];
+  for(const id of owned){
+    const n=Number(current[id]);
+    if(Number.isFinite(n)&&n>0){seq=Math.max(seq,n);continue;}
+    current[id]=++seq;
+  }
+  S.inventory.equipmentAcquiredOrder=current;
+  S.inventory.equipmentAcquiredSeq=seq;
+}
+function markEquipmentAcquired(itemId){
+  if(!S?.inventory||!itemId)return 0;
+  ensureEquipmentAcquisitionOrder();
+  const seq=Math.max(0,Number(S.inventory.equipmentAcquiredSeq)||0)+1;
+  S.inventory.equipmentAcquiredSeq=seq;
+  S.inventory.equipmentAcquiredOrder[itemId]=seq;
+  return seq;
+}
+function equipmentAcquiredOrder(itemId){
+  ensureEquipmentAcquisitionOrder();
+  return Math.max(0,Number(S?.inventory?.equipmentAcquiredOrder?.[itemId])||0);
 }
 function equipmentItems(){
   ensureEquipmentState();
@@ -3205,6 +3351,7 @@ function equipmentComparisonForTarget(itemId,target){
   const armorBefore=equipmentArmorFor(beforeState),armorAfter=equipmentArmorFor(afterState);
   const physicalMitigationBefore=armorMitigationFor(beforeState,S?.depth||0),physicalMitigationAfter=armorMitigationFor(afterState,S?.depth||0);
   const defenceRatingBefore=playerDefenceRatingForEquipment(beforeState,{includeEffects:true}),defenceRatingAfter=playerDefenceRatingForEquipment(afterState,{includeEffects:true});
+  const enemyHitChanceBefore=worldCombatStandardEnemyHitChanceForEquipment(beforeState),enemyHitChanceAfter=worldCombatStandardEnemyHitChanceForEquipment(afterState);
   const defenceBefore=defenceSnapshotFromRating(defenceRatingBefore),defenceAfter=defenceSnapshotFromRating(defenceRatingAfter);
   const attributesBefore=equipmentAttributeTotalsFor(beforeState),attributesAfter=equipmentAttributeTotalsFor(afterState);
   const hpBefore=effectiveStatForEquipment("CON",beforeState)*6,hpAfter=effectiveStatForEquipment("CON",afterState)*6;
@@ -3215,7 +3362,7 @@ function equipmentComparisonForTarget(itemId,target){
   const precisionBefore=precisionForEquipment(beforeState),precisionAfter=precisionForEquipment(afterState);
   const critDamageBefore=criticalDamagePctForEquipment(beforeState),critDamageAfter=criticalDamagePctForEquipment(afterState);
   const speedBefore=playerCombatSpeedForEquipment(beforeState),speedAfter=playerCombatSpeedForEquipment(afterState);
-  return {target,currentId,itemDelta,valueDelta,gearDelta:after-before,before,after,armorBefore,armorAfter,physicalMitigationBefore,physicalMitigationAfter,defenceRatingBefore,defenceRatingAfter,acBefore:defenceBefore.ac,acAfter:defenceAfter.ac,deflectionBefore:defenceBefore.deflection,deflectionAfter:defenceAfter.deflection,attributesBefore,attributesAfter,hpBefore,hpAfter,strikeBefore,strikeAfter,attackBonusBefore,attackBonusAfter,affixesBefore,affixesAfter,critChanceBefore,critChanceAfter,precisionBefore,precisionAfter,critDamageBefore,critDamageAfter,speedBefore,speedAfter};
+  return {target,currentId,itemDelta,valueDelta,gearDelta:after-before,before,after,armorBefore,armorAfter,physicalMitigationBefore,physicalMitigationAfter,defenceRatingBefore,defenceRatingAfter,enemyHitChanceBefore,enemyHitChanceAfter,acBefore:defenceBefore.ac,acAfter:defenceAfter.ac,deflectionBefore:defenceBefore.deflection,deflectionAfter:defenceAfter.deflection,attributesBefore,attributesAfter,hpBefore,hpAfter,strikeBefore,strikeAfter,attackBonusBefore,attackBonusAfter,affixesBefore,affixesAfter,critChanceBefore,critChanceAfter,precisionBefore,precisionAfter,critDamageBefore,critDamageAfter,speedBefore,speedAfter};
 }
 function recommendedEquipmentSlot(itemId,preferred=null,filterId="all"){
   const slots=equipmentFilterCompatibleSlots(itemId,filterId);
@@ -3240,7 +3387,9 @@ function equipmentComparison(itemId,targetSlot=null,filterId="all"){
 function equipmentMatchesFilter(itemId,filterId=equipmentFilter){ return equipmentFilterCompatibleSlots(itemId,filterId).length>0; }
 function sortedBackpackEquipment(filterId=equipmentFilter){
   if(!S) return [];
+  ensureEquipmentAcquisitionOrder();
   return S.inventory.equipment.filter(id=>equipmentItemDef(id)&&equipmentMatchesFilter(id,filterId)).sort((a,b)=>{
+    const acquired=equipmentAcquiredOrder(b)-equipmentAcquiredOrder(a); if(acquired) return acquired;
     const ca=equipmentComparison(a,null,filterId), cb=equipmentComparison(b,null,filterId);
     if(cb.itemDelta!==ca.itemDelta) return cb.itemDelta-ca.itemDelta;
     if(Math.abs(cb.gearDelta-ca.gearDelta)>0.0001) return cb.gearDelta-ca.gearDelta;
@@ -3264,11 +3413,10 @@ function equipmentCompareHtml(itemId,targetSlot=null){
     if(d) bits.push(`<span class="equipment-delta ${deltaClass(d)}">${stat} ${deltaText(d)}</span>`);
   }
   const strikeDelta=(c.strikeAfter??0)-(c.strikeBefore??0); if(Math.abs(strikeDelta)>.05) bits.push(`<span class="equipment-delta ${deltaClass(strikeDelta)}">Attack Rating ${deltaText(strikeDelta,1)}</span>`);
-  const defenceDelta=(c.defenceRatingAfter??0)-(c.defenceRatingBefore??0);if(Math.abs(defenceDelta)>.05)bits.push(`<span class="equipment-delta ${deltaClass(defenceDelta)}">Defence Rating ${deltaText(defenceDelta,1)}</span>`);
+  const hitDelta=((c.enemyHitChanceAfter??0)-(c.enemyHitChanceBefore??0))*100;if(Math.abs(hitDelta)>.01)bits.push(`<span class="equipment-delta ${deltaClass(-hitDelta)}">Enemy Hit ${deltaText(hitDelta,1)}%</span>`);
   const mitigationDelta=((c.physicalMitigationAfter??0)-(c.physicalMitigationBefore??0))*100;if(Math.abs(mitigationDelta)>.01)bits.push(`<span class="equipment-delta ${deltaClass(mitigationDelta)}">Physical DR ${deltaText(mitigationDelta,1)}%</span>`);
   const speedDelta=(c.speedAfter??0)-(c.speedBefore??0); if(speedDelta) bits.push(`<span class="equipment-delta same">Speed ${deltaText(speedDelta)} (parked)</span>`);
-  const critDelta=(c.critChanceAfter??0)-(c.critChanceBefore??0);if(Math.abs(critDelta)>.001)bits.push(`<span class="equipment-delta same">Crit Chance ${deltaText(critDelta,2)}%</span>`);
-  const critDamageDelta=(c.critDamageAfter??0)-(c.critDamageBefore??0);if(Math.abs(critDamageDelta)>.001)bits.push(`<span class="equipment-delta same">Crit Damage ${deltaText(critDamageDelta,1)}%</span>`);
+  const critDelta=(c.affixesAfter?.crit?.pct||0)-(c.affixesBefore?.crit?.pct||0);if(Math.abs(critDelta)>.001)bits.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,2)}%</span>`);
   const bossDelta=(c.affixesAfter?.bossDamage?.pct||0)-(c.affixesBefore?.bossDamage?.pct||0);if(bossDelta)bits.push(`<span class="equipment-delta ${deltaClass(bossDelta)}">Boss ${deltaText(bossDelta)}%</span>`);
   const reflectDelta=(c.affixesAfter?.reflect?.pct||0)-(c.affixesBefore?.reflect?.pct||0);if(reflectDelta)bits.push(`<span class="equipment-delta ${deltaClass(reflectDelta)}">Reflect ${deltaText(reflectDelta)}%</span>`);
   const leechDelta=(c.affixesAfter?.lifesteal?.pct||0)-(c.affixesBefore?.lifesteal?.pct||0);if(leechDelta)bits.push(`<span class="equipment-delta ${deltaClass(leechDelta)}">Lifesteal ${deltaText(leechDelta)}%</span>`);
@@ -3279,8 +3427,11 @@ function removeEquipmentFromBag(itemId){
   const i=S.inventory.equipment.indexOf(itemId);
   if(i>=0) S.inventory.equipment.splice(i,1);
 }
-function addEquipmentToBag(itemId){
-  if(itemId && equipmentItemDef(itemId) && !S.inventory.equipment.includes(itemId)) S.inventory.equipment.push(itemId);
+function addEquipmentToBag(itemId,newAcquisition=false){
+  if(!itemId || !equipmentItemDef(itemId))return;
+  if(!S.inventory.equipment.includes(itemId))S.inventory.equipment.push(itemId);
+  if(newAcquisition)markEquipmentAcquired(itemId);
+  else ensureEquipmentAcquisitionOrder();
 }
 function equipmentItemIsShield(itemId){ return equipmentItemDef(itemId)?.family==="shield"; }
 function syncVotaryLoadoutFromHands(){
@@ -3359,8 +3510,8 @@ function renderEquipmentInfo(items){
   const equipped=equipmentEquippedCount(items),gear=equipmentGearLevel();
   const slot=equipmentInspectSlot;
   if(!slot){
-    const defence=playerDefenceRating(),armor=equipmentArmorFor(S?.equipment),physicalDr=armorMitigationFor(S?.equipment,S?.depth||0);
-    root.innerHTML=`<em>Equipment info</em><b>Tap a slot</b><p>Inspect equipped gear here. Expand the list to compare Backpack items automatically against the slot they would replace.</p><dl><div><dt>Equipped</dt><dd>${equipped}/17</dd></div><div><dt>Gear</dt><dd>${gear}</dd></div><div><dt>Defence</dt><dd>${trimNumber(defence,1)} DR · RSL ${effectiveStat("RSL")}</dd></div><div><dt>Armor</dt><dd>${trimNumber(armor,0)} · ${trimNumber(physicalDr*100,1)}% physical DR</dd></div><div><dt>Hands</dt><dd>${equipmentUsesBothHands(items)?"2H":"R / L"}</dd></div><div><dt>Light</dt><dd>${items.light?"ready":"empty"}</dd></div></dl>`;
+    const armor=equipmentArmorFor(S?.equipment),physicalDr=armorMitigationFor(S?.equipment,S?.depth||0),enemyHit=worldCombatStandardEnemyHitChanceForEquipment(S?.equipment);
+    root.innerHTML=`<em>Equipment info</em><b>Tap a slot</b><p>Inspect equipped gear here. Expand the list to compare Backpack items automatically against the slot they would replace.</p><dl><div><dt>Equipped</dt><dd>${equipped}/17</dd></div><div><dt>Gear</dt><dd>${gear}</dd></div><div><dt>Armor</dt><dd>${trimNumber(armor,0)} · ~${trimNumber(enemyHit*100,1)}% standard enemy Hit</dd></div><div><dt>DEF</dt><dd>${effectiveStat("DEF")} · ${trimNumber(physicalDr*100,1)}% physical DR</dd></div><div><dt>Hands</dt><dd>${equipmentUsesBothHands(items)?"2H":"R / L"}</dd></div><div><dt>Light</dt><dd>${items.light?"ready":"empty"}</dd></div></dl>`;
     return;
   }
   const label=EQUIPMENT_SLOT_LABELS[slot]||slot;
@@ -3460,8 +3611,8 @@ function renderEquipmentInspect(){
   const comp=candidate?equipmentComparison(itemId,slot):null;
   const compare=candidate?(()=>{
     const lines=[`<span class="equipment-delta power">Item Level ${deltaText(comp.itemDelta)}</span> · <span class="equipment-delta power">Gear Level ${deltaText(comp.gearDelta,1)}</span>`];
-    if(Math.abs(comp.armorAfter-comp.armorBefore)>.001) lines.push(`Armor <span class="equipment-delta ${deltaClass(comp.armorAfter-comp.armorBefore)}">${trimNumber(comp.armorBefore,0)} → ${trimNumber(comp.armorAfter,0)}</span> · Physical DR ${trimNumber(comp.physicalMitigationBefore*100,1)}% → ${trimNumber(comp.physicalMitigationAfter*100,1)}%`);
-    if(Math.abs(comp.defenceRatingAfter-comp.defenceRatingBefore)>.05) lines.push(`Defence Rating <span class="equipment-delta ${deltaClass(comp.defenceRatingAfter-comp.defenceRatingBefore)}">${trimNumber(comp.defenceRatingBefore,1)} → ${trimNumber(comp.defenceRatingAfter,1)}</span>`);
+    if(Math.abs(comp.armorAfter-comp.armorBefore)>.001) lines.push(`Armor <span class="equipment-delta ${deltaClass(comp.armorAfter-comp.armorBefore)}">${trimNumber(comp.armorBefore,0)} → ${trimNumber(comp.armorAfter,0)}</span> · standard enemy Hit ${trimNumber(comp.enemyHitChanceBefore*100,1)}% → ${trimNumber(comp.enemyHitChanceAfter*100,1)}%`);
+    
     for(const stat of STAT_KEYS){
       const d=(comp.attributesAfter?.[stat]||0)-(comp.attributesBefore?.[stat]||0);
       if(d) lines.push(`${stat} <span class="equipment-delta ${deltaClass(d)}">${effectiveStatForEquipment(stat,S.equipment)} → ${effectiveStatForEquipment(stat,simulateEquipmentEquipDirect(itemId,slot))}</span>`);
@@ -3469,8 +3620,8 @@ function renderEquipmentInspect(){
     if(comp.hpAfter!==comp.hpBefore) lines.push(`Max HP <span class="equipment-delta ${deltaClass(comp.hpAfter-comp.hpBefore)}">${comp.hpBefore} → ${comp.hpAfter}</span>`);
     if(Math.abs(comp.strikeAfter-comp.strikeBefore)>.05) lines.push(`Attack Rating <span class="equipment-delta ${deltaClass(comp.strikeAfter-comp.strikeBefore)}">${comp.strikeBefore.toFixed(1)} → ${comp.strikeAfter.toFixed(1)}</span>`);
     if((comp.speedAfter??0)!==(comp.speedBefore??0)) lines.push(`Speed <span class="equipment-delta same">${comp.speedBefore} → ${comp.speedAfter} · parked during realtime combat tuning</span>`);
-    if(Math.abs((comp.critChanceAfter??0)-(comp.critChanceBefore??0))>.001) lines.push(`Crit Chance <span class="equipment-delta power">${trimNumber(comp.critChanceBefore,2)}% → ${trimNumber(comp.critChanceAfter,2)}%</span>`);
-    if(Math.abs((comp.critDamageAfter??0)-(comp.critDamageBefore??0))>.001) lines.push(`Crit Damage <span class="equipment-delta power">${trimNumber(comp.critDamageBefore,1)}% → ${trimNumber(comp.critDamageAfter,1)}%</span>`);
+    const directCritBefore=comp.affixesBefore?.crit?.pct||0,directCritAfter=comp.affixesAfter?.crit?.pct||0;
+    if(Math.abs(directCritAfter-directCritBefore)>.001) lines.push(`Crit Chance <span class="equipment-delta power">${trimNumber(directCritBefore,2)}% → ${trimNumber(directCritAfter,2)}%</span>`);
     if(equipmentItemUsesBothHands(itemId)) lines.push(`Equipping this two-handed item returns the current Off Hand item to the Backpack.`);
     return `<div class="equipment-inspect-special"><b>Compared with ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}</b><br>${lines.join("<br>")}</div>`;
   })():"";
@@ -3558,6 +3709,94 @@ function renderCharacterSheet(){
   renderCharacterView();
 }
 
+
+
+const BESTIARY_SPRITE_FILES=Object.freeze({
+  cutter:"./assets/ui/goblin-cutter.png",scrounger:"./assets/ui/goblin-cutter.png",skitter:"./assets/ui/goblin-skitter.png",shieldback:"./assets/ui/goblin-shieldback.png",mauler:"./assets/ui/goblin-mauler.png",oldhand:"./assets/ui/goblin-oldhand.png",
+  slime:"./assets/creatures/slime1-right.png",slime2:"./assets/creatures/slime2-right.png"
+});
+function bestiarySpriteUrl(id){return BESTIARY_SPRITE_FILES[id]||null;}
+function bestiaryRecorded(id){return !!S&&(!!S.seenFoes?.[id]||knowledgeReads(id)>0);}
+function bestiaryProfileList(){
+  if(!S)return[];
+  const ids=new Set(Object.keys(S.seenFoes||{}).filter(id=>S.seenFoes[id]));
+  for(const id of Object.keys(knowledge||{}))if(knowledgeReads(id)>0)ids.add(id);
+  return [...ids].map(id=>profileById(id)).filter(Boolean).sort((a,b)=>String(a.name||a.id).localeCompare(String(b.name||b.id))||String(a.id).localeCompare(String(b.id)));
+}
+function bestiaryKnowledgeLabel(id){const r=knowledgeReads(id);return r>=6?"Mastered":r>=3?"Studied":r>=1?"Known":"Encountered";}
+function bestiaryPortraitHtml(profile,detail=false){
+  const url=bestiarySpriteUrl(profile?.id),cls=detail?"journal-detail-portrait":"portrait";
+  if(!url)return `<div class="${cls} placeholder" aria-hidden="true">?</div>`;
+  return `<div class="${cls}"><img src="${esc(url)}" alt="" draggable="false"></div>`;
+}
+function bestiaryTendency(value,{inverse=false}={}){
+  const n=Number(value);if(!Number.isFinite(n))return"Standard";
+  if(inverse){if(n<=.8)return"Light";if(n>=1.2)return"Heavy";return"Standard";}
+  if(n<=.8)return"Low";if(n>=1.2)return"High";return"Standard";
+}
+function bestiarySpeedLabel(speed){const n=Number(speed)||100;return n>=115?"Very fast":n>=103?"Fast":n<=85?"Slow":"Steady";}
+function bestiaryAwarenessLabel(a){const n=Number(a)||0;return n>=18?"Very alert":n>=6?"Alert":n<=-8?"Dull":"Average";}
+function bestiaryAbilityRows(profile,reads){
+  if(reads<3)return `<div class="journal-ability"><b>???</b><span class="journal-locked">Study this creature to identify its abilities.</span></div>`;
+  const intents=profile?.intents||{},hurt=profile?.hurtIntents||{},rows=[];
+  const total=Math.max(1,Object.values(intents).reduce((a,v)=>a+(Number(v)||0),0));
+  const add=(key,label,desc)=>{const w=Math.max(Number(intents[key])||0,Number(hurt[key])||0);if(w<=0)return;const exact=reads>=6?` · ${Math.round((Number(intents[key])||0)/total*100)}% normal tendency`:"";rows.push(`<div class="journal-ability"><b>${esc(label)}</b>${esc(desc)}${exact}</div>`);};
+  add("heavy","Heavy Attack","A committed high-damage strike with a visible wind-up.");
+  add("guard","Guard","Adopts a defensive stance instead of pressing the attack.");
+  add("dodge","Dodge","Uses evasive movement to make the next exchange harder to land.");
+  add("recover","Recover","Creates space to recover when its behavior allows it.");
+  if(Array.isArray(profile?.abilities))for(const ab of profile.abilities){const name=ab?.name||ab?.id||"Ability",desc=reads>=6?(ab?.desc||"Observed special ability."):"Observed special ability.";rows.push(`<div class="journal-ability"><b>${esc(name)}</b>${esc(desc)}</div>`);}
+  return rows.length?rows.join(""):`<div class="journal-ability"><b>None observed</b>No special abilities have been recorded beyond its ordinary attack.</div>`;
+}
+function bestiaryIndexCard(profile){
+  const reads=knowledgeReads(profile.id),label=bestiaryKnowledgeLabel(profile.id);
+  return `<button class="journal-creature-card" type="button" data-bestiary-entry="${esc(profile.id)}">${bestiaryPortraitHtml(profile)}<span><b>${esc(cap(profile.name||profile.id))}</b><span>${esc(label)} · ${reads}/6 knowledge</span></span></button>`;
+}
+function renderBestiaryIndex(){
+  const list=bestiaryProfileList(),per=8,pages=Math.max(1,Math.ceil(list.length/per));journalBestiaryPage=clamp(journalBestiaryPage,0,pages-1);
+  const slice=list.slice(journalBestiaryPage*per,journalBestiaryPage*per+per),left=slice.slice(0,4),right=slice.slice(4,8);
+  const fill=arr=>[0,1,2,3].map(i=>arr[i]?bestiaryIndexCard(arr[i]):`<div class="journal-empty-card">${list.length?"Empty":"No record"}</div>`).join("");
+  return `<section class="journal-page"><h3 class="journal-page-title">Bestiary</h3><span class="journal-page-kicker">${list.length} creature${list.length===1?"":"s"} recorded</span><div class="journal-index-list">${fill(left)}</div></section><section class="journal-page right"><h3 class="journal-page-title">Field Notes</h3><span class="journal-page-kicker">Read · Study · Master</span><div class="journal-index-list">${fill(right)}</div></section><div class="journal-book-footer"><button type="button" data-journal-page="prev" ${journalBestiaryPage<=0?"disabled":""}>◀ Previous</button><span>Spread ${journalBestiaryPage+1} / ${pages}</span><button type="button" data-journal-page="next" ${journalBestiaryPage>=pages-1?"disabled":""}>Next ▶</button></div>`;
+}
+function renderBestiaryDetail(){
+  const profile=profileById(journalDetailId)||journalSpecimen?.profile||null;if(!profile){journalDetailId=null;return renderBestiaryIndex();}
+  const id=profile.id,reads=knowledgeReads(id),recorded=bestiaryRecorded(id),tier=recorded?bestiaryKnowledgeLabel(id):"Unrecorded";
+  const weakness=reads>=1?esc(profile?.weakness?.txt||"No weakness recorded."):`<span class="journal-locked">???</span>`;
+  const drops=DROP_HINTS[id]||[];
+  const defence=reads>=3?bestiaryTendency(profile?.defenceProfile):`<span class="journal-locked">???</span>`;
+  const armor=reads>=3?bestiaryTendency(profile?.armorProfile,{inverse:true}):`<span class="journal-locked">???</span>`;
+  const accuracy=reads>=3?bestiaryTendency(profile?.accuracyProfile):`<span class="journal-locked">???</span>`;
+  const speed=reads>=3?(reads>=6?`${bestiarySpeedLabel(profile?.speed)} · ${Math.round(Number(profile?.speed)||100)} Speed`:bestiarySpeedLabel(profile?.speed)):`<span class="journal-locked">???</span>`;
+  const awareness=reads>=3?(reads>=6?`${bestiaryAwarenessLabel(profile?.awareness)} · ${formatRating(profile?.awareness??0)} Awareness`:bestiaryAwarenessLabel(profile?.awareness)):`<span class="journal-locked">???</span>`;
+  const loot=reads>=3?esc(drops.join(" · ")||"No reliable carrying pattern recorded"):`<span class="journal-locked">???</span>`;
+  const spec=journalSpecimen&&journalSpecimen.profileId===id?journalSpecimen:null;
+  const specimen=spec?`<div class="journal-specimen"><h4>Current specimen</h4><div class="journal-info-grid"><b>Level</b><span>${Math.max(1,Number(spec.level)||1)}</span><b>Your hit chance</b><span>${Math.round((Number(spec.playerHit)||0)*100)}%</span><b>Threat</b><span class="journal-threat ${esc(spec.threatKey||"even")}">${esc(spec.threatLabel||"EVEN")}</span></div></div>`:"";
+  const hint=!recorded?`This creature is not yet written into the Bestiary. Enter an encounter with it to make a permanent record.`:reads<1?`Read this creature to reveal its weakness. Further Study fills in its combat habits, defenses and abilities.`:reads<3?`${3-reads} more ${3-reads===1?"Study":"Studies"} to reach Studied and reveal its combat profile.`:reads<6?`${6-reads} more ${6-reads===1?"Study":"Studies"} to Master this entry and expose its exact tendencies.`:`This entry is Mastered.`;
+  return `<section class="journal-page"><button class="journal-back" type="button" data-bestiary-back>◀ Bestiary index</button><div class="journal-detail-head"><div><h3 class="journal-detail-name">${esc(cap(profile.name||id))}</h3><span class="journal-knowledge-badge">${esc(tier)} · ${reads}/6 knowledge</span></div>${bestiaryPortraitHtml(profile,true)}</div><div class="journal-rule"></div><div class="journal-info-grid"><b>Weakness</b><span>${weakness}</span><b>Armor</b><span>${armor}</span><b>Avoidance</b><span>${defence}</span><b>Accuracy</b><span>${accuracy}</span><b>Speed</b><span>${speed}</span><b>Awareness</b><span>${awareness}</span><b>Likely carries</b><span>${loot}</span></div><p class="journal-hint">${esc(hint)}</p>${specimen}</section><section class="journal-page right"><h3 class="journal-page-title">Abilities</h3><span class="journal-page-kicker">Observed combat behavior</span><div class="journal-ability-list">${bestiaryAbilityRows(profile,reads)}</div><div class="journal-rule"></div><h4 class="journal-section-title">Behavior</h4><div class="journal-copy">${reads>=3?`<p>${esc(bestiarySpeedLabel(profile?.speed))} movement and ${esc(bestiaryAwarenessLabel(profile?.awareness).toLowerCase())} awareness define how this creature closes distance and notices a delver.</p>${reads>=6?`<p>Normal intent weights: ${Object.entries(profile?.intents||{}).map(([k,v])=>`${esc(cap(k))} ${Math.round(Number(v)||0)}`).join(" · ")||"none"}.</p>`:""}`:`<p class="journal-locked">???</p><p>Study or Read the creature for more information.</p>`}</div></section>`;
+}
+function renderJournalChronicle(){
+  const raw=Array.isArray(S?.travelLog)?S.travelLog:[],list=[...raw].reverse(),per=14,pages=Math.max(1,Math.ceil(list.length/per));journalChroniclePage=clamp(journalChroniclePage,0,pages-1);
+  const slice=list.slice(journalChroniclePage*per,journalChroniclePage*per+per),left=slice.slice(0,7),right=slice.slice(7,14);
+  const rows=arr=>arr.length?`<div class="journal-chronicle">${arr.map(entry=>`<div class="journal-chronicle-entry"><span class="depth">${esc(formatDepth(entry.depth))} fathoms</span>${entry.html||""}</div>`).join("")}</div>`:`<div class="journal-hint">Nothing has been written here yet.</div>`;
+  return `<section class="journal-page"><h3 class="journal-page-title">Journal</h3><span class="journal-page-kicker">Latest chronicle entries</span>${rows(left)}</section><section class="journal-page right"><h3 class="journal-page-title">Chronicle</h3><span class="journal-page-kicker">The descent as it happened</span>${rows(right)}</section><div class="journal-book-footer"><button type="button" data-journal-page="prev" ${journalChroniclePage<=0?"disabled":""}>◀ Newer</button><span>Spread ${journalChroniclePage+1} / ${pages}</span><button type="button" data-journal-page="next" ${journalChroniclePage>=pages-1?"disabled":""}>Older ▶</button></div>`;
+}
+function renderDelverJournal(){
+  const root=$("journalBook"),content=$("journalBookContent");if(!root||!content||!S)return;
+  document.querySelectorAll("[data-journal-chapter]").forEach(btn=>btn.classList.toggle("active",btn.dataset.journalChapter===journalBookChapter));
+  content.innerHTML=journalBookChapter==="journal"?renderJournalChronicle():(journalDetailId?renderBestiaryDetail():renderBestiaryIndex());
+}
+function openDelverJournal(chapter="bestiary",options={}){
+  if(!S||over)return false;const root=$("journalBook");if(!root)return false;
+  journalBookChapter=chapter==="journal"?"journal":"bestiary";
+  if(journalBookChapter==="bestiary"){
+    journalDetailId=options?.profileId||null;
+    journalSpecimen=options?.specimen||null;
+    if(!journalDetailId)journalSpecimen=null;
+    clearCharacterNotice("bestiary");
+  }else{journalDetailId=null;journalSpecimen=null;clearCharacterNotice("journal");}
+  root.hidden=false;setFloatingWindowEnabled("journal",true);renderDelverJournal();return true;
+}
+function closeDelverJournal(){const root=$("journalBook");if(root)root.hidden=true;setFloatingWindowEnabled("journal",false);journalSpecimen=null;}
 
 function ensureRunPacing(){
   if(!S)return {foregroundMs:0,movementMs:0,milestones:{}};
@@ -3714,9 +3953,9 @@ function campAtHollow(){
   const healedHp=S.hp-beforeHp;
   S.stamina=S.staminaMax;
   ensureWorldCombatResources();
-  S.combatResources.energy=WORLD_COMBAT_RESOURCE_MAX;
+  S.combatResources.momentum=0;
+  S.combatResources.focus=WORLD_COMBAT_RESOURCE_MAX;
   S.combatResources.mana=WORLD_COMBAT_RESOURCE_MAX;
-  S.combatResources.focus=0;
   S.worldCombatGuardUntil=0;S.worldCombatQueuedPower=null;
   S.heavyCharge=0;
   S.strikeChain=0;
@@ -3746,9 +3985,9 @@ function takeRest(){
   const healed=S.hp-before;
   S.restRecovery=0;
   ensureWorldCombatResources();
-  S.combatResources.energy=Math.min(WORLD_COMBAT_RESOURCE_MAX,S.combatResources.energy+45);
+  S.combatResources.momentum=0;
+  S.combatResources.focus=WORLD_COMBAT_RESOURCE_MAX;
   S.combatResources.mana=Math.min(WORLD_COMBAT_RESOURCE_MAX,S.combatResources.mana+20);
-  S.combatResources.focus=Math.max(0,S.combatResources.focus-30);
   if(healed>0) triggerHealFx(healed,["travel"]);
   const recovered=healed>0?` recover <b>${healed} HP</b>`:` steady yourself`;
   if(abilitiesNeedRestoration()){
@@ -3913,16 +4152,15 @@ function renderPack(rememberView=true){
       const armorDelta=(cmp.armorAfter??0)-(cmp.armorBefore??0),strikeDelta=(cmp.strikeAfter??0)-(cmp.strikeBefore??0);
       const attrConsequences=STAT_KEYS.map(stat=>{const d=(cmp.attributesAfter?.[stat]||0)-(cmp.attributesBefore?.[stat]||0);return d?`<span class="equipment-delta ${deltaClass(d)}">${stat} ${deltaText(d)}</span>`:"";}).join("");
       const specialConsequences=[];
-      const defenceDelta=(cmp.defenceRatingAfter??0)-(cmp.defenceRatingBefore??0);if(Math.abs(defenceDelta)>.05)specialConsequences.push(`<span class="equipment-delta ${deltaClass(defenceDelta)}">Defence Rating ${deltaText(defenceDelta,1)}</span>`);
+      const hitDelta=((cmp.enemyHitChanceAfter??0)-(cmp.enemyHitChanceBefore??0))*100;if(Math.abs(hitDelta)>.01)specialConsequences.push(`<span class="equipment-delta ${deltaClass(-hitDelta)}">Enemy Hit ${deltaText(hitDelta,1)}%</span>`);
       const mitigationDelta=((cmp.physicalMitigationAfter??0)-(cmp.physicalMitigationBefore??0))*100;if(Math.abs(mitigationDelta)>.01)specialConsequences.push(`<span class="equipment-delta ${deltaClass(mitigationDelta)}">Physical DR ${deltaText(mitigationDelta,1)}%</span>`);
-      const critDelta=(cmp.critChanceAfter??0)-(cmp.critChanceBefore??0);if(Math.abs(critDelta)>.001)specialConsequences.push(`<span class="equipment-delta same">Crit Chance ${deltaText(critDelta,2)}%</span>`);
-      const critDmgDelta=(cmp.critDamageAfter??0)-(cmp.critDamageBefore??0);if(Math.abs(critDmgDelta)>.001)specialConsequences.push(`<span class="equipment-delta same">Crit Damage ${deltaText(critDmgDelta,1)}%</span>`);
+      const critDelta=(cmp.affixesAfter?.crit?.pct||0)-(cmp.affixesBefore?.crit?.pct||0);if(Math.abs(critDelta)>.001)specialConsequences.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,2)}%</span>`);
       const affixConsequences=[["Boss","bossDamage","pct"],["Reflect","reflect","pct"],["Lifesteal","lifesteal","pct"]].map(([label,key,prop])=>{const d=(cmp.affixesAfter?.[key]?.[prop]||0)-(cmp.affixesBefore?.[key]?.[prop]||0);return d?`<span class="equipment-delta ${deltaClass(d)}">${label} ${deltaText(d)}%</span>`:"";}).join("");
       const consequences=`${Math.abs(armorDelta)>.001?`<span class="equipment-delta ${deltaClass(armorDelta)}">Armor ${deltaText(armorDelta)}</span>`:""}${attrConsequences}${Math.abs(strikeDelta)>.05?`<span class="equipment-delta ${deltaClass(strikeDelta)}">Attack Rating ${deltaText(strikeDelta,1)}</span>`:""}${specialConsequences.join("")}${affixConsequences}`;
       const frame=rarityFrameClass(g.rarity);
       return `<div class="pack-item compact equipment-pack ${frame}">${raritySparkles(g.rarity,`pack:${id}`)}<div class="pack-item-top"><b class="${rarityClass(g.rarity)}">${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span></b><strong class="${rarityClass(g.rarity)}">iLv ${g.itemLevel}</strong></div><div class="equipment-economy"><span>Intrinsic ${Math.round(computedIntrinsicValue(g))}</span><b>${formatGoldHtml(computedItemGoldValue(g))}</b></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta power">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta power">Gear ${deltaText(cmp.gearDelta,1)}</span><span class="equipment-delta power">Value ${deltaText(cmp.valueDelta||0)}</span>${consequences}</div><div class="pack-actions"><button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button></div></div>`;
     }).join(""):`<div class="pack-note">No carried equipment matches this filter.</div>`;
-    $("packNote").textContent="Equipment is filtered by compatible slot and sorted by current iLv upgrade potential.";
+    $("packNote").textContent="Equipment is filtered by compatible slot. Newly acquired gear stays at the top so fresh loot is easy to find.";
   }else{
     filterBar.innerHTML=`<div class="equipment-filter-row">${backpackFilterButtonsHtml()}</div>`;
     const rows=[];
@@ -3960,6 +4198,16 @@ function renderPack(rememberView=true){
   restorePackViewState();
 }
 
+function stableEncounterUnit(key="") {
+  // FNV-1a style deterministic unit value for physical world entities. Examine
+  // and the eventual combat spawn must describe the same individual creature.
+  let h=2166136261>>>0;
+  for(const ch of String(key)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)>>>0;}
+  return h/4294967295;
+}
+function worldEncounterHpRoll(worldEntityId=null){
+  return worldEntityId?0.94+stableEncounterUnit(`${worldEntityId}|hp`)*0.12:0.94+rnd()*0.12;
+}
 function spawnEncounter(options={}){
   if(S) S.travelEvent = null;
   const worldRealtime=!!options.worldRealtime;
@@ -4005,16 +4253,19 @@ function spawnEncounter(options={}){
       : options.playerInitiated
         ? `You mark <b>${cap(article(base.name))}</b> as your target.`
         : `Something moves in the dark. <b>${cap(article(base.name))}</b> notices you.`,options.surprise?"good":options.playerInitiated?"note":"danger");
-  const hpRoll = 0.94 + rnd()*0.12;
-  const hpProfile = base.hp/34;
-  const atkProfile = base.atk/7;
-  const hpMax = Math.max(1,Math.round(expectedStrikeAtDepth(S.depth)*4.5*hpProfile*hpRoll));
+  const encounterDepth=Math.max(0,Number(options.encounterDepth??S.depth)||0);
+  const hpRoll = worldEncounterHpRoll(options.worldEntityId);
+  const hpProfile = Math.max(.1,Number(base.hp)||34)/34;
+  const atkProfile = Math.max(.1,Number(base.atk)||7)/7;
+  const hpCurveMult = Math.max(.1,Number(base.curveHpMult)||1);
+  const atkCurveMult = Math.max(.1,Number(base.curveAtkMult)||1);
+  const hpMax = Math.max(1,Math.round(expectedStrikeAtDepth(encounterDepth)*ENEMY_HP_CURVE_MULTIPLIER*hpProfile*hpCurveMult*hpRoll));
   const firstSeen = !S.seenFoes[base.id];
 
   S.foe = {
-    key:base.id,name:base.name,profile:base,
-    lv:Math.max(1,1+Math.floor(depthGrowth(S.depth)/5)+base.danger),
-    hp:hpMax,hpMax,atk:Math.max(1,Math.round(expectedEnemyHitAtDepth(S.depth)*atkProfile)),
+    key:base.id,name:base.name,profile:base,encounterDepth,worldEntityId:options.worldEntityId||null,
+    lv:Math.max(1,1+Math.floor(depthGrowth(encounterDepth)/5)+base.danger),
+    hp:hpMax,hpMax,atk:Math.max(1,Math.round(expectedEnemyHitAtDepth(encounterDepth)*atkProfile*atkCurveMult)),
     weakness:base.weakness,revealed:knowledgeReads(base.id)>=1,
     readUsed:false,whetstoneUsed:false,intent:null,heavyStage:0,backgroundCharges:[],
     blinded:false,offBalance:false,offBalanceStruck:false,feintBaitedDodge:false,reaction:null,noDodgeNextReaction:false,
@@ -4033,7 +4284,7 @@ function spawnEncounter(options={}){
     travelLogAdd(`<b>${esc(cap(S.foe.name))}</b> carries the same wrongness as the passage.`,"danger");
   }
   if(options.boss){
-    const idx = options.bossStratum ?? Math.max(0,Math.floor(S.depth/FATHOMS_PER_STRATUM));
+    const idx = options.bossStratum ?? Math.max(0,Math.floor(encounterDepth/FATHOMS_PER_STRATUM));
     S.foe.boss = true;S.foe.bossStratum = idx;S.foe.midBoss=!!options.midBoss;S.foe.sideBoss=!!options.sideBoss;
     if(options.midBoss||options.sideBoss){
       S.foe.key=base.id;S.foe.name=base.name;S.seenFoes[base.id]=true;
@@ -4049,15 +4300,24 @@ function spawnEncounter(options={}){
     S.foe.mimic = true;
     S.foe.name = MIMIC_PROFILE.name;
     S.foe.key = MIMIC_PROFILE.id;
+    if(!S.seenFoes[MIMIC_PROFILE.id])markCharacterNotice("bestiary");
+    S.seenFoes[MIMIC_PROFILE.id]=true;
     travelLogAdd(`<b>${esc(cap(MIMIC_PROFILE.name))}</b> unfolds from the shape of the chest.`,"danger");
   }
 
   if(S.foe.worldRealtime){
+    // Boon time freezes for the entire realtime combat target, matching the
+    // intended "clock freezes during combat" rule.
+    pauseBoonClock();
     // Physical-world combat never uses the old fade-to-modal transition. A stale
     // fade has pointer-events:none, which is why the controls could still work
     // underneath an apparently dead black screen. Retire it synchronously here.
     stopEncounterWarningFrame();clearCombatTransitionTimers();encounterWarningState=null;clearCombatTransitionVisual();
-    ensureWorldCombatResources();S.worldCombatGuardUntil=0;S.worldCombatQueuedPower=null;S.foe.intent="engaged";S.foe.heavyStage=0;S.foe.reaction=null;
+    const preparedResources=ensureWorldCombatResources();
+    // A fresh engagement after a real lull begins with ranged Focus prepared.
+    // Rapid target swaps / chained hostiles do not grant a free refill.
+    if(worldCombatPeaceMs>=WORLD_COMBAT_FOCUS_PREPARED_LULL_MS)preparedResources.focus=WORLD_COMBAT_RESOURCE_MAX;
+    worldCombatPeaceMs=0;S.worldCombatGuardUntil=0;S.worldCombatQueuedPower=null;S.foe.intent="engaged";S.foe.heavyStage=0;S.foe.reaction=null;
   }else{
     rollIntent();
     rollEnemyReaction();
@@ -4449,10 +4709,10 @@ async function handleTravelEventAction(action){
     }
     if(action==="caravan-help-attacked"){
       if(!event)return;
-      const profile=chooseFoeProfile();
+      const profile=chooseFoeProfile(),caravan={eventId:event.id,routeId:event.routeId,type:event.type};
       S.travelEvent=null;
       travelLogAdd(`You choose to help and enter the fighting around the caravan.`,"beat");
-      return spawnEncounter({profile,caravan:{eventId:event.id,routeId:event.routeId,type:event.type}});
+      return requestScriptedRealtimeCombat({profileId:profile.id,worldEntityId:`scripted:caravan:${event.id}`,encounterDepth:Number(event.depth)||S.depth,anchorEventId:event.id,caravan});
     }
     if(action==="caravan-steal"){
       if(!event)return;
@@ -4615,7 +4875,10 @@ function closeTownBlockingSheets(){
 function enterTown(def){
   if(!S||!def||over||S.foe||S.travelEvent||S.activeHollow) return false;
   const state=ensureTownState();
-  if(!state||state.departed[def.id]) return false;
+  if(!state) return false;
+  // Settlements are spatial and bidirectional. Retire any old one-way departure
+  // flag carried by a migrated save when the player reaches the settlement again.
+  state.departed[def.id]=false;
   pauseBoonClock();
   clearHollowTimer();
   closeTownBlockingSheets();
@@ -4623,7 +4886,7 @@ function enterTown(def){
   S.exploreElapsedMs=0;S.exploreDepth=S.depth;
   S.travelMode="stopped";S.travelSinceEvent=0;
   state.currentId=def.id;state.visited[def.id]=true;
-  travelLogAdd(`You reach <b>${esc(def.name)}</b> at <b>${formatDepth(def.depth)} fathoms</b>. The descent waits beyond its lower gate.`,"beat");
+  travelLogAdd(`You reach <b>${esc(def.name)}</b> at <b>${formatDepth(def.depth)} fathoms</b>.`,"beat");
   render();
   // Escort handoffs resolve at the gate before normal town browsing. The town
   // itself is already active underneath the Interaction Engine, so closing the
@@ -4646,15 +4909,7 @@ function armTownDeparture(){
 }
 function departCurrentTown(){
   const def=currentTown();if(!S||!def)return false;
-  const state=ensureTownState();
-  for(const inst of questInstances("active")){const qdef=questDefById(inst.definitionId);if((inst.targetTownId||qdef?.targetTownId)===def.id)makeQuestInactive(inst.instanceId,"Destination left behind");}
-  state.visited[def.id]=true;state.departed[def.id]=true;state.currentId=null;
-  townDepartureArmed=false;townLocationOpenId=null;townMerchantServiceId=null;
-  S.travelMode="stopped";S.travelSinceEvent=0;
-  travelLogAdd(`You leave <b>${esc(def.name)}</b> through the lower gate. There is no road back for you.`,"beat");
-  maybeScheduleMerchant();
-  render();saveRunNow();
-  return true;
+  return worldLeaveTownById(def.id);
 }
 
 function townServiceBucket(def=currentTown()){
@@ -4672,6 +4927,11 @@ function ensureTownMerchantService(serviceId){
 }
 function townRecoveryNeeded(){
   return !!S && (S.hp<S.hpMax || abilitiesNeedRestoration() || !!S.bleeding || !restReady());
+}
+function settlementKindLabel(def){
+  if(def?.kind==="city")return "City";
+  if(def?.kind==="village")return "Village";
+  return "Town";
 }
 function townLodgingCost(def=currentTown()){
   if(!def)return 0;
@@ -4736,7 +4996,7 @@ function townLocationStatusText(loc){
   if(loc.service==="tavern"){
     const def=currentTown(),cost=townLodgingCost(def),afford=canAffordTownLodging(def);
     const recovery=townRecoveryNeeded()?`Full recovery available · HP ${S.hp}/${S.hpMax} · abilities and conditions restored.`:`You are already fully recovered.`;
-    return turnIn||`${def?.kind==="city"?"City":"Town"} room · ${formatGold(cost)} · ${recovery} Includes a lodging boon.${afford?"":" Not enough coin."}`;
+    return turnIn||`${settlementKindLabel(def)} room · ${formatGold(cost)} · ${recovery} Includes a lodging boon.${afford?"":" Not enough coin."}`;
   }
   if(loc.service==="herbalist") return turnIn||"Bandages are available now. Direct healer services are reserved for a later town-service hook.";
   if(loc.service==="guild"){
@@ -4776,7 +5036,7 @@ function renderTown(){
   const def=!over?currentTown():null;
   screen.hidden=!def;
   if(!def){townDepartureArmed=false;townLocationOpenId=null;return;}
-  $("townMeta").textContent=`${def.kind==="city"?"City":"Town"} · ${formatDepth(def.depth)} fathoms`;
+  $("townMeta").textContent=`${settlementKindLabel(def)} · ${formatDepth(def.depth)} fathoms`;
   $("townName").textContent=def.name;
   const art=$("townMapArtboard");
   const shell=$("townMapShell");
@@ -4813,7 +5073,7 @@ function renderTown(){
     const hpMax=Math.max(1,S.hpMax||1), hpNow=Math.max(0,Math.min(hpMax,S.hp||0)), xpNeed=Math.max(1,xpToNext()), xpNow=Math.max(0,S.xp||0);
     const hpPct=(hpNow/hpMax)*100;
     $("townHeroHpBar").style.width=`${hpPct}%`;
-    $("townHeroHpBar").style.background=hpPct>55?"#6f93a7":(hpPct>25?"#9a8450":"#a15b4a");
+    $("townHeroHpBar").style.background=hpPct>55?"#5f9d58":(hpPct>25?"#9a8450":"#a15b4a");
     $("townHeroHpText").textContent=`${hpNow} / ${hpMax} hp`;
     $("townHeroXpText").textContent=`${xpNow} / ${xpNeed} XP`;
     if($("townHeroXpBar")) $("townHeroXpBar").style.width=`${clamp(xpNow/Math.max(1,xpNeed),0,1)*100}%`;
@@ -5359,7 +5619,7 @@ function incomingMean(openMult=1){
   const learnedDefence=knowledgeDamageTakenMult(f.key);
   let d=Math.max(0,f.atk*I.mult*openMult*learnedDefence);
   if(curseActive()&&S.curse.id==="frailty")d*=1.05;
-  d=mitigateDamageByType(d,{damageType:"physical",armor:equipmentArmorFor(),expectedArmor:expectedMediumArmorAtDepth(S.depth)});
+  d=mitigatePlayerDamageByType(d,{damageType:"physical"});
   return Math.max(0,d);
 }
 function actualIncomingBounds(openMult=1){
@@ -5463,7 +5723,7 @@ function finalizeCombatVictory(foe){
 
 function finishKill(out){
   const f=S.foe;
-  if(!f) return;
+  if(!f) return {poulticeHeal:0};
   worldCombatCancelQueuedPower({refund:true});
   const wasSide=!!f.side, wasBoss=!!f.boss, wasMimic=!!f.mimic, wasCaravan=!!f.caravan;
   const bossStratum=f.bossStratum??Math.max(0,Math.floor(S.depth/FATHOMS_PER_STRATUM));
@@ -5471,12 +5731,12 @@ function finishKill(out){
 
   S.kills=(S.kills||0)+1;
   const reward=awardKill(f);
-  let sustain="";
+  let sustain="",poulticeHeal=0;
   if(boonActive("poultice") && S.hp<S.hpMax){
     const before=S.hp;
     S.hp=Math.min(S.hpMax,S.hp+poulticeHealAmount());
-    const healed=S.hp-before;
-    if(healed>0) sustain=`<p class="good">Poultice: recovered <b>${healed} HP</b> after the kill.</p>`;
+    poulticeHeal=Math.max(0,S.hp-before);
+    if(poulticeHeal>0) sustain=`<p class="good">Poultice: recovered <b>${poulticeHeal} HP</b> after the kill.</p>`;
   }
 
   travelLogAdd(`You put down the <b>${esc(f.name)}</b>.`,"good");
@@ -5504,7 +5764,7 @@ function finishKill(out){
   S.abilityQuickUsed=false;
   armed=null;
 
-  if(f.worldEntityId&&!wasBoss&&!wasMimic&&!wasCaravan){
+  if(f.worldEntityId&&!wasBoss&&!wasMimic&&!wasCaravan&&!f.rescueGuardian&&!f.escortThreat){
     const rolled=rollWorldGoblinLoot(f);f._worldLootPayload=rolled.payload;if(rolled.labels.length)S._lootFoundCurrent.push(...rolled.labels);
   }else{
     maybeMonsterLoot(f);
@@ -5551,7 +5811,7 @@ function finishKill(out){
       const trophy=`Prototype Stratum ${bossStratum+1} Trophy`;addMisc(trophy,1);S._lootFoundCurrent.push(trophy);
       if(bossStratum===0){
         const bossGear=stratumBossEquipmentReward(), bossDef=equipmentItemDef(bossGear);
-        if(bossDef && !ownsEquipmentItem(bossGear)){addEquipmentToBag(bossGear);S._lootFoundCurrent.push(`${bossDef.name} · ${bossDef.rarity} · iLv ${bossDef.itemLevel} · ${formatGold(computedItemGoldValue(bossDef))}`);}
+        if(bossDef && !ownsEquipmentItem(bossGear)){addEquipmentToBag(bossGear,true);S._lootFoundCurrent.push(`${bossDef.name} · ${bossDef.rarity} · iLv ${bossDef.itemLevel} · ${formatGold(computedItemGoldValue(bossDef))}`);}
       }
       travelLogAdd(`The boundary seal breaks. The physical route into <b>${esc(stratumName(bossStratum+1))}</b> is open; you still have to walk through it.`,"beat");
     }
@@ -5575,6 +5835,7 @@ function finishKill(out){
     render();
     if(f.worldEntityId)setTimeout(()=>{if(S?.foe===f&&f.defeated)finalizeCombatVictory(f);},700);
   }
+  return {poulticeHeal};
 }
 
 /* ============================================================
@@ -6400,7 +6661,7 @@ function renderSafeHollow(){
   }else{
     camp.disabled=false;
     camp.querySelector("b").textContent="Make camp";
-    $("campHereSub").textContent=`1 Camp Supply · ${S.inventory.campSupplies} carried · 50% Max HP + full resources`;
+    $("campHereSub").textContent=`1 Camp Supply · ${S.inventory.campSupplies} carried · 50% Max HP + prepared resources`;
   }
   const countdown=$("hollowCountdown");
   if(stage) countdown.textContent="No auto-continue at the pre-boss staging hollow.";
@@ -6559,6 +6820,7 @@ function render(){
   renderBoonChoice();
   renderWorldLootSheet();
   renderTravelLogCollapse();
+  renderWorldRecoverButton(true);
 
   $("heroName").textContent = S.name;
   $("heroLv").textContent = "Level " + S.level;
@@ -6795,8 +7057,10 @@ function uiIcon(name, variant="icon"){
   return `<span class="ui-icon ${name}" aria-hidden="true">${img}<span class="ui-fallback">${svg}</span></span>`;
 }
 function applyConceptChrome(){
-  const seat={iconAbilities:"abilities",iconPack:"pack",iconRun:"run"};
-  for(const id in seat){ const el=$(id); if(el && !el.innerHTML) el.innerHTML=uiIcon(seat[id],"glyph"); }
+  const glyphSeat={iconAbilities:"abilities",iconPack:"pack",iconRun:"run"};
+  for(const id in glyphSeat){const el=$(id);if(el&&!el.innerHTML)el.innerHTML=uiIcon(glyphSeat[id],"glyph");}
+  const actionSeat={worldPowerIcon:"heavy",worldGuardIcon:"parry",worldRecoverIcon:"recover",worldRecoverCombatIcon:"recover",worldReadIcon:"read",worldSandIcon:"sand"};
+  for(const id in actionSeat){const el=$(id);if(el&&!el.innerHTML)el.innerHTML=uiIcon(actionSeat[id]);}
 }
 function actionIconName(key){ if(key==="heavy") return "heavy"; if(key==="guard"||key==="defend") return "parry"; if(key==="sand") return "sand"; if(key==="read") return "read"; if(key==="counter")return "strike"; if(key==="endturn")return "intent"; return "strike"; }
 function intentIconName(key){ return "intent"; }
@@ -7062,7 +7326,7 @@ const EQUIPMENT_ITEMS = {
 const GENERATED_AFFIX_ENABLED = {
   crit:true, // v0.204.0: build-driven Critical Chance is live again for overworld auto-attacks
   bossDamage:true,
-  reflect:true,
+  reflect:false,
   lifesteal:false,
   skillRating:false,
   armorPen:false,
@@ -7275,10 +7539,9 @@ function merchantEquipmentCompareHtml(itemId,targetSlot=null){
   }
   const strikeDelta=(c.strikeAfter??0)-(c.strikeBefore??0);
   if(Math.abs(strikeDelta)>.05) bits.push(`<span class="equipment-delta ${deltaClass(strikeDelta)}">Attack Rating ${deltaText(strikeDelta,1)}</span>`);
-  const defenceDelta=(c.defenceRatingAfter??0)-(c.defenceRatingBefore??0);if(Math.abs(defenceDelta)>.05)bits.push(`<span class="equipment-delta ${deltaClass(defenceDelta)}">Defence Rating ${deltaText(defenceDelta,1)}</span>`);
+  const hitDelta=((c.enemyHitChanceAfter??0)-(c.enemyHitChanceBefore??0))*100;if(Math.abs(hitDelta)>.01)bits.push(`<span class="equipment-delta ${deltaClass(-hitDelta)}">Enemy Hit ${deltaText(hitDelta,1)}%</span>`);
   const mitigationDelta=((c.physicalMitigationAfter??0)-(c.physicalMitigationBefore??0))*100;if(Math.abs(mitigationDelta)>.01)bits.push(`<span class="equipment-delta ${deltaClass(mitigationDelta)}">Physical DR ${deltaText(mitigationDelta,1)}%</span>`);
-  const critDelta=(c.critChanceAfter??0)-(c.critChanceBefore??0);if(Math.abs(critDelta)>.001)bits.push(`<span class="equipment-delta same">Crit Chance ${deltaText(critDelta,2)}%</span>`);
-  const critDmgDelta=(c.critDamageAfter??0)-(c.critDamageBefore??0);if(Math.abs(critDmgDelta)>.001)bits.push(`<span class="equipment-delta same">Crit Damage ${deltaText(critDmgDelta,1)}%</span>`);
+  const critDelta=(c.affixesAfter?.crit?.pct||0)-(c.affixesBefore?.crit?.pct||0);if(Math.abs(critDelta)>.001)bits.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,2)}%</span>`);
   const affixes=[["Boss","bossDamage"],["Reflect","reflect"],["Lifesteal","lifesteal"]];
   for(const [label,key] of affixes){
     const d=(c.affixesAfter?.[key]?.pct||0)-(c.affixesBefore?.[key]?.pct||0);
@@ -7594,7 +7857,7 @@ function merchantBuyStock(stockId,confirmed=false){
   merchantPendingPurchase=null;
   S.gold-=price; m.purse+=price;
   if(row.kind==="equipment"){
-    addEquipmentToBag(row.itemId);
+    addEquipmentToBag(row.itemId,true);
     travelLogAdd(`Bought <b>${esc(equipmentItemDef(row.itemId)?.name||"gear")}</b> from <b>${esc(merchantDisplayName(m))}</b> for ${formatGold(price)}.`,"good");
     m.stock.splice(idx,1);
   }else if(row.kind==="supply"){
@@ -7717,6 +7980,15 @@ function generatedWeightedPick(entries,weightFn=e=>e.weight||1){
   for(let i=0;i<entries.length;i++){roll-=weights[i];if(roll<=0)return entries[i];}
   return entries[entries.length-1];
 }
+function generatedWeaponFamilyWeight(entry){
+  const base=Math.max(0,Number(entry?.weight)||1);
+  const currentFamily=String(equippedWeaponDef()?.family||"");
+  if(!currentFamily||currentFamily==="unarmed"||String(entry?.family||"")!==currentFamily)return base;
+  // Soft smart-loot bias. The bonus is derived from the registered family table,
+  // so future weapon families automatically participate without another code path.
+  const averageBase=GENERATED_WEAPON_FAMILIES.reduce((sum,row)=>sum+Math.max(0,Number(row?.weight)||1),0)/Math.max(1,GENERATED_WEAPON_FAMILIES.length);
+  return base+averageBase*0.75;
+}
 function generatedFamilyWeight(entry,sourceKey){
   let w=entry.weight||1;
   if(["cutter","mauler"].includes(sourceKey) && entry.id==="weapon") w*=1.8;
@@ -7826,7 +8098,7 @@ function generateProceduralEquipment(depth=S?.depth||0,sourceKey=""){
   const entry=generatedWeightedPick(GENERATED_DROP_FAMILIES,e=>generatedFamilyWeight(e,sourceKey));
   const targetIlvl=generatedTargetItemLevel(d,rarity);
   let weapon=null;
-  if(entry.kind==="weapon") weapon=generatedWeightedPick(GENERATED_WEAPON_FAMILIES);
+  if(entry.kind==="weapon") weapon=generatedWeightedPick(GENERATED_WEAPON_FAMILIES,generatedWeaponFamilyWeight);
   const coef=generatedSlotCoefficient(entry,weapon),targetValue=intrinsicValueFromLevel(targetIlvl,coef);
   // Crit has a hard slot ceiling, but rarity controls how likely this particular
   // item is to roll toward that ceiling. The rolled cap is chosen once per item
@@ -7858,7 +8130,7 @@ function addGeneratedEquipment(item){
   stampItemEconomy(item,{recalculateGeneratedIlvl:!!item.generated});
   S.generatedItems=S.generatedItems||{};
   S.generatedItems[item.id]=cloneForSave(item);
-  addEquipmentToBag(item.id);
+  addEquipmentToBag(item.id,true);
   return item.id;
 }
 function grantAuthoredEquipmentInstance(templateId){
@@ -7866,7 +8138,7 @@ function grantAuthoredEquipmentInstance(templateId){
   if(!S||!template)return null;
   const id=generatedInstanceId(),item=cloneForSave(template);
   item.id=id;item.generated=false;item.authoredReward=true;stampItemEconomy(item);
-  S.generatedItems=S.generatedItems||{};S.generatedItems[id]=item;addEquipmentToBag(id);
+  S.generatedItems=S.generatedItems||{};S.generatedItems[id]=item;addEquipmentToBag(id,true);
   return {id,name:item.name};
 }
 
@@ -7909,17 +8181,29 @@ function equipmentArmorFor(equipmentState=S?.equipment){
   return total;
 }
 function physicalDamageReductionFromArmor(actualArmor,expectedArmor){
+  // Retained for enemy Armor. Player Armor now governs chance-to-connect instead.
   const expected=Math.max(0.0001,Number(expectedArmor)||0.0001);
   const r=Math.max(0,Number(actualArmor)||0)/expected;
   return r<=0?0:r/(r+ARMOR_CURVE_CONSTANT);
 }
-function armorMitigationFor(equipmentState=S?.equipment,depth=S?.depth||0){
-  return physicalDamageReductionFromArmor(equipmentArmorFor(equipmentState),expectedMediumArmorAtDepth(depth));
+function physicalDamageReductionFromDefense(defValue){
+  const d=Math.max(0,Number(defValue)||0);
+  return d<=0?0:PLAYER_DEF_PHYSICAL_DR_CAP*(d/(d+PLAYER_DEF_PHYSICAL_DR_SCALE));
+}
+function armorMitigationFor(equipmentState=S?.equipment,_depth=S?.depth||0){
+  // Compatibility name: callers historically asked for Armor mitigation. In
+  // v0.207.0 the player's physical mitigation is driven by effective DEF.
+  return physicalDamageReductionFromDefense(effectiveStatForEquipment("DEF",equipmentState));
 }
 function armorMitigation(){ return armorMitigationFor(S?.equipment,S?.depth||0); }
+function mitigatePlayerDamageByType(damage,{damageType="physical",equipmentState=S?.equipment}={}){
+  const raw=Math.max(0,Number(damage)||0);
+  if(String(damageType||"physical").toLowerCase()!=="physical")return raw;
+  return raw*(1-armorMitigationFor(equipmentState,S?.depth||0));
+}
 function foeArmorRating(foe=S?.foe,depth=S?.depth||0){
   const rawProfile=Number(foe?.profile?.armorProfile);
-  const profile=Math.max(0,Number.isFinite(rawProfile)?rawProfile:1);
+  const profile=Math.max(0,Number.isFinite(rawProfile)?rawProfile:ENEMY_BASE_ARMOR_PROFILE);
   return expectedMediumArmorAtDepth(depth)*profile;
 }
 function foeArmorMitigation(foe=S?.foe,depth=S?.depth||0){
@@ -8000,12 +8284,14 @@ const ALTAR_SENTENCE = ["Cor","amina","mi","mattra"];
 
 const BOSS_PROFILE = {
   id:"warren_boss", name:"prototype warren boss", unlock:0, hp:78, atk:9, xp:32, danger:3, awareness:40, speed:95,
+  defenceProfile:1.00, armorProfile:1.00, accuracyProfile:1.00, curveHpMult:(4.5/3.5), curveAtkMult:(10.5/9),
   intents:{quick:30,heavy:25,dodge:10,guard:25,recover:10}, recoverAt:0.35,
   hurtIntents:{quick:20,heavy:50,dodge:5,guard:10,recover:15}, hurtAt:0.50,
   weakness:{id:"rage_opening",txt:"Its second wind becomes reckless. Heavy commitment is easier to punish once it is bloodied.",eff:{counterBonus:1.40,offBalanceBonus:1.40}}
 };
 const MID_BOSS_PROFILE={
   id:"warren_shaman",name:"goblin depth-shaman",unlock:0,hp:62,atk:8,xp:26,danger:3,awareness:32,speed:100,
+  defenceProfile:1.00, armorProfile:1.00, accuracyProfile:1.00, curveHpMult:(4.5/3.5), curveAtkMult:(10.5/9),
   intents:{quick:18,heavy:22,dodge:12,guard:14,recover:34},recoverAt:.62,
   hurtIntents:{quick:24,heavy:32,dodge:8,guard:12,recover:24},hurtAt:.5,
   weakness:{id:"broken_ritual",txt:"Pressure interrupts its ritual recovery and leaves it exposed.",eff:{counterBonus:1.25}}
@@ -8017,7 +8303,9 @@ function midBossVariantProfile(stratum=0){
   if(!S)return MID_BOSS_PROFILE;
   const st=Math.max(0,Math.floor(Number(stratum)||0)),depth=midBossDepthForStratum(st);
   S.midBossVariants=S.midBossVariants||{};
-  const pool=FOES.filter(f=>depth>=Number(f.unlock||0));
+  // The 250-fathom mini-boss remains an oversized ordinary goblin even though
+  // slimes now inhabit Stratum 1. Do not promote a slime into this authored role.
+  const pool=FOES.filter(f=>depth>=Number(f.unlock||0)&&(f.maxDepth==null||depth<Number(f.maxDepth))&&/goblin/i.test(String(f?.name||'')));
   let base=FOES.find(f=>f.id===S.midBossVariants[st] && pool.some(p=>p.id===f.id));
   if(!base){base=pool.length?pool[ri(0,pool.length-1)]:FOES[0];S.midBossVariants[st]=base.id;}
   return {...base,
@@ -8027,7 +8315,9 @@ function midBossVariantProfile(stratum=0){
     xp:Math.max(26,Math.round(base.xp*1.8)),
     danger:Math.max(3,(Number(base.danger)||0)+2),
     awareness:Math.max(28,Number(base.awareness)||0),
-    speed:Math.max(100,Number(base.speed)||100)
+    speed:Math.max(100,Number(base.speed)||100),
+    curveHpMult:Math.max(Number(base.curveHpMult)||1,4.5/3.5),
+    curveAtkMult:Math.max(Number(base.curveAtkMult)||1,10.5/9)
   };
 }
 
@@ -8062,27 +8352,33 @@ function weaponAttackBaseForEquipment(equipmentState=S?.equipment){
    v0.204.0 — OVERWORLD COMBAT FOUNDATION
 
    Ordinary physical-world enemies now use a continuous attack heartbeat rather
-   than the legacy 3-Stamina/d20 turn screen. The three resources are universal:
-   the equipped weapon decides which one is PRIMARY, not which resources exist.
-   Legacy/modal encounters remain available during the migration.
+   than the legacy 3-Stamina/d20 turn screen. Resource identity is weapon-driven:
+   martial/melee weapons build Momentum through aggression, bows spend/recover
+   Focus, and wands/staves retain Mana. Legacy/modal encounters remain available
+   during the migration.
    ============================================================ */
 const WORLD_COMBAT_RESOURCE_MAX=100;
 const WORLD_COMBAT_GUARD_COST=35;
 const WORLD_COMBAT_GUARD_REDUCTION=.60;
 const WORLD_COMBAT_GUARD_MS=2600;
-const WORLD_COMBAT_ENERGY_REGEN_ACTIVE=10;
-const WORLD_COMBAT_ENERGY_REGEN_IDLE=18;
-const WORLD_COMBAT_ENERGY_REGEN_SECONDARY_ACTIVE=5;
-const WORLD_COMBAT_ENERGY_REGEN_SECONDARY_IDLE=10;
+const WORLD_COMBAT_ENEMY_DAMAGE_MULTIPLIER=.92; // v0.206.16: small attrition nerf for live-world combat
+const WORLD_COMBAT_MOMENTUM_HIT_GAIN=10;
+const WORLD_COMBAT_MOMENTUM_MISS_GAIN=5;
+const WORLD_COMBAT_MOMENTUM_ATTACK_GRACE_MS=3000;
+const WORLD_COMBAT_MOMENTUM_DECAY_PER_SEC=2;
+const WORLD_COMBAT_FOCUS_REGEN_ACTIVE=10;
+const WORLD_COMBAT_FOCUS_REGEN_IDLE=20;
+const WORLD_COMBAT_FOCUS_PREPARED_LULL_MS=4000;
 const WORLD_COMBAT_MANA_REGEN=0.50;
 const WORLD_COMBAT_MANA_REGEN_PRIMARY=1.50;
-const WORLD_COMBAT_FOCUS_DECAY_IDLE=6;
-const WORLD_COMBAT_FOCUS_GAIN=8;
-const WORLD_COMBAT_FOCUS_GAIN_PRIMARY=18;
-const WORLD_COMBAT_ENERGY_POWER_COST=60;
-const WORLD_COMBAT_ENERGY_REFUND=0; // Immediate Heavy: no on-hit refund in this playtest.
+const WORLD_COMBAT_MOMENTUM_POWER_COST=30;
 const WORLD_COMBAT_MANA_POWER_COST=30;
 const WORLD_COMBAT_FOCUS_MIN_FINISHER=40;
+const WORLD_RECOVER_HEAL=20;
+const WORLD_RECOVER_COOLDOWN_MS=30000;
+let worldCombatPeaceMs=0;
+let worldCombatMomentumIdleMs=0;
+let worldRecoverUiSecond=-1;
 // v0.204.0.12: melee reach is now a weapon-family rule rather than a debug
 // slider. Reach is measured surface-to-surface between combat bodies. Daggers
 // are deliberately tight, ordinary melee shares one readable distance, and
@@ -8095,31 +8391,36 @@ const WORLD_COMBAT_ENEMY_MELEE_REACH=10;
 const WORLD_COMBAT_MELEE_FAMILIES=new Set(["unarmed","dagger","sword","axe","shortsword","greatsword"]);
 
 function ensureWorldCombatResources(state=S){
-  if(!state)return {energy:0,focus:0,mana:0};
-  if(!state.combatResources||typeof state.combatResources!=="object")state.combatResources={energy:WORLD_COMBAT_RESOURCE_MAX,focus:0,mana:WORLD_COMBAT_RESOURCE_MAX};
-  for(const key of ["energy","focus","mana"]){
-    const fallback=key==="focus"?0:WORLD_COMBAT_RESOURCE_MAX;
+  if(!state)return {momentum:0,focus:WORLD_COMBAT_RESOURCE_MAX,mana:WORLD_COMBAT_RESOURCE_MAX};
+  if(!state.combatResources||typeof state.combatResources!=="object")state.combatResources={momentum:0,focus:WORLD_COMBAT_RESOURCE_MAX,mana:WORLD_COMBAT_RESOURCE_MAX};
+  // Runtime compatibility for any pre-schema-25 state that reaches this helper
+  // before normal save migration. Old Energy is intentionally not carried into
+  // Momentum: the new martial resource starts empty and must be earned by attacks.
+  if(!Number.isFinite(Number(state.combatResources.momentum)))state.combatResources.momentum=0;
+  delete state.combatResources.energy;
+  for(const key of ["momentum","focus","mana"]){
+    const fallback=key==="momentum"?0:WORLD_COMBAT_RESOURCE_MAX;
     const n=Number(state.combatResources[key]);
     state.combatResources[key]=clamp(Number.isFinite(n)?n:fallback,0,WORLD_COMBAT_RESOURCE_MAX);
   }
   if(!Number.isFinite(Number(state.worldCombatGuardUntil)))state.worldCombatGuardUntil=0;
-  // v0.204.1.3 retires the old delayed power queue. If a save was made while
-  // a power was reserved, return the spent resource exactly once instead of
-  // silently eating it or carrying stale queue state into the new model.
+  // The delayed power queue is retired. A stale Focus/Mana/Momentum reservation
+  // can still be returned exactly once; legacy Energy reservations are discarded
+  // because Energy no longer maps to a banked martial resource.
   const stale=state.worldCombatQueuedPower;
   if(stale&&typeof stale==="object"){
     const key=String(stale.resource||"");
     const spent=Math.max(0,Number(stale.spent)||0);
-    if(["energy","focus","mana"].includes(key)&&spent>0)state.combatResources[key]=Math.min(WORLD_COMBAT_RESOURCE_MAX,(Number(state.combatResources[key])||0)+spent);
+    if(["momentum","focus","mana"].includes(key)&&spent>0)state.combatResources[key]=Math.min(WORLD_COMBAT_RESOURCE_MAX,(Number(state.combatResources[key])||0)+spent);
     state.worldCombatQueuedPower=null;
   }else if(stale)state.worldCombatQueuedPower=null;
   return state.combatResources;
 }
 function weaponPrimaryResource(def=equippedWeaponDef()){
   const family=String(def?.family||"unarmed");
-  if(["dagger","shortsword","bow"].includes(family))return "focus";
+  if(family==="bow")return "focus";
   if(["wand","staff"].includes(family))return "mana";
-  return "energy";
+  return "momentum";
 }
 function weaponWorldRange(def=equippedWeaponDef()){
   const family=String(def?.family||"unarmed");
@@ -8153,52 +8454,160 @@ function worldCombatNormalizedHitChance(attackRating,defenceRating){
   const chance=1/(1+Math.pow(d/(1.5*a),2.2));
   return clamp(chance,.02,.98);
 }
-function worldCombatPlayerHitChance(){return worldCombatNormalizedHitChance(playerAttackRating(),foeDefenceRating(S?.foe));}
-function worldCombatEnemyHitChance(){return worldCombatNormalizedHitChance(foeAttackRating(S?.foe),playerDefenceRating());}
+function worldCombatDepthForFoe(foe=S?.foe,fallback=S?.depth||0){
+  return Math.max(0,Number(foe?.encounterDepth??fallback)||0);
+}
+function worldCombatPlayerHitChance(){const d=worldCombatDepthForFoe(S?.foe);return worldCombatNormalizedHitChance(playerAttackRating(),foeDefenceRating(S?.foe,d));}
+function worldCombatEnemyAccuracyRating(foe=S?.foe){
+  const raw=Number(foe?.profile?.accuracyProfile);
+  const profile=Math.max(0,Number.isFinite(raw)?raw:ENEMY_BASE_ACCURACY_PROFILE);
+  return D20_ATTACK_BASELINE_RATING*profile;
+}
+function worldCombatStandardEnemyHitChanceForEquipment(equipmentState=S?.equipment){
+  return worldCombatNormalizedHitChance(D20_ATTACK_BASELINE_RATING,playerDefenceRatingForEquipment(equipmentState,{includeEffects:true,depth:S?.depth||0}));
+}
+function worldCombatEnemyHitChance(){const d=worldCombatDepthForFoe(S?.foe);return worldCombatNormalizedHitChance(worldCombatEnemyAccuracyRating(S?.foe),playerDefenceRating(d));}
+function worldCombatMatchupForFoe(f,depth=S?.depth||0){
+  if(!S||!f)return null;
+  const d=Math.max(0,Number(depth)||0);
+  const playerHit=worldCombatNormalizedHitChance(playerAttackRating(),foeDefenceRating(f,d));
+  const enemyHit=worldCombatNormalizedHitChance(worldCombatEnemyAccuracyRating(f),playerDefenceRating(d));
+  const playerInterval=Math.max(250,weaponWorldAttackIntervalMs())/1000,enemyInterval=Math.max(250,enemyWorldAttackIntervalMs(f))/1000;
+  const basicMax=Math.max(1,weaponAttackBase()*.80),basicAverage=basicMax*.875;
+  const critChance=clamp(criticalChance()/100,0,1),critMultiplier=Math.max(1,criticalDamagePct()/100);
+  const playerRawAverage=basicAverage*(1+critChance*(critMultiplier-1));
+  const playerDamageAverage=Math.max(1,playerRawAverage*(1-foeArmorMitigation(f,d)));
+  const intentTotal=Object.values(f.profile?.intents||{}).reduce((a,v)=>a+(Number(v)||0),0);
+  const heavyChance=clamp((Number(f.profile?.intents?.heavy)||0)/Math.max(1,intentTotal),.05,.55);
+  const heavyWindup=Math.max(0,Number(f.profile?.heavyWindupMs)||WORLD_COMBAT_HEAVY_WINDUP_MS)/1000;
+  const heavyLandRate=clamp(Number(f.profile?.heavyExpectedLandRate??WORLD_COMBAT_HEAVY_EXPECTED_LAND_RATE),0,1);
+  const enemyBaseAverage=Math.max(1,(Number(f.atk)||1)*.80*WORLD_COMBAT_ENEMY_DAMAGE_MULTIPLIER*(1-armorMitigation()));
+  // A Heavy is a readable telegraph, not a guaranteed 2.2x basic. It also costs
+  // wind-up time. Model the expected action cycle exactly enough that Heavy-heavy
+  // archetypes are not mislabeled as lethal merely for giving the player counterplay.
+  const enemyCycleSeconds=Math.max(.05,enemyInterval+heavyChance*heavyWindup);
+  const enemyDamagePerCycle=enemyBaseAverage*((1-heavyChance)+(heavyChance*2.2*heavyLandRate));
+  const playerDps=Math.max(.001,playerHit*playerDamageAverage/playerInterval),enemyDps=Math.max(.001,enemyHit*enemyDamagePerCycle/enemyCycleSeconds);
+  const playerTtk=Math.max(.01,Number(f.hpMax)||1)/playerDps,enemyTtk=Math.max(.01,Number(S.hpMax)||1)/enemyDps;
+  const ratio=playerTtk/enemyTtk;
+  // ratio is approximately the fraction of the player's Max HP an ordinary
+  // stand-up exchange is expected to consume before the foe dies. Threat labels
+  // therefore describe expedition attrition, not an equal duel-to-the-death.
+  let key='even',label='EVEN';
+  if(ratio<=.15){key='weak';label='WEAK';}
+  else if(ratio>.75){key='deadly';label='DEADLY';}
+  else if(ratio>.40){key='tough';label='TOUGH';}
+  // Threat remains a real matchup readout. Level is only a sanity guard against
+  // the linguistically absurd case where a higher-level foe displays WEAK; gear
+  // and build quality are still allowed to make a much higher-level foe genuinely EVEN.
+  const playerLevel=Math.max(1,Number(S.level)||1),foeLevel=Math.max(1,Number(f.lv)||1),levelGap=foeLevel-playerLevel;
+  if(levelGap>=1&&key==='weak'){key='even';label='EVEN';}
+  return {key,label,ratio,playerHit,enemyHit,playerTtk,enemyTtk,levelGap};
+}
+function worldCombatMatchupSnapshot(){return S?.foe?worldCombatMatchupForFoe(S.foe,worldCombatDepthForFoe(S.foe)):null;}
 function worldCombatRollDamage(maxHit,{minFrac=.40,mult=1}={}){
   const hi=Math.max(1,Math.round((Number(maxHit)||1)*Math.max(.1,Number(mult)||1))),lo=Math.max(1,Math.floor(hi*clamp(minFrac,.05,.95)));
   return hi<=lo?hi:ri(lo,hi);
 }
 function worldCombatPowerSpec(){
-  const primary=weaponPrimaryResource(),family=equippedWeaponDef()?.family||"unarmed";
+  const primary=weaponPrimaryResource();
   if(primary==="focus"){
     const focus=ensureWorldCombatResources().focus;
     const spend=focus>=WORLD_COMBAT_FOCUS_MIN_FINISHER?focus:0;
-    return {primary,label:family==="bow"?"Aimed Finisher":"Finisher",cost:spend,minCost:WORLD_COMBAT_FOCUS_MIN_FINISHER,mult:spend?1.5+spend/100:1.5,refund:0};
+    return {primary,label:"Snipe",cost:spend,minCost:WORLD_COMBAT_FOCUS_MIN_FINISHER,mult:spend?1.5+spend/100:1.5,refund:0};
   }
   if(primary==="mana")return {primary,label:"Arcane Bolt",cost:WORLD_COMBAT_MANA_POWER_COST,minCost:WORLD_COMBAT_MANA_POWER_COST,mult:2.0,refund:0};
-  return {primary,label:"Heavy",cost:WORLD_COMBAT_ENERGY_POWER_COST,minCost:WORLD_COMBAT_ENERGY_POWER_COST,mult:1.8,refund:WORLD_COMBAT_ENERGY_REFUND};
+  return {primary,label:"Heavy",cost:WORLD_COMBAT_MOMENTUM_POWER_COST,minCost:WORLD_COMBAT_MOMENTUM_POWER_COST,mult:1.8,refund:0};
 }
 function worldCombatResourceSnapshot(){
-  const r=ensureWorldCombatResources(),primary=weaponPrimaryResource(),spec=worldCombatPowerSpec();
+  const r=ensureWorldCombatResources(),primary=weaponPrimaryResource(),spec=worldCombatPowerSpec(),matchup=worldCombatMatchupSnapshot();
   return {
-    energy:{value:r.energy,max:WORLD_COMBAT_RESOURCE_MAX},focus:{value:r.focus,max:WORLD_COMBAT_RESOURCE_MAX},mana:{value:r.mana,max:WORLD_COMBAT_RESOURCE_MAX},
+    momentum:{value:r.momentum,max:WORLD_COMBAT_RESOURCE_MAX},focus:{value:r.focus,max:WORLD_COMBAT_RESOURCE_MAX},mana:{value:r.mana,max:WORLD_COMBAT_RESOURCE_MAX},
     primary,power:{label:spec.label,cost:spec.cost,minCost:spec.minCost,resource:spec.primary,queued:false,immediate:true},
-    guard:{cost:WORLD_COMBAT_GUARD_COST,active:Number(S?.worldCombatGuardUntil||0)>Date.now()},
+    guard:{cost:WORLD_COMBAT_GUARD_COST,resource:primary,active:Number(S?.worldCombatGuardUntil||0)>Date.now()},
     weapon:{family:equippedWeaponDef()?.family||"unarmed",name:equippedWeaponDef()?.name||"Unarmed",range:weaponWorldRange(),attackIntervalMs:weaponWorldAttackIntervalMs()},
-    enemy:S?.foe?{attackIntervalMs:enemyWorldAttackIntervalMs(S.foe),range:WORLD_COMBAT_ENEMY_MELEE_REACH,moveSpeed:clamp(60+(foeCombatSpeed(S.foe)-100)*.22,50,84),heavyChance:clamp((Number(S.foe.profile?.intents?.heavy)||0)/Math.max(1,Object.values(S.foe.profile?.intents||{}).reduce((a,v)=>a+(Number(v)||0),0)),.05,.55)}:null,
-    chances:S?.foe?{player:worldCombatPlayerHitChance(),enemy:worldCombatEnemyHitChance()}:null
+    player:{attackRating:playerAttackRating(),armor:equipmentArmorFor(S?.equipment),def:effectiveStat("DEF"),physicalDr:armorMitigationFor(S?.equipment,S?.depth||0),critChance:criticalChance(),xp:Number(S?.xp)||0,xpNeed:Math.max(1,xpToNext(S?.level||1))},
+    enemy:S?.foe?{level:Math.max(1,Number(S.foe.lv)||1),attackIntervalMs:enemyWorldAttackIntervalMs(S.foe),range:WORLD_COMBAT_ENEMY_MELEE_REACH,moveSpeed:clamp(60+(foeCombatSpeed(S.foe)-100)*.22,50,84),heavyChance:clamp((Number(S.foe.profile?.intents?.heavy)||0)/Math.max(1,Object.values(S.foe.profile?.intents||{}).reduce((a,v)=>a+(Number(v)||0),0)),.05,.55),heavyWindupMs:Math.max(0,Number(S.foe.profile?.heavyWindupMs)||WORLD_COMBAT_HEAVY_WINDUP_MS)}:null,
+    chances:S?.foe?{player:worldCombatPlayerHitChance(),enemy:worldCombatEnemyHitChance()}:null,
+    matchup
   };
 }
 function tickWorldCombatResources(ms=0,inCombat=!!S?.foe?.worldRealtime){
   if(!S||over)return false;
-  const r=ensureWorldCombatResources(),dt=Math.max(0,Math.min(1000,Number(ms)||0))/1000;if(dt<=0)return false;
-  const primary=weaponPrimaryResource();
-  const energyRate=primary==="energy"?(inCombat?WORLD_COMBAT_ENERGY_REGEN_ACTIVE:WORLD_COMBAT_ENERGY_REGEN_IDLE):(inCombat?WORLD_COMBAT_ENERGY_REGEN_SECONDARY_ACTIVE:WORLD_COMBAT_ENERGY_REGEN_SECONDARY_IDLE);
+  const clampedMs=Math.max(0,Math.min(1000,Number(ms)||0)),dt=clampedMs/1000;if(dt<=0)return false;
+  const r=ensureWorldCombatResources(),primary=weaponPrimaryResource();
+  // Momentum belongs to the attack rhythm, not the encounter flag. Every martial
+  // attack resets this timer. After a short grace period it bleeds away slowly,
+  // letting the delver carry pressure while running toward a nearby enemy.
+  worldCombatMomentumIdleMs+=clampedMs;
+  if(worldCombatMomentumIdleMs>WORLD_COMBAT_MOMENTUM_ATTACK_GRACE_MS){
+    r.momentum=Math.max(0,r.momentum-WORLD_COMBAT_MOMENTUM_DECAY_PER_SEC*dt);
+  }
+  // Peace time remains separate because Focus uses a true fresh-engagement rule.
+  if(inCombat)worldCombatPeaceMs=0;
+  else worldCombatPeaceMs+=clampedMs;
+  // Focus is the prepared ranged pool: it recovers with time instead of being
+  // built by shooting. Idle recovery is faster so an actual gap between fights
+  // naturally returns a bow user to a prepared opening without an instant reset.
+  const focusRate=inCombat?WORLD_COMBAT_FOCUS_REGEN_ACTIVE:WORLD_COMBAT_FOCUS_REGEN_IDLE;
+  r.focus=Math.min(WORLD_COMBAT_RESOURCE_MAX,r.focus+focusRate*dt);
   const manaRate=primary==="mana"?WORLD_COMBAT_MANA_REGEN_PRIMARY:WORLD_COMBAT_MANA_REGEN;
-  r.energy=Math.min(WORLD_COMBAT_RESOURCE_MAX,r.energy+energyRate*dt);
   r.mana=Math.min(WORLD_COMBAT_RESOURCE_MAX,r.mana+manaRate*dt);
-  if(!inCombat)r.focus=Math.max(0,r.focus-WORLD_COMBAT_FOCUS_DECAY_IDLE*dt);
+  renderWorldRecoverButton();
   return true;
 }
+function worldRecoverRemainingMs(){
+  if(!S)return 0;
+  return Math.max(0,(Number(S.worldRecoverReadyAt)||0)-Date.now());
+}
+function worldRecoverBlocked(){
+  return !S||over||!!S.foe||!!S.travelEvent||encounterWarningActive()||!!currentTown();
+}
+function canWorldRecover(){
+  return !worldRecoverBlocked()&&S.hp<S.hpMax&&worldRecoverRemainingMs()<=0;
+}
+function renderWorldRecoverButton(force=false){
+  const hud=$("worldFieldHud"),btn=$("btnWorldRecover"),sub=$("worldRecoverSub");
+  if(!hud||!btn||!sub)return;
+  const blocked=worldRecoverBlocked();
+  hud.hidden=blocked;
+  if(blocked)return;
+  const remaining=worldRecoverRemainingMs(),second=Math.ceil(remaining/1000);
+  if(!force&&second===worldRecoverUiSecond&&btn.disabled===(!canWorldRecover()))return;
+  worldRecoverUiSecond=second;
+  const missing=Math.max(0,S.hpMax-S.hp),heal=Math.min(WORLD_RECOVER_HEAL,missing);
+  btn.disabled=!canWorldRecover();
+  const cooling=remaining>0;
+  btn.classList.toggle("cooling",cooling);
+  if(cooling)btn.dataset.cooldown=`${second}s`;
+  else delete btn.dataset.cooldown;
+  if(missing<=0)sub.textContent="HP full";
+  else if(cooling)sub.textContent=`+${heal} HP`;
+  else sub.textContent=`+${heal} HP · 30s cooldown`;
+}
+function useWorldRecover(){
+  if(!canWorldRecover()){renderWorldRecoverButton(true);return false;}
+  const before=S.hp;
+  S.hp=Math.min(S.hpMax,S.hp+WORLD_RECOVER_HEAL);
+  const healed=Math.max(0,S.hp-before);
+  S.worldRecoverReadyAt=Date.now()+WORLD_RECOVER_COOLDOWN_MS;
+  worldRecoverUiSecond=-1;
+  travelLogAdd(`<b>Recover.</b> You steady yourself and regain <b>${healed} HP</b>.`,"good");
+  if(healed>0) triggerHealFx(healed,["travel"]);
+  requestRunSave();
+  render();
+  return true;
+}
+
 function worldCombatApplyOutgoing(base,{critical=false,damageType="physical"}={}){
   const foe=S?.foe,baseDamage=Math.max(0,Math.round(Number(base)||0));
   if(!foe||baseDamage<=0)return {damage:0,critical:false};
   const totals=equipmentAffixTotals();
   let rawDamage=critical?legacyCriticalDamageFromBase(baseDamage):baseDamage,bossBonus=0,heal=0;
   if(foe.boss&&totals.bossDamage.pct>0){bossBonus=Math.min(totals.bossDamage.bonusCap,Math.max(0,Math.round(baseDamage*totals.bossDamage.pct/100)));rawDamage+=bossBonus;}
-  const reduction=String(damageType).toLowerCase()==="physical"?foeArmorMitigation(foe,S.depth):0;
-  const mitigated=mitigateDamageByType(rawDamage,{damageType,armor:foeArmorRating(foe,S.depth),expectedArmor:expectedMediumArmorAtDepth(S.depth)});
+  const combatDepth=worldCombatDepthForFoe(foe);
+  const reduction=String(damageType).toLowerCase()==="physical"?foeArmorMitigation(foe,combatDepth):0;
+  const mitigated=mitigateDamageByType(rawDamage,{damageType,armor:foeArmorRating(foe,combatDepth),expectedArmor:expectedMediumArmorAtDepth(combatDepth)});
   const damage=Math.max(1,Math.round(mitigated));
   if(totals.lifesteal.pct>0&&S.hp<S.hpMax){heal=Math.min(totals.lifesteal.healCap,Math.max(0,Math.floor(damage*totals.lifesteal.pct/100)));if(heal>0)S.hp=Math.min(S.hpMax,S.hp+heal);}
   return {damage,rawDamage:Math.round(rawDamage),critical:!!critical,bossBonus,heal,damageType,reduction};
@@ -8226,58 +8635,81 @@ function worldCombatUsePower(){
   // boundary explicit prevents old queue bugs from accumulating.
   worldCombatCancelQueuedPower({refund:true});
   const r=ensureWorldCombatResources(),spec=worldCombatPowerSpec(),available=Number(r[spec.primary])||0;
+  if(spec.primary==="momentum")worldCombatMomentumIdleMs=0;
   if(available<spec.minCost)return {ok:false,reason:`Need ${Math.ceil(spec.minCost-available)} more ${cap(spec.primary)}`};
   const spend=spec.primary==="focus"?available:Math.max(0,Number(spec.cost)||0);
   r[spec.primary]=Math.max(0,available-spend);
   f.hostile=true;
   const mult=spec.primary==="focus"?1.5+spend/100:Math.max(.1,Number(spec.mult)||1);
   const hit=rnd()<worldCombatPlayerHitChance();
-  if(!hit){requestRunSave();return {ok:true,hit:false,damage:0,critical:false,power:true,label:spec.label,spent,resource:spec.primary};}
+  if(!hit){requestRunSave();return {ok:true,hit:false,damage:0,critical:false,power:true,label:spec.label,spent:spend,resource:spec.primary};}
   const baseMax=Math.max(1,Math.round(weaponAttackBase()*mult));
   const rolled=worldCombatRollDamage(baseMax,{minFrac:.50});
   const critical=rnd()<criticalChance()/100,damageType=spec.primary==="mana"?"magic":"physical",fx=worldCombatApplyOutgoing(rolled,{critical,damageType});
   f.hp-=fx.damage;
   const killed=f.hp<=0;
-  if(killed)finishKill(`<p>${esc(spec.label)} lands for <b>${fx.damage}</b>${critical?" with a critical hit":""}.</p>`);
-  else requestRunSave();
-  return {ok:true,hit:true,damage:fx.damage,critical,power:true,label:spec.label,spent,resource:spec.primary,killed};
+  const killFx=killed?finishKill(`<p>${esc(spec.label)} lands for <b>${fx.damage}</b>${critical?" with a critical hit":""}.</p>`):null;
+  if(!killed)requestRunSave();
+  return {ok:true,hit:true,damage:fx.damage,critical,power:true,label:spec.label,spent:spend,resource:spec.primary,killed,postKillHeal:Number(killFx?.poulticeHeal)||0,damageType};
 }
 function worldCombatPlayerAttack(usePower=false){
   // Compatibility: an older bridge that still passes true gets the immediate
   // power resolver. The current bridge calls this only for automatic basics.
   if(usePower)return worldCombatUsePower();
   const f=S?.foe;if(!f?.worldRealtime||f.defeated||over)return {ok:false};f.hostile=true;
+  const r=ensureWorldCombatResources(),primary=weaponPrimaryResource();
+  if(primary==="momentum")worldCombatMomentumIdleMs=0;
+  const sharpened=boonActive("whetstone")&&!f.whetstoneUsed;
+  if(sharpened)f.whetstoneUsed=true;
   const hit=rnd()<worldCombatPlayerHitChance();
-  if(!hit){requestRunSave();return {ok:true,hit:false,damage:0,critical:false,power:false,label:"Basic"};}
-  const r=ensureWorldCombatResources(),baseMax=Math.max(1,Math.round(weaponAttackBase()*0.80));
+  if(!hit){
+    // An accuracy 0 still represents an aggressive committed swing. It earns
+    // half Momentum rather than nothing, avoiding a miss -> no-resource spiral.
+    if(primary==="momentum")r.momentum=Math.min(WORLD_COMBAT_RESOURCE_MAX,r.momentum+WORLD_COMBAT_MOMENTUM_MISS_GAIN);
+    requestRunSave();return {ok:true,hit:false,damage:0,critical:false,power:false,label:"Basic",momentum:r.momentum};
+  }
+  const baseMax=Math.max(1,Math.round(weaponAttackBase()*0.80*(sharpened?1.15:1)));
   const rolled=worldCombatRollDamage(baseMax,{minFrac:.75});
   const critical=rnd()<criticalChance()/100,fx=worldCombatApplyOutgoing(rolled,{critical,damageType:"physical"});
   f.hp-=fx.damage;
-  const gain=weaponPrimaryResource()==="focus"?WORLD_COMBAT_FOCUS_GAIN_PRIMARY:WORLD_COMBAT_FOCUS_GAIN;
-  r.focus=Math.min(WORLD_COMBAT_RESOURCE_MAX,r.focus+gain);
+  // Crits do not grant bonus Momentum: accuracy outcome alone controls the gain.
+  if(primary==="momentum")r.momentum=Math.min(WORLD_COMBAT_RESOURCE_MAX,r.momentum+WORLD_COMBAT_MOMENTUM_HIT_GAIN);
   const killed=f.hp<=0;
-  if(killed)finishKill(`<p>${esc("Basic attack")} lands for <b>${fx.damage}</b>${critical?" with a critical hit":""}.</p>`);
-  else requestRunSave();
-  return {ok:true,hit:true,damage:fx.damage,critical,power:false,label:"Basic",focus:r.focus,killed};
+  const killFx=killed?finishKill(`<p>${esc("Basic attack")} lands for <b>${fx.damage}</b>${critical?" with a critical hit":""}.</p>`):null;
+  if(!killed)requestRunSave();
+  return {ok:true,hit:true,damage:fx.damage,critical,power:false,label:"Basic",momentum:r.momentum,killed,postKillHeal:Number(killFx?.poulticeHeal)||0,damageType:"physical"};
+}
+function worldCombatSandThrow(){
+  const f=S?.foe;if(!f?.worldRealtime||f.defeated||over)return {ok:false,reason:"Unavailable"};
+  if(f.evading)return {ok:false,reason:"Target is evading"};
+  if(f.blinded)return {ok:false,reason:"Target is already Blinded"};
+  const success=rnd()<sandChance();
+  if(success)f.blinded=true;
+  requestRunSave();
+  return {ok:true,success,blinded:success,text:success?"BLINDED":"MISSED"};
 }
 function worldCombatGuard(){
   if(!S?.foe?.worldRealtime||S.foe.defeated||over)return {ok:false,reason:"Unavailable"};
-  const r=ensureWorldCombatResources();if(r.energy<WORLD_COMBAT_GUARD_COST)return {ok:false,reason:`Need ${Math.ceil(WORLD_COMBAT_GUARD_COST-r.energy)} more Energy`};
-  r.energy-=WORLD_COMBAT_GUARD_COST;S.worldCombatGuardUntil=Date.now()+WORLD_COMBAT_GUARD_MS;requestRunSave();
-  return {ok:true,cost:WORLD_COMBAT_GUARD_COST,durationMs:WORLD_COMBAT_GUARD_MS,reduction:WORLD_COMBAT_GUARD_REDUCTION,attackDelayMs:500};
+  // Energy no longer exists. Preserve Guard's existing 35-point tuning for this
+  // playtest, but pay it from the equipped weapon's current primary resource.
+  const r=ensureWorldCombatResources(),resource=weaponPrimaryResource(),available=Number(r[resource])||0;
+  if(available<WORLD_COMBAT_GUARD_COST)return {ok:false,reason:`Need ${Math.ceil(WORLD_COMBAT_GUARD_COST-available)} more ${cap(resource)}`};
+  r[resource]=Math.max(0,available-WORLD_COMBAT_GUARD_COST);S.worldCombatGuardUntil=Date.now()+WORLD_COMBAT_GUARD_MS;requestRunSave();
+  return {ok:true,cost:WORLD_COMBAT_GUARD_COST,resource,durationMs:WORLD_COMBAT_GUARD_MS,reduction:WORLD_COMBAT_GUARD_REDUCTION,attackDelayMs:500};
 }
 function worldCombatEnemyAttack({heavy=false}={}){
   const f=S?.foe;if(!f?.worldRealtime||f.defeated||over)return {ok:false};
+  if(f.blinded){f.blinded=false;requestRunSave();return {ok:true,hit:false,damage:0,heavy:!!heavy,blinded:true};}
   if(rnd()>=worldCombatEnemyHitChance())return {ok:true,hit:false,damage:0,heavy:!!heavy};
-  const rawDamage=worldCombatRollDamage(f.atk,{minFrac:.60,mult:heavy?2.2:1});
-  let damage=mitigateDamageByType(rawDamage,{damageType:"physical",armor:equipmentArmorFor(),expectedArmor:expectedMediumArmorAtDepth(S.depth)});
+  const rawDamage=worldCombatRollDamage(f.atk,{minFrac:.60,mult:heavy?2.2:1})*WORLD_COMBAT_ENEMY_DAMAGE_MULTIPLIER;
+  let damage=mitigatePlayerDamageByType(rawDamage,{damageType:"physical"});
   const guarded=Number(S.worldCombatGuardUntil||0)>Date.now();
   if(guarded){damage=damage*(1-WORLD_COMBAT_GUARD_REDUCTION);S.worldCombatGuardUntil=0;}
   damage=Math.max(1,Math.round(damage));
   S.hp-=damage;
   const reflected=reflectedDamageFromHit(damage);if(reflected>0)f.hp-=reflected;
   if(S.hp<=0){die(`<p class="hurt">The ${esc(f.name)} ${heavy?"committed to a heavy blow":"struck"} for <b>${damage}</b>.</p>`);return {ok:true,hit:true,damage,heavy:!!heavy,guarded,dead:true,reflected};}
-  if(f.hp<=0){finishKill(`<p class="good">Damage Reflect returns <b>${reflected}</b> and finishes the ${esc(f.name)}.</p>`);return {ok:true,hit:true,damage,heavy:!!heavy,guarded,killed:true,reflected};}
+  if(f.hp<=0){const killFx=finishKill(`<p class="good">Damage Reflect returns <b>${reflected}</b> and finishes the ${esc(f.name)}.</p>`);return {ok:true,hit:true,damage,heavy:!!heavy,guarded,killed:true,reflected,postKillHeal:Number(killFx?.poulticeHeal)||0};}
   requestRunSave();return {ok:true,hit:true,damage,heavy:!!heavy,guarded,reflected};
 }
 function worldCombatBeginEvade(){
@@ -8293,7 +8725,7 @@ function worldCombatEvadeHeal(ms=0){
 }
 function worldCombatFinishEvade(){
   const f=S?.foe;if(!f?.worldRealtime||f.defeated)return false;
-  f.hp=f.hpMax;travelLogAdd(`The <b>${esc(f.name)}</b> breaks pursuit and recovers in its territory.`,"note");
+  f.evading=false;f.hp=f.hpMax;travelLogAdd(`The <b>${esc(f.name)}</b> breaks pursuit and recovers in its territory.`,"note");
   const companionStillFollowing=temporaryCompanionActive();clearEnemyTurnTimer();
   worldCombatCancelQueuedPower({refund:true});
   S.foe=null;S.worldCombatGuardUntil=0;S.combatTimeline=null;S.combatActor="player";
@@ -8631,8 +9063,8 @@ async function attemptSideRoutePuzzleHint(){
   else h.hintLog.push(`<span class="note"><b>Hint ${idx+1}:</b> The mechanism does not give up another useful clue.</span>`);
   ev.rollHtml=`${h.hintLog.join("<br>")}<br>${result}`;render();
 }
-const SIDE_SHAMAN_PROFILE={id:"side_shaman",name:"goblin hex-shaman",unlock:0,hp:56,atk:8,xp:24,danger:3,awareness:24,intents:{quick:20,heavy:24,dodge:14,guard:12,recover:30},recoverAt:.6,weakness:{id:"ritual_break",txt:"Its hexes collapse when pressure denies it time to recover.",eff:{recoverPenalty:.4}}};
-const SIDE_GUARDIAN_MIMIC={id:"side_guardian_mimic",name:"corridor mimic",unlock:0,hp:66,atk:9,xp:27,danger:3,awareness:18,intents:{quick:30,heavy:35,dodge:5,guard:20,recover:10},recoverAt:.3,weakness:{id:"hinge_tell",txt:"The false stone flexes at one seam before it lunges.",eff:{counterBonus:1.25}}};
+const SIDE_SHAMAN_PROFILE={id:"side_shaman",name:"goblin hex-shaman",unlock:0,hp:56,atk:8,xp:24,danger:3,awareness:24,speed:94,defenceProfile:1.00,armorProfile:0.70,accuracyProfile:1.05,curveHpMult:(4.5/3.5),curveAtkMult:(10.5/9),intents:{quick:20,heavy:24,dodge:14,guard:12,recover:30},recoverAt:.6,weakness:{id:"ritual_break",txt:"Its hexes collapse when pressure denies it time to recover.",eff:{recoverPenalty:.4}}};
+const SIDE_GUARDIAN_MIMIC={id:"side_guardian_mimic",name:"corridor mimic",unlock:0,hp:66,atk:9,xp:27,danger:3,awareness:18,speed:90,defenceProfile:1.05,armorProfile:0.90,accuracyProfile:1.00,curveHpMult:(4.5/3.5),curveAtkMult:(10.5/9),intents:{quick:30,heavy:35,dodge:5,guard:20,recover:10},recoverAt:.3,weakness:{id:"hinge_tell",txt:"The false stone flexes at one seam before it lunges.",eff:{counterBonus:1.25}}};
 function completeSideRouteStage(note=""){
   const a=S?.sideArea;if(!a)return;
   a.encountersDefeated=Math.min(a.encountersNeeded,(a.encountersDefeated||0)+1);a.activity=0;a.routeNodeActive=false;S.travelSinceEvent=0;
@@ -8717,8 +9149,14 @@ function rollWorldGoblinLoot(f){
   }
   return {payload,labels};
 }
+function expireWorldLootRecord(recordId){
+  const rec=lootRecordById(recordId);
+  if(!rec||rec.worldClaimed!==false||rec.worldExpired)return false;
+  rec.worldExpired=true;rec.worldClaimPayload=null;
+  refreshLootLogEntries(rec.id);requestRunSave();return true;
+}
 function claimWorldLootRecord(rec){
-  if(!S||!rec||rec.worldClaimed!==false)return false;
+  if(!S||!rec||rec.worldClaimed!==false||rec.worldExpired)return false;
   const p=rec.worldClaimPayload||{};
   S.gold=(S.gold||0)+Math.max(0,Math.round(Number(p.gold)||0));
   if(p.rogueTools&&S.inventory.rogueTools<=0)S.inventory.rogueTools=1;
@@ -8842,7 +9280,7 @@ function renderStatusEffects(){
     rows.push(`<div class="char-status bad"><b>Bleeding</b><span>${bleedSecondsRemaining()}s remain · loses 1 HP every 5 seconds of active travel/combat · Bandage, Rest or Camp removes it early.</span>${bandageAction}</div>`);
   }
   if(curseActive()) rows.push(`<div class="char-status bad"><b>${esc(S.curse.name)}</b><span>${S.curse.remaining} completed encounters remaining · ${esc(S.curse.desc)}</span></div>`);
-  if(S.hollowRespite?.remaining>0) rows.push(`<div class="char-status good"><b>Sheltered</b><span>${S.hollowRespite.remaining} completed encounters remaining · +10% RSL-derived Defence Rating.</span></div>`);
+  if(S.hollowRespite?.remaining>0) rows.push(`<div class="char-status good"><b>Sheltered</b><span>${S.hollowRespite.remaining} completed encounters remaining · +10% Armor hit avoidance.</span></div>`);
   if(concealmentActive()) rows.push(`<div class="char-status good"><b>Concealment</b><span>${formatEffectTime(S.concealment.remainingMs)} active travel remaining · Stealth contests enemy Awareness before combat.</span></div>`);
   const boon=boonDef(); if(boon) rows.push(`<div class="char-status good"><b>${esc(boon.name)}</b><span>${formatBoonTime(boonRemainingMs())}${S.boon?.frozen?" · paused":""} · ${esc(boon.desc)}</span></div>`);
   root.innerHTML=rows.length?rows.join(""):`<div class="char-status empty"><b>No active conditions</b><span>No wounds, curses or temporary effects are currently affecting this delver.</span></div>`;
@@ -8869,7 +9307,7 @@ function clearHollowRespite(){
 }
 function grantHollowRespite(){
   clearHollowRespite(); S.hollowRespite={remaining:3};
-  travelLogAdd(`<b>Sheltered.</b> +10% Defence Rating for the next 3 completed encounters.`,"good");
+  travelLogAdd(`<b>Sheltered.</b> +10% Armor hit avoidance for the next 3 completed encounters.`,"good");
 }
 function restAtEmptyHollow(){
   const h=S?.activeHollow; if(!h||S.inventory.campSupplies>0) return;
@@ -9205,7 +9643,7 @@ function addLootLogEntry(rec){
   const row=document.createElement("div");
   row.className="travel-entry loot";
   row.dataset.lootHistory=rec.id;
-  row.innerHTML=`<span class="depth">${formatDepth(rec.depth)}f</span><p><button class="loot-log-btn" data-loot-history="${esc(rec.id)}"><span class="loot-log-source">From ${esc(cap(rec.foeName))}</span><b class="loot-log-items">${esc(lootItemsText(rec.items))}</b><span class="loot-log-note">${rec.worldClaimed===false?"left on cavern floor":"already collected"} · tap to review</span></button></p>`;
+  row.innerHTML=`<span class="depth">${formatDepth(rec.depth)}f</span><p><button class="loot-log-btn" data-loot-history="${esc(rec.id)}"><span class="loot-log-source">From ${esc(cap(rec.foeName))}</span><b class="loot-log-items">${esc(lootItemsText(rec.items))}</b><span class="loot-log-note">${rec.worldExpired?"lost — despawned":rec.worldClaimed===false?"left on cavern floor":"already collected"} · tap to review</span></button></p>`;
   r.appendChild(row);
   while(r.children.length>120)r.removeChild(r.firstChild);
   if(nearBottom)r.scrollTop=r.scrollHeight;
@@ -9216,7 +9654,7 @@ function refreshLootLogEntries(id){
     if(el.classList.contains("loot-log-btn")){
       const items=el.querySelector(".loot-log-items"),note=el.querySelector(".loot-log-note");
       if(items)items.textContent=lootItemsText(rec.items);
-      if(note)note.textContent=`${rec.worldClaimed===false?"left on cavern floor":"already collected"} · tap to review`;
+      if(note)note.textContent=`${rec.worldExpired?"lost — despawned":rec.worldClaimed===false?"left on cavern floor":"already collected"} · tap to review`;
     }
   });
 }
@@ -9227,7 +9665,7 @@ function renderLootHistory(){
   if((S.foe||S.travelEvent)&&!sheet.hidden){sheet.hidden=true;selectedLootHistoryId=null;return;}
   const history=ensureLootHistory();
   if(!history.length){list.innerHTML=`<div class="loot-history-entry"><p>No creature loot has been recorded yet.</p></div>`;return;}
-  list.innerHTML=[...history].reverse().map(rec=>`<div class="loot-history-entry ${String(rec.id)===String(selectedLootHistoryId)?"selected":""}"><div class="loot-history-entry-top"><span class="loot-history-foe">${esc(cap(rec.foeName))}</span><em>${formatDepth(rec.depth)}f · encounter ${rec.encounter}</em></div><p class="loot-history-items">${esc(lootItemsText(rec.items))}</p>${rec.worldClaimed===false?`<small>Still on the cavern floor.</small>`:""}${rec.bonusItems?.length?`<small>Bonus search: ${esc(rec.bonusItems.join(" · "))}</small>`:""}</div>`).join("");
+  list.innerHTML=[...history].reverse().map(rec=>`<div class="loot-history-entry ${String(rec.id)===String(selectedLootHistoryId)?"selected":""}"><div class="loot-history-entry-top"><span class="loot-history-foe">${esc(cap(rec.foeName))}</span><em>${formatDepth(rec.depth)}f · encounter ${rec.encounter}</em></div><p class="loot-history-items">${esc(lootItemsText(rec.items))}</p>${rec.worldExpired?`<small>Lost before it was collected.</small>`:rec.worldClaimed===false?`<small>Still on the cavern floor.</small>`:""}${rec.bonusItems?.length?`<small>Bonus search: ${esc(rec.bonusItems.join(" · "))}</small>`:""}</div>`).join("");
 }
 function openLootHistory(id){
   if(!S||S.foe||S.travelEvent)return;
@@ -9453,6 +9891,7 @@ function normalizeSettings(value){
     if(COMBAT_DICE_OPTIONS.includes(value.combatDice)) next.combatDice=value.combatDice;
     if(COMBAT_FONT_OPTIONS.includes(value.combatFont)) next.combatFont=value.combatFont;
     if(WORLD_ZOOM_OPTIONS.includes(value.worldZoom)) next.worldZoom=value.worldZoom;
+    if(typeof value.worldShadows==="boolean") next.worldShadows=value.worldShadows;
     if(MINIMAP_SIZE_OPTIONS.includes(value.minimapSize)) next.minimapSize=value.minimapSize;
     const minimapZoom=Math.round(Number(value.minimapZoom));
     if(MINIMAP_ZOOM_OPTIONS.includes(minimapZoom)) next.minimapZoom=minimapZoom;
@@ -9498,6 +9937,7 @@ function saveFloatingWindowLayout(){
 function floatingWindowParts(key){
   if(key==="backpack")return{root:$("packSheet"),panel:document.querySelector("#packSheet .pack-panel")};
   if(key==="character")return{root:$("charSheet"),panel:document.querySelector("#charSheet .char-panel")};
+  if(key==="journal")return{root:$("journalBook"),panel:document.querySelector("#journalBook .journal-book-panel")};
   if(key==="delveLog")return{root:$("travelLogWrap"),panel:$("travelLogWrap")};
   return{root:null,panel:null};
 }
@@ -9506,6 +9946,7 @@ function floatingWindowDefaultPosition(key,panel){
   const w=Math.max(1,panel?.offsetWidth||300),h=Math.max(1,panel?.offsetHeight||300),pad=14;
   if(key==="backpack")return{x:Math.max(pad,aw-w-pad),y:64};
   if(key==="character")return{x:pad,y:64};
+  if(key==="journal")return{x:Math.max(pad,(aw-w)/2),y:58};
   return{x:pad,y:Math.max(64,ah-h-pad)};
 }
 function clampFloatingWindowPosition(x,y,panel){
@@ -9515,7 +9956,7 @@ function clampFloatingWindowPosition(x,y,panel){
 }
 function bringFloatingWindowToFront(key){
   const {root}=floatingWindowParts(key);if(!root)return;
-  floatingWindowZ++;if(floatingWindowZ>38){floatingWindowZ=31;for(const k of ["backpack","character","delveLog"]){const p=floatingWindowParts(k);if(p.root)p.root.style.setProperty("--window-z","30");}}
+  floatingWindowZ++;if(floatingWindowZ>38){floatingWindowZ=31;for(const k of ["backpack","character","journal","delveLog"]){const p=floatingWindowParts(k);if(p.root)p.root.style.setProperty("--window-z","30");}}
   root.style.setProperty("--window-z",String(floatingWindowZ));
 }
 function applyFloatingWindowPosition(key){
@@ -9536,9 +9977,9 @@ function setFloatingWindowEnabled(key,enabled){
 }
 function resetFloatingWindowPositions(){
   floatingWindowLayout={};try{localStorage.removeItem(WINDOW_LAYOUT_KEY);}catch(err){console.error("Lowfathom window layout reset failed",err);}
-  for(const key of ["backpack","character","delveLog"])requestAnimationFrame(()=>applyFloatingWindowPosition(key));
+  for(const key of ["backpack","character","journal","delveLog"])requestAnimationFrame(()=>applyFloatingWindowPosition(key));
 }
-function reflowFloatingWindows(){for(const key of ["backpack","character","delveLog"])applyFloatingWindowPosition(key);}
+function reflowFloatingWindows(){for(const key of ["backpack","character","journal","delveLog"])applyFloatingWindowPosition(key);}
 function initFloatingWindowDragging(){
   loadFloatingWindowLayout();
   document.addEventListener("pointerdown",e=>{
@@ -9624,11 +10065,18 @@ function setWorldZoom(mode){
   window.LowfathomWorldBridge?.world?.setZoom?.(WORLD_ZOOM_VALUES[mode]||WORLD_ZOOM_VALUES.standard);
   renderSettingsSheet();
 }
+function setWorldShadows(enabled){
+  settings.worldShadows=!!enabled;
+  saveSettingsNow();
+  window.LowfathomWorldBridge?.world?.setAtmosphereEffectsEnabled?.(settings.worldShadows);
+  renderSettingsSheet();
+}
 function resetSettings(){
   settings={...DEFAULT_SETTINGS};
   clearCurrentCharacterIndicators();
   applyCombatFont();applyMinimapSize();
   window.LowfathomWorldBridge?.world?.setZoom?.(WORLD_ZOOM_VALUES[settings.worldZoom]||WORLD_ZOOM_VALUES.standard);
+  window.LowfathomWorldBridge?.world?.setAtmosphereEffectsEnabled?.(settings.worldShadows);
   window.LowfathomWorldBridge?.world?.setMinimapZoom?.(settings.minimapZoom,{notify:false});
   saveSettingsNow();
   renderSettingsSheet();
@@ -9738,9 +10186,9 @@ const INFO_CHAPTERS = [
 ];
 let infoChapterId="skill-checks";
 function infoChapterHtml(id){
-  if(id==="item-value") return `<h3>Items, iLv &amp; Coinage</h3><p>Fathom sets the expected power of the world. Rarity shifts a generated item's target, but the <b>finished properties</b> decide its real Item Level.</p><div class="info-step"><b>Intrinsic Value:</b> the internal mechanical cost of the properties actually on the item. On a full 1.0 slot, roughly 1 Intrinsic Value corresponds to 1 iLv.</div><div class="info-step"><b>Slot coefficients:</b> smaller slots carry less raw power. A Ring/Earring uses 0.40; Cape/Belt/Light/Pendant 0.50; Hat/Gloves/Boots 0.60; Bottoms 0.80; full hand/Top slots 1.00. Two-handed weapons use two hand slots.</div><div class="info-step"><b>Armor:</b> equipped Armor now reduces physical damage after a successful hit. It no longer supplies Defence Rating.</div><div class="info-step"><b>Critical Chance:</b> live on weapons, gloves and rings in 0.25 percentage-point steps. Rarity sets the item's hard cap and the existing continuation roll keeps high values uncommon. Ancient+ reaches 15% on a normal weapon/gloves and 5% on each ring; a main-hand dagger can reach 20%.</div><div class="info-step"><b>Appraised coin value:</b> appraisal starts from actual Intrinsic Value, then applies a restrained rarity/scarcity premium. A merchant may offer less or charge more; CHA modifies the transaction, not the item's combat power.</div><div class="info-step"><b>Bounded effects:</b> Boss Damage, Reflect and future Lifesteal retain item-stamped caps. Existing saved Crit affixes keep their exact values when a chronicle migrates.</div><div class="info-example"><b>Current live generated affixes</b><br>Critical Chance · Boss Damage · Damage Reflect. Lifesteal is supported by the combat/value engine but intentionally switched off in ordinary generation while recovery pressure is being tested.</div>`;
-  if(id==="combat-stats") return `<h3>Combat stats</h3><p>Realtime combat separates accuracy, physical mitigation and health into three readable layers.</p><div class="info-step"><b>Accuracy:</b> Attack Rating is compared directly with the target's Defence Rating on the continuous realtime curve. At Attack 13 versus Defence 39 the hit chance is about 70.93%. A failed accuracy check is the only source of a <b>0</b> damage splat.</div><div class="info-step"><b>Defence Rating:</b> player Defence Rating comes from RSL: <code>39 × effective RSL / 10</code>. Set Your Feet and Sheltered multiply that RSL-derived rating.</div><div class="info-step"><b>Armor:</b> after a physical hit connects, Armor reduces its damage using the target's Armor relative to the expected medium Armor at the current depth. Matching expected medium Armor gives about 28.57% physical reduction.</div><div class="info-step"><b>Successful-hit floor:</b> Crit and Armor resolve after accuracy, then Guard if active. Any successful hit is clamped to at least <b>1 final damage</b>; 0 always means the accuracy roll failed.</div><div class="info-step"><b>Basic attacks:</b> Basic Max Hit is 80% of Weapon Attack Base, then a successful Basic rolls 75–100% of that value. Weapon Attack Base 20 therefore gives 12–16 raw Basic damage, averaging about 14 before Crit and Armor.</div><div class="info-step"><b>Crit Chance:</b> rolls only after a successful hit. DEX above 10 grants 0.075% per point, capped at 15%; equipped Crit gear is added afterward, with total Crit Chance technically capped at 100%.</div><div class="info-step"><b>Crit Damage:</b> starts at 150%. WIS above 10 becomes Precision; successive +50 percentage-point Crit Damage bands cost 500, 1,000, 2,000, 4,000 Precision and so on.</div><div class="info-step"><b>Damage types:</b> physical Armor only reduces physical damage. The mitigation helper accepts a damage type so future Magic Defence can be added without making Armor universal.</div>`;
-  if(id==="aptitude") return `<h3>Attributes &amp; aptitude</h3><p>Attributes have direct combat jobs and also feed Skills. Skill checks compress enormous endless-game attributes before they touch the d100.</p><div class="info-step"><b>Combat jobs:</b> weapon scaling chooses STR, DEX or INT for Attack Rating; CON = Max HP; RSL = Defence Rating; DEX also contributes bounded Crit Chance; WIS supplies Precision for Crit Damage; CHA remains the people/economy stat.</div><div class="info-step"><b>1. Find the governing attribute.</b><br>Investigation uses INT. Perception uses WIS. Stealth uses DEX, and so on.</div><div class="info-step"><b>2. Convert it into aptitude.</b><br>Every doubling of that attribute changes aptitude by about <b>${SKILL_APTITUDE_PER_DOUBLING} Rating</b>. Attribute 10 is about +0; 20 about +8; 40 about +16; 80 about +24.</div><div class="info-step"><b>3. Add aptitude to training.</b><br>Skill Rank remains the main expertise number. Class proficiency and special circumstances are added afterward.</div><div class="info-equation">Effective Rating = Skill Rank + attribute aptitude + proficiency + circumstance</div><p>This keeps attributes relevant without letting a future 2,000 INT become a ridiculous +2,000 on the die.</p>`;
+  if(id==="item-value") return `<h3>Items, iLv &amp; Coinage</h3><p>Fathom sets the expected power of the world. Rarity shifts a generated item's target, but the <b>finished properties</b> decide its real Item Level.</p><div class="info-step"><b>Intrinsic Value:</b> the internal mechanical cost of the properties actually on the item. On a full 1.0 slot, roughly 1 Intrinsic Value corresponds to 1 iLv.</div><div class="info-step"><b>Slot coefficients:</b> smaller slots carry less raw power. A Ring/Earring uses 0.40; Cape/Belt/Light/Pendant 0.50; Hat/Gloves/Boots 0.60; Bottoms 0.80; full hand/Top slots 1.00. Two-handed weapons use two hand slots.</div><div class="info-step"><b>Armor:</b> equipped Armor is the player's hit-avoidance progression. The ordinary benchmark is derived from a current-depth Top, Bottoms, Hat, Gloves and Boots using their real slot budgets and typical native Armor allocation (roughly 35% of base expected iLv in total Armor). Shields sit above that neutral benchmark as a deliberate defensive advantage.</div><div class="info-step"><b>DEF:</b> Defense reduces physical damage after a hit connects. It is an optional tank specialization and future tank abilities may scale from its raw value.</div><div class="info-step"><b>Critical Chance:</b> live on weapons, gloves and rings in 0.25 percentage-point steps. Rarity sets the item's hard cap and the existing continuation roll keeps high values uncommon. Ancient+ reaches 15% on a normal weapon/gloves and 5% on each ring; a main-hand dagger can reach 20%.</div><div class="info-step"><b>Appraised coin value:</b> appraisal starts from actual Intrinsic Value, then applies a restrained rarity/scarcity premium. A merchant may offer less or charge more; CHA modifies the transaction, not the item's combat power.</div><div class="info-step"><b>Damage Reflect:</b> the old gear affix is no longer generated. Existing saved Reflect items remain mechanically intact for migration safety; Reflect is reserved for future tank/ability design.</div><div class="info-example"><b>Current live generated affixes</b><br>Critical Chance · Boss Damage. Lifesteal remains supported but disabled from ordinary generation while recovery pressure is being tested.</div>`;
+  if(id==="combat-stats") return `<h3>Combat stats</h3><p>Realtime combat separates chance-to-connect, physical mitigation and health into three readable layers.</p><div class="info-step"><b>Player accuracy:</b> your Attack Rating is compared with the enemy's Defence Rating. A failed accuracy check is the only source of a <b>0</b> damage splat.</div><div class="info-step"><b>Armor:</b> Armor determines how often enemy physical attacks connect. The ordinary benchmark is <code>Expected iLv × 0.25</code>. Matching that benchmark gives a standard-accuracy enemy about 70.93% Hit Chance; better Armor lowers it.</div><div class="info-step"><b>DEF:</b> Defense reduces physical damage after a hit connects using <code>60% × DEF / (DEF + 20)</code>. DEF 10 gives 20% reduction and the curve approaches but never reaches 60%.</div><div class="info-step"><b>Successful-hit floor:</b> Crit and mitigation resolve after accuracy, then Guard if active. Any successful hit is clamped to at least <b>1 final damage</b>; 0 always means the accuracy roll failed.</div><div class="info-step"><b>Basic attacks:</b> Basic Max Hit is 80% of Weapon Attack Base, then a successful Basic rolls 75–100% of that value.</div><div class="info-step"><b>Threat labels:</b> WEAK / EVEN / TOUGH / DEADLY are calibrated around expected expedition attrition. EVEN means an ordinary matchup expected to cost no more than roughly 40% Max HP in the basic exchange model, not an equal duel to the death.</div>`;
+  if(id==="aptitude") return `<h3>Attributes &amp; aptitude</h3><p>Attributes have direct combat jobs and also feed Skills. Skill checks compress enormous endless-game attributes before they touch the d100.</p><div class="info-step"><b>Combat jobs:</b> weapon scaling chooses STR, DEX or INT for Attack Rating; CON = Max HP; DEF = physical damage reduction and future tank scaling; DEX also contributes bounded Crit Chance; WIS supplies Precision for Crit Damage; CHA remains the people/economy stat.</div><div class="info-step"><b>Armor is equipment progression.</b> Armor, not DEF, keeps ordinary enemy accuracy from snowballing as depth rises.</div><div class="info-step"><b>Skill aptitude:</b> every doubling of a governing attribute changes aptitude by about <b>${SKILL_APTITUDE_PER_DOUBLING} Rating</b>. Attribute 10 is about +0; 20 about +8; 40 about +16; 80 about +24.</div><div class="info-equation">Effective Rating = Skill Rank + attribute aptitude + proficiency + circumstance</div>`;
   if(id==="practice") return `<h3>Practice &amp; Rank</h3><p>Skills are long-term expertise. They improve by facing meaningful situations, not by repeating a harmless button forever.</p><div class="info-step"><b>Growing Rank requirement:</b> Rank 0 starts at ${skillXpNeeded(0)} XP to advance. Each later Rank asks for ${SKILL_XP_PER_RANK_GROWTH} more XP than the previous one.</div><div class="info-step"><b>Balanced success:</b> begins around ${SKILL_BASE_PRACTICE} XP. Practice rewards rise slowly with Skill Rank so deep expertise still moves, but the requirement rises faster.</div><div class="info-step"><b>Difficult success:</b> gives more practice. Easier uncertain work gives less. Automatic/trivial checks give none.</div><div class="info-step"><b>Failure:</b> a credible failed attempt can teach a smaller amount, but failure XP fades toward zero at extreme odds so hopeless attempts are poor training.</div><div class="info-step"><b>Against the Odds:</b> a success shown at <b>${SKILL_AGAINST_ODDS_PCT}% or lower</b> earns roughly double that difficult success's XP plus a small extra bonus.</div><div class="info-step"><b>No reroll farming:</b> the same generated opportunity has one practice identity and cannot award practice repeatedly.</div><div class="info-equation">XP to next Rank = ${SKILL_XP_BASE} + (${SKILL_XP_PER_RANK_GROWTH} × current Rank)</div><p>The Rank number can continue forever. Higher Rank lowers the roll you need against the same challenge until old obstacles become automatic.</p>`;
   return `<h3>Skill checks</h3><p>Skill bonuses do not get added to the d100. They change <b>how low a number you need to roll</b>.</p><div class="info-step"><b>1. Build your Effective Rating.</b><br>Skill Rank + attribute aptitude + class proficiency + circumstances.</div><div class="info-step"><b>2. Compare it with the challenge.</b><br>The game compares your Effective Rating with that object's fixed Challenge Rating.</div><div class="info-step"><b>3. That comparison becomes a target.</b><br>More Rating means a better chance and therefore a lower <b>Need X+</b> number.</div><div class="info-step"><b>4. Roll d100.</b><br>Meet or beat the target to succeed. If it says <b>Need 47+</b>, 47–100 succeeds and 1–46 fails.</div><div class="info-example"><b>Example</b><br>Investigation Rank 20 + INT aptitude 16 = Rating 36. Against Challenge Rating 21, you are +15 ahead: about a 76% chance, shown as <b>Need 25+ on d100</b>.</div><div class="info-step"><b>Huge advantage?</b> Old trivial obstacles eventually auto-succeed with no die roll. Huge disadvantage can become an automatic failure.</div><details class="info-details"><summary>Under the hood</summary><p>Equal Rating is 50%. A +${SKILL_RATING_SPREAD} Rating gap is about 91%; −${SKILL_RATING_SPREAD} is about 9%. The exact probability curve is <code>P = 1 / (1 + 10^(-(Skill − Challenge)/${SKILL_RATING_SPREAD}))</code>. You never need to calculate it yourself.</p></details>`;
 }
@@ -9811,6 +10259,13 @@ function renderSettingsSheet(){
   document.querySelectorAll("[data-world-zoom]").forEach(btn=>{
     btn.classList.toggle("selected",btn.dataset.worldZoom===settings.worldZoom);
   });
+  const worldShadowBtn=$("btnSettingWorldShadows");
+  if(worldShadowBtn){
+    const on=settings.worldShadows!==false;
+    worldShadowBtn.textContent=on?"On":"Off";
+    worldShadowBtn.classList.toggle("on",on);
+    worldShadowBtn.setAttribute("aria-pressed",String(on));
+  }
   document.querySelectorAll("[data-minimap-size]").forEach(btn=>{
     btn.classList.toggle("selected",btn.dataset.minimapSize===settings.minimapSize);
   });
@@ -9850,6 +10305,8 @@ function profileById(id){
   if(!id) return null;
   if(id===BOSS_PROFILE.id) return BOSS_PROFILE;
   if(id===MIMIC_PROFILE.id) return MIMIC_PROFILE;
+  if(id===MID_BOSS_PROFILE.id) return MID_BOSS_PROFILE;
+  if(id===SIDE_SHAMAN_PROFILE.id) return SIDE_SHAMAN_PROFILE;
   return FOES.find(f=>f.id===id) || null;
 }
 function cloneForSave(value){
@@ -10357,6 +10814,130 @@ function migrateSave23To24(snapshot){
   }
   return next;
 }
+function migrateSave24To25(snapshot){
+  const next=cloneForSave(snapshot);next.schema=25;
+  const state=isSaveRecord(next.state)?next.state:null;
+  if(state){
+    const old=isSaveRecord(state.combatResources)?state.combatResources:{};
+    // v0.205.2 changes resource meaning, so old Energy is deliberately not banked
+    // into Momentum. Existing combat/progression/item state is otherwise untouched.
+    state.combatResources={
+      momentum:0,
+      focus:WORLD_COMBAT_RESOURCE_MAX,
+      mana:clamp(Number.isFinite(Number(old.mana))?Number(old.mana):WORLD_COMBAT_RESOURCE_MAX,0,WORLD_COMBAT_RESOURCE_MAX)
+    };
+    state.worldCombatQueuedPower=null;
+    state.worldCombatGuardUntil=0;
+    next.state=state;
+  }
+  return next;
+}
+function migrateSave25To26(snapshot){
+  const next=cloneForSave(snapshot);next.schema=26;
+  const state=isSaveRecord(next.state)?next.state:null;
+  if(state){
+    // v0.207.0 renames Resilience to Defense without changing invested points.
+    // Generated items from schema 25 could also carry an RSL attribute roll, so
+    // migrate those exact saved values instead of silently dropping item power.
+    const oldRsl=Number(state.RSL);
+    if(!Number.isFinite(Number(state.DEF)))state.DEF=Number.isFinite(oldRsl)?oldRsl:10;
+    delete state.RSL;
+    if(isSaveRecord(state.generatedItems)){
+      for(const item of Object.values(state.generatedItems)){
+        if(!isSaveRecord(item)||!isSaveRecord(item.attributes))continue;
+        const old=Number(item.attributes.RSL);
+        if(Number.isFinite(old))item.attributes.DEF=(Number(item.attributes.DEF)||0)+old;
+        delete item.attributes.RSL;
+        if(Array.isArray(item.stats))item.stats=item.stats.map(line=>String(line).replace(/\bRSL\b/g,"DEF").replace(/Resilience/gi,"Defense"));
+      }
+    }
+    next.state=state;
+  }
+  return next;
+}
+function migrateSave26To27(snapshot){
+  const next=cloneForSave(snapshot);next.schema=27;
+  const state=isSaveRecord(next.state)?next.state:null;
+  if(state&&isSaveRecord(state.foe)&&state.foe.worldRealtime){
+    // Refresh an in-progress physical encounter so an old v0.208.x foe does not
+    // keep the retired high-attrition HP/attack curve after this balance patch.
+    const oldMax=Math.max(1,Number(state.foe.hpMax)||1),oldHp=Math.max(0,Number(state.foe.hp)||0);
+    const ratio=clamp(oldHp/oldMax,0,1),depth=Math.max(0,Number(state.foe.encounterDepth??state.depth)||0);
+    const profile=profileById(state.foe.key)||state.foe.profile;
+    if(profile){
+      const hpProfile=Math.max(.1,Number(profile.hp)||34)/34,atkProfile=Math.max(.1,Number(profile.atk)||7)/7;
+      const hpCurveMult=Math.max(.1,Number(profile.curveHpMult)||1),atkCurveMult=Math.max(.1,Number(profile.curveAtkMult)||1);
+      const hpRoll=worldEncounterHpRoll(state.foe.worldEntityId);
+      const hpMax=Math.max(1,Math.round(expectedStrikeAtDepth(depth)*ENEMY_HP_CURVE_MULTIPLIER*hpProfile*hpCurveMult*hpRoll));
+      state.foe.profile=cloneForSave(profile);state.foe.hpMax=hpMax;state.foe.hp=Math.max(state.foe.hp>0?1:0,Math.round(hpMax*ratio));
+      state.foe.atk=Math.max(1,Math.round(expectedEnemyHitAtDepth(depth)*atkProfile*atkCurveMult));
+    }
+    next.state=state;
+  }
+  return next;
+}
+function migrateSave27To28(snapshot){
+  const next=cloneForSave(snapshot);next.schema=28;
+  const state=isSaveRecord(next.state)?next.state:null;
+  if(state&&isSaveRecord(state.foe)&&state.foe.worldRealtime){
+    // v0.210.0 re-anchors the endless enemy spine to a realistically fundable
+    // player build and current Weapon Attack Base. Preserve current HP percentage
+    // while refreshing an encounter that was spawned under the v0.209 curve.
+    const oldMax=Math.max(1,Number(state.foe.hpMax)||1),oldHp=Math.max(0,Number(state.foe.hp)||0);
+    const ratio=clamp(oldHp/oldMax,0,1),depth=Math.max(0,Number(state.foe.encounterDepth??state.depth)||0);
+    const profile=profileById(state.foe.key)||state.foe.profile;
+    if(profile){
+      const hpProfile=Math.max(.1,Number(profile.hp)||34)/34,atkProfile=Math.max(.1,Number(profile.atk)||7)/7;
+      const hpCurveMult=Math.max(.1,Number(profile.curveHpMult)||1),atkCurveMult=Math.max(.1,Number(profile.curveAtkMult)||1);
+      const hpRoll=worldEncounterHpRoll(state.foe.worldEntityId);
+      const hpMax=Math.max(1,Math.round(expectedWeaponAttackBaseAtDepth(depth)*ENEMY_HP_CURVE_MULTIPLIER*hpProfile*hpCurveMult*hpRoll));
+      state.foe.profile=cloneForSave(profile);state.foe.hpMax=hpMax;state.foe.hp=Math.max(state.foe.hp>0?1:0,Math.round(hpMax*ratio));
+      state.foe.atk=Math.max(1,Math.round(expectedEnemyHitAtDepth(depth)*atkProfile*atkCurveMult));
+    }
+    next.state=state;
+  }
+  return next;
+}
+function migrateSave28To29(snapshot){
+  const next=cloneForSave(snapshot);next.schema=29;
+  const state=isSaveRecord(next.state)?next.state:null;
+  if(state){
+    state.inventory=isSaveRecord(state.inventory)?state.inventory:{};
+    const bag=Array.isArray(state.inventory.equipment)?state.inventory.equipment:[];
+    const equipped=isSaveRecord(state.equipment)?Object.values(state.equipment).filter(Boolean):[];
+    const order={};let seq=0;
+    // Historical exact pickup times are unknowable. Preserve current owned order,
+    // then guarantee every item looted after this migration receives a newer key.
+    for(const id of [...new Set([...equipped,...bag])])if(id)order[id]=++seq;
+    state.inventory.equipmentAcquiredOrder=order;
+    state.inventory.equipmentAcquiredSeq=seq;
+    next.state=state;
+  }
+  return next;
+}
+function migrateSave29To30(snapshot){
+  const next=cloneForSave(snapshot);next.schema=30;
+  const state=isSaveRecord(next.state)?next.state:null;
+  if(state&&isSaveRecord(state.foe)&&state.foe.worldRealtime){
+    // v0.213.0 raises the neutral weapon benchmark from 1H to 1.5 hand budgets.
+    // Refresh only the active physical foe and preserve its current HP percentage
+    // so installing the patch mid-fight neither heals nor executes the specimen.
+    const oldMax=Math.max(1,Number(state.foe.hpMax)||1),oldHp=Math.max(0,Number(state.foe.hp)||0);
+    const ratio=clamp(oldHp/oldMax,0,1),depth=Math.max(0,Number(state.foe.encounterDepth??state.depth)||0);
+    const profile=profileById(state.foe.key)||state.foe.profile;
+    if(profile){
+      const hpProfile=Math.max(.1,Number(profile.hp)||34)/34,atkProfile=Math.max(.1,Number(profile.atk)||7)/7;
+      const hpCurveMult=Math.max(.1,Number(profile.curveHpMult)||1),atkCurveMult=Math.max(.1,Number(profile.curveAtkMult)||1);
+      const hpRoll=worldEncounterHpRoll(state.foe.worldEntityId);
+      const hpMax=Math.max(1,Math.round(expectedWeaponAttackBaseAtDepth(depth)*ENEMY_HP_CURVE_MULTIPLIER*hpProfile*hpCurveMult*hpRoll));
+      state.foe.profile=cloneForSave(profile);state.foe.lv=Math.max(1,1+Math.floor(depthGrowth(depth)/5)+(Number(profile.danger)||0));
+      state.foe.hpMax=hpMax;state.foe.hp=Math.max(state.foe.hp>0?1:0,Math.round(hpMax*ratio));
+      state.foe.atk=Math.max(1,Math.round(expectedEnemyHitAtDepth(depth)*atkProfile*atkCurveMult));
+    }
+    next.state=state;
+  }
+  return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
@@ -10380,7 +10961,13 @@ const SAVE_MIGRATIONS={
   20:migrateSave20To21,
   21:migrateSave21To22,
   22:migrateSave22To23,
-  23:migrateSave23To24
+  23:migrateSave23To24,
+  24:migrateSave24To25,
+  25:migrateSave25To26,
+  26:migrateSave26To27,
+  27:migrateSave27To28,
+  28:migrateSave28To29,
+  29:migrateSave29To30
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -10572,7 +11159,9 @@ function rebuildTravelLogFromState(){
 }
 function normalizeRestoredRun(){
   if(!S) return;
-  if(!Number.isFinite(Number(S.RSL)))S.RSL=10;
+  if(!Number.isFinite(Number(S.DEF)))S.DEF=Number.isFinite(Number(S.RSL))?Number(S.RSL):10;
+  delete S.RSL;
+  if(!Number.isFinite(Number(S.worldRecoverReadyAt)))S.worldRecoverReadyAt=0;
   if(S.trade==="Apothecary's Hand") S.trade="Herbalist's Hand";
   S.travelLog=Array.isArray(S.travelLog)?S.travelLog:[];
   ensureRunPacing();
@@ -10590,7 +11179,7 @@ function normalizeRestoredRun(){
   S.seenFoes=S.seenFoes||{};
   S.seenTravelEvents=S.seenTravelEvents||{};
   const restoredTowns=ensureTownState();
-  // Active World: settlements are spatial. Only an explicit lower-gate departure marks one left behind.
+  // Active World: settlements are spatial and bidirectional; old one-way departure state is ignored.
   if(restoredTowns.currentId){S.travelMode="stopped";}
   S.skillPracticeSources=S.skillPracticeSources||{};
   ensureSkillDiagnostics();
@@ -10869,7 +11458,8 @@ renderTravelLogCollapse();
    ============================================================ */
 const SIDE_FINALE_TYPES=["cache","mimic","puzzle"];
 const MIMIC_PROFILE={
-  id:"mimic",name:"hungry mimic",unlock:0,hp:58,atk:8,xp:22,danger:2,awareness:14,
+  id:"mimic",name:"hungry mimic",unlock:0,hp:58,atk:8,xp:22,danger:2,awareness:14,speed:92,
+  defenceProfile:1.05,armorProfile:0.85,accuracyProfile:1.00,curveHpMult:(4.5/3.5),curveAtkMult:(10.5/9),
   intents:{quick:30,heavy:25,dodge:5,guard:25,recover:15},recoverAt:.30,
   hurtIntents:{quick:20,heavy:45,dodge:5,guard:15,recover:15},hurtAt:.45,
   weakness:{id:"false_hinge",txt:"Its false hinges gape after committed attacks. Counters deal +45% damage.",eff:{counterBonus:1.45}}
@@ -11080,24 +11670,47 @@ function worldMovementStopped(){
 function worldEngageFoe(profileId,worldEntityId,options={}){
   if(worldBlocked())return false;
   const profile=FOES.find(f=>f.id===profileId)||chooseFoeProfile();
-  if(options?.resumeState)return worldResumeCombatTarget(options.resumeState,worldEntityId);
-  // Concealment now works spatially in the live world by shrinking notice radius;
-  // do not open the old modal concealed-contact choice during realtime targeting.
-  const ok=spawnEncounter({profile,worldEntityId,worldRealtime:true,playerInitiated:!!options?.playerInitiated});
+  if(options?.resumeState)return worldResumeCombatTarget(options.resumeState,worldEntityId,options?.encounterDepth);
+  // Physical overworld enemies scale from the location where that creature lives,
+  // not from the deepest fathom the run has ever reached. This keeps backtracking
+  // honest and makes Examine/live threat use the same underlying specimen.
+  const encounterDepth=Math.max(0,Number(options?.encounterDepth??S.depth)||0);
+  const ok=spawnEncounter({profile,worldEntityId,worldRealtime:true,playerInitiated:!!options?.playerInitiated,encounterDepth});
   if(ok&&S.foe){S.foe.worldEntityId=worldEntityId||null;S.foe.hostile=!options?.playerInitiated;}
   return !!ok;
 }
+function worldEngageScriptedFoe(profileId,worldEntityId,options={}){
+  if(worldBlocked())return false;
+  const profile=profileById(profileId)||FOES.find(f=>f.id===profileId)||chooseFoeProfile();
+  const encounterDepth=Math.max(0,Number(options?.encounterDepth??S?.depth)||0);
+  const spawnOptions={profile,worldEntityId:String(worldEntityId||`scripted:${profile.id}:${Date.now()}`),worldRealtime:true,encounterDepth};
+  if(options?.caravan)spawnOptions.caravan=cloneForSave(options.caravan);
+  if(options?.rescueGuardian)spawnOptions.rescueGuardian=cloneForSave(options.rescueGuardian);
+  if(options?.escortThreat)spawnOptions.escortThreat=cloneForSave(options.escortThreat);
+  const ok=spawnEncounter(spawnOptions);
+  if(ok&&S?.foe){S.foe.hostile=true;S.foe.worldEntityId=spawnOptions.worldEntityId;requestRunSave();}
+  return !!ok;
+}
+function requestScriptedRealtimeCombat(options={}){
+  const bridge=window.LowfathomWorldBridge;
+  if(bridge?.startScriptedCombat)return !!bridge.startScriptedCombat(options);
+  // Compatibility fallback for a page whose module bridge failed to load. Keep
+  // the encounter playable rather than swallowing the event entirely.
+  const profile=profileById(options.profileId)||FOES.find(f=>f.id===options.profileId)||chooseFoeProfile();
+  return spawnEncounter({profile,...(options.caravan?{caravan:options.caravan}:{}),...(options.rescueGuardian?{rescueGuardian:options.rescueGuardian}:{}),...(options.escortThreat?{escortThreat:options.escortThreat}:{})});
+}
 function worldSetCombatHostile(active=true){if(!S?.foe?.worldRealtime)return false;S.foe.hostile=!!active;requestRunSave();return true;}
-function worldSetThreatened(active=true){if(!S)return false;if(active)pauseBoonClock();else if(!currentTown()&&(S.travelMode==="descend"||S.travelMode==="explore"||S.travelMode==="side"))resumeBoonClock();return true;}
+function worldSetThreatened(active=true){if(!S)return false;if(active)pauseBoonClock();else if(!S.foe&&!currentTown()&&(S.travelMode==="descend"||S.travelMode==="explore"||S.travelMode==="side"))resumeBoonClock();return true;}
 function worldSuspendCombatTarget(){
   const f=S?.foe;if(!f?.worldRealtime||f.defeated)return null;
   const snapshot=cloneForSave(f);
   worldCombatCancelQueuedPower({refund:true});S.worldCombatGuardUntil=0;S.foe=null;S.combatTimeline=null;S.combatActor="player";
   requestRunSave();return snapshot;
 }
-function worldResumeCombatTarget(snapshot,worldEntityId){
+function worldResumeCombatTarget(snapshot,worldEntityId,encounterDepth=null){
   if(!S||over||!snapshot||snapshot.defeated)return false;
   const f=cloneForSave(snapshot);f.worldRealtime=true;f.evading=false;f.worldEntityId=worldEntityId||f.worldEntityId||null;
+  if(Number.isFinite(Number(encounterDepth)))f.encounterDepth=Math.max(0,Number(encounterDepth));
   worldCombatCancelQueuedPower({refund:true});
   S.foe=f;S.worldCombatGuardUntil=0;S.combatTimeline=null;S.combatActor="player";requestRunSave();return true;
 }
@@ -11109,16 +11722,17 @@ function worldEnemyProfile(profileId,kind="foe",bossStratum=0){
 function worldEnemyCombatConfig(profileId,kind="foe",bossStratum=0){
   const profile=worldEnemyProfile(profileId,kind,bossStratum),tmp={profile};
   const total=Object.values(profile?.intents||{}).reduce((a,v)=>a+(Number(v)||0),0);
-  return {attackIntervalMs:enemyWorldAttackIntervalMs(tmp),range:WORLD_COMBAT_ENEMY_MELEE_REACH,moveSpeed:clamp(60+(foeCombatSpeed(tmp)-100)*.22,50,84),heavyChance:clamp((Number(profile?.intents?.heavy)||0)/Math.max(1,total),.05,.55)};
+  return {attackIntervalMs:enemyWorldAttackIntervalMs(tmp),range:WORLD_COMBAT_ENEMY_MELEE_REACH,moveSpeed:clamp(60+(foeCombatSpeed(tmp)-100)*.22,50,84),heavyChance:clamp((Number(profile?.intents?.heavy)||0)/Math.max(1,total),.05,.55),heavyWindupMs:Math.max(0,Number(profile?.heavyWindupMs)||WORLD_COMBAT_HEAVY_WINDUP_MS)};
 }
-function worldCombatEnemyAttackFrom(profileId,{heavy=false,kind="foe",bossStratum=0}={}){
+function worldCombatEnemyAttackFrom(profileId,{heavy=false,kind="foe",bossStratum=0,depth=S?.depth||0}={}){
   if(!S||over)return {ok:false};
-  const profile=worldEnemyProfile(profileId,kind,bossStratum),tmp={profile};
-  const chance=worldCombatNormalizedHitChance(foeAttackRating(tmp),playerDefenceRating());
+  const d=Math.max(0,Number(depth)||0),profile=worldEnemyProfile(profileId,kind,bossStratum),tmp={profile,encounterDepth:d};
+  const chance=worldCombatNormalizedHitChance(worldCombatEnemyAccuracyRating(tmp),playerDefenceRating(d));
   if(rnd()>=chance)return {ok:true,hit:false,damage:0,heavy:!!heavy};
-  const atk=Math.max(1,Math.round(expectedEnemyHitAtDepth(S.depth)*(Math.max(.1,Number(profile?.atk)||7)/7)));
-  const rawDamage=worldCombatRollDamage(atk,{minFrac:.60,mult:heavy?2.2:1});
-  let damage=mitigateDamageByType(rawDamage,{damageType:"physical",armor:equipmentArmorFor(),expectedArmor:expectedMediumArmorAtDepth(S.depth)});
+  const atkCurveMult=Math.max(.1,Number(profile?.curveAtkMult)||1);
+  const atk=Math.max(1,Math.round(expectedEnemyHitAtDepth(d)*(Math.max(.1,Number(profile?.atk)||7)/7)*atkCurveMult));
+  const rawDamage=worldCombatRollDamage(atk,{minFrac:.60,mult:heavy?2.2:1})*WORLD_COMBAT_ENEMY_DAMAGE_MULTIPLIER;
+  let damage=mitigatePlayerDamageByType(rawDamage,{damageType:"physical"});
   const guarded=Number(S.worldCombatGuardUntil||0)>Date.now();
   if(guarded){damage=damage*(1-WORLD_COMBAT_GUARD_REDUCTION);S.worldCombatGuardUntil=0;}
   damage=Math.max(1,Math.round(damage));
@@ -11136,9 +11750,24 @@ function ensureWorldReadInstances(){
   if(!S.worldReadInstances||typeof S.worldReadInstances!=="object"||Array.isArray(S.worldReadInstances))S.worldReadInstances={};
   return S.worldReadInstances;
 }
+
+function worldExamineInfo(profileId,{worldEntityId=null,kind="foe",bossStratum=0,depth=null}={}){
+  if(!S)return null;
+  const d=Math.max(0,Number(depth??S.depth)||0),profile=worldEnemyProfile(profileId,kind,bossStratum);
+  const active=S.foe?.worldRealtime&&String(S.foe.worldEntityId||"")===String(worldEntityId||"")?S.foe:null;
+  const hpProfile=Math.max(.1,Number(profile?.hp)||34)/34,atkProfile=Math.max(.1,Number(profile?.atk)||7)/7;
+  const hpCurveMult=Math.max(.1,Number(profile?.curveHpMult)||1),atkCurveMult=Math.max(.1,Number(profile?.curveAtkMult)||1);
+  const hpRoll=worldEncounterHpRoll(worldEntityId);
+  const foe=active||{key:profile.id,name:profile.name,profile,encounterDepth:d,worldEntityId:worldEntityId||null,lv:Math.max(1,1+Math.floor(depthGrowth(d)/5)+(Number(profile?.danger)||0)),hpMax:Math.max(1,Math.round(expectedStrikeAtDepth(d)*ENEMY_HP_CURVE_MULTIPLIER*hpProfile*hpCurveMult*hpRoll)),atk:Math.max(1,Math.round(expectedEnemyHitAtDepth(d)*atkProfile*atkCurveMult))};
+  // When this is the currently engaged specimen, use its frozen encounter depth
+  // exactly as the live HUD does. Examine and combat can no longer disagree.
+  const matchupDepth=active?worldCombatDepthForFoe(active,d):d;
+  const matchup=worldCombatMatchupForFoe(foe,matchupDepth);
+  return {profileId:profile.id,profile:cloneForSave(profile),recorded:bestiaryRecorded(profile.id),reads:knowledgeReads(profile.id),level:Math.max(1,Number(foe.lv)||1),playerHit:Number(matchup?.playerHit)||0,enemyHit:Number(matchup?.enemyHit)||0,threatKey:matchup?.key||"even",threatLabel:matchup?.label||"EVEN",attrition:Number(matchup?.ratio)||0};
+}
 function worldReadInfo(profileId,worldEntityId){
   const profile=String(profileId||"")===BOSS_PROFILE.id?BOSS_PROFILE:(FOES.find(f=>f.id===profileId)||FOES[0]),reads=knowledgeReads(profile.id),used=!!ensureWorldReadInstances()[String(worldEntityId||"")];
-  return {profileId:profile.id,name:profile.name,reads,used,mastered:reads>=6,channelMs:boonActive("keptwatch")?500:1500,maxRangeTiles:8,ok:!used&&reads<6};
+  return {profileId:profile.id,name:profile.name,reads,used,mastered:reads>=6,channelMs:boonActive("keptwatch")?500:1500,freeCombatRead:boonActive("keptwatch"),maxRangeTiles:8,ok:!used&&reads<6};
 }
 function worldReadFoe(profileId,worldEntityId){
   if(!S||over)return {ok:false,reason:"Unavailable"};
@@ -11148,7 +11777,7 @@ function worldReadFoe(profileId,worldEntityId){
   const profile=String(info.profileId||"")===BOSS_PROFILE.id?BOSS_PROFILE:(FOES.find(f=>f.id===info.profileId)||FOES[0]),after=info.reads+1;
   ensureWorldReadInstances()[String(worldEntityId||`${profile.id}:${S.encounter}`)]=true;knowledge[profile.id]={reads:after};S.seenFoes[profile.id]=true;markCharacterNotice("bestiary");
   let text=after===1?`Read ${cap(profile.name)}: weakness learned · 1/3 knowledge.`:after===3?`Studied ${cap(profile.name)}: take 5% less damage · 3/6 knowledge.`:after===6?`Mastered ${cap(profile.name)}: weakness payoff +5% · 6/6 knowledge.`:`Studied ${cap(profile.name)} · ${after}/${after<3?3:6} knowledge.`;
-  travelLogAdd(`<b>${esc(text)}</b>`,after===3||after===6?"good":"note");requestRunSave();return {ok:true,reads:after,text,profileId:profile.id,name:profile.name};
+  travelLogAdd(`<b>${esc(text)}</b>`,after===3||after===6?"good":"note");if(!$("journalBook")?.hidden)renderDelverJournal();requestRunSave();return {ok:true,reads:after,text,profileId:profile.id,name:profile.name};
 }
 function worldEnterTownById(id){const def=TOWN_DEFS.find(t=>t.id===id);return def?enterTown(def):false;}
 function worldTownState(){
@@ -11266,7 +11895,7 @@ function worldTriggerEvent(kind,id,depth){
     S.depth=Math.max(Number(S.depth)||0,Number(depth)||midBossDepthForStratum(st));
     const profile=midBossVariantProfile(st);
     travelLogAdd(`<b>Danger ahead.</b> An unusually large ${esc(profile.name.replace(/^oversized /,''))} gives chase.`,"danger");
-    const ok=!!spawnEncounter({boss:true,midBoss:true,bossStratum:st,profile,worldRealtime:true});
+    const ok=!!spawnEncounter({boss:true,midBoss:true,bossStratum:st,profile,worldRealtime:true,worldEntityId:`worldevent:${id}`,encounterDepth:Math.max(0,Number(depth)||midBossDepthForStratum(st))});
     if(ok&&S.foe)S.foe.worldEntityId=`worldevent:${id}`;
     return ok;
   }
@@ -11274,7 +11903,7 @@ function worldTriggerEvent(kind,id,depth){
     const st=Math.max(0,Number(String(id||"").replace(/^boss:/,""))||0);if(S.bossDefeated?.[st])return false;
     S.depth=Math.max(Number(S.depth)||0,Number(depth)||(st+1)*FATHOMS_PER_STRATUM);
     travelLogAdd(`<b>The stratum guardian gives chase.</b> The sealed lower throat will not open while it lives.`,"danger");
-    const ok=!!spawnEncounter({boss:true,bossStratum:st,worldRealtime:true});
+    const ok=!!spawnEncounter({boss:true,bossStratum:st,worldRealtime:true,worldEntityId:`worldevent:${id}`,encounterDepth:Math.max(0,Number(depth)||(st+1)*FATHOMS_PER_STRATUM)});
     if(ok&&S.foe)S.foe.worldEntityId=`worldevent:${id}`;
     return ok;
   }
@@ -11321,13 +11950,13 @@ function worldTriggerSideFinale(){
 function worldExitSideArea(completed=false){if(!SIDE_PASSAGE_EVENTS_ENABLED||!S?.sideArea)return false;exitSideArea(!!completed);return true;}
 function worldSaveSnapshot(snapshot){if(!S||!snapshot)return;S.world=cloneForSave(snapshot);requestRunSave();}
 function worldRestoreSnapshot(){return S?.world?cloneForSave(S.world):null;}
-function worldProfiles(){return FOES.map(f=>({id:f.id,name:f.name,unlock:Number(f.unlock)||0}));}
+function worldProfiles(){return FOES.map(f=>({id:f.id,name:f.name,unlock:Number(f.unlock)||0,maxDepth:Number.isFinite(Number(f.maxDepth))?Number(f.maxDepth):null,ecology:Array.isArray(f.ecology)?f.ecology.map(b=>({min:Number(b?.min)||0,max:b?.max==null?null:Number(b.max),chance:Number(b?.chance)||0})):[]}));}
 function worldTowns(){
   const state=ensureTownState(),currentId=currentTown()?.id||null;
   return TOWN_DEFS.map(t=>({
     id:t.id,name:t.name,kind:t.kind,depth:Number(t.depth)||0,
-    current:t.id===currentId,departed:!!state?.departed?.[t.id],visited:!!state?.visited?.[t.id],
-    locations:(t.locations||[]).map(loc=>({id:loc.id,name:loc.name,type:loc.type||"Location",service:loc.service||null,departure:!!loc.departure,npcName:loc.npcName||null,description:loc.description||"",status:loc.status||""}))
+    current:t.id===currentId,departed:false,visited:!!state?.visited?.[t.id],
+    locations:(t.locations||[]).filter(loc=>!loc.departure).map(loc=>({id:loc.id,name:loc.name,type:loc.type||"Location",service:loc.service||null,departure:false,npcName:loc.npcName||null,description:loc.description||"",status:loc.status||""}))
   }));
 }
 function worldCurrentState(){
@@ -11335,19 +11964,19 @@ function worldCurrentState(){
   return {name:String(S.name||""),slot:currentRunSlot,depth:Number(S.depth)||0,hp:Number(S.hp)||0,hpMax:Number(S.hpMax)||1,xp:Number(S.xp)||0,xpNeed:Math.max(1,xpToNext(S.level)),level:Number(S.level)||1,statPoints:Number(S.statPoints)||0,resources,foe:S.foe?{key:S.foe.key,name:S.foe.name,hp:S.foe.hp,hpMax:S.foe.hpMax,defeated:!!S.foe.defeated,worldRealtime:!!S.foe.worldRealtime,hostile:!!S.foe.hostile,evading:!!S.foe.evading,worldEntityId:S.foe.worldEntityId||null,worldLootRecordId:S.foe.worldLootRecordId||null}:null,over:!!over,town:currentTown()?.id||null,townLocationOpenId:townLocationOpenId||null,townDepartureArmed:!!townDepartureArmed,travelEvent:!!S.travelEvent,hollow:!!S.activeHollow,interaction:!!activeInteraction()};
 }
 window.LowfathomLegacy={
-  getState:worldCurrentState,getRawState:()=>S,getProfiles:worldProfiles,getTowns:worldTowns,getWorldZoom:()=>WORLD_ZOOM_VALUES[settings.worldZoom]||WORLD_ZOOM_VALUES.standard,getMinimapZoom:()=>Number(settings.minimapZoom),persistMinimapZoom,
+  getState:worldCurrentState,getRawState:()=>S,getProfiles:worldProfiles,getTowns:worldTowns,getWorldZoom:()=>WORLD_ZOOM_VALUES[settings.worldZoom]||WORLD_ZOOM_VALUES.standard,getWorldShadows:()=>settings.worldShadows!==false,getMinimapZoom:()=>Number(settings.minimapZoom),persistMinimapZoom,
   canMove:()=>!worldBlocked()&&!worldUiBlocking(),uiBlocking:worldUiBlocking,
-  getWorldCombat:worldCombatResourceSnapshot,getWorldCombatMeleeReach,setWorldCombatMeleeReach,tickWorldCombatResources,useWorldCombatPower:worldCombatUsePower,queueWorldCombatPower:worldCombatQueuePower,cancelWorldCombatPower:worldCombatCancelQueuedPower,worldCombatPlayerAttack,worldCombatGuard,worldCombatEnemyAttack,worldCombatEnemyAttackFrom,getWorldEnemyCombatConfig:worldEnemyCombatConfig,getWorldDetectionRadius:worldDetectionRadius,beginWorldCombatEvade:worldCombatBeginEvade,tickWorldCombatEvadeHeal:worldCombatEvadeHeal,finishWorldCombatEvade:worldCombatFinishEvade,
-  getWorldReadInfo:worldReadInfo,readWorldFoe:worldReadFoe,setWorldCombatHostile:worldSetCombatHostile,setWorldThreatened:worldSetThreatened,suspendWorldCombatTarget:worldSuspendCombatTarget,resumeWorldCombatTarget:worldResumeCombatTarget,
-  advanceDepth:worldAdvanceDepth,activeMovement:worldActiveMovement,activeSideMovement:worldActiveSideMovement,movementStopped:worldMovementStopped,noteRunForeground,noteRunMovement,engageFoe:worldEngageFoe,
+  getWorldCombat:worldCombatResourceSnapshot,getWorldCombatMeleeReach,setWorldCombatMeleeReach,tickWorldCombatResources,useWorldCombatPower:worldCombatUsePower,queueWorldCombatPower:worldCombatQueuePower,cancelWorldCombatPower:worldCombatCancelQueuedPower,worldCombatPlayerAttack,worldCombatGuard,worldCombatSandThrow,worldCombatEnemyAttack,worldCombatEnemyAttackFrom,getWorldEnemyCombatConfig:worldEnemyCombatConfig,getWorldDetectionRadius:worldDetectionRadius,beginWorldCombatEvade:worldCombatBeginEvade,tickWorldCombatEvadeHeal:worldCombatEvadeHeal,finishWorldCombatEvade:worldCombatFinishEvade,
+  getWorldReadInfo:worldReadInfo,readWorldFoe:worldReadFoe,getWorldExamineInfo:worldExamineInfo,openDelverJournal,closeDelverJournal,setWorldCombatHostile:worldSetCombatHostile,setWorldThreatened:worldSetThreatened,suspendWorldCombatTarget:worldSuspendCombatTarget,resumeWorldCombatTarget:worldResumeCombatTarget,
+  advanceDepth:worldAdvanceDepth,activeMovement:worldActiveMovement,activeSideMovement:worldActiveSideMovement,movementStopped:worldMovementStopped,noteRunForeground,noteRunMovement,engageFoe:worldEngageFoe,engageScriptedFoe:worldEngageScriptedFoe,
   enterTown:worldEnterTownById,leaveTown:worldLeaveTownById,getTownState:worldTownState,townCanMove:worldTownCanMove,openTownLocation:worldOpenTownLocation,closeTownLocation:worldCloseTownLocation,departTown:worldDepartTown,
-  useHollow:worldUseHollow,investigateGlint:worldInvestigateGlint,openChest:worldOpenChest,
+  useHollow:worldUseHollow,investigateGlint:worldInvestigateGlint,openChest:worldOpenChest,expireWorldLoot:expireWorldLootRecord,
   getWorldEvents:worldEventDescriptors,triggerWorldEvent:worldTriggerEvent,retireWorldEvent:worldRetireEvent,getCompanion:worldCompanionState,
   getSideArea:worldSideAreaState,triggerSideStage:worldTriggerSideStage,triggerSideFinale:worldTriggerSideFinale,exitSideArea:worldExitSideArea,
   saveWorld:worldSaveSnapshot,restoreWorld:worldRestoreSnapshot,render:()=>render(),requestSave:()=>requestRunSave(),
   openInventory:()=>S?.foe?openPack("combat","backpack"):openPack(null,"backpack"),closeInventory:()=>closePack(),
   inventoryOpen:()=>!!$("packSheet")&&!$("packSheet").hidden,
-  openCharacter:()=>openCharacterSheet(),takeRest:()=>takeRest(),openWorldLoot:(recordId)=>openWorldLoot(recordId),
+  openCharacter:()=>openCharacterSheet(),takeRest:()=>takeRest(),useWorldRecover:()=>useWorldRecover(),openWorldLoot:(recordId)=>openWorldLoot(recordId),
   getWorldPositionDepth:()=>Number(S?.depth)||0
 };
 
@@ -11371,8 +12000,10 @@ $("tell").addEventListener("click", () => {
 });
 $("btnDescend").addEventListener("click", () => startTravel("descend"));
 $("btnExplore").addEventListener("click", () => startTravel("explore"));
-$("btnRest").addEventListener("click", takeRest);
+// v0.205.3: ordinary Rest is retired from the active world UI. The legacy
+// takeRest() path remains dormant for rollback / old safe-hollow compatibility.
 $("btnPack").addEventListener("click", () => openPack(S?.foe?"combat":null,"backpack"));
+$("btnWorldRecover")?.addEventListener("click", useWorldRecover);
 $("btnTownPack")?.addEventListener("click", () => openPack(null,"backpack"));
 $("townHeroCard")?.addEventListener("click", openCharacterSheet);
 $("townHeroCard")?.addEventListener("keydown", e => {
@@ -11492,8 +12123,17 @@ $("charAbilities").addEventListener("click", e => {
   renderCharacterSheet();
 });
 $("charNav").addEventListener("click", e => {
-  const b=e.target.closest("[data-char-view]"); if(!b)return; charView=b.dataset.charView; if(charView!=="skills") clearCharacterNotice(charView); renderCharacterSheet();
+  const b=e.target.closest("[data-char-view]");if(!b)return;const view=b.dataset.charView;
+  if(view==="bestiary"||view==="journal"){closeCharacterSheet();openDelverJournal(view);return;}
+  charView=view;if(charView!=="skills")clearCharacterNotice(charView);renderCharacterSheet();
 });
+$("journalBookTabs")?.addEventListener("click",e=>{const b=e.target.closest("[data-journal-chapter]");if(!b)return;journalBookChapter=b.dataset.journalChapter==="journal"?"journal":"bestiary";journalDetailId=null;journalSpecimen=null;renderDelverJournal();});
+$("journalBookContent")?.addEventListener("click",e=>{
+  const entry=e.target.closest("[data-bestiary-entry]");if(entry){journalBookChapter="bestiary";journalDetailId=entry.dataset.bestiaryEntry;journalSpecimen=null;renderDelverJournal();return;}
+  if(e.target.closest("[data-bestiary-back]")){journalDetailId=null;journalSpecimen=null;renderDelverJournal();return;}
+  const page=e.target.closest("[data-journal-page]");if(page&&!page.disabled){const delta=page.dataset.journalPage==="next"?1:-1;if(journalBookChapter==="journal")journalChroniclePage=Math.max(0,journalChroniclePage+delta);else journalBestiaryPage=Math.max(0,journalBestiaryPage+delta);renderDelverJournal();}
+});
+$("btnJournalBookClose")?.addEventListener("click",closeDelverJournal);
 $("questPageTabs")?.addEventListener("click",e=>{const b=e.target.closest("[data-quest-list-view]");if(!b)return;questListView=b.dataset.questListView;charExpandedQuest=null;renderQuestPage();});
 $("charQuests")?.addEventListener("click",e=>{
   const more=e.target.closest("[data-quest-more]");if(more){charExpandedQuest=charExpandedQuest===more.dataset.questMore?null:more.dataset.questMore;renderQuestPage();return;}
@@ -11537,6 +12177,7 @@ $("arena").addEventListener("click", e => {
 });
 $("btnSettingNotices").addEventListener("click", () => setCharacterIndicators(!settings.characterIndicators));
 $("btnSettingDice").addEventListener("click", () => setDiceAnimation(!settings.diceAnimation));
+$("btnSettingWorldShadows")?.addEventListener("click", () => setWorldShadows(!(settings.worldShadows!==false)));
 document.getElementById("worldZoomChoices")?.addEventListener("click",e=>{const b=e.target.closest("[data-world-zoom]");if(b)setWorldZoom(b.dataset.worldZoom);});
 document.getElementById("minimapSizeChoices")?.addEventListener("click",e=>{const b=e.target.closest("[data-minimap-size]");if(b)setMinimapSize(b.dataset.minimapSize);});
 $("btnResetWindowPositions")?.addEventListener("click",resetFloatingWindowPositions);

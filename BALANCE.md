@@ -1,39 +1,54 @@
 # Fathom — Balance & Systems Reference
 
-**Build reference:** v0.114.1.3 canonical systems + Active World direction through v0.203.3  
-**Purpose:** human/design reference for canonical math/system rules while Lowfathom moves to the free-moving Active World. This file is not read by the game.  
-**Rule:** v0.114.1.3 remains the source of truth for mature combat, equipment, Skills, quests, economy and progression unless explicitly superseded below. v0.203.3 is the current working Active World build, but its instanced town/side-passage experiments and bridge-specific behavior are **not** automatically design canon. Constants are tuning targets and may change after playtesting.
+**Build reference:** v0.205.4 — Combat HUD Layout Pass  
+**Purpose:** human/design reference for the systems and live math in the current build. This file is not read by the game.  
+**Source rule:** this document was reconciled against the actual v0.205.4 HTML/JS source. Values below describe the active-world game unless explicitly marked legacy, parked, incomplete, or planned.
 
-## 1. World / depth pacing
+## 1. Current architecture
 
-### Canonical depth structure
+Fathom is now an **explorable physical world**, not the older linear auto-descent/event screen.
 
-- One major **Stratum / biome = 500 fathoms**.
-- Enemy progression uses expected values for the current depth — **never the player's live stats**.
-- Authored settlement depths currently remain **Grey Lantern 150**, **Lantern City 450**, **Ashwick 550**. Departure continues deeper and is intended to remain one-way where the settlement rules say so.
-- Ordinary Safe Hollows begin about 20 fathoms into a stratum and target an approximately **30-fathom depth rhythm**.
+- Movement, enemies, loot, hollows, passages, settlements and authored world events exist in world coordinates.
+- Depth is derived from vertical world position.
+- `1 tile = 24 px = 0.5 fathom` vertically.
+- One major Stratum/biome remains **500 fathoms**.
+- The current primary combat path is **real-time overworld combat**.
+- The older modal/turn-based d20/Stamina combat engine still exists in the source for compatibility and old authored content, but it is **not the primary active-world combat model**.
+- Active-world enemies can coexist, acquire the player independently and remain physically present while another enemy is targeted.
+- Targeting is pointer-driven. The player auto-approaches to the equipped weapon's usable range and attacks on the weapon's rhythm.
+- Enemy Heavy attacks visibly wind up in the world before release.
+
+This distinction matters when reading old comments or code: do not reinterpret dormant AC/d20/Stamina helpers as the live overworld rules.
+
+## 2. World / depth pacing
+
+```text
+Stratum length = 500 fathoms
+Fathoms per world tile = 0.5
+```
+
+Current authored depth landmarks:
+
+- Ordinary Safe Hollows begin about **20 fathoms** into each stratum.
+- Ordinary Hollow spacing remains approximately **30 fathoms**.
 - A special staging Hollow appears **8 fathoms before** each 500-fathom boss boundary.
-- Side-passage opportunities retain an approximately **60-fathom opportunity rhythm** as a pacing target. In Active World this means generating a real branch in the cavern, **not** opening a passage popup when a timer/depth threshold fires.
-- Run-pressure reset pacing may continue to use its own 60-fathom rhythm, but its Active World presentation must be spatial rather than an unexplained interruption where possible.
+- A physical mini-boss occurs at each **250-fathom midpoint**.
+- A mandatory stratum boss/guardian occurs at each **500-fathom boundary**.
+- Side-passage opportunity logic retains an approximately **60-fathom** cadence, but the old instanced side-event engine is parked; current passages are physical geography.
 
-### Recovery rules carried from v0.114
+### Current settlement test locations
 
-- Rest heals **25% Max HP**.
-- The legacy recharge rule is **20 active travel units after each Rest**. Active World must preserve approximately the same recovery pressure, but the exact mapping from legacy travel units to continuous world movement/distance is **not yet locked**. Do not silently equate one world tile/pixel with one legacy travel unit.
-- Camp Supply healing = **50% Max HP**. New delvers start with **2 Camp Supplies**.
-- Hollow **Sheltered** respite = **+10% Defence Rating for 3 completed encounters**.
+These are the live v0.205.4 settlement definitions and are expected to be reconsidered during the upcoming Fathom 0 city pass:
 
-### Active World direction — supersedes the passive travel presentation
+| Settlement | Kind | Current depth |
+|---|---|---:|
+| Grey Lantern | Town | 150 |
+| Lantern City | City | 450 |
+| Ashwick | Town | 550 |
 
-- Gameplay is now intended to be **free-moving, landscape, top-down Canvas exploration**.
-- **Up on the screen = deeper.** Upward world progress increases Fathoms; lateral movement is exploration at roughly the same depth.
-- The current large camera/zoom is intentional: the player should feel small inside an enormous, mysterious cavern. Desktop may render farther than phone without forcing distant AI to simulate at full cost.
-- Depth remains the canonical progression coordinate because combat scaling, item generation, strata, settlements, quests and bosses already depend on it. The HUD should read depth directly from world position without forcing a full legacy DOM render every small movement increment.
-- World generation should be chunk/sector based, connected and effectively endless. It must allow meaningful lateral wandering and avoid sealed enemy/object pockets.
-- Chests, Safe Hollows, caravans, merchants, quest objects, bosses, side passages and settlements should have **physical world presence** before their interaction UI appears.
-- **Towns/cities and side passages must remain part of the same continuous world. They are not intended to be instanced maps.** v0.203.x experiments that teleport into separate town/passage spaces are implementation debt, not the target design.
+Settlements are physically carved into the active world with walls, gates, buildings/locations, roads and enemy-exclusion zones.
 
-## 2. Depth progression spine
+## 3. Endless depth progression spine
 
 Let:
 
@@ -50,16 +65,16 @@ Expected Max HP            = Expected CON × 6
 Expected Strike benchmark  = Expected primary attribute
 Expected enemy HP          = Expected Strike × 4.5
 Expected enemy hit         = Expected Max HP ÷ 9
-Expected medium Armor/DR   = Expected primary attribute × 3
+Expected medium Armor      = Expected primary attribute × 3
 Expected Item Level        = round(100 + (0.90 / 0.195)G)
                            ≈ round(100 + 4.6153846G)
 ```
 
-Enemy archetypes modify HP/damage through authored profiles; Attack/Defence accuracy profiles currently default to 1.0 unless explicitly authored.
+Enemy progression is based on **depth expectation**, never by reading the player's live stats or gear.
 
 ### Reference points
 
-| Depth | Expected primary | Expected HP | Expected iLv | Expected enemy HP | Base enemy hit | Medium Armor/DR |
+| Depth | Expected primary | Expected HP | Expected iLv | Expected enemy HP | Base enemy hit | Medium Armor |
 |---:|---:|---:|---:|---:|---:|---:|
 | 0 | 13 | 72 | 100 | 59 | 8 | 39 |
 | 60 | 20 | 93 | 154 | 90 | 10 | 60 |
@@ -70,38 +85,633 @@ Enemy archetypes modify HP/damage through authored profiles; Attack/Defence accu
 | 60,000 | 455 | 1,397 | 3,497 | 2,046 | 155 | 1,364 |
 | 1,000,000 | 2,402 | 7,238 | 18,474 | 10,807 | 804 | 7,205 |
 
-### Character level
+### Enemy profile scaling
+
+An authored enemy profile supplies relative HP, attack, awareness, speed and intent identity.
 
 ```text
-XP to next character level = round(20 + 10 × level^1.5)
+Enemy Max HP
+= Expected Strike × 4.5 × (profile base HP / 34) × random 0.94–1.06
+
+Enemy base ATK
+= round(Expected enemy hit × (profile base ATK / 7))
 ```
 
-- Each level grants **1 attribute point**.
-- Leveling does **not** heal the character.
-- Max HP = **effective CON × 6**.
-- Equipping CON raises the Max-HP ceiling but does not heal current HP; removing Max-HP effects clamps current HP to the new ceiling, never below 1 while alive.
-
-## 3. Item Level, Intrinsic Value and slot power
-
-The old normalized-budget system is superseded by **Intrinsic Value (IV)**.
-
-- Generated gear first targets an iLv from depth/rarity, buys real properties, then derives final displayed iLv from the properties actually present.
-- On a full 1.0 slot, **1 IV ≈ 1 iLv**.
-- Rarity changes the generation target; there is no hidden post-generation rarity power multiplier.
+XP also follows the sublinear endless progression rather than a linear depth multiplier:
 
 ```text
-Generated target iLv = Expected iLv × rarity budget multiplier × random 0.94–1.06
-Target IV            = target iLv × slot coefficient
-Final iLv             = round(actual finished IV / slot coefficient)
+Depth XP factor
+= Expected Primary at current depth / Expected Primary at depth 0
+
+Enemy XP
+= round(profile base XP × Depth XP factor)
+```
+
+The Making a Plan boon currently multiplies kill XP by **1.20**.
+
+## 4. Character levels and attributes
+
+### Level XP
+
+The old XP helper is retained:
+
+```text
+OldXP(L) = round(20 + 10 × L^1.5)
+```
+
+The current displayed-level requirement bundles two old levels:
+
+```text
+XP to next Level at displayed Level L
+= OldXP(2L - 1) + OldXP(2L)
+```
+
+Reference values:
+
+| Current Level | XP to next |
+|---:|---:|
+| 1 | 78 |
+| 2 | 172 |
+| 3 | 299 |
+| 4 | 451 |
+| 5 | 626 |
+
+Each gained Character Level grants:
+
+```text
++3 freely allocated attribute points
+```
+
+There are no allocation restrictions. Several simultaneous levels grant +3 points per level.
+
+Leveling does **not** heal the character.
+
+### Live attributes
+
+```text
+STR — martial/physical weapon scaling; Athletics
+CON — Max HP
+DEX — finesse/ranged weapon scaling; DEX Skills; bounded Crit Chance
+INT — wand/staff scaling; INT Skills
+WIS — Perception; Precision → Crit Damage
+CHA — social / people / economy stat
+RSL — Resilience; player Defence Rating / chance to be hit
+```
+
+All seven start at **10** before folk/trade/origin/loadout modifiers.
+
+```text
+Max HP = effective CON × 6
+```
+
+Equipping CON increases the HP ceiling but does not heal current HP. Removing Max-HP effects clamps current HP to the new ceiling, never below 1 while alive.
+
+## 5. Weapon contribution and Attack Rating
+
+The equipped main-hand weapon chooses its scaling attribute.
+
+- martial weapons: usually **STR**;
+- finesse/ranged weapons: usually **DEX**;
+- wands/staves: **INT**;
+- authored exceptional items may deliberately differ.
+
+```text
+Weapon Attack Base / Player Attack Rating
+= 0.5 × effective scaling attribute + weapon contribution
+```
+
+Unarmed weapon contribution = **1**.
+
+For generated weapons, weapon contribution is purchased from Intrinsic Value. A two-handed weapon uses two hand-slot budgets.
+
+## 6. Active-world accuracy
+
+The live overworld does **not** use the old AC breakpoint roll for ordinary attacks.
+
+Player offensive rating:
+
+```text
+Player Attack Rating = Weapon Attack Base
+```
+
+Enemy avoidance rating:
+
+```text
+Enemy Defence Rating
+= Expected medium Armor at depth × defenceProfile
+```
+
+Enemy offensive rating:
+
+```text
+Enemy Attack Rating
+= Expected Primary at depth × accuracyProfile
+```
+
+Current continuous hit formula:
+
+```text
+a = Attack Rating / 13
+d = Defence Rating / 39
+
+Hit Chance
+= 1 / (1 + (d / (1.5 × a)) ^ 2.2)
+
+Final Hit Chance = clamp(Hit Chance, 2%, 98%)
+```
+
+Neutral benchmark:
+
+```text
+Attack Rating 13 vs Defence Rating 39
+≈ 70.93% hit
+≈ 29.07% accuracy failure
+```
+
+### Readability rule
+
+```text
+0 damage = accuracy failure only
+```
+
+If accuracy succeeds, final damage is clamped to at least **1**. Armor and Guard can never turn a connected hit into `0`.
+
+## 7. Player Defence Rating, RSL and Armor
+
+The current defensive model deliberately separates three jobs:
+
+```text
+RSL   → chance enemies connect
+Armor → physical damage reduction after a hit connects
+CON   → Max HP
+```
+
+### Player Defence Rating
+
+```text
+Player Defence Rating
+= 39 × (effective RSL / 10)
+```
+
+Examples:
+
+| RSL | Defence Rating |
+|---:|---:|
+| 10 | 39 |
+| 15 | 58.5 |
+| 20 | 78 |
+| 30 | 117 |
+
+Temporary effects multiply the RSL-derived Defence Rating:
+
+- Set Your Feet: **×1.20**.
+- Sheltered: **×1.10** while its encounter charges remain.
+
+Armor does **not** add Defence Rating.
+
+### Physical Armor mitigation
+
+Player Armor is the sum of equipped Armor on legal equipped slots.
+
+For player or enemy physical targets:
+
+```text
+r = Actual Armor / Expected Medium Armor at current depth
+
+Physical Damage Reduction
+= r / (r + 2.5)
+```
+
+Reference:
+
+| Armor relative to expected medium | Physical reduction |
+|---:|---:|
+| 0× | 0% |
+| 0.5× | 16.67% |
+| 1× | 28.57% |
+| 2× | 44.44% |
+| 3× | 54.55% |
+| 4× | 61.54% |
+
+Enemy Armor is separate from enemy Defence:
+
+```text
+Enemy Armor
+= Expected Medium Armor × armorProfile
+```
+
+Default unspecified `armorProfile = 1.0`.
+
+The mitigation helper accepts a damage type. **Physical Armor currently reduces physical damage only.** Magic Defence is not implemented.
+
+## 8. Active-world weapon rhythm and reach
+
+Weapon Speed determines automatic Basic attack cadence:
+
+```text
+Player attack interval
+= 1800 ms × (100 / max(45, weapon Speed))
+```
+
+Current weapon speeds:
+
+| Family | Speed |
+|---|---:|
+| Dagger | 125 |
+| Shortsword | 112 |
+| Wand | 110 |
+| Sword | 100 |
+| Axe | 100 |
+| Unarmed | 100 |
+| Bow | 90 |
+| Staff | 90 |
+| Greatsword | 80 |
+
+Current surface-to-surface reach:
+
+| Family | Reach |
+|---|---:|
+| Dagger | 15 |
+| Standard melee | 20 |
+| Great weapon / greatsword | 25 |
+| Staff | 42 |
+| Wand | 112 |
+| Bow | 150 |
+| Enemy ordinary melee | 10 |
+
+Authored Reach can add **+12** to a melee weapon when the special reach hook is used.
+
+Enemies use their own Speed-driven attack interval:
+
+```text
+Enemy attack interval
+= 2100 ms × (100 / max(55, enemy Speed))
+```
+
+## 9. Weapon-driven combat resources
+
+All three resource pools have a current maximum of:
+
+```text
+100
+```
+
+The primary resource comes from the equipped weapon family rather than a locked class:
+
+```text
+Bow        → Focus
+Wand/Staff → Mana
+Everything else / martial melee → Momentum
+```
+
+### Momentum — aggression resource
+
+```text
+Starts at 0
+Successful martial Basic → +10 Momentum
+Accuracy failure / 0     → +5 Momentum
+Crit                      → no extra Momentum
+```
+
+Momentum decay:
+
+```text
+After the last martial attack:
+3 second grace
+then -2 Momentum per second
+minimum 0
+```
+
+There is no passive Momentum refill. This deliberately allows the player to **carry some Momentum into a nearby fight** while punishing long disengagement.
+
+### Focus — prepared ranged resource
+
+```text
+Starts/full baseline = 100
+Regeneration while threatened/in combat = 10 per second
+Regeneration while idle/outside combat   = 20 per second
+```
+
+After approximately **4 seconds of genuine peace**, Focus is treated as prepared and restored to full.
+
+Focus is not generated by shooting.
+
+### Mana — magic resource
+
+Current passive regeneration:
+
+```text
+With Mana weapon equipped = 1.5 Mana/sec
+Otherwise                 = 0.5 Mana/sec
+```
+
+Mana is still an early test economy and has not received the same identity pass as Momentum/Focus.
+
+## 10. Active-world Basic attacks and powers
+
+### Basic attack
+
+On a successful accuracy check:
+
+```text
+Basic Max Hit
+= 0.80 × Weapon Attack Base
+
+Successful Basic raw damage
+= 75%–100% of Basic Max Hit
+```
+
+Equivalent approximate range:
+
+```text
+60%–80% of Weapon Attack Base
+```
+
+Example:
+
+```text
+Weapon Attack Base 20
+→ Basic Max Hit 16
+→ raw successful Basic 12–16
+→ average ≈14 before Crit/Armor
+```
+
+### Heavy — Momentum melee power
+
+```text
+Cost = 30 Momentum
+Raw max basis = Weapon Attack Base × 1.8
+Successful raw roll = 50%–100% of that max
+Damage type = physical
+```
+
+Heavy resolves immediately when pressed; there is no delayed player power queue.
+
+### Snipe — Focus ranged power
+
+```text
+Minimum usable Focus = 40
+When used, Snipe spends all currently available Focus
+Multiplier = 1.5 + (Focus spent / 100)
+Successful raw roll = 50%–100% of multiplied max
+Damage type = physical
+```
+
+Examples before Crit/Armor:
+
+```text
+40 Focus  → 1.9× Weapon Attack Base max basis
+100 Focus → 2.5× Weapon Attack Base max basis
+```
+
+### Arcane Bolt — Mana power
+
+```text
+Cost = 30 Mana
+Multiplier = 2.0 × Weapon Attack Base
+Successful raw roll = 50%–100% of multiplied max
+Damage type = magic
+```
+
+Because it is magic, current physical Armor does not reduce Arcane Bolt.
+
+### Crit resolution order
+
+For active-world player attacks:
+
+```text
+1. Accuracy
+2. Failed accuracy → 0
+3. Successful raw damage roll
+4. Crit, if rolled
+5. Physical Armor if physical damage
+6. Successful-hit minimum = 1
+7. HP loss
+```
+
+## 11. Guard, Sand Throw and Read
+
+### Guard
+
+Guard currently spends the equipped weapon's primary resource:
+
+```text
+Cost = 35 Momentum / Focus / Mana
+Duration = 2.6 seconds
+Damage reduction = 60%
+```
+
+Guard reduction is applied **after physical Armor mitigation** to the next connected incoming attack during the guard window. Guard currently costs slightly more Momentum than Heavy; this is a playtest value, not a locked long-term identity.
+
+### Sand Throw
+
+```text
+Blind chance = 60%
+```
+
+Sand Throw ignores enemy Defence/Armor/Dodge/Guard for the Blind check. On success, the enemy's next attack attempt automatically misses and consumes Blind.
+
+The realtime HUD currently exposes Recover + Read on the first row, Heavy/Snipe/Arcane Bolt + Guard on the second, and Sand Throw on the bottom row.
+
+### Read / Bestiary channel
+
+Read is performed against a physical enemy target.
+
+```text
+Normal channel time = 1.5 sec
+Kept Watch channel  = 0.5 sec
+Maximum range       = 8 tiles
+One Read per individual creature
+No further Reads once the archetype is Mastered
+```
+
+The channel can be interrupted by movement/damage/conditions enforced by the realtime bridge.
+
+## 12. Incoming enemy damage
+
+Enemy normal/heavy attacks use the same continuous accuracy model against player RSL-derived Defence Rating.
+
+On hit:
+
+```text
+Normal raw damage roll = enemy ATK × random 60%–100%
+Heavy raw damage roll  = enemy ATK × 2.2 × random 60%–100%
+```
+
+Then:
+
+```text
+1. Physical Armor mitigation
+2. Guard reduction if active
+3. Clamp successful damage to minimum 1
+4. HP loss
+```
+
+Enemy Heavy is telegraphed in the world before release. The bridge currently uses a roughly **1.2 second Heavy wind-up** for realtime enemies.
+
+Blinded enemies automatically miss their next attack attempt.
+
+When a roaming enemy breaks its leash, it returns toward home and can recover back to full HP in its territory rather than being dragged indefinitely across the map.
+
+## 13. Critical Chance and Precision
+
+Crit is separate from accuracy and rolls **after a successful hit** in active-world combat.
+
+There is no universal free Crit Chance.
+
+### DEX Crit
+
+```text
+DEX Crit
+= max(0, effective DEX - 10) × 0.075%
+
+DEX-derived cap = 15%
+```
+
+Examples:
+
+```text
+DEX 10  → 0%
+DEX 50  → 3%
+DEX 100 → 6.75%
+DEX 210 → 15% cap
+```
+
+Total Crit Chance:
+
+```text
+DEX Crit + equipped Crit affixes
+```
+
+Technical clamp remains **100%** for future special/Unique content.
+
+### Precision / Crit Damage
+
+```text
+Precision = max(0, effective WIS - 10)
+Base Crit Damage = 150%
+```
+
+Crit Damage is endless but increasingly expensive:
+
+- first +50 percentage points: **500 Precision**;
+- next +50: **1,000**;
+- next +50: **2,000**;
+- then **4,000, 8,000, 16,000...**.
+
+Each band fills linearly.
+
+## 14. Crit affix rarity ceilings
+
+Crit rolls in:
+
+```text
+0.25 percentage-point steps
+```
+
+Ordinary eligible slots:
+
+```text
+weapon
+Gloves
+Rings
+```
+
+There are four ring slots.
+
+### Hard cap by rarity
+
+| Rarity | Each Ring max | Gloves / normal weapon max |
+|---|---:|---:|
+| Salvage | 0.25% | 0.75% |
+| Poor | 0.50% | 1.50% |
+| Common | 1.00% | 3.00% |
+| Uncommon | 1.50% | 4.50% |
+| Rare | 2.50% | 7.50% |
+| Epic | 3.00% | 9.00% |
+| Wondrous | 3.50% | 10.50% |
+| Legendary | 4.00% | 12.00% |
+| Mythical | 4.50% | 13.50% |
+| Ancient | 5.00% | 15.00% |
+| Sunless | 5.00% | 15.00% |
+| Unfathomable | 5.00% | 15.00% |
+
+The actual roll remains continuation/geometric rather than uniform. Higher rarity raises both the possible ceiling and the chance of continuing toward stronger values.
+
+Current continuation chances by rarity:
+
+```text
+Salvage 30% · Poor 36% · Common 45% · Uncommon 52%
+Rare 60% · Epic 68% · Wondrous 73% · Legendary 78%
+Mythical 82% · Ancient 85% · Sunless 88% · Unfathomable 90%
+```
+
+### Dagger Crit identity
+
+Main-hand dagger cap:
+
+```text
+≈ normal weapon cap × 4/3
+rounded to nearest 0.25%
+```
+
+At Ancient+:
+
+```text
+Main-hand dagger cap = 20%
+```
+
+The offhand dagger does **not** contribute a second full weapon Crit allocation. Its special contribution is:
+
+```text
+≈ normal weapon cap ÷ 6
+rounded to nearest 0.25%
+```
+
+At Ancient+:
+
+```text
+Offhand dagger special contribution = 2.5%
+```
+
+Ordinary ultimate ceilings therefore remain approximately:
+
+```text
+Normal build = 65%
+Single dagger = 70%
+Dual dagger = 72.5%
+```
+
+These are ordinary generated-build ceilings, not the technical 100% system clamp.
+
+## 15. Intrinsic Value, Item Level and slot power
+
+The procedural equipment generator uses **Intrinsic Value (IV)**.
+
+```text
+Generated target iLv
+= Expected iLv × rarity budget multiplier × random 0.94–1.06
+
+Target IV
+= target iLv × slot coefficient
+
+Final displayed iLv
+= round(actual finished IV / slot coefficient)
+```
+
+On a full 1.0 slot:
+
+```text
+1 IV ≈ 1 iLv
 ```
 
 Current property costs:
 
 ```text
-+1 Armor                = 8 IV
-+1 weapon contribution  = 15 IV
++1 Armor                 = 8 IV
++1 weapon contribution   = 15 IV
 +0.1 weapon contribution = 1.5 IV
-+1 attribute            = 40 IV
++1 attribute             = 40 IV
 ```
 
 ### Slot coefficients
@@ -122,381 +732,41 @@ Current property costs:
 | Each Earring | 0.40 |
 | Each Ring | 0.40 |
 
-A two-handed weapon consumes both hand positions and uses a coefficient of **2.0**.
+A two-handed weapon consumes both hands and uses a coefficient of **2.0**.
 
 ### Gold appraisal
 
 ```text
-Appraised Gold Value = round(Intrinsic Value × sqrt(rarity budget multiplier))
+Appraised Gold Value
+= round(Intrinsic Value × sqrt(rarity budget multiplier))
+
 100 SC = 1 GC
 ```
 
-Merchant margins and CHA affect transaction prices, not combat power.
+Merchant margins and CHA affect transactions rather than combat power.
 
-## 4. Weapon contribution and Attack Rating
-
-All classes use the same basic weapon formula. The weapon chooses its scaling attribute:
-
-- martial weapons → **STR**;
-- finesse/ranged weapons → **DEX**;
-- wands/staves → **INT**;
-- special authored items may deliberately break this rule later.
-
-```text
-Weapon Attack Base / Player Attack Rating
-= 0.5 × effective scaling attribute + weapon contribution
-```
-
-Unarmed weapon contribution = **1**.
-
-This raw Attack Rating is used both for damage scaling and the logarithmic d20 Attack Bonus described below.
-
-## 5. Defence Rating, AC and Deflection
-
-**Armor no longer uses the old passive `r / (r + 2.5)` mitigation curve.** That formula is superseded for live combat.
-
-Current defensive equipment flow:
-
-```text
-Total equipped Armor = raw Defence Rating (DR)
-```
-
-Current temporary DR multipliers:
-
-- **Set Your Feet:** ×1.20 DR.
-- **Sheltered:** ×1.10 DR.
-- Multipliers stack multiplicatively if both are active.
-
-DR is converted into **Armor Class (AC)** on an endless logarithmic ladder. DR remains the underlying progression stat; AC is the actual d20 target.
-
-### Exact d20 rating constants
-
-```text
-Attack baseline rating  = 13
-Defence baseline rating = 39
-Base Attack Bonus       = +4
-Base AC                 = 13
-Points per doubling     = +2
-Minimum rating used by log conversion = 25% of the relevant baseline
-Deflection band maximum = 8%
-```
-
-For either rating:
-
-```text
-log step = 2 × log2(max(0.25 × baseline, rating) / baseline)
-```
-
-Attack:
-
-```text
-Attack Bonus = floor(4 + log step using baseline 13)
-```
-
-Defence:
-
-```text
-continuous AC = 13 + log step using baseline 39
-AC            = floor(continuous AC)
-AC progress   = fractional part of continuous AC
-Deflection    = AC progress × 8%
-```
-
-Deflection therefore gives partial DR upgrades value before the next +1 AC breakpoint. When the breakpoint is crossed, the fractional Deflection resets and the gained +1 AC replaces it.
-
-### Relative ladder example
-
-| Rating vs baseline | Attack Bonus | AC |
-|---:|---:|---:|
-| 0.25× | +0 | 9 |
-| 0.50× | +2 | 11 |
-| 1.00× | +4 | 13 |
-| 2.00× | +6 | 15 |
-| 4.00× | +8 | 17 |
-| 8.00× | +10 | 19 |
-
-At matched baseline progression, `+4 vs AC 13` needs **9+ on d20 = 60% hit chance**. Because Attack and Defence climb by the same +2 per doubling, this matchup remains stable at extreme depth when both sides progress normally.
-
-## 6. Player and enemy Attack / AC sources
-
-### Player
-
-```text
-Player Attack Rating = weaponAttackBase
-Player Attack Bonus  = logarithmic conversion of that rating
-Player Defence Rating = total equipped Armor × active DR effects
-Player AC / Deflection = logarithmic conversion of that DR
-```
-
-Player action accuracy currently has **no additional Heavy penalty**; standard player weapon attacks use the normal Attack Bonus unless an ability explicitly says otherwise.
-
-### Enemy
-
-```text
-Enemy Attack Rating = Expected primary at depth × accuracyProfile
-Enemy Defence Rating = Expected medium Armor/DR at depth × defenceProfile
-```
-
-- Current ordinary archetypes default to `accuracyProfile = 1.0` and `defenceProfile = 1.0` when no profile is authored.
-- Enemy HP uses `Expected Strike × 4.5 × (base HP / 34) × random 0.94–1.06`.
-- Enemy base damage stat uses `Expected enemy hit × (base ATK / 7)`, rounded.
-- Enemies scale from **depth expectation**, never by reading the player's actual level, AC, gear or attributes.
-
-## 7. d20 hit resolution
-
-Player and enemy attacks use the same rule:
-
-```text
-d20 + Attack Bonus >= target AC  → hit
-```
-
-- Natural **1 always misses**.
-- Natural **20 always hits**.
-- Therefore the current absolute hit-chance bounds are **5%–95%**.
-- Natural **20 automatically hits and is a Critical Hit for ×2 damage** for both player and enemy.
-- Natural 1 is never a crit because it always misses.
-- The current baseline critical range is natural 20 only. A future expanded range such as 19–20 remains accuracy-neutral: 19 only crits if `19 + Attack Bonus` already meets AC; natural 20 remains the automatic hit.
-
-Enemy attack accuracy modifiers:
-
-```text
-Quick Attack     +2
-Normal / offquick +0
-Heavy Attack     -2
-```
-
-Enemy Dodge = **+4 AC** against the next relevant player attack attempt.
-
-Physical combat dice are presentation of the authoritative roll, not a second roll:
-
-- Off = hidden/instant d20.
-- Player Only = physical player d20.
-- All Rolls = physical player + enemy d20.
-- Player d20 is obsidian/black; enemy d20 is red/crimson.
-
-## 8. Combat turn economy
-
-Speed scheduling is currently **parked** while the new combat core is tested.
-
-```text
-PLAYER → ENEMY → PLAYER → ENEMY
-```
-
-Every Player Turn refreshes to:
-
-```text
-3 / 3 Stamina
-```
-
-Current core costs:
-
-| Action | Cost | Current rule |
-|---|---:|---|
-| Strike | 1 | Repeatable chain attack |
-| Guard / Parry / Ward / Brace | 2 | Prepare damage reduction |
-| Heavy / Backstab / Arcane Bolt | 3 | Immediate committed burst |
-| Counter | 3 | +4 AC stance; retaliate on miss |
-| Sand Throw | 2 | 60% Blind |
-| Read / Study | 1 | Once per encounter; Kept Watch can make first use 0 |
-| End Turn | 0 | Lose remaining Stamina and pass turn |
-
-At 0 Stamina the turn ends automatically.
-
-Prepared Guard/Counter cannot stack. A prepared stance persists through non-attack enemy actions and an enemy Heavy wind-up, then is consumed by the **next enemy attack attempt whether that attack hits or misses**.
-
-## 9. Player attack damage
-
-### Strike chain
-
-```text
-Strike 1 / Strike        = 1.0× weapon Attack Base + random 0–4
-Strike 2 / Double Strike = 1.6× weapon Attack Base + random 0–5
-Strike 3 / Perfect Strike= 2.6× weapon Attack Base + random 0–6
-```
-
-- A successful Strike advances the chain.
-- A miss resets it to Strike 1.
-- The third successful stage completes and resets the chain.
-- Whetstone boon: first Strike of each fight deals **+15% damage**.
-
-### Heavy / Backstab / Arcane Bolt
-
-```text
-Base committed attack = 3.2× weapon Attack Base + random 0–6
-Cost = full 3-Stamina turn
-Player accuracy modifier = 0
-```
-
-- Rogue **Backstab currently uses the same Heavy damage/accuracy rule and the same natural-20 ×2 Critical Hit rule as other attacks**. Its previous guaranteed crit and +25 percentage-point Crit Damage bonus are parked while Backstab's replacement identity is undecided.
-- Heavy punches through most enemy Guard: ordinary enemy Guard reduces Heavy by only **15%** rather than 50%.
-
-### Opening / Off-Balance
-
-A normally Off-Balance enemy takes **+25% damage** from the opening. The Mauler's known weakness raises its Off-Balance payoff to **+50%**.
-
-Guarding/parrying or Countering a released enemy Heavy can leave the foe **Off-Balance**.
-
-## 10. Enemy intents and incoming damage
-
-Current intent damage multipliers:
-
-```text
-Quick Attack    = 0.6× enemy base ATK
-Heavy Attack    = 2.0× enemy base ATK
-Glancing/offquick = 0.3× enemy base ATK
-Enemy Guard     = 50% normal damage reduction
-Recover         = heal 14% Max HP
-```
-
-Enemy Heavy remains literal and readable:
-
-```text
-Heavy 1/2 = wind-up turn, no attack roll or damage
-Heavy 2/2 = release on the next enemy turn
-```
-
-Incoming damage before active Guard/Parry:
-
-```text
-mean = enemy ATK × intent multiplier
-     × Bestiary learned-damage multiplier
-     × curse modifier if applicable
-     × (1 - player Deflection)
-
-actual damage roll = mean ±8%
-```
-
-- **Frailty** curse currently multiplies incoming mean by **1.05**.
-- Bestiary Studied status multiplies incoming damage by **0.95**.
-- Active Guard/Parry reduction is applied after this passive Deflection/damage roll.
-
-## 11. Active defence
-
-### Shield Guard
-
-```text
-Cost = 2 Stamina
-Damage reduction = 50%
-```
-
-Does not raise AC. Applies to the next enemy attack attempt and cannot stack.
-
-### Non-shield defence
-
-- Votary / Rogue: **Parry**.
-- Wizard with wand: **Ward**.
-- Wizard without wand/shield: **Brace**.
-
-```text
-Cost = 2 Stamina
-Damage reduction = 30%
-```
-
-### Counter
-
-```text
-Cost = 3 Stamina
-Temporary AC = +4 against next enemy attack attempt
-Damage reduction = 0%
-```
-
-- If that enemy attack misses, Counter opens a retaliation.
-- Once Counter has caused/claimed the miss, its retaliation **automatically hits**; there is no second d20 roll.
-- The guaranteed retaliation is approximately `2 × Strike-1 damage`, then applies the foe's known Counter weakness if one exists.
-- If the enemy attack hits, the player takes normal damage and receives no retaliation.
-
-### Sand Throw
-
-```text
-Cost = 2 Stamina
-Blind chance = 60%
-```
-
-Blind ignores AC/Guard/Dodge. If successful, the foe's next attack attempt automatically misses; Blind is then consumed.
-
-## 12. Protection — parked, not deleted
-
-Protection is no longer generated by ordinary Guard/Parry combat and normally remains `0/0`.
-
-The underlying capacity helper is retained for future persistent shield/ward abilities:
-
-```text
-Protection capacity
-= 5
-+ max(0, effective CON - 10)
-+ round(shield Armor × 0.5)
-```
-
-- Full effective CON still controls Max HP.
-- Only CON above 10 contributes to this parked Protection formula.
-- Two-handed weapon use suppresses the shield contribution.
-- Future Protection is intended to be a persistent/stackable special resource rather than the default defensive layer.
-
-## 13. Natural-d20 Critical Hits and parked legacy Crit progression
-
-### Live v0.114.0+ Crit rule
-
-The authoritative attack d20 now owns Crit resolution. There is **no second hidden Crit roll**.
-
-```text
-Natural 1  = automatic miss
-Natural 20 = automatic hit + Critical Hit
-Critical damage = ×2 final base attack damage before separate additive effects such as Boss Damage
-Baseline critical range = 20 only
-```
-
-- This rule applies to **both player and enemy attacks**.
-- On enemy attacks, the normal incoming roll already includes passive Deflection; a natural-20 Crit doubles that rolled damage, then active Guard/Parry reduction is applied afterward.
-- A future expanded Crit range remains accuracy-neutral: a 19 may crit only if the attack already hits AC. Natural 20 retains its automatic-hit rule.
-- Rogue Backstab no longer guarantees a Crit during this playtest; it uses the same natural-20 baseline while its future identity is undecided.
-
-### Parked legacy DEX / gear Critical Chance
-
-The following formulas remain in the code/reference for rollback or later redesign but **do not modify live Critical Hits**:
-
-```text
-DEX crit = max(0, effective DEX - 10) × 0.25%
-DEX-derived cap = 50%
-Legacy total Crit Chance = DEX crit + gear Crit, capped at 100%
-```
-
-Existing Crit Chance affixes may still be stamped on saved items and remain visible for compatibility. They are mechanically parked. New procedural Crit Chance generation is disabled.
-
-### Parked legacy WIS Precision / variable Crit Damage
-
-These formulas are likewise retained only for rollback/design work:
-
-```text
-Precision = max(0, effective WIS - 10)
-Legacy base Crit Damage = 150%
-```
-
-Legacy Precision used progressively more expensive +50 percentage-point Crit Damage bands (500, 1,000, 2,000, 4,000... Precision). **None of that modifies the current fixed natural-d20 ×2 Crit.**
-
-DEX and WIS continue to matter through their other attribute/Skill roles; only their former Crit Chance/Precision combat jobs are parked.
-
-## 14. Live equipment affixes
+## 16. Live generated affixes
 
 Current procedural generation toggles:
 
-- **Critical Chance:** **generation disabled / mechanically parked**. Existing stamped Crit affixes remain stored for compatibility and possible rollback.
+- **Critical Chance:** enabled.
 - **Boss Damage:** enabled.
 - **Damage Reflect:** enabled.
-- **Lifesteal:** mechanically supported but disabled from ordinary random generation.
-- Skill Rating, Armor Penetration, Magic Penetration, CC Reduction and Loot Find have registry values but are currently disabled from ordinary generation.
+- **Lifesteal:** mechanically supported but disabled from ordinary generation.
+- Skill Rating, Armor Penetration, Magic Penetration, Crowd-Control Reduction and Loot Find are registered but disabled from ordinary generation.
 
 Current affix IV units:
 
-| Affix | IV / unit | Effect / unit | Ordinary max units |
+| Affix | IV / unit | Effect / unit | Base registry max |
 |---|---:|---|---:|
-| Crit Chance | 2.5 | legacy +0.25% Crit | 10; dagger weapon 20 |
+| Crit Chance | 2.5 | +0.25% Crit | rarity/slot capped |
 | Boss Damage | 8 | +1% Boss Damage; +2 damage/action cap | 15 |
-| Damage Reflect | 6 | +1%; +1 damage/hit cap | 15 |
+| Damage Reflect | 6 | +1%; +1 reflected damage/hit cap | 15 |
 | Lifesteal | 25 | +1%; +1 HP/action heal cap | 8 |
 
-Generated items normally use at most 1 affix type at Common or below, 2 through Rare, and 3 at Epic+. **Crit Chance is excluded from new generation during the natural-d20 Crit playtest, so currently live generated affixes are Boss Damage and Damage Reflect; Lifesteal remains supported but disabled.**
+Saved generated item instances retain their exact rolled properties across reloads/migrations.
 
-## 15. Rarity ladder
+## 17. Rarity progression — current three-era system
 
 Mechanical rarity order:
 
@@ -515,83 +785,146 @@ Sunless
 Unfathomable
 ```
 
-**Unique is not a power tier.** It is a separate designation for named/hand-authored/special items and can coexist with a normal rarity.
+**Unique is a separate named/authored designation, not another power rung.**
 
-| Rarity | First depth | Target chance once unlocked | Target iLv / IV multiplier |
-|---|---:|---:|---:|
-| Salvage | 0 | 8% | ×0.75 |
-| Poor | 0 | 18% | ×0.88 |
-| Common | 0 | remainder | ×1.00 |
-| Uncommon | 0 | 20% | ×1.08 |
-| Rare | 0 | 10% | ×1.18 |
-| Epic | 250 | 5% | ×1.32 |
-| Wondrous | 500 | 4% | ×1.47 |
-| Legendary | 500 | 1% | ×1.63 |
-| Mythical | 2,000 | 2.5% | ×1.81 |
-| Ancient | 3,000 | 2% | ×2.00 |
-| Sunless | 4,000 | 1.75% | ×2.22 |
-| Unfathomable | 5,000 | special | ×2.47 |
+Rarity no longer uses the older independent permanent drop percentages. The active generator uses three depth eras.
 
-Unfathomable:
+### Era I — 0 to 500 fathoms
 
 ```text
-before 5,000 = 0%
-5,000         = 0.5%
-+0.1 percentage point per additional 1,000 fathoms
-maximum       = 1.5%
-
-chance = min(1.5%, 0.5% + floor((depth - 5000) / 1000) × 0.1%)
+Salvage / Poor / Common / Uncommon
 ```
 
-There are no numbered Unfathomable subtiers; iLv is already the endless progression axis.
+Weights interpolate through the stratum and reach **100% Uncommon at exactly 500**.
 
-### Equipped-player selection bias
+### Era II — after 500 to 5,000 fathoms
 
-The depth benchmark describes generated-drop expectation, not the exact Gear Level a player will carry. Players keep the best items seen per slot, so equipped gear naturally trends above average drops.
+```text
+Rare / Epic / Wondrous / Legendary
+```
 
-Do **not** pre-correct this. If observed runs show persistent over-performance, use a single calibration factor on the expected-equipment / expected-medium-DR benchmark and tune from real data; start from `k = 1.0`.
+Weights interpolate through the era and reach **100% Legendary at exactly 5,000**.
 
-## 16. Procedural equipment rules that remain live
+### Era III — after 5,000, endless
+
+```text
+Mythical / Ancient / Sunless / Unfathomable
+```
+
+The endless curve gradually approaches approximately:
+
+```text
+Mythical      3%
+Ancient      12%
+Sunless      30%
+Unfathomable 55%
+```
+
+with an exponential depth scale of approximately **12,000 fathoms** after the era begins. Lower deep rarities therefore never disappear completely.
+
+Current IV multipliers remain:
+
+| Rarity | IV / target iLv multiplier |
+|---|---:|
+| Salvage | ×0.75 |
+| Poor | ×0.88 |
+| Common | ×1.00 |
+| Uncommon | ×1.08 |
+| Rare | ×1.18 |
+| Epic | ×1.32 |
+| Wondrous | ×1.47 |
+| Legendary | ×1.63 |
+| Mythical | ×1.81 |
+| Ancient | ×2.00 |
+| Sunless | ×2.22 |
+| Unfathomable | ×2.47 |
+
+## 18. Procedural equipment rules
 
 - New delvers start with authored **Salvage iLv 75** Top, Bottoms and Boots plus a class-selected hand setup.
 - Votary: Longsword + Buckler or two-handed Greatsword.
 - Rogue: Dagger + Buckler or two-handed Shortbow.
 - Wizard: Wand + Buckler or two-handed Wooden Staff.
-- Ordinary equipment generation path: `depth → rarity → target iLv/IV → slot/family → best-fit legal properties/affixes → persistent generated instance`.
-- Protective equipment primarily spends native value on Armor/DR.
-- Weapons primarily spend native value on weapon contribution.
-- Current utility/jewelry families primarily spend native value on attributes/eligible affixes.
-- Generated items receive unique saved instance IDs; reload preserves the exact item.
-- Authored starters, boss rewards, Uniques and special encounter items remain static.
-- First 500-fathom stratum boss still grants one class-relevant **Epic iLv 385** weapon.
-- Armor families are tendencies, not class restrictions; any class may wear any armor type.
-- Slot-native property pools remain the default. Named/themed/Unique items may intentionally violate ordinary slot rules.
-- Generic Max Stamina and generic Max HP are not ordinary random properties.
+- Ordinary generation path remains `depth → rarity → target iLv/IV → slot/family → legal properties/affixes → saved item instance`.
+- Protective equipment primarily spends value on Armor.
+- Weapons primarily spend value on weapon contribution.
+- Utility/jewelry primarily spend value on attributes and eligible affixes.
+- Armor families are tendencies, not class restrictions.
+- Named/themed/Unique items may violate ordinary slot-native rules deliberately.
+- Generic Max HP and generic Max Resource are not ordinary random properties.
+- The first 500-fathom stratum boss still has authored class-relevant **Epic iLv 385** weapon rewards in the current source.
 
-## 17. Bestiary combat knowledge
+## 19. Recovery / expedition sustain
 
-Read/Study is capped per archetype and advances at most once per encounter.
+### Field Recover — live testing tool
+
+Ordinary Rest has been **retired from the active world UI**. The old Rest implementation remains dormant for rollback/compatibility.
+
+Current field Recover:
 
 ```text
-1 read  = Known: permanent weakness revealed
-3 reads = Studied: take 5% less damage from that archetype
-6 reads = Mastered: existing weakness payoff +5 percentage points
+Heal = flat +20 HP
+Cooldown = 30 real-time seconds
+Usable only outside combat / events / towns
+Cannot be used at full HP
 ```
 
-Incoming-damage estimate uncertainty narrows with knowledge:
+This is intentionally a stress-testing aid, not a finalized endless healing system.
+
+### Safe Hollow Camp
+
+New delvers start with:
+
+```text
+2 Camp Supplies
+```
+
+At a Safe Hollow, a full camp with a Camp Supply:
+
+```text
+Consumes 1 Camp Supply
+Heals 50% Max HP
+Momentum → 0
+Focus → 100
+Mana → 100
+Restores all ability uses
+Clears current Guard/queued combat state
+Stops Bleeding
+Opens boon choice
+```
+
+Camp does not inherently mean a full 100% HP heal; it adds 50% Max HP up to the cap.
+
+### Dormant Rest
+
+The old Rest path still exists in code and can heal **25% Max HP**, refresh prepared resources and restore one spent ability use, but it is not currently offered as an ordinary active-world button. Do not design around Rest unless it is deliberately brought back.
+
+## 20. Bestiary combat knowledge
+
+Knowledge is still per enemy archetype:
+
+```text
+1 Read  = Known: weakness revealed
+3 Reads = Studied: take 5% less damage from that archetype
+6 Reads = Mastered: weakness payoff +5 percentage points
+```
+
+One physical individual can be Read at most once.
+
+Incoming-damage estimate uncertainty remains:
 
 ```text
 Unknown  ±15%
 Known    ±12%
 Studied  ±10%
-Mastered ±8%  (matches actual damage variance)
+Mastered ±8%
 ```
 
-Mastery strengthens the archetype's existing numeric weakness rather than adding a second weakness; e.g. ×1.50 becomes ×1.55, ×1.40 becomes ×1.45.
+Mastery strengthens the archetype's existing weakness instead of adding a second unrelated weakness.
 
-## 18. Endless Skill foundation
+## 21. Endless Skill foundation
 
-Displayed Skill Rank is an Elo-like logarithmic expertise rating, not a flat die bonus.
+Displayed Skill Rank is an Elo-like expertise rating rather than a flat die bonus.
 
 ```text
 rating gap d = Effective Skill Rating - Challenge Rating
@@ -599,9 +932,9 @@ spread s = 30
 P(success) = 1 / (1 + 10^(-d / 30))
 ```
 
-Reference probabilities:
+Reference:
 
-| Gap | Success |
+| Rating gap | Success chance |
 |---:|---:|
 | +60 | ~99% |
 | +30 | ~91% |
@@ -614,11 +947,14 @@ Reference probabilities:
 ### Attribute aptitude
 
 ```text
-attribute aptitude = 8 × log2(effective governing attribute / 10)
-Effective Skill Rating = Skill Rank + aptitude + proficiency + circumstance
+attribute aptitude
+= 8 × log2(effective governing attribute / 10)
+
+Effective Skill Rating
+= Skill Rank + aptitude + proficiency + circumstance
 ```
 
-Every doubling of the governing attribute adds **+8 Rating**. Attributes below 10 can give negative aptitude.
+Every doubling of the governing attribute adds **+8 Rating**.
 
 Current core Skills:
 
@@ -633,7 +969,7 @@ Current core Skills:
 
 ### Challenge identity
 
-Challenge Rating belongs to the content, not automatically to depth. A particular rusty lock does not become stronger because it appears deeper; depth changes the mix of content encountered.
+Challenge Rating belongs to authored/generated content, not automatically to depth. A specific rusty lock does not become stronger simply because it appears deeper; deeper areas should change the mix of challenges.
 
 Compatibility conversion used by older authored checks:
 
@@ -643,9 +979,9 @@ Challenge Rating = (old authored value - 12) × 8
 
 ### d100 resolution
 
-- At **≥99%**: automatic success, no roll.
-- At **<1%**: automatic failure, no roll.
-- Otherwise use d100.
+- ≥99%: automatic success, no die.
+- <1%: automatic failure, no die.
+- otherwise use d100.
 
 ```text
 shown success % = round(P × 100)
@@ -653,125 +989,274 @@ Need on d100    = 101 - shown success %
 roll >= Need    = success
 ```
 
-The percentile die adds resolution, not extra statistical swing; the rating gap determines the chance.
-
-### Skill practice / Rank XP
+### Skill practice
 
 ```text
 XP to next Rank = 100 + 10 × current Rank
 Base practice   = 10 × (1 + Rank / 200)
 ```
 
-- Automatic/trivial outcomes grant 0 practice.
-- Balanced meaningful success is the anchor around Base Practice.
-- Easier uncertain success gives less; harder success gives more.
-- A success displayed at **5% or lower** is **Against the Odds** and receives a large bonus.
-- Credible failures can teach a smaller amount; extreme failures near the probability floor teach 0.
-- A generated opportunity has a one-use practice identity, preventing reroll farming.
+- automatic/trivial outcomes grant 0 practice;
+- harder meaningful success grants more;
+- easier uncertain success grants less;
+- credible failures can teach a smaller amount;
+- a displayed success chance of **5% or lower** qualifies for Against the Odds;
+- generated opportunities use one-use practice identities to prevent reroll farming.
 
-## 19. Perception, Investigation and Concealment
+## 22. Perception, Investigation, Stealth and world discovery
 
-- Perception is primarily passive: it decides whether the delver notices glints, side-passage signs and similar opportunities before an active decision appears.
-- Investigation is primarily active and can improve the quality/productivity of successful examination.
-- Concealment I has **2 uses** and lasts **10 minutes of active travel** per use in the canonical v0.114 system; the timer freezes while travel is held or combat is active. In Active World, preserve the intent as active exploration time rather than letting menu/combat time consume the effect; the exact migration hook should be explicit, not inferred from old travel ticks.
-- Enemy Awareness is authored content identity, not a universal depth multiplier.
-- Concealment compares effective Stealth Rating against creature Awareness.
-- Success can allow **Ambush** or **Let them pass**; passing grants no combat XP/loot and preserves concealment, while ambushing or being detected breaks it.
-- Mandatory stratum bosses cannot be bypassed by Concealment.
-- Studied Bestiary entries reveal creature Awareness.
+The Skill engine exists, but its **player-facing reconnection to the new physical world is incomplete**.
 
-Long-term Skill progression is intended to combine endless Rank, automatic mastery of old problems, sparse qualitative milestones, and genuinely different deep content rather than only larger numbers.
+### Glints — important current distinction
 
-## 20. Comparison / authoring rules
+There are currently deterministic physical **glint entities** in the world. Walking near one exposes an `Investigate` interaction, and interacting can run Perception/Investigation logic and reveal a generated cache/item.
+
+However, the intended exploration presentation discussed for the game is **not complete**:
+
+- the delver should occasionally notice a subtle cue such as *"Did I just see a glint?"*;
+- that cue should feel like passive Perception surfacing an opportunity rather than an obvious permanent world marker;
+- the player should then choose whether to actively investigate;
+- this has not yet been made into the reliable speech-bubble / attention-based interaction originally intended.
+
+Treat glints as **technically present but design-incomplete**, not as a finished feature.
+
+### Concealment / Stealth
+
+The underlying concealment/Stealth system remains present. Enemy Awareness is authored identity, and current active-world detection radius is spatial:
+
+```text
+base notice radius in tiles
+≈ clamp(5.5 + (Awareness - Stealth Rating) / 30, 3.5, 9)
+```
+
+While Concealment is active, the radius is reduced to approximately **35%**, with a minimum around 1.5 tiles.
+
+Mandatory stratum bosses cannot be bypassed as ordinary roamers.
+
+## 23. Active-world interactions currently present
+
+The active world already contains a substantial interaction layer that should be reused rather than rebuilt blindly.
+
+Physical/current entities include:
+
+- ordinary roaming enemies;
+- loot bags;
+- cavern chests/caches;
+- glints;
+- Safe Hollows;
+- side-passage mouths/geography;
+- settlement signposts;
+- settlement service/building locations;
+- caravans;
+- wandering merchants;
+- rescue/escort quest clues and refuge sites;
+- generic quest-target locations;
+- 250-fathom mini-bosses;
+- 500-fathom stratum bosses.
+
+When no hostile pressure suppresses interactions, nearby world objects expose contextual actions such as:
+
+```text
+Open chest
+Investigate
+Use Safe Hollow
+Read sign
+Approach caravan
+Approach merchant
+Inspect tracks
+Inspect satchel
+Approach refuge
+Enter building
+Use Lower Gate
+```
+
+A major next-phase goal is to make these systems appear to the player in a coherent authored progression instead of merely existing as disconnected mechanics.
+
+## 24. Settlements and quests currently implemented
+
+The current settlement code supports physical town/city geometry and service locations such as:
+
+```text
+Market
+Tavern
+Herbalist
+Guild Hall
+Lower Gate
+```
+
+The current test quest framework already supports:
+
+- quest instances;
+- settlement/location givers and recipients;
+- delivery items tied to a specific quest instance;
+- quota/proportional rewards;
+- exploration/combat acquisition sources;
+- rescue/escort state;
+- physical route clues/sites;
+- delivery turn-ins at actual settlement locations;
+- caravan-originated delivery work.
+
+Current authored examples include:
+
+- **Cave Mushroom Samples** — Grey Lantern → Mara Venn in Lantern City; up to 5 samples at 10 coin per usable unit, max 50.
+- **Missing Physician** — rescue/escort Zeshava Brightsong from the Grey Lantern–Lantern City road; 80 coin reward.
+- **Deepglass Forwarding Order** — Lantern City → Toren Kest in Ashwick; up to 4 fragments at 14 coin per unit, max 56.
+- **Sealed Caravan Dispatch** — damaged caravan → Lantern City Guild Hall; 24 coin.
+
+These systems are valuable existing infrastructure. The upcoming Fathom 0 city work should decide **how the player meets them naturally**, not discard them without inspection.
+
+## 25. Side passages, mini-bosses and bosses
+
+### Side passages
+
+Ordinary side passages are now **physical geography** in the cavern network.
+
+The old instanced side-mode event engine is parked:
+
+```text
+SIDE_PASSAGE_EVENTS_ENABLED = false
+```
+
+Walking into a passage records discovery without teleporting the player, entering a separate side mode, creating a return button, or rewriting coordinates.
+
+The old riddle/trap/altar/event content remains in the source for possible future reuse inside the physical passages.
+
+### 250-fathom mini-boss
+
+- Appears in ordinary cavern terrain rather than a bespoke boss room.
+- Uses an oversized version/variant of an ordinary goblin archetype.
+- Has a larger aggro/territory presentation than normal roamers.
+- Does not create a 250-fathom hard arena gate.
+
+### 500-fathom boss
+
+- Owns the stratum boundary encounter/gate.
+- Physically blocks progression until defeated.
+- Current first-stratum boss reward definitions include class-relevant Epic iLv 385 weapons.
+
+## 26. Ordinary enemy ecology / spawn density
+
+Ordinary enemies are generated by deterministic **24×24-tile ecology sectors**, not a per-floor-tile lottery.
+
+The sector model deliberately creates:
+
+```text
+quiet sectors
+lone-roamer sectors
+nest sectors with 2–4 bodies
+```
+
+Current v0.205.1+ density constants were changed to be **25% higher in expected bodies per sector** than the previous ecology version:
+
+```text
+Quiet share = 56.25%
+Lone share  = 33.75%
+Nest share  = 10%
+
+Old expected bodies/sector = 0.51
+Current expected bodies/sector = 0.6375
+```
+
+There is also a local active ordinary-hostile cap of:
+
+```text
+6
+```
+
+### Important playtest status
+
+Although the code contains the mathematical +25% density increase, live testing still produced **large open areas that felt nearly empty**. Therefore the player-facing density target is **not considered solved**.
+
+Do not simply claim “enemy spawns were increased” in future work. Re-evaluate the ecology model itself — especially sector size, quiet share, placement success and local visibility — until the world visually feels populated enough without becoming a wall of enemies.
+
+Bosses, mini-bosses, settlement safe zones and authored encounters should remain separate from ordinary roaming-density tuning.
+
+## 27. UI / quality-of-life systems currently live
+
+These are not combat balance rules, but they materially affect how the current game is played:
+
+- Character/Equipment, Backpack and Delve Log use persistent floating-window behavior.
+- Window positions can be remembered and reset from Settings.
+- Non-modal windows are intended to allow continued world movement while browsing.
+- Minimap physical size has Settings options: **Small / Medium / Large / Extra Large**.
+- Minimap has separate persistent `+ / −` zoom controls.
+- Enemy combat HP/info is positioned at the top-center of the screen.
+- Player HUD sits at the lower area with the combat-action cluster adjacent to character status.
+- Current combat action layout is conceptually:
+
+```text
+[ Recover ][ Read ]
+[ Power   ][ Guard ]
+[   Sand Throw    ]
+```
+
+Recover is disabled/unavailable during combat; its top-left combat seat remains visually part of the action layout.
+
+Phone/PWA presentation is still allowed to lag behind desktop while core systems are stabilized.
+
+## 28. Save / migration state
+
+Current save schema:
+
+```text
+25
+```
+
+Important migration guarantees already implemented:
+
+- missing RSL initializes to **10**;
+- existing attributes are preserved;
+- existing displayed level is not downgraded;
+- existing unspent attribute points are preserved;
+- existing Armor values are preserved;
+- existing saved Crit affixes retain exact values;
+- old Energy is **not** converted into free Momentum;
+- Momentum initializes at 0 when introduced;
+- Focus initializes prepared/full;
+- existing Mana is preserved/clamped into the current 0–100 pool.
+
+Settings use a separate schema and persist minimap/window preferences independently of the run save.
+
+## 29. Comparison / authoring rules
 
 Do not label equipment simply **BETTER** or **UPGRADE** when build preference is unknowable.
 
 Prefer objective consequences such as:
 
-- Armor / Defence Rating change;
-- Attack Rating / Attack Bonus change;
-- AC change;
-- Deflection change;
-- live natural-d20 Crit rules; parked Crit Chance/Crit Damage affixes may be shown for compatibility but must not be presented as current combat upgrades;
+- Attack Rating change;
+- Defence Rating / RSL change;
+- Armor and Physical Damage Reduction change;
+- Crit Chance change;
+- Precision / Crit Damage change;
 - live affix changes;
-- iLv / Gear Level change shown neutrally.
+- iLv / Gear Level change;
+- weapon family, range, Speed or primary-resource identity when relevant.
 
-## 21. Parked / intentionally unfinished systems
+Do not present legacy AC/Deflection as the active-world defensive model.
 
-- **Speed timeline:** engine/UI remains, but ordinary combat is intentionally fixed alternation during the AC + Stamina playtest.
-- **Protection:** engine/formula retained for future persistent shield/ward abilities; not ordinary defence.
-- Real dual-wield attack behavior remains unfinished.
-- Broader procedural affix catalogue is registered but mostly disabled until each property has a proven use and balance price.
-- Class armor restrictions are not part of the current design.
-- **Legacy DEX/gear Crit Chance and WIS Precision/Crit Damage:** parked during the natural-d20 ×2 Crit playtest.
-- **Rogue Backstab guaranteed Crit/+25pp Crit Damage:** parked; replacement identity unresolved.
-- **Active World migration:** exact conversion of legacy travel-unit timers/recharges to continuous movement remains unfinished.
-- **Instanced Active World towns/side passages:** explicitly not the target design; these must become continuous-world spaces.
+## 30. Parked, incomplete and next-phase-sensitive systems
 
+### Parked / legacy
 
+- Legacy modal d20/AC combat helpers remain in source; ordinary active-world combat uses the continuous accuracy curve.
+- Legacy 3-Stamina turn economy remains in source for old/modal encounters; it is not the main overworld rhythm.
+- Speed-timeline UI/logic remains partially available but the active world instead uses real-time attack intervals.
+- Protection capacity remains parked for future persistent shield/ward mechanics.
+- Ordinary Rest is retired from the active world UI, with old code retained.
+- Old instanced side-passage event mode is disabled; physical passages are live.
+- Broader affix catalogue is registered but mostly disabled.
+- True dual-wield attack behavior remains incomplete.
+- Magic Defence is not implemented.
 
-## 22. Active World spatial/system integration rules
+### Implemented but not yet satisfactory / fully surfaced
 
-These rules describe the intended conversion architecture. They are design constraints for the main v0.203.3 Active World line, not claims that every item is already working correctly.
+- Ordinary enemy ecology contains a +25% expected-density change, but playtesting still feels too sparse.
+- Glint entities and checks exist, but the intended passive Perception/speech-bubble discovery experience is incomplete.
+- Several caravan, merchant, quest, rescue, Skill and settlement systems exist but are not yet introduced/reconnected through a coherent beginning-of-game flow.
+- Phone/PWA behavior and layout still need later cleanup; desktop/core functionality is currently the priority.
 
-### Main vs reference build
+### Next development direction
 
-- **v0.203.3 Active World is the main working build and must remain the foundation.** Preserve its free-moving Canvas, current world scale/zoom, continuous movement, roaming-enemy concept and landscape direction.
-- **v0.114.1.3 is the canonical system/UI reference.** When an established system in Active World behaves differently from the mature v0.114 version without an explicit design decision, restore/adapt the v0.114 behavior rather than inventing a parallel replacement.
+The next major phase should begin at **Fathom 0** and build/rework the opening city as the player's real starting point.
 
-### Spatial ownership
-
-The Canvas world owns:
-
-```text
-world position
-camera
-continuous movement
-terrain/chunks
-collision
-world entities and sprites
-spatial interaction range
-physical placement of encounters/locations
-```
-
-Canonical Lowfathom systems own:
-
-```text
-character state
-combat math and turn state
-items/equipment/rarity/economy
-Skills/Abilities/Bestiary
-quests and interaction state
-merchant/town services
-Rest/Camp effects
-XP/attributes/progression
-save integrity and migrations
-```
-
-Adapters should connect them explicitly. Example: a visible goblin touches the player → canonical combat starts for that archetype; canonical death/loot resolves → a physical loot bag can be created at that world position.
-
-### Required physical-world behavior
-
-- **Enemies:** visible, modest roaming, collision-aware, reachable spawns, no sealed rock pockets, no casual roaming through protected Hollows. AI activity radius and render radius should be separate.
-- **Loot:** enemy rewards may appear physically as `assets/ui/bag_coins.png`; walking over or pressing Interact/E opens the canonical recovered-loot flow. No fake bag when nothing dropped.
-- **Chests:** keep procedural chests, but use sparse sector/chunk placement rather than per-floor-tile rolls.
-- **Safe Hollows:** physically carved protected outcroppings/clearings with a campfire; canonical Hollow/Rest/Camp rules activate through spatial interaction.
-- **Side passages:** literal traversable branches connected to the same terrain. No teleport to an instanced side-passage map.
-- **Settlements:** Grey Lantern, Lantern City and Ashwick are constructed areas embedded directly into the same world coordinates. Buildings physically represent canonical Market/Tavern/Herbalist/Guild services. No detached rectangular town instance.
-- **Caravans / wandering merchants:** visible wagon/camp/traveler world entities first; canonical Interaction Engine/merchant UI opens after approach/interact.
-- **Quest/rescue objects:** clues, satchels, tracks, hideouts, bosses and similar beats should have physical causes in the world instead of appearing solely because a depth threshold was crossed.
-- **Temporary companions:** an active escort such as Zeshava must have a visible follower presence; underlying quest/escort state remains canonical.
-
-### In-world combat presentation
-
-Combat remains the canonical turn-based system but occurs visually in the world where the encounter happened. Free movement locks while combat is active; combat UI overlays the Canvas. Player/enemy attack animation may use short lunges/bumps purely as visual feedback — the bump is **not** the input or hit-resolution system.
-
-Current layout target:
-
-- top-left: live Fathoms;
-- top-center in combat: enemy name/HP/Intent;
-- bottom-center: player name/level/HP/XP;
-- right side: compact combat actions;
-- left side: one collapsible log region, Delve Log outside combat and Combat Log during combat, same coordinates.
-
-The correct Settings art is `assets/ui/glyph-gear.png`. Inventory should be accessible with **I** on keyboard.
+The goal is not to invent a new stack of systems. The city and the first stretch below it should become the chronological spine used to **reconnect existing systems** — quests, NPCs, services, merchants, Perception/Investigation, road events, rescue/escort content, loot and exploration — in the order a new player actually encounters them.

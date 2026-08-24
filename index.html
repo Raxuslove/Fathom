@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.205.1 — Floating Windows & Minimap QOL</title>
+<title>Lowfathom v0.213.0 — Equipment Benchmark Rebalance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,8 +21,27 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
+   - v0.213.0: equipment benchmark rebalance — enemy HP/Defence now benchmark a neutral 1.5-hand weapon budget; player Armor expectation is derived from real body-armor slot/value budgets instead of 25% iLv; threat labels only use level to prevent higher-level foes reading WEAK; Skitter display level no longer receives an unearned danger offset
+   - v0.212.4: unified menus + threat sanity — non-book menus now use the persistent player-card visual language; Focus is a darker green distinct from HP; higher-level foes have a conservative minimum threat label so a stronger-level tank cannot read as WEAK
+   - v0.212.3: resource colors + heal FX — Focus is green, Mana is blue, and all HP recovery now pulses the persistent player HP bar
+   - v0.212.2: unified HUD card styling — Recover and realtime combat actions now share the compact player-card visual language; player status hierarchy is HP → purple XP → Momentum → Focus → Mana, with all three combat resources always visible
+   - v0.212.1: persistent player card + Recover QOL — the compact modern player status card now remains visible in and out of realtime combat; the older travel card is retired from the active world; field Recover uses a smaller emblem and a full-card cooldown readout
+   - v0.212.0: realtime event combat + player card — attacked caravan and rescue/escort scripted fights now enter the same active-world realtime combat path; the clear legacy bottom-center player card is rebuilt for current HP/resource/XP/ATK/Armor/DEF data; smart weapon-family bias remains downstream of slot selection and does not alter accessory drop rates
+   - v0.211.0: smart loot + inventory/facing QOL — newly acquired equipment sorts to the top of the Backpack; generated weapon drops receive a soft data-driven bias toward the currently equipped weapon family; all ordinary creature sprites mirror to face their movement/player target; combat minibosses also face the delver
+   - v0.210.0: realistic combat spine + threat/QOL — enemy HP and Defence now benchmark current one-handed Weapon Attack Base against a fundable diversified player curve; enemy attack uses the realistic CON curve; XP is decoupled into a flat kills-per-fathom spine; threat estimates account for telegraphed Heavy wind-up and expected dodges; in-range combat automatically resumes attack orders without resetting attack timing; world loot despawns after 60 seconds and blinks for its final 10; item comparisons only show direct Crit affixes rather than DEX-derived Crit
+   - v0.209.0: enemy curve rebalance — ordinary enemy HP and attack scaling are reduced to a sustainable neutral baseline; Slimes and Goblin archetypes receive explicit defence/armor/accuracy identities; EVEN expands to the intended normal-progression attrition band while bosses preserve their authored budget
+   - v0.206.0: Fathom 0 + Forest Plains — new delvers begin inside the walkable Grey Lantern village, settlements gain denser physical geometry, the first stratum becomes a subterranean forest, slimes join its ecology, and the former opening cave look is preserved for Stratum 3
+   - v0.206.1: Forest Plains ecology — slime-only through 149 fathoms, slime + woodland goblins from 150–499, and roughly 21% more ordinary ecology opportunities than v0.206.0
+   - v0.206.2: independent creature ecology — each species rolls its own per-sector spawn chance, slime2-right.png joins as a separately tuneable slime profile, and adding monsters no longer dilutes existing spawn rates
+   - v0.206.3: player class sprites — Votary uses knight-lantern-player.png, Rogue uses rogue-lantern-player.png, Wizard uses mage-lantern-player.png, with authored right-facing art mirrored for leftward travel
+   - v0.205.4: combat HUD layout pass — enemy HP moves top-center; player actions sit beside the character panel in a Recover/Read, Heavy/Guard, Sand Throw layout
+   - v0.205.3: field recovery test — Momentum gains a 3-second attack grace then decays at 2/sec, ordinary Rest retires from the active UI, and Recover heals a flat 20 HP outside combat on a 30-second cooldown using the classic combat-card visual language
+   - v0.205.2: resource identity pass — Momentum replaces Energy for martial weapons, melee basics build Momentum (+10 hit / +5 accuracy miss), Heavy costs 30 Momentum, bow Focus starts prepared and regenerates over time, and HP/Focus/Momentum colors are clarified
    - v0.205.1: QOL pass — restores Delve Log overlay, draggable/persistent Backpack + Character/Equipment + Delve Log windows, reset-window control, resizable minimap with persistent +/- zoom, and +25% ordinary roaming enemy ecology density
-   - v0.205.0: combat math consolidation — RSL Defence Rating, physical Armor mitigation, 0 reserved for accuracy misses, tightened Basic damage, live DEX/gear Crit + Precision severity, rarity-gated Crit ceilings, and 3-point slower level-ups
+   - v0.208.1: threat/backtrack QOL — physical enemies now freeze their combat level/stats at their actual world fathom instead of the run's deepest-ever depth; Examine and live HUD share the same matchup depth; moving away only cancels a distant pre-contact approach order, preserving combat kiting
+   - v0.208.0: Delver Journal + attack-order QOL — moving away cancels the player attack order without erasing enemy hostility; Examine opens a movable leather Journal/Bestiary book; recorded creatures use an 8-entry spread and Read/Study progressively reveals detailed creature pages
+   - v0.207.0: defense rework — Armor now controls enemy chance-to-connect against an iLv-based benchmark; RSL renamed DEF and now supplies bounded physical damage reduction; ordinary generated Damage Reflect disabled; threat labels recalibrated around expedition attrition; evade now detaches immediately and returns under world AI
+   - v0.205.0: combat math consolidation — legacy RSL Defence Rating/Armor mitigation pass, later replaced by v0.207.0
    - v0.204.1.3: immediate active powers on the independent basic-attack rhythm, Heavy 60 Energy with no hit refund, HUD button DOM stability, stale-queue refund/cleanup, and game-canvas native context-menu suppression
    - v0.204.1.2: Heavy reliability fix — queued powers replace the true next swing (including the opener), explicit power feedback, and Heavy wind-ups root secondary enemies in place
    - v0.204.1.1: targeting input hotfix — forgiving creature hit-testing, reliable right-click context menu, and frame-safe hostile auto-acquisition
@@ -48,8 +67,8 @@
    - v0.112.1.1 end-turn placement hotfix: End Turn corrected to the lower-right corner of the player panel
    - v0.112.1 combat pad QOL + attack tuning: Read joins the 2-column action grid, End Turn moves into the player panel, Strike chain becomes 1.0× / 1.6× / 2.6×, and player Heavy becomes 3.2× with no accuracy penalty
    - v0.112.0 AC + Stamina combat test: player and enemy attacks both roll d20 + Attack Bonus against target AC
-   - Attack/Defence Ratings scale endlessly on logarithmic ladders; equal expected progression targets roughly 60% hit chance
-   - Armor no longer grants the old passive mitigation curve; equipped Armor feeds Defence Rating -> AC plus up to 8% breakpoint Deflection
+   - legacy modal d20 note: Attack/Defence Ratings scale on logarithmic ladders in the parked turn-based engine
+   - legacy modal d20 note: its old Armor/Deflection presentation is not the live v0.207 overworld defensive model
    - player turns refresh to 3 Stamina: Strike 1, Guard/Parry 2, Heavy/Backstab/Arcane Bolt 3, Counter 3, Sand 2, Read 1
    - Guard/Parry reduce the next incoming hit by loadout-specific percentages; Counter instead grants +4 AC and retaliates when the attack misses
    - Protection is parked for future shield/ward abilities and is no longer generated by normal defence
@@ -760,6 +779,7 @@ button{
 .travel-act.rest b{color:var(--stamina)}
 .travel-act.pack b{color:var(--bone)}
 .travel-act.rest,.travel-act.pack{min-height:52px;padding:9px 11px}
+#btnRest[hidden]{display:none!important}
 .travel-bottom-row{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:6px;background:transparent}
 .travel-act.stop,.travel-act.log{grid-column:auto;min-height:48px;padding:4px 8px}
 .travel-act.stop b{font-size:13.5px;color:var(--dim)}
@@ -902,6 +922,7 @@ button{
 .town-footer-hero-top span{font-family:var(--cond);font-size:9px;color:var(--dim)}
 .town-footer-hp{position:relative;overflow:visible;height:8px;background:#080b0e;border:1px solid var(--rule)}
 .town-footer-hp i{display:block;height:100%;transition:width .25s}
+.town-footer-hp i{background:linear-gradient(90deg,#3e7a4b,#69a85f)}
 .town-footer-hero .xp-track{margin-top:2px;height:4px}
 .town-footer-hero-meta{display:flex;justify-content:space-between;gap:8px;margin-top:3px;font-family:var(--cond);font-size:9px;color:var(--dim)}
 .town-footer-pack{display:flex;flex-direction:column;justify-content:center;min-height:62px;padding:5px 8px;border:9px solid transparent;border-image:url("./assets/ui/frame-button.png") 30 fill / 9px / 0 stretch;cursor:pointer}
@@ -1139,8 +1160,8 @@ button{
 .bar.hp i{background:linear-gradient(90deg,#8e3f2c,var(--rust))}
 .bar.hp.mid i{background:linear-gradient(90deg,#8a6f34,var(--warn))}
 .bar.hp.low i{background:#c4442a}
-/* Player HP uses a calmer health read: blue when healthy, amber at half, red only at 25% or lower. */
-.hero .bar.hp i{background:linear-gradient(90deg,#4f7898,#78a6c4)}
+/* Player HP reads green when healthy, amber at half, red only at 25% or lower. */
+.hero .bar.hp i{background:linear-gradient(90deg,#478b55,#75b66a)}
 .hero .bar.hp.mid i{background:linear-gradient(90deg,#9a7936,#d1a74e)}
 .hero .bar.hp.low i{background:linear-gradient(90deg,#8e3f2c,var(--rust))}
 /* v0.109.0: Protection is a temporary, attack-bound buffer. It is drawn as a
@@ -1161,7 +1182,7 @@ button{
   72%{opacity:.62;transform:scaleX(.18)}
   100%{opacity:0;transform:scaleX(0)}
 }
-.travel-hp i{background:linear-gradient(90deg,#4f7898,#78a6c4)}
+.travel-hp i{background:linear-gradient(90deg,#478b55,#75b66a)}
 .travel-hp.mid i{background:linear-gradient(90deg,#9a7936,#d1a74e)}
 .travel-hp.low i{background:linear-gradient(90deg,#8e3f2c,var(--rust))}
 .heal-pop,.heal-pluses{pointer-events:none;position:absolute;inset:0;overflow:visible}
@@ -1470,7 +1491,7 @@ button{
 .char-vital-line b{display:inline;margin:0;font-size:16px;line-height:1;color:var(--bone)}
 .char-vitals .char-xp-track{height:4px;margin-top:3px}
 .char-hp-track{position:relative;display:block;height:7px;margin-top:7px;background:#080b0e;border:1px solid var(--rule);overflow:visible}
-.char-hp-track>i{display:block;height:100%;background:linear-gradient(90deg,#4b78a0,#6f9fbd);transition:width .25s}
+.char-hp-track>i{display:block;height:100%;background:linear-gradient(90deg,#3e7547,#66a25a);transition:width .25s}
 .char-hp-track.mid>i{background:linear-gradient(90deg,#8a6f34,var(--warn))}
 .char-hp-track.low>i{background:linear-gradient(90deg,#8e3f2c,var(--rust))}
 .char-hp-track.healing{box-shadow:inset 0 0 0 1px rgba(112,198,103,.74),0 0 12px rgba(112,198,103,.30)}
@@ -2804,10 +2825,10 @@ body.font-slab{--cf-serif:var(--slab)}
 .arena.combat-mode .hero .lv{flex:0 0 auto;font-family:var(--cond);font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#7fa8c4}
 .arena.combat-mode .hero-top-vitals{flex:0 0 auto;margin-left:auto;display:flex;align-items:baseline;gap:7px;white-space:nowrap}
 .arena.combat-mode .hero-pr-top{font-family:var(--cond);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#b2bac0}
-.arena.combat-mode .hero-hp-top{flex:0 0 auto;font-family:var(--cf-serif);font-size:13px;font-weight:600;color:#73bce0;white-space:nowrap}
-.arena.combat-mode .hero .bar.hp{height:8px;margin:0;border:1px solid rgba(70,120,150,.45);border-radius:2px;background:#070f13}
-.arena.combat-mode .hero .bar.hp > i{background:linear-gradient(90deg,#2f6c8d,#4e9ec4)}
-.arena.combat-mode .hero .hpn{color:#73bce0}
+.arena.combat-mode .hero-hp-top{flex:0 0 auto;font-family:var(--cf-serif);font-size:13px;font-weight:600;color:#72b86a;white-space:nowrap}
+.arena.combat-mode .hero .bar.hp{height:8px;margin:0;border:1px solid rgba(74,132,74,.45);border-radius:2px;background:#070f13}
+.arena.combat-mode .hero .bar.hp > i{background:linear-gradient(90deg,#32723f,#58a04f)}
+.arena.combat-mode .hero .hpn{color:#72b86a}
 .arena.combat-mode .hero .nums{display:none}
 .arena.combat-mode .vitalrow{display:flex;align-items:center;gap:9px;margin-top:7px;min-width:0}
 .arena.combat-mode .pips{display:flex;flex-wrap:nowrap;gap:2px;min-width:0;flex:0 1 auto}
@@ -3513,17 +3534,32 @@ body{overscroll-behavior:none}
 .travel-resource>span b{font:600 7px var(--cond);color:inherit}.travel-resource>span em{display:inline;font-style:normal;font-size:6.5px;letter-spacing:0;text-transform:none;color:#677272}
 .travel-resource-track{height:3px;overflow:hidden;background:#070b0d;border:1px solid rgba(104,117,120,.18)}
 .travel-resource-track i{display:block;height:100%;width:0;transition:width .14s linear}
-.travel-resource-track.energy i{background:#b07b45}.travel-resource-track.focus i{background:#9caa69}.travel-resource-track.mana i{background:#587fa7}
+.travel-resource-track.momentum i{background:linear-gradient(90deg,#a87824,#d6ae42)}.travel-resource-track.focus i{background:linear-gradient(90deg,#347442,#62ae5b)}.travel-resource-track.mana i{background:linear-gradient(90deg,#3f67a2,#72a5de)}
 .travel-resource.primary{grid-template-columns:86px minmax(0,1fr);min-height:13px;opacity:1}
 .travel-resource.primary>span,.travel-resource.primary>span b{font-size:8.5px;color:#d3c5a7}.travel-resource.primary>span em{font-size:7.5px;color:#8d9897}
 .travel-resource.primary .travel-resource-track{height:6px;border-color:rgba(177,151,99,.28)}
 
-.world-combat-hud{position:absolute;z-index:18;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));width:min(238px,31vw);pointer-events:auto;display:grid;gap:6px}
+.world-combat-target-shell{position:absolute;z-index:18;left:50%;top:max(14px,env(safe-area-inset-top));transform:translateX(-50%);width:clamp(300px,48vw,360px);pointer-events:none}
+.world-combat-target-shell[hidden]{display:none!important}
+/* v0.212.0: current realtime version of the old combat player card. Keep the
+   compact bottom-centre hierarchy because it reads cleanly at a glance. */
+.world-player-card{position:absolute;z-index:18;left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(340px,38vw);padding:7px 9px 8px;background:rgba(3,8,10,.88);border:1px solid rgba(70,120,150,.34);box-shadow:0 5px 20px rgba(0,0,0,.42);backdrop-filter:blur(2px);pointer-events:auto;cursor:pointer}
+.world-player-card[hidden]{display:none!important}.world-player-head{display:flex;align-items:baseline;gap:7px;margin-bottom:5px;min-width:0}.world-player-head b{font:600 14px var(--slab);color:#73bce0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.world-player-level{font:9px var(--cond);letter-spacing:.10em;color:#7fa8c4;white-space:nowrap}.world-player-hpn{margin-left:auto;font:600 10px var(--slab);color:#72b86a;white-space:nowrap}
+.world-player-hp,.world-player-resource-track,.world-player-xp-track{height:7px;background:#070f13;border:1px solid rgba(74,132,74,.42);overflow:hidden}.world-player-hp i,.world-player-resource-track i,.world-player-xp-track i{display:block;height:100%;width:0}.world-player-hp i{background:linear-gradient(90deg,#32723f,#58a04f)}
+.world-player-hp{position:relative;overflow:visible}.world-player-hp.healing{box-shadow:0 0 0 2px rgba(112,198,103,.66),0 0 20px rgba(112,198,103,.38)}.world-player-hp.healing>i{filter:brightness(1.2) saturate(1.18)}
+.world-player-resource-row,.world-player-xp-row{display:flex;align-items:baseline;gap:7px;margin-top:4px;font-family:var(--cond);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:#89969c}.world-player-resource-row b,.world-player-xp-row b{font-weight:700}.world-player-resource-row span:last-child,.world-player-xp-row span:last-child{margin-left:auto;white-space:nowrap}.world-player-resource-track,.world-player-xp-track{height:4px;margin-top:2px;background:#070f13;overflow:hidden}.world-player-resource-track i,.world-player-xp-track i{display:block;height:100%;width:0}
+.world-player-xp-row{margin-top:5px}.world-player-xp-row b{color:#b99ae8}.world-player-xp-track{border:1px solid rgba(145,104,195,.42)}.world-player-xp-track i{background:linear-gradient(90deg,#7251a8,#b27be0)}
+.world-player-resource-row[data-resource="momentum"] b{color:#d9a13d}.world-player-resource-track[data-resource="momentum"]{border:1px solid rgba(164,111,47,.38)}.world-player-resource-track[data-resource="momentum"] i{background:linear-gradient(90deg,#a86420,#d99b3c)}
+.world-player-resource-row[data-resource="focus"] b{color:#83c982}.world-player-resource-track[data-resource="focus"]{border:1px solid rgba(74,146,78,.45)}.world-player-resource-track[data-resource="focus"] i{background:linear-gradient(90deg,#347442,#62ae5b)}
+.world-player-resource-row[data-resource="mana"] b{color:#78afe8}.world-player-resource-track[data-resource="mana"]{border:1px solid rgba(72,116,175,.48)}.world-player-resource-track[data-resource="mana"] i{background:linear-gradient(90deg,#3f67a2,#72a5de)}
+.world-player-resource-row.secondary{opacity:.68}.world-player-resource-row.primary{opacity:1}.world-player-resource-track.secondary{opacity:.68}.world-player-resource-track.primary{opacity:1}
+.world-player-stats{margin-top:6px;padding-top:5px;border-top:1px solid rgba(105,124,132,.20);font:8px var(--cond);letter-spacing:.055em;color:#aebbba;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.world-player-weapon{display:block;margin-top:2px;font:7.5px var(--cond);letter-spacing:.10em;color:#7f8f96;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.world-combat-hud{position:absolute;z-index:18;left:calc(50% + min(180px,22vw) + 7px);bottom:max(10px,env(safe-area-inset-bottom));width:min(250px,31vw);pointer-events:auto;display:block}
 .world-combat-hud[hidden]{display:none!important}
-.world-combat-target{padding:7px 8px;background:rgba(2,6,8,.82);border:1px solid rgba(138,117,80,.42);box-shadow:0 5px 18px rgba(0,0,0,.35);backdrop-filter:blur(2px)}
-.world-combat-target-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.world-combat-target-head b{font:600 13px var(--slab);color:var(--bone)}.world-combat-target-head span{font:8px var(--cond);color:#9d9180}
-.world-combat-hp{height:5px;margin-top:4px;background:#090708;border:1px solid rgba(128,64,53,.34);overflow:hidden}.world-combat-hp i{display:block;height:100%;background:#a44c42;transition:width .12s linear}
-.world-combat-target em{display:block;margin-top:4px;font:7px var(--cond);font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:#8b918b}
+.world-combat-target{padding:9px 10px;background:rgba(2,6,8,.90);border:1px solid rgba(138,117,80,.52);box-shadow:0 5px 18px rgba(0,0,0,.35);backdrop-filter:blur(2px)}
+.world-combat-target-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.world-combat-target-title{display:flex;align-items:baseline;gap:7px;min-width:0}.world-combat-target-head b{font:600 15px var(--slab);color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.world-combat-target-head>span{font:9px var(--cond);color:#a79b89;white-space:nowrap}.world-combat-level{font:700 9px var(--cond);letter-spacing:.08em;text-transform:uppercase;color:#d2c5a6;white-space:nowrap}.world-combat-level.threat-weak{color:#86b58b}.world-combat-level.threat-even{color:#d8c994}.world-combat-level.threat-tough{color:#c88a56}.world-combat-level.threat-deadly{color:#c4544d}
+.world-combat-hp{height:6px;margin-top:5px;background:#090708;border:1px solid rgba(128,64,53,.34);overflow:hidden}.world-combat-hp i{display:block;height:100%;background:#a44c42;transition:width .12s linear}
+.world-combat-target em{display:block;margin-top:5px;font:8.5px var(--cond);font-style:normal;letter-spacing:.065em;text-transform:uppercase;color:#9ba09a;line-height:1.3}.world-combat-target em .threat-word{font-weight:700}.world-combat-target em .threat-weak{color:#86b58b}.world-combat-target em .threat-even{color:#d8c994}.world-combat-target em .threat-tough{color:#c88a56}.world-combat-target em .threat-deadly{color:#c4544d}
 /* v0.204.0.7: temporary melee-reach tuning is a persistent world HUD control,
    not a combat-only control. Keeping it visible lets spacing be tuned before an
    engagement and avoids mobile drag state being rebuilt by the combat HUD. */
@@ -3532,17 +3568,56 @@ body{overscroll-behavior:none}
 .world-reach-tuner b{min-width:18px;text-align:right;font:600 9px var(--cond);color:#d2b77d}
 .world-reach-tuner.locked{opacity:.58}.world-reach-tuner.locked input{cursor:not-allowed}
 @media (max-width:760px) and (orientation:landscape){.world-reach-tuner{width:176px;grid-template-columns:auto minmax(70px,1fr) auto;padding:4px 6px;gap:5px}}
-.world-combat-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px}.world-combat-actions button{min-height:48px;padding:5px 6px;border:7px solid transparent;border-image:url("./assets/ui/frame-button.png") 30 fill / 7px / 0 stretch;background:#050b0e;color:var(--bone);display:flex;flex-direction:column;align-items:center;justify-content:center}.world-combat-actions button b{font:600 12px var(--slab)}.world-combat-actions button span{margin-top:1px;font:7px var(--cond);color:#8e928c}.world-combat-actions button:disabled{opacity:.38}
+.world-combat-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px}.world-combat-actions .sand-row{grid-column:1 / -1}.world-combat-actions .sand-row .world-action-copy{text-align:center}.world-combat-actions .combat-recover:disabled{opacity:.38}
+/* v0.212.2: action controls now share the persistent player card's flat HUD language. */
+.world-action-card{position:relative;min-height:58px;padding:6px 8px;border:1px solid rgba(70,120,150,.34);background:rgba(3,8,10,.90);box-shadow:0 5px 20px rgba(0,0,0,.34);backdrop-filter:blur(2px);color:var(--bone);display:grid;grid-template-columns:34px minmax(0,1fr);gap:7px;align-items:center;text-align:right;overflow:hidden;transition:border-color .12s ease,background .12s ease,opacity .12s ease}
+.world-action-card:not(:disabled):hover,.world-action-card:not(:disabled):focus-visible{border-color:rgba(95,164,199,.62);background:rgba(5,13,17,.95)}
+.world-action-card .world-action-icon,.world-action-card .world-action-icon .ui-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center}
+.world-action-card .world-action-icon img{width:100%;height:100%;object-fit:contain}.world-action-card .world-action-copy{min-width:0}.world-action-card .world-action-copy>b{display:block;font:600 14px var(--slab);color:#73bce0;line-height:1.05}.world-action-card .world-action-copy>span{display:block;margin-top:2px;font:7px var(--cond);letter-spacing:.08em;text-transform:uppercase;color:#8e9aa0;line-height:1.2}.world-action-card:disabled{opacity:.38}
+.world-field-hud{position:absolute;z-index:17;left:calc(50% + min(180px,22vw) + 7px);bottom:max(10px,env(safe-area-inset-bottom));width:min(118px,15vw);pointer-events:auto}.world-field-hud[hidden]{display:none!important}.world-field-hud .world-action-card{width:100%;grid-template-columns:30px minmax(0,1fr);min-height:58px}.world-field-hud .world-action-icon,.world-field-hud .world-action-icon .ui-icon{width:30px;height:30px}.world-field-hud .world-action-copy>b{font-size:15px;color:#92c79b}.world-field-hud .world-action-copy>span{font-size:8px}.world-field-hud .world-action-card.cooling:disabled{opacity:1}.world-field-hud .world-action-card.cooling .world-action-icon,.world-field-hud .world-action-card.cooling .world-action-copy{opacity:.16}.world-field-hud .world-action-card.cooling::after{content:attr(data-cooldown);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border:0;background:rgba(3,8,10,.90);font:600 17px var(--slab);letter-spacing:.05em;color:#a9cfaf;text-shadow:0 1px 2px #000}.arena.world-realtime-combat .world-field-hud,.world-town-mode .world-field-hud{display:none!important}
+.arena .travel-hero{display:none!important}
 .arena.world-realtime-combat .world-context-actions{display:none!important}
+.arena.world-realtime-combat .travel-hero{display:none!important}
 .arena.world-realtime-combat .travel-actions>#btnRest{display:none!important}
 @media (max-width:760px) and (orientation:landscape){
   .travel-hero{width:min(330px,45vw);bottom:7px}.travel-resources{gap:2px;margin-top:3px;padding-top:3px}.travel-resource{grid-template-columns:65px minmax(0,1fr)}.travel-resource.primary{grid-template-columns:75px minmax(0,1fr)}
-  .world-combat-hud{right:max(10px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom));width:min(210px,30vw)}.world-combat-actions button{min-height:42px}.world-combat-target{padding:5px 7px}
+  .world-combat-target-shell{top:max(7px,env(safe-area-inset-top));width:clamp(280px,52vw,340px)}.world-player-card{bottom:max(7px,env(safe-area-inset-bottom));width:min(320px,39vw);padding:6px 8px}.world-player-head b{font-size:13px}.world-player-stats{font-size:7.4px}.world-combat-hud{left:calc(50% + min(165px,22.5vw) + 5px);bottom:max(7px,env(safe-area-inset-bottom));width:min(220px,31vw)}.world-combat-actions .world-action-card{min-height:48px;grid-template-columns:32px minmax(0,1fr)}.world-combat-actions .world-action-icon,.world-combat-actions .world-action-icon .ui-icon{width:32px;height:32px}.world-field-hud{left:calc(50% + min(165px,22.5vw) + 5px);bottom:max(7px,env(safe-area-inset-bottom));width:min(108px,15vw)}.world-field-hud .world-action-card{min-height:48px;grid-template-columns:28px minmax(0,1fr)}.world-field-hud .world-action-icon,.world-field-hud .world-action-icon .ui-icon{width:28px;height:28px}.world-combat-target{padding:7px 9px}.world-combat-target-head b{font-size:14px}.world-combat-target em{font-size:8px}
 }
 
 </style>
 
 
+<style id="unified-hud-menu-theme">
+/* v0.212.4 — all non-book menus share the compact persistent HUD card language.
+   Delver's Journal / Bestiary deliberately retain their leather-book presentation. */
+:root{--hud-card-bg:rgba(3,8,10,.95);--hud-card-bg-2:#071013;--hud-card-bg-3:#0b1114;--hud-card-border:rgba(70,120,150,.34);--hud-card-rule:rgba(70,120,150,.20);--hud-card-rule-hi:rgba(92,149,181,.40);--hud-card-blue:#73bce0;--hud-card-dim:#7f8f96}
+.interaction-panel,.quest-reward-panel,.town-location-panel,.pack-panel,.boonpick-panel,.restskillpick-panel,.char-panel,.equipment-inspect-panel,.loot-history-panel,.sheet-panel,.levelup-panel,.settings-panel,.info-panel,.world-loot-panel,.arena.combat-mode>.combat-loot-panel,#travelLogWrap{
+  background:var(--hud-card-bg)!important;border:1px solid var(--hud-card-border)!important;border-image:none!important;border-radius:0!important;box-shadow:0 8px 28px rgba(0,0,0,.46)!important;backdrop-filter:blur(2px)
+}
+#travelLogWrap{margin:0!important;padding:7px 9px!important}
+#travelLogWrap::before{display:none!important}
+.interaction-head,.quest-reward-head,.char-head,.equipment-inspect-head,.settings-head,.levelup-head,.floating-window-head,.travel-log-head{
+  background:var(--hud-card-bg-3)!important;border-bottom:1px solid var(--hud-card-rule)!important
+}
+.interaction-copy,.quest-reward-copy,.pack-scroll,.pack-note,.char-vitals>div,.char-stat,.char-field-skill,.char-skill,.char-status,.char-combat-stat,.char-overview-note,.char-folk-trait,.char-stat-allocation,.char-field-note,.char-section-head,.char-note,.equipment-inspect-meta div,.equipment-inspect-stats,.equipment-inspect-special,.equipment-inspect-full,.equipment-inspect-empty,.settings-section-title,.settings-row,.settings-note,.info-chapters,.info-article,.sheet-note{
+  background:var(--hud-card-bg-2)!important
+}
+.pack-tabs,.char-vitals,.char-stats,.char-nav,.char-field-skills,.char-combat-grid,.equipment-inspect-meta,.equipment-inspect-actions,.levelup-actions,.interaction-actions{
+  background:var(--hud-card-rule)!important
+}
+.pack-tab,.char-nav-btn,.char-stat-step,.char-stat-confirm,.char-field-use,.equipment-inspect-actions button,.interaction-choice,.quest-reward-close,.settings-toggle,.settings-choice,.settings-reset,.settings-close,.settings-info-open,.info-chapter-btn,.sheet-back,.levelup-actions button,.floating-window-close,.travel-log-close{
+  background:var(--hud-card-bg-3)!important;border-color:var(--hud-card-border)!important;color:#aebbba!important;box-shadow:none!important
+}
+.pack-tab.active,.char-nav-btn.active,.settings-choice.selected,.info-chapter-btn.selected,.settings-toggle.on{
+  background:#101a20!important;border-color:var(--hud-card-rule-hi)!important;color:var(--hud-card-blue)!important;box-shadow:inset 0 0 0 1px rgba(70,120,150,.10)!important
+}
+.interaction-head em,.quest-reward-head em,.char-head em,.equipment-inspect-head em,.settings-head h2,.levelup-head em,.char-section-head b{color:#7fa8c4!important}
+.interaction-head h2,.quest-reward-head h2,.char-head h2,.equipment-inspect-head h3,.levelup-head b{color:#d2d9d8!important}
+/* Focus intentionally uses a darker green than HP so the two bars cannot be mistaken at a glance. */
+.world-player-resource-row[data-resource="focus"] b{color:#5f9568!important}
+.world-player-resource-track[data-resource="focus"]{border-color:rgba(47,94,57,.62)!important}
+.world-player-resource-track[data-resource="focus"] i{background:linear-gradient(90deg,#173823,#356b40)!important}
+</style>
 <style id="qol-floating-window-overrides">
 /* v0.205.1: non-modal world browsing windows. They are intentionally real
    overlays rather than full-screen sheets so the delver can keep walking. */
@@ -3593,6 +3668,37 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
   body[data-minimap-size="extra"] .world-minimap-panel{width:calc(100vw - 16px)!important}body[data-minimap-size="extra"] .world-minimap-canvas{width:calc(100vw - 28px)!important;height:min(218px,64vw)!important}
   .settings-choice-grid-four{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+</style>
+
+
+<style id="delver-journal-styles">
+/* v0.208.0 — one physical notebook for the Chronicle and Bestiary. It is a
+   non-modal floating world window: opening it never freezes movement/combat. */
+.journal-book{position:absolute;inset:0;z-index:var(--window-z,34);pointer-events:none}
+.journal-book[hidden]{display:none!important}
+.journal-book.world-floating .journal-book-panel{position:absolute;left:var(--window-x,50%);top:var(--window-y,70px);transform:none;width:min(800px,calc(100vw - 20px));height:min(72vh,620px);max-height:calc(100dvh - 56px);pointer-events:auto;filter:drop-shadow(0 18px 28px rgba(0,0,0,.58));display:flex;flex-direction:column}
+.journal-book-grip{height:28px;flex:0 0 28px;margin:0 54px -1px;border:1px solid #725039;border-bottom:none;background:linear-gradient(#4b3022,#2f1d16);color:#d7bd8c;display:flex;align-items:center;justify-content:center;gap:12px;font:600 9px var(--cond);letter-spacing:.18em;text-transform:uppercase;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:5px 5px 0 0}
+.journal-book-grip.dragging{cursor:grabbing}.journal-book-grip span{font-size:7px;color:#a98b64;letter-spacing:.11em}
+.journal-book-tabs{position:absolute;z-index:3;left:16px;right:16px;top:21px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
+.journal-book-tabset{display:flex;gap:4px;pointer-events:auto}.journal-book-tab,.journal-book-close{border:1px solid #684632;background:linear-gradient(#5b3a27,#382217);color:#d7be8e;font:600 9px var(--cond);letter-spacing:.11em;text-transform:uppercase;box-shadow:0 3px 7px rgba(0,0,0,.28)}
+.journal-book-tab{padding:7px 12px;border-radius:4px 4px 0 0}.journal-book-tab.active{background:#8a6542;color:#fff0c9;border-color:#9f7951;transform:translateY(2px)}
+.journal-book-close{pointer-events:auto;width:30px;height:28px;padding:0;font-size:17px;line-height:1;border-radius:3px}
+.journal-book-spread{position:relative;flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;border:10px solid #5a3a27;border-radius:8px 9px 12px 10px;background:#d7c49d;box-shadow:inset 0 0 0 2px #7d573a,inset 0 0 28px rgba(83,52,29,.25)}
+.journal-book-spread:after{content:"";position:absolute;z-index:2;left:50%;top:0;bottom:0;width:12px;transform:translateX(-50%);pointer-events:none;background:linear-gradient(90deg,rgba(72,44,25,.17),rgba(255,247,213,.25) 36%,rgba(70,42,24,.22) 54%,rgba(255,247,213,.18))}
+.journal-page{position:relative;min-width:0;min-height:0;padding:38px 22px 40px;overflow:auto;background:radial-gradient(circle at 35% 20%,rgba(255,251,226,.45),transparent 34%),linear-gradient(95deg,#d9c69f,#cfb98e);color:#2a2119;text-shadow:0 1px rgba(255,255,255,.28)}
+.journal-page.right{background:radial-gradient(circle at 70% 25%,rgba(255,251,226,.38),transparent 32%),linear-gradient(85deg,#cdb68a,#dcc9a2)}
+.journal-page-title{margin:0 0 4px;text-align:center;font:700 18px var(--slab);letter-spacing:.06em;color:#34251a;text-transform:uppercase}.journal-page-kicker{display:block;margin-bottom:12px;text-align:center;font:700 7px var(--cond);letter-spacing:.17em;text-transform:uppercase;color:#795c40}
+.journal-index-list{display:grid;grid-template-rows:repeat(4,minmax(0,1fr));gap:10px;height:100%}
+.journal-creature-card{width:100%;min-height:0;display:grid;grid-template-columns:58px minmax(0,1fr);align-items:center;gap:10px;padding:8px 10px;border:2px solid #a87955;background:rgba(246,232,195,.30);color:#312319;text-align:left;box-shadow:inset 0 0 0 1px rgba(255,246,216,.24);cursor:pointer}
+.journal-creature-card:hover,.journal-creature-card:focus-visible{background:rgba(255,241,202,.55);outline:2px solid rgba(92,57,33,.28);outline-offset:-4px}.journal-creature-card .portrait{width:52px;height:52px;display:grid;place-items:center;border:1px solid #927054;background:rgba(68,47,32,.10);image-rendering:pixelated;overflow:hidden}.journal-creature-card img{max-width:48px;max-height:48px;image-rendering:pixelated}.journal-creature-card .portrait.placeholder{font:700 22px var(--slab);color:#846c50}
+.journal-creature-card b{display:block;font:700 12px var(--slab);text-transform:uppercase;letter-spacing:.04em}.journal-creature-card span{display:block;margin-top:4px;font:700 7px var(--cond);letter-spacing:.10em;text-transform:uppercase;color:#725941}.journal-creature-card em{font-style:normal;color:#3e2d20}
+.journal-empty-card{min-height:0;border:2px dashed rgba(126,91,60,.35);display:grid;place-items:center;color:rgba(89,66,48,.46);font:700 8px var(--cond);letter-spacing:.14em;text-transform:uppercase}
+.journal-book-footer{position:absolute;z-index:4;left:18px;right:18px;bottom:11px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}.journal-book-footer button{pointer-events:auto;border:1px solid #805f43;background:rgba(219,197,153,.80);color:#3c2a1e;padding:5px 10px;font:700 8px var(--cond);letter-spacing:.08em;text-transform:uppercase}.journal-book-footer button:disabled{opacity:.28}.journal-book-footer span{font:700 7px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:#72563d}
+.journal-detail-head{display:grid;grid-template-columns:minmax(0,1fr) 94px;gap:14px;align-items:start;margin-bottom:12px}.journal-detail-portrait{width:90px;height:90px;display:grid;place-items:center;border:2px solid #9c7451;background:rgba(71,49,31,.10);image-rendering:pixelated}.journal-detail-portrait img{max-width:82px;max-height:82px;image-rendering:pixelated}.journal-detail-portrait.placeholder{font:700 30px var(--slab);color:#846c50}.journal-detail-name{margin:0;font:700 21px var(--slab);text-transform:uppercase;color:#2e2118}.journal-knowledge-badge{display:inline-block;margin-top:7px;padding:3px 6px;border:1px solid #99734f;background:rgba(255,242,203,.28);font:700 7px var(--cond);letter-spacing:.13em;text-transform:uppercase;color:#61462f}
+.journal-rule{height:1px;background:rgba(108,75,49,.43);margin:10px 0}.journal-info-grid{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 10px;font:10px/1.35 var(--mono);color:#392b21}.journal-info-grid b{font:700 8px var(--cond);letter-spacing:.09em;text-transform:uppercase;color:#76583d}.journal-locked{color:#8a765f;font-style:italic}.journal-hint{margin:12px 0 0;padding:8px 9px;border:1px dashed #9f7b58;background:rgba(255,243,207,.22);font:italic 9px/1.45 var(--slab);color:#67513c}
+.journal-section-title{margin:0 0 7px;font:700 10px var(--cond);letter-spacing:.15em;text-transform:uppercase;color:#63462f}.journal-copy{font:10px/1.5 var(--slab);color:#35291f}.journal-copy p{margin:0 0 8px}.journal-ability-list{display:grid;gap:7px}.journal-ability{padding:7px 8px;border-left:3px solid #936946;background:rgba(251,237,201,.24);font:9px/1.4 var(--mono)}.journal-ability b{display:block;font:700 9px var(--cond);letter-spacing:.08em;text-transform:uppercase}.journal-specimen{margin-top:10px;padding:9px;border:2px solid #936845;background:rgba(255,238,195,.30)}.journal-specimen h4{margin:0 0 6px;font:700 9px var(--cond);letter-spacing:.13em;text-transform:uppercase}.journal-threat{font-weight:800}.journal-threat.weak{color:#426b3c}.journal-threat.even{color:#806b21}.journal-threat.tough{color:#a75c22}.journal-threat.deadly{color:#9d312b}
+.journal-chronicle{display:grid;gap:7px}.journal-chronicle-entry{padding:5px 7px;border-bottom:1px solid rgba(109,77,50,.30);font:9px/1.42 var(--slab)}.journal-chronicle-entry .depth{display:block;margin-bottom:2px;font:700 7px var(--cond);letter-spacing:.10em;text-transform:uppercase;color:#76583e}.journal-chronicle-entry b{color:#3a291c}.journal-back{border:1px solid #835f42;background:rgba(255,239,199,.35);color:#3f2d20;padding:5px 9px;font:700 8px var(--cond);letter-spacing:.09em;text-transform:uppercase;margin-bottom:10px}
+@media (max-width:760px){.journal-book.world-floating .journal-book-panel{width:min(94vw,calc(100vw - 10px));height:min(74vh,590px)}.journal-book-grip{margin:0 44px -1px}.journal-book-spread{border-width:7px}.journal-page{padding:36px 11px 38px}.journal-creature-card{grid-template-columns:42px minmax(0,1fr);gap:6px;padding:6px}.journal-creature-card .portrait{width:38px;height:38px}.journal-creature-card img{max-width:36px;max-height:36px}.journal-creature-card b{font-size:9px}.journal-creature-card span{font-size:6px}.journal-detail-head{grid-template-columns:minmax(0,1fr) 66px}.journal-detail-portrait{width:62px;height:62px}.journal-detail-portrait img{max-width:58px;max-height:58px}.journal-detail-name{font-size:15px}.journal-info-grid{font-size:8px;gap:5px 7px}.journal-copy,.journal-ability{font-size:8px}.journal-book-tab{padding:6px 8px;font-size:7px}}
 </style>
 
 </head>
@@ -3697,16 +3803,38 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
         <button id="btnWorldInteract" type="button" disabled>Interact</button>
       </div>
     </div>
-    <section class="world-combat-hud" id="worldCombatHud" hidden aria-live="polite">
+    <section class="world-combat-target-shell" id="worldCombatTargetShell" hidden aria-live="polite">
       <div class="world-combat-target">
-        <div class="world-combat-target-head"><b id="worldCombatName">Foe</b><span id="worldCombatHpN">—</span></div>
+        <div class="world-combat-target-head"><div class="world-combat-target-title"><b id="worldCombatName">Foe</b><span class="world-combat-level threat-even" id="worldCombatLevel">LV 1</span></div><span id="worldCombatHpN">—</span></div>
         <div class="world-combat-hp"><i id="worldCombatHp"></i></div>
         <em id="worldCombatState">Engaged</em>
       </div>
+    </section>
+    <section class="world-player-card" id="worldPlayerCard" role="button" tabindex="0" aria-label="Open character status">
+      <div class="world-player-head"><b id="worldPlayerName">Delver</b><span class="world-player-level" id="worldPlayerLevel">LEVEL 1</span><span class="world-player-hpn" id="worldPlayerHpN">—</span></div>
+      <div class="world-player-hp"><i id="worldPlayerHp"></i></div>
+      <div class="world-player-xp-row"><b>Experience</b><span id="worldPlayerXpN">0 / 1 XP</span></div>
+      <div class="world-player-xp-track"><i id="worldPlayerXp"></i></div>
+      <div class="world-player-resource-row" data-resource="momentum"><b>MOMENTUM</b><span id="worldPlayerMomentumN">0 / 100</span></div>
+      <div class="world-player-resource-track" data-resource="momentum"><i id="worldPlayerMomentum"></i></div>
+      <div class="world-player-resource-row" data-resource="focus"><b>FOCUS</b><span id="worldPlayerFocusN">100 / 100</span></div>
+      <div class="world-player-resource-track" data-resource="focus"><i id="worldPlayerFocus"></i></div>
+      <div class="world-player-resource-row" data-resource="mana"><b>MANA</b><span id="worldPlayerManaN">100 / 100</span></div>
+      <div class="world-player-resource-track" data-resource="mana"><i id="worldPlayerMana"></i></div>
+      <div class="world-player-stats" id="worldPlayerStats">ATK — · ARMOR — · DEF — · —% DR</div>
+      <span class="world-player-weapon" id="worldPlayerWeapon">UNARMED</span>
+    </section>
+    <section class="world-combat-hud" id="worldCombatHud" hidden aria-label="Combat actions">
       <div class="world-combat-actions">
-        <button id="btnWorldPower" type="button"><b>Heavy</b><span>60 Energy</span></button>
-        <button id="btnWorldGuard" type="button"><b>Guard</b><span>35 Energy</span></button>
+        <button class="world-action-card combat-recover" id="btnWorldRecoverCombat" type="button" disabled><span class="world-action-icon" id="worldRecoverCombatIcon" aria-hidden="true"></span><span class="world-action-copy"><b>Recover</b><span>Outside combat</span></span></button>
+        <button class="world-action-card" id="btnWorldRead" type="button"><span class="world-action-icon" id="worldReadIcon" aria-hidden="true"></span><span class="world-action-copy"><b>Read</b><span>Observe target</span></span></button>
+        <button class="world-action-card" id="btnWorldPower" type="button"><span class="world-action-icon" id="worldPowerIcon" aria-hidden="true"></span><span class="world-action-copy"><b>Heavy</b><span>30 Momentum</span></span></button>
+        <button class="world-action-card" id="btnWorldGuard" type="button"><span class="world-action-icon" id="worldGuardIcon" aria-hidden="true"></span><span class="world-action-copy"><b>Guard</b><span>35 Momentum</span></span></button>
+        <button class="world-action-card sand-row" id="btnWorldSand" type="button"><span class="world-action-icon" id="worldSandIcon" aria-hidden="true"></span><span class="world-action-copy"><b>Sand Throw</b><span>60% Blind · uses next attack beat</span></span></button>
       </div>
+    </section>
+    <section class="world-field-hud" id="worldFieldHud" aria-label="Field recovery" hidden>
+      <button class="world-action-card" id="btnWorldRecover" type="button"><span class="world-action-icon" id="worldRecoverIcon" aria-hidden="true"></span><span class="world-action-copy"><b>Recover</b><span id="worldRecoverSub">+20 HP · 30s cooldown</span></span></button>
     </section>
 
     <div class="world-minimap-shell" id="worldMinimapShell">
@@ -3736,7 +3864,7 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><div class="travel-band-actions"><span class="build-version" id="buildVersion">v0.204.0.7</span><button class="settings-cog travel-settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button></div></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><div class="travel-band-actions"><span class="build-version" id="buildVersion">v0.213.0</span><button class="settings-cog travel-settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button></div></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <button class="travel-depth fathom-meter" id="fathomMeter" type="button" aria-expanded="false" title="Tap to show current depth">
             <span class="travel-depth-label">DEEPEST</span><b id="travelDepth">0.0</b><span>fathoms</span>
@@ -3768,7 +3896,7 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
         <h2 id="safeHollowTitle">Defensible ground</h2>
         <p id="safeHollowText">You can make camp here once, or leave it behind.</p>
         <div class="hollow-actions">
-          <button class="hollow-btn camp" id="btnCampHere"><b>Make camp</b><span id="campHereSub">1 Camp Supply · 50% Max HP + full resources</span></button>
+          <button class="hollow-btn camp" id="btnCampHere"><b>Make camp</b><span id="campHereSub">1 Camp Supply · 50% Max HP + prepared resources</span></button>
           <button class="hollow-btn continue" id="btnLeaveHollow"><b>Continue</b><span>leave this hollow behind</span></button>
         </div>
         <div class="hollow-countdown" id="hollowCountdown"></div>
@@ -3802,11 +3930,11 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
         <span id="travelXp">— XP</span>
       </div>
       <div class="travel-resources" id="travelResources" aria-label="Combat resources">
-        <div class="travel-resource" data-world-resource="energy">
-          <span><b>Energy</b><em id="travelEnergyN">100 / 100</em></span><div class="travel-resource-track energy"><i id="travelEnergyBar"></i></div>
+        <div class="travel-resource" data-world-resource="momentum">
+          <span><b>Momentum</b><em id="travelMomentumN">0 / 100</em></span><div class="travel-resource-track momentum"><i id="travelMomentumBar"></i></div>
         </div>
         <div class="travel-resource" data-world-resource="focus">
-          <span><b>Focus</b><em id="travelFocusN">0 / 100</em></span><div class="travel-resource-track focus"><i id="travelFocusBar"></i></div>
+          <span><b>Focus</b><em id="travelFocusN">100 / 100</em></span><div class="travel-resource-track focus"><i id="travelFocusBar"></i></div>
         </div>
         <div class="travel-resource" data-world-resource="mana">
           <span><b>Mana</b><em id="travelManaN">100 / 100</em></span><div class="travel-resource-track mana"><i id="travelManaBar"></i></div>
@@ -3819,7 +3947,7 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
     <div class="travel-actions">
       <button class="travel-act descend" id="btnDescend"><b>Descend</b><span>push deeper</span></button>
       <button class="travel-act explore" id="btnExplore"><b>Explore</b><span>hold this depth</span></button>
-      <button class="travel-act rest" id="btnRest"><b>Rest</b><span id="restSub">25% Max HP</span></button>
+      <button class="travel-act rest" id="btnRest" hidden aria-hidden="true" tabindex="-1"><b>Rest</b><span id="restSub">25% Max HP</span></button>
       <button class="travel-act pack" id="btnPack"><b>Backpack</b><span id="packSub">2 Camp Supplies</span></button>
       <div class="travel-bottom-row">
         <button class="travel-act stop" id="btnStopTravel" disabled><b>Stop</b><span>hold where you are</span></button>
@@ -4055,6 +4183,21 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
     </div>
   </div>
 
+
+  <div class="journal-book" id="journalBook" hidden>
+    <div class="journal-book-panel">
+      <div class="journal-book-grip floating-window-handle" data-window-drag="journal">Delver's Journal <span>drag</span></div>
+      <div class="journal-book-tabs">
+        <div class="journal-book-tabset" id="journalBookTabs">
+          <button class="journal-book-tab" type="button" data-journal-chapter="journal">Journal</button>
+          <button class="journal-book-tab active" type="button" data-journal-chapter="bestiary">Bestiary</button>
+        </div>
+        <button class="journal-book-close" id="btnJournalBookClose" type="button" aria-label="Close Delver's Journal" title="Close Delver's Journal">×</button>
+      </div>
+      <div class="journal-book-spread" id="journalBookContent" aria-live="polite"></div>
+    </div>
+  </div>
+
   <div class="settings-sheet" id="settingsSheet" hidden>
     <div class="settings-scrim" id="settingsScrim"></div>
     <div class="settings-panel">
@@ -4076,7 +4219,7 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
           </div>
         </div>
         <div class="settings-row stack">
-          <div class="settings-copy"><b>Floating window positions</b><span>Backpack, Character/Equipment and Delve Log remember where you drag them on this device.</span></div>
+          <div class="settings-copy"><b>Floating window positions</b><span>Backpack, Character/Equipment, Delver's Journal and Delve Log remember where you drag them on this device.</span></div>
           <button class="settings-reset" id="btnResetWindowPositions" type="button">Reset window positions</button>
         </div>
       </section>
@@ -4090,6 +4233,10 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
             <button class="settings-choice" type="button" data-world-zoom="close">Close</button>
             <button class="settings-choice" type="button" data-world-zoom="closer">Closer</button>
           </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-copy"><b>Underground shadows</b><span>Turns the Forest Plains shadow atmosphere on or off while keeping the biome itself unchanged. Useful for live playtesting.</span></div>
+          <button class="settings-toggle" id="btnSettingWorldShadows" type="button" aria-pressed="true">On</button>
         </div>
       </section>
       <section class="settings-section">
@@ -4188,7 +4335,7 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
         <p id="boonPickText">One boon active at a time · 10 minutes of active delve time · paused whenever you are not Descending or Exploring.</p>
       </div>
       <div id="boonOptions"></div>
-      <div class="boonpick-note" id="boonPickNote">Camp restores 50% of Max HP plus your other combat resources; the boon shapes the next stretch of the delve.</div>
+      <div class="boonpick-note" id="boonPickNote">Camp restores 50% of Max HP and resets combat resources to their prepared state; the boon shapes the next stretch of the delve.</div>
     </div>
   </div>
 
