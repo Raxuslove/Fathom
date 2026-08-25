@@ -1,5 +1,5 @@
 "use strict";
-const CACHE_NAME="lowfathom-v0.213.0-equipment-benchmark-rebalance";
+const CACHE_NAME="lowfathom-v0.219.4-pixel-precise-template-guides";
 const CORE=[
   "./","./index.html","./manifest.json",
   "./js/legacy.js","./js/world-core.js","./js/world.js","./js/world-bridge.js","./js/dice.js"

@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.213.0 — Equipment Benchmark Rebalance</title>
+<title>Lowfathom v0.219.4 — Pixel-Precise Template Guides</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,6 +21,16 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
+   - v0.219.4: Pixel-Precise Template Guides — keeps Template Workshop selection/collision/occlusion guides at a constant one-screen-pixel thickness instead of scaling them with zoom, screen-aligns editable guide rectangles, and adds an optional high-zoom source-pixel grid without changing saved template geometry
+   - v0.219.3: Template Occlusion Zones — adds drawable purple Behind/Occlusion regions that let building artwork cover the player reference when walking behind roofs, stores the regions in editable template JSON, keeps door/interaction markers available, and moves Template Workshop zoom controls into the top toolbar beside New
+   - v0.219.2: Template Zoom + Player Reference — Template Workshop gains view-only zoom up to 600% for pixel-precise placement plus a draggable, class-selectable 32×32 player reference that is never stored in settlement templates or exported with them
+   - v0.219.1: Dev Asset Catalogue Scanner — Template Workshop can now recursively scan a user-selected project assets folder, automatically catalogue image files from buildings/props/NPCs/any other asset subfolders, group them by category, and merge new discoveries into the local catalogue without requiring Node, Python, or manual filename registration
+   - v0.219.0: Dev Tools Template Workshop — keeps the safe live placement editor and adds a separate reusable settlement-template workspace with named local templates, exact asset paths, drag/nudge placement, uniform pixel-art scaling, editable collision and door markers, entrance/exit anchors, overlap picking, draft auto-save, duplicate/load/delete, and JSON import/export so authored procedural settlement stamps remain editable later
+   - v0.218.0: developer placement mode — adds a safe in-game visual editor with overlap target picking, protected/read-only nearby objects, auto-saved lantern presentation controls, draggable/nudgeable warm glow placement, visibility-radius editing, reset/export/import tools, and F3 / DEV toggles; edits live outside run/collision state
+   - v0.214.3: lantern visibility mask — fixes the black-hole compositing bug by building darkness on an alpha-capable offscreen layer; the player now has a genuinely clear circular visibility radius with a soft outer falloff, and environmental lights reveal small patches of the real terrain instead of painting glow blobs
+   - v0.214.2: circular lantern reveal — atmospheric darkness is now cleanly removed in a full-visibility circle around the delver with only a soft edge falloff; the directional glow/beam and player halo were removed, while environmental lights remain subtle and the Settings Atmospheric lighting toggle is preserved
+   - v0.214.1: atmospheric lighting tuning — the first pass lighting has been rebuilt for readability: the lantern now carves a clearer reveal with a forward beam, the delver remains visible inside the light, darkness is lighter and environmental glow noise is greatly reduced while the Settings Atmospheric lighting toggle remains available for testing
+   - v0.214.0: atmospheric lighting pass — the cavern can now darken around the delver with a lantern-lit reveal, nearby environmental lights such as hollow flames, settlement lamps, glints, spores and mushrooms can glow, and Settings gains an Atmospheric lighting toggle for playtesting
    - v0.213.0: equipment benchmark rebalance — enemy HP/Defence now benchmark a neutral 1.5-hand weapon budget; player Armor expectation is derived from real body-armor slot/value budgets instead of 25% iLv; threat labels only use level to prevent higher-level foes reading WEAK; Skitter display level no longer receives an unearned danger offset
    - v0.212.4: unified menus + threat sanity — non-book menus now use the persistent player-card visual language; Focus is a darker green distinct from HP; higher-level foes have a conservative minimum threat label so a stronger-level tank cannot read as WEAK
    - v0.212.3: resource colors + heal FX — Focus is green, Mana is blue, and all HP recovery now pulses the persistent player HP bar
@@ -3701,6 +3711,46 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
 @media (max-width:760px){.journal-book.world-floating .journal-book-panel{width:min(94vw,calc(100vw - 10px));height:min(74vh,590px)}.journal-book-grip{margin:0 44px -1px}.journal-book-spread{border-width:7px}.journal-page{padding:36px 11px 38px}.journal-creature-card{grid-template-columns:42px minmax(0,1fr);gap:6px;padding:6px}.journal-creature-card .portrait{width:38px;height:38px}.journal-creature-card img{max-width:36px;max-height:36px}.journal-creature-card b{font-size:9px}.journal-creature-card span{font-size:6px}.journal-detail-head{grid-template-columns:minmax(0,1fr) 66px}.journal-detail-portrait{width:62px;height:62px}.journal-detail-portrait img{max-width:58px;max-height:58px}.journal-detail-name{font-size:15px}.journal-info-grid{font-size:8px;gap:5px 7px}.journal-copy,.journal-ability{font-size:8px}.journal-book-tab{padding:6px 8px;font-size:7px}}
 </style>
 
+
+<style id="dev-placement-styles">
+/* v0.218.0 — safe developer placement/editor overlay. Kept DOM-based so its
+   controls do not participate in world collision or saved run geometry. */
+.dev-placement-toggle{position:absolute;z-index:86;left:10px;top:10px;min-width:46px;height:30px;padding:0 9px;border:1px solid rgba(214,177,94,.48);background:rgba(4,8,10,.82);color:#c7b37f;font:700 8px var(--cond);letter-spacing:.13em;text-transform:uppercase;box-shadow:0 3px 10px rgba(0,0,0,.34)}
+.dev-placement-toggle.active{border-color:#e4c06b;color:#fff0b8;background:rgba(72,54,25,.88)}
+.dev-placement-panel{position:absolute;z-index:88;left:10px;top:48px;width:min(330px,calc(100% - 20px));max-height:min(76vh,650px);overflow:auto;border:1px solid rgba(215,181,107,.46);background:rgba(5,9,11,.96);color:#d4cec0;box-shadow:0 14px 34px rgba(0,0,0,.58);font:10px/1.35 var(--mono);pointer-events:auto}
+.dev-placement-panel[hidden],.dev-placement-picker[hidden]{display:none!important}
+.dev-placement-head{position:sticky;z-index:2;top:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 9px;border-bottom:1px solid rgba(215,181,107,.28);background:#0d1417}.dev-placement-head div{min-width:0}.dev-placement-head b{display:block;font:700 11px var(--slab);letter-spacing:.07em;text-transform:uppercase;color:#ead49b}.dev-placement-head span{display:block;margin-top:1px;font:7px var(--cond);letter-spacing:.1em;text-transform:uppercase;color:#748084}.dev-placement-head button{width:28px;height:28px;padding:0;border:1px solid rgba(215,181,107,.34);background:#090e10;color:#c9b783;font-size:17px}
+.dev-placement-body{padding:9px}.dev-placement-note{margin:0 0 8px;padding:7px 8px;border-left:2px solid #8d7546;background:rgba(141,117,70,.09);color:#aeb6b4;font:9px/1.45 var(--mono)}
+.dev-placement-selected{padding:7px 8px;margin-bottom:8px;border:1px solid rgba(122,139,140,.28);background:#0a1114}.dev-placement-selected em{display:block;font:700 7px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:#6f7b7c}.dev-placement-selected b{display:block;margin-top:2px;color:#e6d7ae;font:600 11px var(--slab)}.dev-placement-selected span{display:block;margin-top:3px;color:#8b9899;font:8px var(--mono)}
+.dev-placement-fields{display:grid;gap:8px}.dev-placement-field{display:grid;grid-template-columns:minmax(0,1fr) 68px;gap:7px;align-items:center}.dev-placement-field label{min-width:0;color:#bac1bd}.dev-placement-field label b{display:block;font:600 9px var(--cond);letter-spacing:.05em;text-transform:uppercase;color:#d5c69e}.dev-placement-field label span{display:block;margin-top:1px;font:7px var(--mono);color:#718083}.dev-placement-field input[type="number"]{width:100%;min-width:0;height:30px;border:1px solid rgba(130,147,149,.32);background:#070c0f;color:#e7dfcd;padding:3px 5px;font:10px var(--mono)}.dev-placement-field input[type="range"]{grid-column:1/-1;width:100%;accent-color:#c9a858;margin:0}
+.dev-placement-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.dev-placement-actions button,.dev-placement-file-label{min-height:31px;padding:5px 8px;border:1px solid rgba(150,132,89,.38);background:#0c1316;color:#cfc3a6;font:700 7px var(--cond);letter-spacing:.08em;text-transform:uppercase;display:inline-flex;align-items:center;justify-content:center}.dev-placement-actions button.active{border-color:#e2bc63;background:#392f1b;color:#ffe7a7}.dev-placement-actions button.danger{border-color:rgba(150,70,61,.55);color:#d8a09a}.dev-placement-file-label input{display:none}
+.dev-placement-help{margin:10px 0 0;color:#6f7c7d;font:8px/1.5 var(--mono)}.dev-placement-help b{color:#a99b77}.dev-placement-protected{padding:8px;border:1px dashed rgba(120,132,130,.34);color:#869291;background:rgba(76,91,91,.06)}
+.dev-placement-picker{position:absolute;z-index:90;width:min(290px,calc(100% - 20px));padding:7px;border:1px solid rgba(224,190,104,.55);background:rgba(4,8,10,.97);box-shadow:0 10px 28px rgba(0,0,0,.58);pointer-events:auto}.dev-placement-picker>span{display:block;padding:2px 4px 6px;font:700 7px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:#9b8b67}.dev-placement-picker-list{display:grid;gap:4px}.dev-placement-picker button{width:100%;padding:7px 8px;border:1px solid rgba(121,139,140,.28);background:#0c1316;color:#d2cab8;text-align:left;font:9px var(--mono)}.dev-placement-picker button small{display:block;margin-top:2px;color:#718083;font:7px var(--mono)}
+body.dev-placement-active #worldCanvas{cursor:crosshair}body.dev-placement-active .world-controls{opacity:.36;pointer-events:none}body.dev-placement-active .world-combat-hud,body.dev-placement-active .world-field-hud{pointer-events:none;opacity:.45}
+@media(max-width:560px){.dev-placement-toggle{top:8px;left:8px}.dev-placement-panel{left:8px;top:44px;width:min(318px,calc(100% - 16px));max-height:68vh}.dev-placement-field{grid-template-columns:minmax(0,1fr) 64px}}
+
+/* v0.219.0 — Template Workshop. This is deliberately separate from the live
+   procedural world: templates are authored as reusable local-coordinate stamps. */
+.dev-workshop-launch{width:100%;margin-top:8px;min-height:36px;border:1px solid rgba(215,181,107,.50);background:linear-gradient(180deg,rgba(78,63,31,.72),rgba(31,27,18,.82));color:#f0dca7;font:700 8px var(--cond);letter-spacing:.10em;text-transform:uppercase}
+.dev-template-workshop{position:absolute;z-index:96;inset:8px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;border:1px solid rgba(215,181,107,.52);background:#080d10;color:#d5cdbb;box-shadow:0 18px 52px rgba(0,0,0,.74);pointer-events:auto;font:9px/1.35 var(--mono)}
+.dev-template-workshop[hidden]{display:none!important}
+.dev-template-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0;padding:7px 8px;border-bottom:1px solid rgba(215,181,107,.28);background:#0d1417}.dev-template-head-title{min-width:150px;margin-right:auto}.dev-template-head-title b{display:block;color:#ead49b;font:700 12px var(--slab);letter-spacing:.07em;text-transform:uppercase}.dev-template-head-title span{display:block;color:#718083;font:7px var(--cond);letter-spacing:.09em;text-transform:uppercase}.dev-template-head button,.dev-template-head label{min-height:31px;padding:5px 8px;border:1px solid rgba(150,132,89,.38);background:#0b1215;color:#cfc3a6;font:700 7px var(--cond);letter-spacing:.07em;text-transform:uppercase;display:inline-flex;align-items:center;justify-content:center}.dev-template-head .primary{border-color:rgba(215,181,107,.62);color:#f0dca7;background:#2a2417}.dev-template-head .danger{border-color:rgba(150,70,61,.50);color:#d8a09a}.dev-template-head label input{display:none}.dev-template-head-zoom{display:flex;align-items:center;gap:4px;min-height:31px;padding:3px 5px;border:1px solid rgba(150,132,89,.32);background:#0a1013;color:#9c927b}.dev-template-head-zoom>span:first-child{padding:0 2px;font:700 7px var(--cond);letter-spacing:.07em;text-transform:uppercase}.dev-template-head-zoom button{min-width:29px;min-height:25px;padding:3px 6px}.dev-template-head-zoom select{height:25px;min-width:67px;border:1px solid rgba(130,147,149,.30);background:#070c0f;color:#ddd4c2;padding:2px 4px;font:8px var(--mono)}
+.dev-template-layout{display:grid;grid-template-columns:220px minmax(360px,1fr) 250px;min-height:0}.dev-template-sidebar{min-width:0;overflow:auto;padding:8px;border-right:1px solid rgba(120,137,139,.22);background:#0a1013}.dev-template-sidebar.right{border-right:0;border-left:1px solid rgba(120,137,139,.22)}
+.dev-template-section{margin-bottom:11px;padding-bottom:10px;border-bottom:1px solid rgba(120,137,139,.18)}.dev-template-section:last-child{border-bottom:0}.dev-template-section>h3{margin:0 0 6px;color:#cdbb8b;font:700 8px var(--cond);letter-spacing:.12em;text-transform:uppercase}.dev-template-section p{margin:5px 0;color:#728082;font:7.5px/1.45 var(--mono)}
+.dev-template-row{display:flex;gap:5px;align-items:center;margin:5px 0}.dev-template-row>*{min-width:0}.dev-template-row input,.dev-template-row select{height:31px;flex:1;border:1px solid rgba(130,147,149,.30);background:#070c0f;color:#ddd4c2;padding:4px 5px;font:9px var(--mono)}.dev-template-row button{min-height:31px;padding:5px 7px;border:1px solid rgba(150,132,89,.38);background:#0c1316;color:#cfc3a6;font:700 7px var(--cond);letter-spacing:.06em;text-transform:uppercase}.dev-template-row button.danger{border-color:rgba(150,70,61,.5);color:#d89d96}.dev-template-row.compact input{max-width:78px}.dev-template-row label{display:flex;align-items:center;gap:4px;color:#9ba5a3;font:8px var(--mono)}
+.dev-template-assets{display:grid;gap:5px}.dev-template-asset-scan-meta{font:7px/1.4 var(--mono);color:#78878a;margin:5px 0 7px}.dev-template-asset-category{position:sticky;top:0;z-index:2;padding:5px 6px;margin-top:3px;border:1px solid rgba(112,130,132,.22);background:#11191c;color:#a7b9bc;font:700 7px var(--mono);letter-spacing:.10em;text-transform:uppercase}.dev-template-section code{font-family:var(--mono);color:#aebfc1}.dev-template-asset{display:grid;grid-template-columns:42px minmax(0,1fr);gap:6px;align-items:center;padding:5px;border:1px solid rgba(112,130,132,.24);background:#0c1316}.dev-template-asset-preview{width:42px;height:42px;display:grid;place-items:center;overflow:hidden;background:#11181b;border:1px solid rgba(112,130,132,.18)}.dev-template-asset-preview img{max-width:100%;max-height:100%;image-rendering:pixelated;image-rendering:crisp-edges}.dev-template-asset-copy{min-width:0}.dev-template-asset-copy b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d4c9ad;font:8px var(--mono)}.dev-template-asset-copy small{display:block;margin-top:2px;color:#667476;font:6.5px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dev-template-asset-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.dev-template-asset-copy button{min-height:26px;padding:3px 7px;border:1px solid rgba(160,140,90,.40);background:#171a14;color:#d6c498;font:700 7px var(--cond);letter-spacing:.06em;text-transform:uppercase}.dev-template-asset-copy button.remove{border-color:rgba(150,70,61,.40);color:#c9938d}
+.dev-template-stage{position:relative;overflow:auto;min-width:0;min-height:0;background:#101619}.dev-template-stage-inner{position:relative;min-width:100%;min-height:100%;padding:32px}.dev-template-canvas-shell{position:relative}.dev-template-canvas{--dev-guide-px:1px;--dev-inv-zoom:1;position:absolute;left:0;top:0;box-sizing:border-box;border:var(--dev-guide-px) solid rgba(185,170,126,.44);background-color:#202628;background-image:linear-gradient(rgba(255,255,255,.035) 0 var(--dev-guide-px),transparent var(--dev-guide-px)),linear-gradient(90deg,rgba(255,255,255,.035) 0 var(--dev-guide-px),transparent var(--dev-guide-px)),linear-gradient(rgba(218,188,118,.055) 0 var(--dev-guide-px),transparent var(--dev-guide-px)),linear-gradient(90deg,rgba(218,188,118,.055) 0 var(--dev-guide-px),transparent var(--dev-guide-px));background-size:8px 8px,8px 8px,32px 32px,32px 32px;box-shadow:0 8px 28px rgba(0,0,0,.32);touch-action:none;user-select:none;overflow:hidden;transform-origin:top left}
+.dev-template-object{position:absolute;box-sizing:border-box;outline:var(--dev-guide-px) solid transparent;outline-offset:calc(-1 * var(--dev-guide-px));cursor:grab;transform-origin:top left}.dev-template-object.locked{cursor:not-allowed}.dev-template-object.selected{outline-color:rgba(255,215,116,.96);box-shadow:none}.dev-template-object.overlap-warning:not(.selected){outline-color:rgba(195,91,71,.78)}.dev-template-object img{display:block;width:100%;height:100%;object-fit:fill;image-rendering:pixelated;image-rendering:crisp-edges;pointer-events:none}.dev-template-object-missing{position:absolute;inset:0;display:grid;place-items:center;padding:3px;background:rgba(70,25,25,.65);color:#e9aba3;text-align:center;font:6px var(--mono);pointer-events:none}
+.dev-template-collision,.dev-template-occlusion{position:absolute;box-sizing:border-box;border:var(--dev-guide-px) solid;pointer-events:none}.dev-template-collision{border-color:rgba(250,81,64,.96);background:rgba(189,52,42,.12)}.dev-template-occlusion{border-color:rgba(193,126,242,.96);background:rgba(121,65,170,.15)}.dev-template-occlusion::after{content:"BEHIND";position:absolute;left:calc(2px * var(--dev-inv-zoom));top:calc(2px * var(--dev-inv-zoom));color:#d8b8f0;background:rgba(36,16,52,.78);padding:calc(1px * var(--dev-inv-zoom)) calc(3px * var(--dev-inv-zoom));font:calc(6px * var(--dev-inv-zoom)) var(--mono);line-height:1.2}.dev-template-door{position:absolute;width:calc(9px * var(--dev-inv-zoom));height:calc(9px * var(--dev-inv-zoom));border:var(--dev-guide-px) solid #ffd56d;background:rgba(255,190,61,.45);transform:translate(-50%,-50%);box-shadow:none;pointer-events:none}.dev-template-object:not(.selected) .dev-template-collision,.dev-template-object:not(.selected) .dev-template-occlusion,.dev-template-object:not(.selected) .dev-template-door{display:none}.dev-template-workshop.show-all-collision .dev-template-object .dev-template-collision{display:block}.dev-template-workshop.show-all-occlusion .dev-template-object .dev-template-occlusion{display:block}.dev-template-workshop.show-all-doors .dev-template-object .dev-template-door{display:block}.dev-template-workshop.drawing-region .dev-template-canvas{cursor:crosshair}.dev-template-workshop.drawing-region .dev-template-object{cursor:crosshair}
+.dev-template-anchor{position:absolute;width:calc(16px * var(--dev-inv-zoom));height:calc(16px * var(--dev-inv-zoom));border-radius:50%;transform:translate(-50%,-50%);display:grid;place-items:center;border:var(--dev-guide-px) solid rgba(255,218,118,.92);background:#5a4a24;color:#fff1b8;font:700 calc(7px * var(--dev-inv-zoom)) var(--cond);box-shadow:none;pointer-events:none}.dev-template-anchor.exit{border-color:rgba(118,199,224,.92);background:#244a56;color:#c8f3ff}.dev-template-anchor.selected{outline:var(--dev-guide-px) solid #f6e1a0;outline-offset:var(--dev-guide-px)}.dev-template-player-ref{position:absolute;width:32px;height:32px;box-sizing:border-box;cursor:grab;transform:translate(-50%,-50%);outline:var(--dev-guide-px) solid rgba(119,206,231,.76);outline-offset:calc(-1 * var(--dev-guide-px));background:rgba(33,79,91,.08);z-index:3}.dev-template-player-ref.selected{outline-color:#b9ecfa;box-shadow:none}.dev-template-player-ref img{display:block;width:32px;height:32px;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges;pointer-events:none}.dev-template-player-ref::after{content:"PLAYER REF";position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:calc(2px * var(--dev-inv-zoom));white-space:nowrap;color:#9ed2df;background:rgba(5,12,15,.82);padding:calc(1px * var(--dev-inv-zoom)) calc(3px * var(--dev-inv-zoom));font:calc(6px * var(--dev-inv-zoom)) var(--mono);pointer-events:none}.dev-template-pixel-grid{position:absolute;inset:0;z-index:50;pointer-events:none;background-image:linear-gradient(rgba(223,233,230,.23) 0 var(--dev-guide-px),transparent var(--dev-guide-px)),linear-gradient(90deg,rgba(223,233,230,.23) 0 var(--dev-guide-px),transparent var(--dev-guide-px));background-size:1px 1px;mix-blend-mode:screen}.dev-template-zoom-readout{display:inline-block;min-width:42px;text-align:center;color:#d8c697;font-weight:700}.dev-template-guide-buttons{display:flex;gap:4px;align-items:center}.dev-template-guide-buttons button{min-width:30px}.dev-template-pixel-grid-toggle{display:inline-flex!important;gap:4px!important;padding:0 3px!important;border:0!important;background:transparent!important;min-height:25px!important;font:7px var(--mono)!important;color:#aaa18a!important}.dev-template-pixel-grid-toggle input{display:inline-block!important;accent-color:#c9a858}
+.dev-template-picker{position:absolute;z-index:4;width:220px;padding:6px;border:1px solid rgba(224,190,104,.55);background:rgba(4,8,10,.97);box-shadow:0 10px 28px rgba(0,0,0,.58)}.dev-template-picker[hidden]{display:none!important}.dev-template-picker>span{display:block;padding:2px 3px 5px;color:#9b8b67;font:700 7px var(--cond);letter-spacing:.1em;text-transform:uppercase}.dev-template-picker button{display:block;width:100%;margin-top:3px;padding:6px 7px;border:1px solid rgba(121,139,140,.28);background:#0c1316;color:#d2cab8;text-align:left;font:8px var(--mono)}
+.dev-template-inspector-empty{padding:8px;border:1px dashed rgba(120,132,130,.34);color:#7d8a8a;background:rgba(76,91,91,.05)}.dev-template-inspector-title{margin-bottom:8px;padding:7px;border:1px solid rgba(122,139,140,.28);background:#0d1518}.dev-template-inspector-title b{display:block;color:#ead7a7;font:600 10px var(--slab)}.dev-template-inspector-title span{display:block;margin-top:2px;color:#6d7b7c;font:7px var(--mono);overflow-wrap:anywhere}.dev-template-inspector-fields{display:grid;gap:7px}.dev-template-inspector-field{display:grid;grid-template-columns:minmax(0,1fr) 78px;gap:6px;align-items:center}.dev-template-inspector-field label b{display:block;color:#cdbd96;font:700 8px var(--cond);letter-spacing:.05em;text-transform:uppercase}.dev-template-inspector-field label span{display:block;color:#687779;font:6.5px var(--mono)}.dev-template-inspector-field input{width:100%;height:29px;border:1px solid rgba(130,147,149,.30);background:#070c0f;color:#e0d7c5;padding:3px 5px;font:9px var(--mono)}.dev-template-inspector-field input[type=range]{grid-column:1/-1;height:auto;padding:0;accent-color:#c9a858}.dev-template-check{display:flex;align-items:center;gap:6px;margin:6px 0;color:#9ca5a2;font:8px var(--mono)}.dev-template-inspector-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}.dev-template-inspector-actions button{min-height:30px;padding:4px 7px;border:1px solid rgba(150,132,89,.38);background:#0c1316;color:#cfc3a6;font:700 7px var(--cond);letter-spacing:.06em;text-transform:uppercase}.dev-template-inspector-actions button.danger{border-color:rgba(150,70,61,.52);color:#d89d96}
+.dev-template-status{display:flex;align-items:center;gap:12px;min-width:0;padding:6px 9px;border-top:1px solid rgba(120,137,139,.20);background:#0a1013;color:#718082;font:7.5px var(--mono)}.dev-template-status b{color:#b9aa83}.dev-template-status .dirty{color:#d8b96d}.dev-template-status .ok{color:#8fbd9c}.dev-template-status .warn{color:#d69b83}.dev-template-status span:first-child{margin-right:auto}.dev-template-status kbd{padding:1px 4px;border:1px solid rgba(130,147,149,.28);background:#101719;color:#b8c0bc;font:7px var(--mono)}
+body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placement-picker{display:none!important}body.dev-template-open #worldCanvas{filter:brightness(.34);pointer-events:none}body.dev-template-open .world-controls,body.dev-template-open .world-combat-hud,body.dev-template-open .world-field-hud{display:none!important}
+@media(max-width:900px){.dev-template-layout{grid-template-columns:185px minmax(330px,1fr) 215px}.dev-template-head{flex-wrap:wrap}.dev-template-head-title{width:100%}}
+
+</style>
+
 </head>
 <body>
 
@@ -3792,6 +3842,90 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
 
   <section class="travel" id="travel">
     <canvas id="worldCanvas" class="world-canvas" aria-label="Lowfathom cavern world"></canvas>
+    <button class="dev-placement-toggle" id="btnDevPlacement" type="button" aria-pressed="false" title="Developer placement mode (F3)">DEV</button>
+    <section class="dev-placement-panel" id="devPlacementPanel" hidden aria-label="Developer tools">
+      <header class="dev-placement-head"><div><b>Dev Tools</b><span>live placement · safe visual overrides</span></div><button id="btnDevPlacementClose" type="button" aria-label="Close developer tools">×</button></header>
+      <div class="dev-placement-body">
+        <p class="dev-placement-note">Live Placement edits the running world safely. Overlapping targets open a picker instead of guessing. For reusable procedural towns and cities, open the separate Template Workshop.</p>
+        <button class="dev-workshop-launch" id="btnDevTemplateOpen" type="button">Open Template Workshop</button>
+        <div class="dev-placement-selected" id="devPlacementSelected"><em>Selected</em><b>Nothing</b><span>Click near the player to begin.</span></div>
+        <div id="devPlacementInspector"></div>
+        <div class="dev-placement-actions">
+          <button id="btnDevPlacementDrag" type="button" aria-pressed="false">Drag locked</button>
+          <button id="btnDevPlacementReset" type="button">Reset selected</button>
+          <button id="btnDevPlacementExport" type="button">Export JSON</button>
+          <label class="dev-placement-file-label">Import JSON<input id="devPlacementImport" type="file" accept="application/json,.json"></label>
+          <button class="danger" id="btnDevPlacementResetAll" type="button">Reset all</button>
+        </div>
+        <p class="dev-placement-help"><b>F3</b> toggles Dev Tools. Arrow keys nudge an editable live selection by 1 px; <b>Shift</b> + arrows uses 5 px. Live edits remain separate from the run save.</p>
+      </div>
+    </section>
+    <div class="dev-placement-picker" id="devPlacementPicker" hidden><span>Choose target</span><div class="dev-placement-picker-list" id="devPlacementPickerList"></div></div>
+
+    <section class="dev-template-workshop" id="devTemplateWorkshop" hidden aria-label="Settlement Template Workshop">
+      <header class="dev-template-head">
+        <div class="dev-template-head-title"><b>Template Workshop</b><span>reusable procedural settlement stamps</span></div>
+        <button id="btnDevTemplateNew" type="button">New</button>
+        <div class="dev-template-head-zoom" aria-label="Template zoom"><span>Zoom</span><button id="btnDevTemplateZoomOut" type="button" aria-label="Zoom out">−</button><select id="devTemplateZoom" aria-label="Template zoom level"><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option><option value="4">400%</option><option value="6">600%</option></select><button id="btnDevTemplateZoomIn" type="button" aria-label="Zoom in">+</button><button id="btnDevTemplateZoomReset" type="button">100%</button><span class="dev-template-zoom-readout" id="devTemplateZoomReadout">100%</span><label class="dev-template-pixel-grid-toggle" title="Show individual source-pixel boundaries at 300% zoom or higher"><input id="devTemplatePixelGrid" type="checkbox"> Pixel grid</label></div>
+        <button class="primary" id="btnDevTemplateSave" type="button">Save Template</button>
+        <button id="btnDevTemplateDuplicate" type="button">Duplicate</button>
+        <button id="btnDevTemplateExport" type="button">Export Current</button>
+        <button id="btnDevTemplateExportAll" type="button">Export Library</button>
+        <label>Import JSON<input id="devTemplateImport" type="file" accept="application/json,.json"></label>
+        <button class="danger" id="btnDevTemplateClose" type="button">Close</button>
+      </header>
+      <div class="dev-template-layout">
+        <aside class="dev-template-sidebar">
+          <section class="dev-template-section">
+            <h3>Template</h3>
+            <div class="dev-template-row"><select id="devTemplateLibrary" aria-label="Saved templates"></select><button id="btnDevTemplateLoad" type="button">Load</button></div>
+            <div class="dev-template-row"><input id="devTemplateName" type="text" maxlength="80" placeholder="Settlement name"></div>
+            <div class="dev-template-row"><select id="devTemplateKind" aria-label="Settlement kind"><option value="village">Village</option><option value="town">Town</option><option value="city">City</option><option value="outpost">Outpost</option><option value="custom">Custom</option></select></div>
+            <div class="dev-template-row compact"><label>W <input id="devTemplateWidth" type="number" min="256" max="4096" step="16"></label><label>H <input id="devTemplateHeight" type="number" min="256" max="4096" step="16"></label></div>
+            <div class="dev-template-row"><button class="danger" id="btnDevTemplateDeleteTemplate" type="button">Delete saved template</button></div>
+            <p>Edits auto-save as a local draft. <b>Save Template</b> commits the draft to the named library. Export JSON is the durable project copy.</p>
+          </section>
+          <section class="dev-template-section">
+            <h3>Asset Catalogue</h3>
+            <div class="dev-template-row"><button class="primary" id="btnDevTemplateScanAssets" type="button">Scan Assets Folder</button><input id="devTemplateAssetFolder" type="file" webkitdirectory directory multiple hidden></div>
+            <p><b>Recommended:</b> choose the project's <code>assets</code> folder. Dev Tools scans every subfolder — buildings, props, NPCs, environment, and future folders — and adds supported image files automatically.</p>
+            <div class="dev-template-asset-scan-meta" id="devTemplateAssetScanMeta">Manual registration still works below for unusual paths.</div>
+            <div class="dev-template-row"><input id="devTemplateAssetPath" type="text" value="./assets/buildings/" aria-label="Filename or project-relative asset path"><button id="btnDevTemplateRegisterAsset" type="button">Register</button></div>
+            <div class="dev-template-assets" id="devTemplateAssets"></div>
+          </section>
+          <section class="dev-template-section">
+            <h3>View / Guides</h3>
+            <p>Zoom controls are in the top toolbar beside <b>New</b>. Zoom changes only the editor view; saved X/Y positions and asset scales remain in true game pixels.</p>
+            <div class="dev-template-row"><label><input id="devTemplateShowPlayerRef" type="checkbox"> Show player reference</label></div>
+            <div class="dev-template-row"><select id="devTemplatePlayerRefClass" aria-label="Player reference class"><option value="Votary">Votary</option><option value="Rogue">Rogue</option><option value="Wizard">Wizard</option></select><button id="btnDevTemplatePlayerRefCenter" type="button">Center</button></div>
+            <p>The 32×32 player reference matches the current in-game render size. Drag/nudge it for scale checks. It is a Dev Tools overlay only and is never saved into settlement JSON.</p>
+            <div class="dev-template-row"><label><input id="devTemplateShowCollision" type="checkbox"> Show all collision</label></div>
+            <div class="dev-template-row"><label><input id="devTemplateShowOcclusion" type="checkbox"> Show all behind zones</label></div>
+            <div class="dev-template-row"><label><input id="devTemplateShowDoors" type="checkbox"> Show all interaction markers</label></div>
+            <div class="dev-template-row"><label>Drag snap <select id="devTemplateSnap"><option value="1">1 px</option><option value="2">2 px</option><option value="4">4 px</option><option value="8">8 px</option><option value="16">16 px</option></select></label></div>
+          </section>
+        </aside>
+        <main class="dev-template-stage" id="devTemplateStage">
+          <div class="dev-template-stage-inner">
+            <div class="dev-template-canvas-shell" id="devTemplateCanvasShell">
+              <div class="dev-template-canvas" id="devTemplateCanvas" aria-label="Settlement template canvas"></div>
+            </div>
+          </div>
+          <div class="dev-template-picker" id="devTemplatePicker" hidden><span>Choose overlapping target</span><div id="devTemplatePickerList"></div></div>
+        </main>
+        <aside class="dev-template-sidebar right">
+          <section class="dev-template-section">
+            <h3>Inspector</h3>
+            <div id="devTemplateInspector"><div class="dev-template-inspector-empty">Select an asset, entrance, or exit. Multiple things under the cursor open a picker.</div></div>
+          </section>
+          <section class="dev-template-section">
+            <h3>Template Anchors</h3>
+            <p><b>Entrance</b> and <b>Exit</b> tell the future procedural generator where cavern routes should connect to this finished settlement stamp. Drag them directly or edit their coordinates in the Inspector.</p>
+          </section>
+        </aside>
+      </div>
+      <footer class="dev-template-status" id="devTemplateStatus"><span>Draft autosaves locally.</span><span><kbd>Arrows</kbd> nudge 1 px · <kbd>Shift</kbd> + arrows 5 px · <kbd>Delete</kbd> removes selected asset</span></footer>
+    </section>
     <div class="world-location-title" id="worldLocationTitle" aria-live="polite" aria-atomic="true">
       <em id="worldLocationKind">Settlement</em><b id="worldLocationName">—</b><span id="worldLocationDepth">—</span>
     </div>
@@ -3864,7 +3998,7 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
 
       <div class="travel-info">
         <div>
-          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><div class="travel-band-actions"><span class="build-version" id="buildVersion">v0.213.0</span><button class="settings-cog travel-settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button></div></div>
+          <div class="travel-band-row"><em id="travelBand">Stratum 1</em><div class="travel-band-actions"><span class="build-version" id="buildVersion">v0.219.4</span><button class="settings-cog travel-settings-cog" type="button" data-open-settings aria-label="Settings" title="Settings"></button></div></div>
           <h1 id="travelStratum">The Goblin Warren</h1>
           <button class="travel-depth fathom-meter" id="fathomMeter" type="button" aria-expanded="false" title="Tap to show current depth">
             <span class="travel-depth-label">DEEPEST</span><b id="travelDepth">0.0</b><span>fathoms</span>
@@ -4235,8 +4369,12 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
           </div>
         </div>
         <div class="settings-row">
-          <div class="settings-copy"><b>Underground shadows</b><span>Turns the Forest Plains shadow atmosphere on or off while keeping the biome itself unchanged. Useful for live playtesting.</span></div>
+          <div class="settings-copy"><b>Atmospheric lighting</b><span>Toggles the darker underground lighting, player lantern reveal, and nearby environmental glow effects on or off. Useful for visibility checks and live playtesting.</span></div>
           <button class="settings-toggle" id="btnSettingWorldShadows" type="button" aria-pressed="true">On</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-copy"><b>Cavern edge shadowing</b><span>Toggles the extra top/bottom/side cavern framing shadows. Off by default so the visibility lighting stands on its own and the world view stays cleaner.</span></div>
+          <button class="settings-toggle" id="btnSettingWorldEdgeShadows" type="button" aria-pressed="false">Off</button>
         </div>
       </section>
       <section class="settings-section">

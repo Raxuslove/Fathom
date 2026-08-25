@@ -213,7 +213,7 @@ const SETTINGS_KEY = "lowfathom:settings";
 const SETTINGS_SCHEMA = 5;
 const MINIMAP_SIZE_OPTIONS=["small","medium","large","extra"];
 const MINIMAP_ZOOM_OPTIONS=[0,1,2,3,4];
-const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept",worldZoom:"standard",worldShadows:true,minimapSize:"medium",minimapZoom:2});
+const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept",worldZoom:"standard",worldShadows:true,worldEdgeShadows:false,minimapSize:"medium",minimapZoom:2});
 const WINDOW_LAYOUT_KEY="lowfathom:window-layout:v1";
 const COMBAT_FONT_OPTIONS=["concept","slab"];
 const ENCOUNTER_GRACE_OPTIONS = [5,15,30];
@@ -9892,6 +9892,7 @@ function normalizeSettings(value){
     if(COMBAT_FONT_OPTIONS.includes(value.combatFont)) next.combatFont=value.combatFont;
     if(WORLD_ZOOM_OPTIONS.includes(value.worldZoom)) next.worldZoom=value.worldZoom;
     if(typeof value.worldShadows==="boolean") next.worldShadows=value.worldShadows;
+    if(typeof value.worldEdgeShadows==="boolean") next.worldEdgeShadows=value.worldEdgeShadows;
     if(MINIMAP_SIZE_OPTIONS.includes(value.minimapSize)) next.minimapSize=value.minimapSize;
     const minimapZoom=Math.round(Number(value.minimapZoom));
     if(MINIMAP_ZOOM_OPTIONS.includes(minimapZoom)) next.minimapZoom=minimapZoom;
@@ -10071,12 +10072,19 @@ function setWorldShadows(enabled){
   window.LowfathomWorldBridge?.world?.setAtmosphereEffectsEnabled?.(settings.worldShadows);
   renderSettingsSheet();
 }
+function setWorldEdgeShadows(enabled){
+  settings.worldEdgeShadows=!!enabled;
+  saveSettingsNow();
+  window.LowfathomWorldBridge?.world?.setEdgeAtmosphereEnabled?.(settings.worldEdgeShadows);
+  renderSettingsSheet();
+}
 function resetSettings(){
   settings={...DEFAULT_SETTINGS};
   clearCurrentCharacterIndicators();
   applyCombatFont();applyMinimapSize();
   window.LowfathomWorldBridge?.world?.setZoom?.(WORLD_ZOOM_VALUES[settings.worldZoom]||WORLD_ZOOM_VALUES.standard);
   window.LowfathomWorldBridge?.world?.setAtmosphereEffectsEnabled?.(settings.worldShadows);
+  window.LowfathomWorldBridge?.world?.setEdgeAtmosphereEnabled?.(settings.worldEdgeShadows);
   window.LowfathomWorldBridge?.world?.setMinimapZoom?.(settings.minimapZoom,{notify:false});
   saveSettingsNow();
   renderSettingsSheet();
@@ -10265,6 +10273,13 @@ function renderSettingsSheet(){
     worldShadowBtn.textContent=on?"On":"Off";
     worldShadowBtn.classList.toggle("on",on);
     worldShadowBtn.setAttribute("aria-pressed",String(on));
+  }
+  const edgeShadowBtn=$("btnSettingWorldEdgeShadows");
+  if(edgeShadowBtn){
+    const on=settings.worldEdgeShadows===true;
+    edgeShadowBtn.textContent=on?"On":"Off";
+    edgeShadowBtn.classList.toggle("on",on);
+    edgeShadowBtn.setAttribute("aria-pressed",String(on));
   }
   document.querySelectorAll("[data-minimap-size]").forEach(btn=>{
     btn.classList.toggle("selected",btn.dataset.minimapSize===settings.minimapSize);
@@ -11964,7 +11979,7 @@ function worldCurrentState(){
   return {name:String(S.name||""),slot:currentRunSlot,depth:Number(S.depth)||0,hp:Number(S.hp)||0,hpMax:Number(S.hpMax)||1,xp:Number(S.xp)||0,xpNeed:Math.max(1,xpToNext(S.level)),level:Number(S.level)||1,statPoints:Number(S.statPoints)||0,resources,foe:S.foe?{key:S.foe.key,name:S.foe.name,hp:S.foe.hp,hpMax:S.foe.hpMax,defeated:!!S.foe.defeated,worldRealtime:!!S.foe.worldRealtime,hostile:!!S.foe.hostile,evading:!!S.foe.evading,worldEntityId:S.foe.worldEntityId||null,worldLootRecordId:S.foe.worldLootRecordId||null}:null,over:!!over,town:currentTown()?.id||null,townLocationOpenId:townLocationOpenId||null,townDepartureArmed:!!townDepartureArmed,travelEvent:!!S.travelEvent,hollow:!!S.activeHollow,interaction:!!activeInteraction()};
 }
 window.LowfathomLegacy={
-  getState:worldCurrentState,getRawState:()=>S,getProfiles:worldProfiles,getTowns:worldTowns,getWorldZoom:()=>WORLD_ZOOM_VALUES[settings.worldZoom]||WORLD_ZOOM_VALUES.standard,getWorldShadows:()=>settings.worldShadows!==false,getMinimapZoom:()=>Number(settings.minimapZoom),persistMinimapZoom,
+  getState:worldCurrentState,getRawState:()=>S,getProfiles:worldProfiles,getTowns:worldTowns,getWorldZoom:()=>WORLD_ZOOM_VALUES[settings.worldZoom]||WORLD_ZOOM_VALUES.standard,getWorldShadows:()=>settings.worldShadows!==false,getWorldEdgeShadows:()=>settings.worldEdgeShadows===true,getMinimapZoom:()=>Number(settings.minimapZoom),persistMinimapZoom,
   canMove:()=>!worldBlocked()&&!worldUiBlocking(),uiBlocking:worldUiBlocking,
   getWorldCombat:worldCombatResourceSnapshot,getWorldCombatMeleeReach,setWorldCombatMeleeReach,tickWorldCombatResources,useWorldCombatPower:worldCombatUsePower,queueWorldCombatPower:worldCombatQueuePower,cancelWorldCombatPower:worldCombatCancelQueuedPower,worldCombatPlayerAttack,worldCombatGuard,worldCombatSandThrow,worldCombatEnemyAttack,worldCombatEnemyAttackFrom,getWorldEnemyCombatConfig:worldEnemyCombatConfig,getWorldDetectionRadius:worldDetectionRadius,beginWorldCombatEvade:worldCombatBeginEvade,tickWorldCombatEvadeHeal:worldCombatEvadeHeal,finishWorldCombatEvade:worldCombatFinishEvade,
   getWorldReadInfo:worldReadInfo,readWorldFoe:worldReadFoe,getWorldExamineInfo:worldExamineInfo,openDelverJournal,closeDelverJournal,setWorldCombatHostile:worldSetCombatHostile,setWorldThreatened:worldSetThreatened,suspendWorldCombatTarget:worldSuspendCombatTarget,resumeWorldCombatTarget:worldResumeCombatTarget,
@@ -12178,6 +12193,7 @@ $("arena").addEventListener("click", e => {
 $("btnSettingNotices").addEventListener("click", () => setCharacterIndicators(!settings.characterIndicators));
 $("btnSettingDice").addEventListener("click", () => setDiceAnimation(!settings.diceAnimation));
 $("btnSettingWorldShadows")?.addEventListener("click", () => setWorldShadows(!(settings.worldShadows!==false)));
+$("btnSettingWorldEdgeShadows")?.addEventListener("click", () => setWorldEdgeShadows(!(settings.worldEdgeShadows===true)));
 document.getElementById("worldZoomChoices")?.addEventListener("click",e=>{const b=e.target.closest("[data-world-zoom]");if(b)setWorldZoom(b.dataset.worldZoom);});
 document.getElementById("minimapSizeChoices")?.addEventListener("click",e=>{const b=e.target.closest("[data-minimap-size]");if(b)setMinimapSize(b.dataset.minimapSize);});
 $("btnResetWindowPositions")?.addEventListener("click",resetFloatingWindowPositions);

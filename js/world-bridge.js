@@ -171,7 +171,328 @@ const world=new World(canvas,{
 });
 world.setZoom?.(api.getWorldZoom?.()||1.15);
 world.setAtmosphereEffectsEnabled?.(api.getWorldShadows?.()!==false);
+world.setEdgeAtmosphereEnabled?.(api.getWorldEdgeShadows?.()===true);
 world.setMinimapZoom?.(api.getMinimapZoom?.()??2,{notify:false});
+
+// ---------------------------------------------------------------------------
+// v0.218.0 — Developer placement mode
+// Visual overrides are deliberately stored outside the run save. This means a
+// bad light tweak cannot damage character/world state, and replacing the build
+// on the same origin keeps the editor values through localStorage.
+const DEV_PLACEMENT_STORAGE='lowfathom-dev-placement-v1';
+const devToggle=document.getElementById('btnDevPlacement');
+const devPanel=document.getElementById('devPlacementPanel');
+const devClose=document.getElementById('btnDevPlacementClose');
+const devSelected=document.getElementById('devPlacementSelected');
+const devInspector=document.getElementById('devPlacementInspector');
+const devPicker=document.getElementById('devPlacementPicker');
+const devPickerList=document.getElementById('devPlacementPickerList');
+const devDragBtn=document.getElementById('btnDevPlacementDrag');
+const devResetBtn=document.getElementById('btnDevPlacementReset');
+const devResetAllBtn=document.getElementById('btnDevPlacementResetAll');
+const devExportBtn=document.getElementById('btnDevPlacementExport');
+const devImportInput=document.getElementById('devPlacementImport');
+const travelRoot=document.getElementById('travel');
+let devPlacement={enabled:false,selection:'',selectionMeta:null,dragUnlocked:false,drag:null};
+
+function devLoadConfig(){
+  try{const raw=localStorage.getItem(DEV_PLACEMENT_STORAGE);return raw?JSON.parse(raw):null;}catch(err){console.warn('Developer placement settings could not be loaded.',err);return null;}
+}
+function devSaveConfig(){
+  try{localStorage.setItem(DEV_PLACEMENT_STORAGE,JSON.stringify(world.getDevPlacementConfig?.()||{}));}catch(err){console.warn('Developer placement settings could not be saved.',err);}
+}
+world.setDevPlacementConfig?.(devLoadConfig());
+
+function devGetPath(obj,path){return String(path||'').split('.').reduce((v,k)=>v&&v[k],obj);}
+function devSetPath(obj,path,value){const parts=String(path||'').split('.');let cur=obj;for(let i=0;i<parts.length-1;i++){if(!cur[parts[i]]||typeof cur[parts[i]]!=='object')cur[parts[i]]={};cur=cur[parts[i]];}cur[parts.at(-1)]=value;}
+function devField(path,title,sub,min,max,step){
+  const value=Number(devGetPath(world.getDevPlacementConfig(),path));
+  return `<div class="dev-placement-field"><label><b>${title}</b><span>${sub}</span></label><input type="number" data-dev-path="${path}" min="${min}" max="${max}" step="${step}" value="${Number.isFinite(value)?value:0}"><input type="range" data-dev-path="${path}" min="${min}" max="${max}" step="${step}" value="${Number.isFinite(value)?value:0}"></div>`;
+}
+function devSelectionInfo(id){
+  if(id==='playerLanternGlow')return{id,label:'Player lantern · warm glow',editable:true,kind:'light'};
+  if(id==='playerLanternVisibility')return{id,label:'Player lantern · visibility radius',editable:true,kind:'light'};
+  if(id==='playerSprite')return{id,label:'Player sprite',editable:false,kind:'protected'};
+  if(id==='playerCollision')return{id,label:'Player collision',editable:false,kind:'protected'};
+  if(String(id||'').startsWith('entity:')){
+    const key=String(id).slice(7),e=(world.activeEntities||[]).find(v=>String(v?.id||v?.name||v?.type||'')===key);
+    return{id,label:`${String(e?.name||e?.profile?.name||e?.type||'World entity')} · world entity`,editable:false,kind:'protected'};
+  }
+  return null;
+}
+function devRenderInspector(){
+  const meta=devPlacement.selectionMeta||devSelectionInfo(devPlacement.selection);
+  if(!devSelected||!devInspector)return;
+  if(!meta){devSelected.innerHTML='<em>Selected</em><b>Nothing</b><span>Click near the player to choose a target.</span>';devInspector.innerHTML='';devDragBtn.disabled=true;devResetBtn.disabled=true;return;}
+  devSelected.innerHTML=`<em>Selected</em><b>${meta.label}</b><span>${meta.editable?'Editable visual override. Saved automatically.':'Protected in this first editor pass.'}</span>`;
+  devDragBtn.disabled=!meta.editable||meta.id!=='playerLanternGlow';devResetBtn.disabled=!meta.editable;
+  if(meta.id==='playerLanternGlow'){
+    devInspector.innerHTML=`<div class="dev-placement-fields">${devField('playerLanternGlow.sideOffset','Side offset','Distance from player toward the held lantern.',0,40,1)}${devField('playerLanternGlow.y','Vertical offset','Positive values move the glow downward.',-32,32,1)}${devField('playerLanternGlow.innerRadius','Inner glow radius','Bright warm halo immediately around the lantern.',3,64,1)}${devField('playerLanternGlow.outerRadius','Outer glow radius','Fainter warm halo beyond the inner glow.',5,96,1)}${devField('playerLanternGlow.brightness','Brightness','1.00 is the original intensity.',.15,2.5,.05)}</div>`;
+  }else if(meta.id==='playerLanternVisibility'){
+    devInspector.innerHTML=`<div class="dev-placement-fields">${devField('playerLanternVisibility.clearRadius','Clear radius','Fully revealed world around the player.',80,600,4)}${devField('playerLanternVisibility.featherRadius','Feather radius','Soft edge immediately outside the clear area.',90,680,4)}${devField('playerLanternVisibility.falloffOuter','Falloff reach','Outer edge of partial visibility.',120,900,4)}${devField('playerLanternVisibility.falloffStrength','Falloff strength','How strongly the partial-visibility band cuts darkness.',0,.8,.02)}</div>`;
+  }else{
+    devInspector.innerHTML='<div class="dev-placement-protected">This target is selectable so overlapping objects are unambiguous, but editing it is intentionally locked for now. That prevents accidental player movement, collision damage, quest deletion, or terrain corruption.</div>';
+  }
+}
+function devSelect(meta){
+  devPlacement.selectionMeta=meta||null;devPlacement.selection=meta?.id||'';world.setDevPlacementSelection?.(devPlacement.selection);devHidePicker();devRenderInspector();
+}
+function devHidePicker(){if(devPicker)devPicker.hidden=true;if(devPickerList)devPickerList.innerHTML='';}
+function devShowPicker(candidates,clientX,clientY){
+  if(!devPicker||!devPickerList)return;devPickerList.innerHTML='';
+  for(const item of candidates){const b=document.createElement('button');b.type='button';b.innerHTML=`${item.label}<small>${item.editable?'editable':'protected'}</small>`;b.addEventListener('click',()=>devSelect(item));devPickerList.appendChild(b);}
+  const r=travelRoot?.getBoundingClientRect();if(r){const left=Math.max(8,Math.min(r.width-300,clientX-r.left+8)),top=Math.max(8,Math.min(r.height-190,clientY-r.top+8));devPicker.style.left=`${left}px`;devPicker.style.top=`${top}px`;}
+  devPicker.hidden=false;
+}
+function devSetMode(enabled){
+  devPlacement.enabled=!!enabled;if(!devPlacement.enabled&&typeof devTemplateState!=='undefined'&&devTemplateState.open)devTemplateSetOpen(false);world.setDevPlacementEnabled?.(devPlacement.enabled);document.body.classList.toggle('dev-placement-active',devPlacement.enabled);
+  if(devPanel)devPanel.hidden=!devPlacement.enabled;if(devToggle){devToggle.classList.toggle('active',devPlacement.enabled);devToggle.setAttribute('aria-pressed',String(devPlacement.enabled));}
+  if(!devPlacement.enabled){devPlacement.drag=null;devPlacement.dragUnlocked=false;devDragBtn?.classList.remove('active');if(devDragBtn){devDragBtn.textContent='Drag locked';devDragBtn.setAttribute('aria-pressed','false');}devSelect(null);devHidePicker();}
+  else{for(const code of ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'])world.keyUp(code);world.setJoystick(0,0);devRenderInspector();}
+}
+function devApplyPath(path,value){
+  const cfg=world.getDevPlacementConfig();devSetPath(cfg,path,value);world.setDevPlacementConfig(cfg);devSaveConfig();
+  for(const el of devInspector?.querySelectorAll(`[data-dev-path="${path}"]`)||[]){if(String(el.value)!==String(value))el.value=String(value);}
+}
+function devNudge(dx,dy){
+  if(devPlacement.selection!=='playerLanternGlow')return false;
+  const cfg=world.getDevPlacementConfig(),g=cfg.playerLanternGlow,facing=world.playerLanternScreenPosition?.().facing||'right';
+  if(dx){const screenSigned=(facing==='left'?g.sideOffset:-g.sideOffset)+dx;g.sideOffset=Math.max(0,Math.min(40,Math.abs(screenSigned)));}
+  if(dy)g.y=Math.max(-32,Math.min(32,g.y+dy));
+  world.setDevPlacementConfig(cfg);devSaveConfig();devRenderInspector();return true;
+}
+function devResetSelected(){
+  const id=devPlacement.selection;if(!id)return;const cfg=world.getDevPlacementConfig(),defaults=world.defaultDevPlacementConfig?.();if(!defaults)return;
+  if(id==='playerLanternGlow')cfg.playerLanternGlow=defaults.playerLanternGlow;
+  else if(id==='playerLanternVisibility')cfg.playerLanternVisibility=defaults.playerLanternVisibility;
+  else return;world.setDevPlacementConfig(cfg);devSaveConfig();devRenderInspector();toast('Selected developer override reset.');
+}
+function devResetAll(){
+  if(!confirm('Reset all developer placement overrides to their build defaults?'))return;world.setDevPlacementConfig(world.defaultDevPlacementConfig?.());try{localStorage.removeItem(DEV_PLACEMENT_STORAGE);}catch{}devRenderInspector();toast('Developer placement overrides reset.');
+}
+function devExport(){
+  const payload={format:'lowfathom-dev-placement',version:1,build:'v0.219.2',config:world.getDevPlacementConfig()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='lowfathom-dev-placement.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+async function devImport(file){
+  if(!file)return;try{const parsed=JSON.parse(await file.text()),cfg=parsed?.config||parsed;world.setDevPlacementConfig(cfg);devSaveConfig();devRenderInspector();toast('Developer placement settings imported.');}catch(err){console.error(err);toast('That developer placement JSON could not be imported.');}finally{if(devImportInput)devImportInput.value='';}
+}
+
+
+
+// v0.219.0 — Settlement Template Workshop
+// This editor intentionally does not write into the active procedural world.
+// It authors reusable local-coordinate stamps that can later be consumed by the
+// settlement generator. The browser keeps a draft and named library; JSON export
+// is the durable handoff/project copy.
+const DEV_TEMPLATE_LIBRARY_STORAGE='lowfathom-dev-template-library-v1';
+const DEV_TEMPLATE_DRAFT_STORAGE='lowfathom-dev-template-draft-v1';
+const DEV_TEMPLATE_ASSET_STORAGE='lowfathom-dev-template-assets-v1';
+const DEV_TEMPLATE_VIEW_STORAGE='lowfathom-dev-template-view-v1';
+const devTemplateWorkshop=document.getElementById('devTemplateWorkshop');
+const devTemplateOpenBtn=document.getElementById('btnDevTemplateOpen');
+const devTemplateCloseBtn=document.getElementById('btnDevTemplateClose');
+const devTemplateNewBtn=document.getElementById('btnDevTemplateNew');
+const devTemplateSaveBtn=document.getElementById('btnDevTemplateSave');
+const devTemplateDuplicateBtn=document.getElementById('btnDevTemplateDuplicate');
+const devTemplateExportBtn=document.getElementById('btnDevTemplateExport');
+const devTemplateExportAllBtn=document.getElementById('btnDevTemplateExportAll');
+const devTemplateImportInput=document.getElementById('devTemplateImport');
+const devTemplateDeleteTemplateBtn=document.getElementById('btnDevTemplateDeleteTemplate');
+const devTemplateLibrarySelect=document.getElementById('devTemplateLibrary');
+const devTemplateLoadBtn=document.getElementById('btnDevTemplateLoad');
+const devTemplateNameInput=document.getElementById('devTemplateName');
+const devTemplateKindSelect=document.getElementById('devTemplateKind');
+const devTemplateWidthInput=document.getElementById('devTemplateWidth');
+const devTemplateHeightInput=document.getElementById('devTemplateHeight');
+const devTemplateAssetPathInput=document.getElementById('devTemplateAssetPath');
+const devTemplateRegisterAssetBtn=document.getElementById('btnDevTemplateRegisterAsset');
+const devTemplateScanAssetsBtn=document.getElementById('btnDevTemplateScanAssets');
+const devTemplateAssetFolderInput=document.getElementById('devTemplateAssetFolder');
+const devTemplateAssetScanMeta=document.getElementById('devTemplateAssetScanMeta');
+const devTemplateAssets=document.getElementById('devTemplateAssets');
+const devTemplateShowCollision=document.getElementById('devTemplateShowCollision');
+const devTemplateShowOcclusion=document.getElementById('devTemplateShowOcclusion');
+const devTemplateShowDoors=document.getElementById('devTemplateShowDoors');
+const devTemplateSnap=document.getElementById('devTemplateSnap');
+const devTemplateZoom=document.getElementById('devTemplateZoom');
+const devTemplateZoomOutBtn=document.getElementById('btnDevTemplateZoomOut');
+const devTemplateZoomResetBtn=document.getElementById('btnDevTemplateZoomReset');
+const devTemplateZoomInBtn=document.getElementById('btnDevTemplateZoomIn');
+const devTemplateZoomReadout=document.getElementById('devTemplateZoomReadout');
+const devTemplatePixelGrid=document.getElementById('devTemplatePixelGrid');
+const devTemplateShowPlayerRef=document.getElementById('devTemplateShowPlayerRef');
+const devTemplatePlayerRefClass=document.getElementById('devTemplatePlayerRefClass');
+const devTemplatePlayerRefCenterBtn=document.getElementById('btnDevTemplatePlayerRefCenter');
+const devTemplateStage=document.getElementById('devTemplateStage');
+const devTemplateCanvasShell=document.getElementById('devTemplateCanvasShell');
+const devTemplateCanvas=document.getElementById('devTemplateCanvas');
+const devTemplatePicker=document.getElementById('devTemplatePicker');
+const devTemplatePickerList=document.getElementById('devTemplatePickerList');
+const devTemplateInspector=document.getElementById('devTemplateInspector');
+const devTemplateStatus=document.getElementById('devTemplateStatus');
+
+const devTemplateDeepClone=value=>JSON.parse(JSON.stringify(value));
+const devTemplateClamp=(n,min,max)=>Math.max(min,Math.min(max,Number(n)||0));
+const devTemplateEsc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const devTemplateId=(prefix='item')=>`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+const devTemplateSlug=value=>String(value||'template').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,52)||'template';
+const devTemplateFilename=path=>String(path||'asset').split('/').filter(Boolean).at(-1)||'asset';
+const devTemplateAssetCategory=path=>{const parts=String(path||'').replace(/\\/g,'/').split('/').filter(Boolean),i=parts.indexOf('assets');return i>=0&&parts[i+1]?parts[i+1]:'other';};
+const DEV_TEMPLATE_IMAGE_EXT=/\.(?:png|webp|jpe?g|gif|avif)$/i;
+const DEV_TEMPLATE_PLAYER_REF_SPRITES=Object.freeze({Votary:'./assets/player/knight-lantern-player.png',Rogue:'./assets/player/rogue-lantern-player.png',Wizard:'./assets/player/mage-lantern-player.png'});
+const DEV_TEMPLATE_ZOOM_LEVELS=[.5,.75,1,1.5,2,3,4,6];
+function devTemplateDefault(){return{format:'lowfathom-settlement-template',version:2,id:'',name:'Untitled Town',kind:'town',width:960,height:640,objects:[],anchors:{entrance:{x:480,y:616},exit:{x:480,y:24}},updatedAt:new Date().toISOString()};}
+function devTemplateSanitize(raw){
+  const base=devTemplateDefault(),src=raw&&typeof raw==='object'?raw:{};
+  base.id=String(src.id||'');base.name=String(src.name||base.name).slice(0,80);base.kind=['village','town','city','outpost','custom'].includes(src.kind)?src.kind:'town';
+  base.width=Math.round(devTemplateClamp(src.width||base.width,256,4096));base.height=Math.round(devTemplateClamp(src.height||base.height,256,4096));
+  const anchors=src.anchors||{};base.anchors.entrance={x:devTemplateClamp(anchors.entrance?.x??base.width/2,0,base.width),y:devTemplateClamp(anchors.entrance?.y??base.height-24,0,base.height)};base.anchors.exit={x:devTemplateClamp(anchors.exit?.x??base.width/2,0,base.width),y:devTemplateClamp(anchors.exit?.y??24,0,base.height)};
+  base.objects=Array.isArray(src.objects)?src.objects.slice(0,600).map((o,i)=>{
+    const aw=Math.round(devTemplateClamp(o?.assetWidth||64,1,2048)),ah=Math.round(devTemplateClamp(o?.assetHeight||64,1,2048)),scale=devTemplateClamp(o?.scale||1,.25,4);
+    const collision=o?.collision||{},occlusion=o?.occlusion||{},door=o?.door||{},isBuilding=devTemplateAssetCategory(o?.assetPath)==='buildings';
+    return{id:String(o?.id||devTemplateId('asset')),type:'asset',assetPath:String(o?.assetPath||''),label:String(o?.label||devTemplateFilename(o?.assetPath)||`Asset ${i+1}`).slice(0,80),x:devTemplateClamp(o?.x||0,-2048,base.width+2048),y:devTemplateClamp(o?.y||0,-2048,base.height+2048),scale,assetWidth:aw,assetHeight:ah,locked:!!o?.locked,collision:{enabled:collision.enabled!==false,x:devTemplateClamp(collision.x??0,0,aw),y:devTemplateClamp(collision.y??Math.round(ah*.25),0,ah),w:devTemplateClamp(collision.w??aw,1,aw),h:devTemplateClamp(collision.h??Math.max(1,Math.round(ah*.75)),1,ah)},occlusion:{enabled:occlusion.enabled!==undefined?!!occlusion.enabled:isBuilding,x:devTemplateClamp(occlusion.x??0,0,aw),y:devTemplateClamp(occlusion.y??0,0,ah),w:devTemplateClamp(occlusion.w??aw,1,aw),h:devTemplateClamp(occlusion.h??Math.max(1,Math.round(ah*.50)),1,ah)},door:{enabled:door.enabled!==false,x:devTemplateClamp(door.x??aw/2,0,aw),y:devTemplateClamp(door.y??ah,0,ah)}};
+  }):[];
+  base.updatedAt=String(src.updatedAt||new Date().toISOString());return base;
+}
+function devTemplateStorageGet(key,fallback){try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):fallback;}catch(err){console.warn('Dev template storage read failed.',err);return fallback;}}
+function devTemplateStorageSet(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(err){console.warn('Dev template storage write failed.',err);}}
+function devTemplateLoadLibrary(){const value=devTemplateStorageGet(DEV_TEMPLATE_LIBRARY_STORAGE,{});return value&&typeof value==='object'&&!Array.isArray(value)?value:{};}
+function devTemplateLoadAssets(){const value=devTemplateStorageGet(DEV_TEMPLATE_ASSET_STORAGE,[]);return Array.isArray(value)?[...new Set(value.map(String).filter(Boolean))]:[];}
+function devTemplateLoadView(){const raw=devTemplateStorageGet(DEV_TEMPLATE_VIEW_STORAGE,{}),z=DEV_TEMPLATE_ZOOM_LEVELS.includes(Number(raw?.zoom))?Number(raw.zoom):1,cls=DEV_TEMPLATE_PLAYER_REF_SPRITES[raw?.playerClass]?raw.playerClass:'Votary';return{zoom:z,pixelGrid:!!raw?.pixelGrid,showPlayer:!!raw?.showPlayer,playerClass:cls,playerX:Number.isFinite(Number(raw?.playerX))?Number(raw.playerX):480,playerY:Number.isFinite(Number(raw?.playerY))?Number(raw.playerY):320};}
+const devTemplateView=devTemplateLoadView();
+let devTemplateState={open:false,current:devTemplateSanitize(devTemplateStorageGet(DEV_TEMPLATE_DRAFT_STORAGE,null)),library:devTemplateLoadLibrary(),assets:devTemplateLoadAssets(),selection:null,drag:null,dirty:false,showCollision:false,showOcclusion:false,showDoors:false,regionTool:null,regionDraw:null,snap:1,zoom:devTemplateView.zoom,pixelGrid:devTemplateView.pixelGrid,playerRef:{shown:devTemplateView.showPlayer,className:devTemplateView.playerClass,x:devTemplateView.playerX,y:devTemplateView.playerY}};
+function devTemplatePersistView(){devTemplateStorageSet(DEV_TEMPLATE_VIEW_STORAGE,{zoom:devTemplateState.zoom,pixelGrid:!!devTemplateState.pixelGrid,showPlayer:devTemplateState.playerRef.shown,playerClass:devTemplateState.playerRef.className,playerX:devTemplateState.playerRef.x,playerY:devTemplateState.playerRef.y});}
+
+function devTemplatePersistDraft(){devTemplateState.current.updatedAt=new Date().toISOString();devTemplateStorageSet(DEV_TEMPLATE_DRAFT_STORAGE,devTemplateState.current);devTemplateState.dirty=true;devTemplateRenderStatus();}
+function devTemplatePersistLibrary(){devTemplateStorageSet(DEV_TEMPLATE_LIBRARY_STORAGE,devTemplateState.library);devTemplateRenderLibrary();}
+function devTemplatePersistAssets(){devTemplateStorageSet(DEV_TEMPLATE_ASSET_STORAGE,devTemplateState.assets);devTemplateRenderAssets();}
+function devTemplateNormalizeAssetPath(value){let p=String(value||'').trim().replace(/\\/g,'/');if(!p)return'';if(!p.includes('/'))p=`./assets/buildings/${p}`;else if(!p.startsWith('.')&&!p.startsWith('/'))p=`./${p}`;return p;}
+function devTemplateDownload(filename,payload){const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function devTemplateCanvasPoint(clientX,clientY){const r=devTemplateCanvas.getBoundingClientRect(),z=Math.max(.01,Number(devTemplateState.zoom)||1);return{x:(clientX-r.left)/z,y:(clientY-r.top)/z};}
+function devTemplateObjectSize(o){return{w:o.assetWidth*o.scale,h:o.assetHeight*o.scale};}
+function devTemplateObjectRect(o){const s=devTemplateObjectSize(o);return{x:o.x,y:o.y,w:s.w,h:s.h};}
+function devTemplateOcclusionRect(o){const q=o?.occlusion;if(!q?.enabled)return null;return{x:o.x+q.x*o.scale,y:o.y+q.y*o.scale,w:q.w*o.scale,h:q.h*o.scale};}
+function devTemplatePointInOcclusion(o,p){const r=devTemplateOcclusionRect(o);return!!r&&p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h;}
+function devTemplateVisualOverlaps(){
+  const ids=new Set(),objects=devTemplateState.current.objects;
+  for(let i=0;i<objects.length;i++)for(let j=i+1;j<objects.length;j++){const a=devTemplateObjectRect(objects[i]),b=devTemplateObjectRect(objects[j]);if(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y){ids.add(objects[i].id);ids.add(objects[j].id);}}
+  return ids;
+}
+function devTemplateCandidatesAt(p){
+  const out=[];for(let i=devTemplateState.current.objects.length-1;i>=0;i--){const o=devTemplateState.current.objects[i],r=devTemplateObjectRect(o);if(p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)out.push({kind:'asset',id:o.id,label:o.label||devTemplateFilename(o.assetPath)});}
+  if(devTemplateState.playerRef.shown&&Math.abs(p.x-devTemplateState.playerRef.x)<=16&&Math.abs(p.y-devTemplateState.playerRef.y)<=16)out.unshift({kind:'reference',id:'player',label:`Player reference · ${devTemplateState.playerRef.className}`});
+  for(const key of ['entrance','exit']){const a=devTemplateState.current.anchors[key];if(Math.hypot(p.x-a.x,p.y-a.y)<=13)out.unshift({kind:'anchor',id:key,label:key==='entrance'?'Template entrance':'Template exit'});}
+  return out;
+}
+function devTemplateSelectedObject(){return devTemplateState.selection?.kind==='asset'?devTemplateState.current.objects.find(o=>o.id===devTemplateState.selection.id)||null:null;}
+function devTemplateSelectedAnchor(){return devTemplateState.selection?.kind==='anchor'?devTemplateState.current.anchors[devTemplateState.selection.id]||null:null;}
+function devTemplateSelectedReference(){return devTemplateState.selection?.kind==='reference'&&devTemplateState.selection.id==='player'?devTemplateState.playerRef:null;}
+function devTemplateSetSelection(selection){devTemplateState.selection=selection||null;devTemplateHidePicker();devTemplateRenderCanvas();devTemplateRenderInspector();}
+function devTemplateHidePicker(){if(devTemplatePicker)devTemplatePicker.hidden=true;if(devTemplatePickerList)devTemplatePickerList.innerHTML='';}
+function devTemplateShowPicker(candidates,clientX,clientY){
+  if(!devTemplatePicker||!devTemplatePickerList)return;devTemplatePickerList.innerHTML='';for(const item of candidates){const b=document.createElement('button');b.type='button';b.textContent=item.label;b.addEventListener('click',()=>devTemplateSetSelection({kind:item.kind,id:item.id}));devTemplatePickerList.appendChild(b);}
+  const r=devTemplateStage.getBoundingClientRect(),sx=devTemplateStage.scrollLeft||0,sy=devTemplateStage.scrollTop||0;devTemplatePicker.style.left=`${sx+Math.max(6,Math.min(r.width-230,clientX-r.left+8))}px`;devTemplatePicker.style.top=`${sy+Math.max(6,Math.min(r.height-180,clientY-r.top+8))}px`;devTemplatePicker.hidden=false;
+}
+function devTemplateRenderLibrary(){
+  if(!devTemplateLibrarySelect)return;const current=devTemplateLibrarySelect.value,entries=Object.values(devTemplateState.library).sort((a,b)=>String(a.name).localeCompare(String(b.name)));devTemplateLibrarySelect.innerHTML='<option value="">Saved templates…</option>'+entries.map(t=>`<option value="${devTemplateEsc(t.id)}">${devTemplateEsc(t.name)} · ${devTemplateEsc(t.kind||'town')}</option>`).join('');if(entries.some(t=>t.id===current))devTemplateLibrarySelect.value=current;else if(devTemplateState.current.id&&entries.some(t=>t.id===devTemplateState.current.id))devTemplateLibrarySelect.value=devTemplateState.current.id;
+}
+function devTemplateRenderAssets(){
+  if(!devTemplateAssets)return;if(!devTemplateState.assets.length){devTemplateAssets.innerHTML='<div class="dev-template-inspector-empty">No registered assets yet. Use Scan Assets Folder to discover them automatically.</div>';return;}devTemplateAssets.innerHTML='';
+  const paths=[...devTemplateState.assets].sort((a,b)=>{const ca=devTemplateAssetCategory(a),cb=devTemplateAssetCategory(b);return ca.localeCompare(cb)||devTemplateFilename(a).localeCompare(devTemplateFilename(b));});let lastCategory='';
+  for(const path of paths){const category=devTemplateAssetCategory(path);if(category!==lastCategory){const head=document.createElement('div');head.className='dev-template-asset-category';head.textContent=category;devTemplateAssets.appendChild(head);lastCategory=category;}const row=document.createElement('div');row.className='dev-template-asset';const preview=document.createElement('div');preview.className='dev-template-asset-preview';const img=document.createElement('img');img.src=path;img.alt='';preview.appendChild(img);const copy=document.createElement('div');copy.className='dev-template-asset-copy';copy.innerHTML=`<b>${devTemplateEsc(devTemplateFilename(path))}</b><small>${devTemplateEsc(path)}</small>`;const actions=document.createElement('div');actions.className='dev-template-asset-actions';const add=document.createElement('button');add.type='button';add.textContent='Add';add.addEventListener('click',()=>devTemplateAddAsset(path));const remove=document.createElement('button');remove.type='button';remove.className='remove';remove.textContent='Unregister';remove.addEventListener('click',()=>{devTemplateState.assets=devTemplateState.assets.filter(v=>v!==path);devTemplatePersistAssets();});actions.append(add,remove);copy.appendChild(actions);row.append(preview,copy);devTemplateAssets.appendChild(row);}
+}
+function devTemplateSyncMetaControls(){
+  const t=devTemplateState.current,z=Math.max(.5,Math.min(6,Number(devTemplateState.zoom)||1)),inv=1/z;if(devTemplateNameInput)devTemplateNameInput.value=t.name;if(devTemplateKindSelect)devTemplateKindSelect.value=t.kind;if(devTemplateWidthInput)devTemplateWidthInput.value=t.width;if(devTemplateHeightInput)devTemplateHeightInput.value=t.height;if(devTemplateCanvas){devTemplateCanvas.style.width=`${t.width}px`;devTemplateCanvas.style.height=`${t.height}px`;devTemplateCanvas.style.transform=`scale(${z})`;devTemplateCanvas.style.setProperty('--dev-inv-zoom',String(inv));devTemplateCanvas.style.setProperty('--dev-guide-px',`${inv}px`);}if(devTemplateCanvasShell){devTemplateCanvasShell.style.width=`${Math.ceil(t.width*z)}px`;devTemplateCanvasShell.style.height=`${Math.ceil(t.height*z)}px`;}if(devTemplateZoom)devTemplateZoom.value=String(z);if(devTemplateZoomReadout)devTemplateZoomReadout.textContent=`${Math.round(z*100)}%`;if(devTemplatePixelGrid){devTemplatePixelGrid.checked=!!devTemplateState.pixelGrid;devTemplatePixelGrid.disabled=z<3;devTemplatePixelGrid.title=z<3?'Pixel grid becomes useful at 300% zoom or higher.':'Show individual source-pixel boundaries.';}if(devTemplateShowPlayerRef)devTemplateShowPlayerRef.checked=!!devTemplateState.playerRef.shown;if(devTemplatePlayerRefClass)devTemplatePlayerRefClass.value=devTemplateState.playerRef.className;
+}
+function devTemplateScreenAlignedRect(x,y,w,h){const z=Math.max(.5,Math.min(6,Number(devTemplateState.zoom)||1)),snap=n=>Math.round(Number(n||0)*z)/z,x1=snap(x),y1=snap(y),x2=snap(Number(x||0)+Number(w||0)),y2=snap(Number(y||0)+Number(h||0));return{x:x1,y:y1,w:Math.max(1/z,x2-x1),h:Math.max(1/z,y2-y1)};}
+function devTemplateScreenAlignedPoint(x,y){const z=Math.max(.5,Math.min(6,Number(devTemplateState.zoom)||1));return{x:Math.round(Number(x||0)*z)/z,y:Math.round(Number(y||0)*z)/z};}
+function devTemplateRenderCanvas(){
+  if(!devTemplateCanvas)return;devTemplateSyncMetaControls();devTemplateCanvas.innerHTML='';const overlaps=devTemplateVisualOverlaps();
+  for(const o of devTemplateState.current.objects){const size=devTemplateObjectSize(o),el=document.createElement('div');el.className='dev-template-object';if(o.locked)el.classList.add('locked');if(devTemplateState.selection?.kind==='asset'&&devTemplateState.selection.id===o.id)el.classList.add('selected');if(overlaps.has(o.id))el.classList.add('overlap-warning');el.dataset.templateId=o.id;const occludesRef=devTemplateState.playerRef.shown&&devTemplatePointInOcclusion(o,{x:devTemplateState.playerRef.x,y:devTemplateState.playerRef.y+14});Object.assign(el.style,{left:`${o.x}px`,top:`${o.y}px`,width:`${size.w}px`,height:`${size.h}px`,zIndex:occludesRef?'5':'2'});const img=document.createElement('img');img.src=o.assetPath;img.alt='';img.draggable=false;img.addEventListener('load',()=>devTemplateLearnDimensions(o,img));img.addEventListener('error',()=>{if(!el.querySelector('.dev-template-object-missing')){const miss=document.createElement('div');miss.className='dev-template-object-missing';miss.textContent='Asset not found';el.appendChild(miss);}});el.appendChild(img);
+    if(o.collision.enabled){const col=document.createElement('div'),r=devTemplateScreenAlignedRect(o.collision.x*o.scale,o.collision.y*o.scale,o.collision.w*o.scale,o.collision.h*o.scale);col.className='dev-template-collision';Object.assign(col.style,{left:`${r.x}px`,top:`${r.y}px`,width:`${r.w}px`,height:`${r.h}px`});el.appendChild(col);}if(o.occlusion?.enabled){const occ=document.createElement('div'),r=devTemplateScreenAlignedRect(o.occlusion.x*o.scale,o.occlusion.y*o.scale,o.occlusion.w*o.scale,o.occlusion.h*o.scale);occ.className='dev-template-occlusion';Object.assign(occ.style,{left:`${r.x}px`,top:`${r.y}px`,width:`${r.w}px`,height:`${r.h}px`});el.appendChild(occ);}if(o.door.enabled){const door=document.createElement('div'),p=devTemplateScreenAlignedPoint(o.door.x*o.scale,o.door.y*o.scale);door.className='dev-template-door';Object.assign(door.style,{left:`${p.x}px`,top:`${p.y}px`});el.appendChild(door);}devTemplateCanvas.appendChild(el);
+  }
+  if(devTemplateState.playerRef.shown){const ref=devTemplateState.playerRef,el=document.createElement('div');el.className='dev-template-player-ref';if(devTemplateState.selection?.kind==='reference'&&devTemplateState.selection.id==='player')el.classList.add('selected');const rp=devTemplateScreenAlignedPoint(ref.x,ref.y);Object.assign(el.style,{left:`${rp.x}px`,top:`${rp.y}px`});const img=document.createElement('img');img.src=DEV_TEMPLATE_PLAYER_REF_SPRITES[ref.className]||DEV_TEMPLATE_PLAYER_REF_SPRITES.Votary;img.alt='Player scale reference';img.draggable=false;el.appendChild(img);devTemplateCanvas.appendChild(el);}
+  for(const key of ['entrance','exit']){const a=devTemplateState.current.anchors[key],el=document.createElement('div');el.className=`dev-template-anchor ${key==='exit'?'exit':''}`;if(devTemplateState.selection?.kind==='anchor'&&devTemplateState.selection.id===key)el.classList.add('selected');el.textContent=key==='entrance'?'IN':'OUT';el.title=key==='entrance'?'Template entrance':'Template exit';const p=devTemplateScreenAlignedPoint(a.x,a.y);Object.assign(el.style,{left:`${p.x}px`,top:`${p.y}px`});devTemplateCanvas.appendChild(el);}
+  if(devTemplateState.pixelGrid&&(devTemplateState.zoom||1)>=3){const grid=document.createElement('div');grid.className='dev-template-pixel-grid';grid.setAttribute('aria-hidden','true');devTemplateCanvas.appendChild(grid);}
+  devTemplateWorkshop?.classList.toggle('show-all-collision',devTemplateState.showCollision);devTemplateWorkshop?.classList.toggle('show-all-occlusion',devTemplateState.showOcclusion);devTemplateWorkshop?.classList.toggle('show-all-doors',devTemplateState.showDoors);devTemplateWorkshop?.classList.toggle('drawing-region',!!devTemplateState.regionTool);devTemplateRenderStatus();
+}
+function devTemplateLearnDimensions(o,img){
+  if(!img.naturalWidth||!img.naturalHeight)return;if(o.assetWidth===img.naturalWidth&&o.assetHeight===img.naturalHeight)return;const wasFallback=o.assetWidth===64&&o.assetHeight===64;o.assetWidth=img.naturalWidth;o.assetHeight=img.naturalHeight;if(wasFallback){o.collision={enabled:true,x:0,y:Math.round(o.assetHeight*.25),w:o.assetWidth,h:Math.max(1,Math.round(o.assetHeight*.75))};const isBuilding=devTemplateAssetCategory(o.assetPath)==='buildings';o.occlusion={enabled:isBuilding,x:0,y:0,w:o.assetWidth,h:Math.max(1,Math.round(o.assetHeight*.50))};o.door={enabled:true,x:Math.round(o.assetWidth/2),y:o.assetHeight};}else{o.collision.x=devTemplateClamp(o.collision.x,0,o.assetWidth);o.collision.y=devTemplateClamp(o.collision.y,0,o.assetHeight);o.collision.w=devTemplateClamp(o.collision.w,1,o.assetWidth-o.collision.x||1);o.collision.h=devTemplateClamp(o.collision.h,1,o.assetHeight-o.collision.y||1);if(!o.occlusion)o.occlusion={enabled:devTemplateAssetCategory(o.assetPath)==='buildings',x:0,y:0,w:o.assetWidth,h:Math.max(1,Math.round(o.assetHeight*.50))};o.occlusion.x=devTemplateClamp(o.occlusion.x,0,o.assetWidth);o.occlusion.y=devTemplateClamp(o.occlusion.y,0,o.assetHeight);o.occlusion.w=devTemplateClamp(o.occlusion.w,1,o.assetWidth-o.occlusion.x||1);o.occlusion.h=devTemplateClamp(o.occlusion.h,1,o.assetHeight-o.occlusion.y||1);o.door.x=devTemplateClamp(o.door.x,0,o.assetWidth);o.door.y=devTemplateClamp(o.door.y,0,o.assetHeight);}devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();
+}
+function devTemplateInspectorField(path,title,sub,value,min,max,step=1){return`<div class="dev-template-inspector-field"><label><b>${devTemplateEsc(title)}</b><span>${devTemplateEsc(sub)}</span></label><input type="number" data-template-field="${devTemplateEsc(path)}" value="${Number(value)}" min="${min}" max="${max}" step="${step}"></div>`;}
+function devTemplateRenderInspector(){
+  if(!devTemplateInspector)return;const o=devTemplateSelectedObject(),a=devTemplateSelectedAnchor(),ref=devTemplateSelectedReference();if(!o&&!a&&!ref){devTemplateInspector.innerHTML='<div class="dev-template-inspector-empty">Select an asset, entrance, exit, or the player reference. Multiple things under the cursor open a picker.</div>';return;}
+  if(ref){devTemplateInspector.innerHTML=`<div class="dev-template-inspector-title"><b>Player reference · ${devTemplateEsc(ref.className)}</b><span>32×32px current in-game render reference · Dev Tools only · not exported</span></div><div class="dev-template-inspector-fields">${devTemplateInspectorField('reference.x','X','Template-local reference position.',ref.x,0,devTemplateState.current.width,1)}${devTemplateInspectorField('reference.y','Y','Template-local reference position.',ref.y,0,devTemplateState.current.height,1)}</div><p>Drag or nudge this reference to compare doors, roads, props and building scale against the player.</p>`;return;}
+  if(a){const key=devTemplateState.selection.id;devTemplateInspector.innerHTML=`<div class="dev-template-inspector-title"><b>${key==='entrance'?'Template entrance':'Template exit'}</b><span>Procedural route connection anchor</span></div><div class="dev-template-inspector-fields">${devTemplateInspectorField('anchor.x','X','Template-local horizontal position.',a.x,0,devTemplateState.current.width,1)}${devTemplateInspectorField('anchor.y','Y','Template-local vertical position.',a.y,0,devTemplateState.current.height,1)}</div>`;return;}
+  const size=devTemplateObjectSize(o);devTemplateInspector.innerHTML=`<div class="dev-template-inspector-title"><b>${devTemplateEsc(o.label)}</b><span>${devTemplateEsc(o.assetPath)} · source ${o.assetWidth}×${o.assetHeight}px · rendered ${Math.round(size.w)}×${Math.round(size.h)}px</span></div><div class="dev-template-inspector-fields">${devTemplateInspectorField('x','X','Template-local position.',o.x,-2048,devTemplateState.current.width+2048,1)}${devTemplateInspectorField('y','Y','Template-local position.',o.y,-2048,devTemplateState.current.height+2048,1)}${devTemplateInspectorField('scale','Uniform scale','Nearest-neighbour; width and height stay proportional.',o.scale,.25,4,.25)}<div class="dev-template-inspector-field"><label><b>Scale slider</b><span>0.25× to 4×.</span></label><input type="range" data-template-field="scale" value="${o.scale}" min=".25" max="4" step=".25"></div></div><label class="dev-template-check"><input type="checkbox" data-template-toggle="locked" ${o.locked?'checked':''}> Lock position against drag/nudge</label><label class="dev-template-check"><input type="checkbox" data-template-toggle="collision" ${o.collision.enabled?'checked':''}> Collision enabled</label><div class="dev-template-inspector-fields">${devTemplateInspectorField('collision.x','Collision X','Source-pixel offset inside artwork.',o.collision.x,0,o.assetWidth,1)}${devTemplateInspectorField('collision.y','Collision Y','Source-pixel offset inside artwork.',o.collision.y,0,o.assetHeight,1)}${devTemplateInspectorField('collision.w','Collision W','Source-pixel width; scales with building.',o.collision.w,1,o.assetWidth,1)}${devTemplateInspectorField('collision.h','Collision H','Source-pixel height; scales with building.',o.collision.h,1,o.assetHeight,1)}</div><label class="dev-template-check"><input type="checkbox" data-template-toggle="occlusion" ${o.occlusion?.enabled?'checked':''}> Behind / occlusion zone enabled</label><div class="dev-template-inspector-fields">${devTemplateInspectorField('occlusion.x','Behind X','Source-pixel offset inside artwork.',o.occlusion?.x??0,0,o.assetWidth,1)}${devTemplateInspectorField('occlusion.y','Behind Y','Source-pixel offset inside artwork.',o.occlusion?.y??0,0,o.assetHeight,1)}${devTemplateInspectorField('occlusion.w','Behind W','Player is drawn beneath this part of the building.',o.occlusion?.w??o.assetWidth,1,o.assetWidth,1)}${devTemplateInspectorField('occlusion.h','Behind H','Use for roofs / tall foreground portions.',o.occlusion?.h??Math.round(o.assetHeight*.5),1,o.assetHeight,1)}</div><div class="dev-template-inspector-actions"><button type="button" data-template-action="draw-occlusion">Draw Behind Zone</button><button type="button" data-template-action="occlusion-reset">Reset Behind Zone</button></div><p>The purple zone is not collision. When the player's feet enter it, this PNG draws over the player so roofs can visually hide them.</p><label class="dev-template-check"><input type="checkbox" data-template-toggle="door" ${o.door.enabled?'checked':''}> Door / interaction marker enabled</label><div class="dev-template-inspector-fields">${devTemplateInspectorField('door.x','Door X','Source-pixel position; scales with building.',o.door.x,0,o.assetWidth,1)}${devTemplateInspectorField('door.y','Door Y','Source-pixel position; scales with building.',o.door.y,0,o.assetHeight,1)}</div><div class="dev-template-inspector-actions"><button type="button" data-template-action="scale-reset">Scale 1×</button><button type="button" data-template-action="collision-reset">Reset collision</button><button type="button" data-template-action="duplicate">Duplicate asset</button><button class="danger" type="button" data-template-action="delete">Delete asset</button></div>`;
+}
+function devTemplateRenderStatus(){
+  if(!devTemplateStatus)return;const overlaps=devTemplateVisualOverlaps(),overlapCount=overlaps.size;const current=devTemplateState.current,drawHint=devTemplateState.regionTool?' · <b class="warn">DRAW BEHIND ZONE: drag over selected artwork</b>':'',saveState=devTemplateState.dirty?'<b class="dirty">Draft changed · autosaved locally</b>':'<b class="ok">Saved template matches draft</b>';devTemplateStatus.innerHTML=`<span>${saveState} · ${current.objects.length} asset${current.objects.length===1?'':'s'} · ${current.width}×${current.height}px · view ${Math.round((devTemplateState.zoom||1)*100)}%${drawHint} ${overlapCount?`· <b class="warn">${overlapCount} asset${overlapCount===1?'':'s'} visually overlap</b>`:''}</span><span><kbd>Arrows</kbd> nudge 1 px · <kbd>Shift</kbd> + arrows 5 px · <kbd>Delete</kbd> removes selected asset</span>`;
+}
+function devTemplateSetZoom(value,{keepCenter=true}={}){const old=Math.max(.5,Math.min(6,Number(devTemplateState.zoom)||1)),next=DEV_TEMPLATE_ZOOM_LEVELS.reduce((best,v)=>Math.abs(v-Number(value))<Math.abs(best-Number(value))?v:best,DEV_TEMPLATE_ZOOM_LEVELS[0]);if(old===next){devTemplateSyncMetaControls();return;}let localCenter=null;if(keepCenter&&devTemplateStage){localCenter={x:(devTemplateStage.scrollLeft+devTemplateStage.clientWidth/2-32)/old,y:(devTemplateStage.scrollTop+devTemplateStage.clientHeight/2-32)/old};}devTemplateState.zoom=next;devTemplatePersistView();devTemplateRenderCanvas();if(localCenter&&devTemplateStage){requestAnimationFrame(()=>{devTemplateStage.scrollLeft=Math.max(0,32+localCenter.x*next-devTemplateStage.clientWidth/2);devTemplateStage.scrollTop=Math.max(0,32+localCenter.y*next-devTemplateStage.clientHeight/2);});}}
+function devTemplateStepZoom(direction){const current=Number(devTemplateState.zoom)||1,idx=Math.max(0,DEV_TEMPLATE_ZOOM_LEVELS.indexOf(current)),next=DEV_TEMPLATE_ZOOM_LEVELS[Math.max(0,Math.min(DEV_TEMPLATE_ZOOM_LEVELS.length-1,idx+(direction<0?-1:1)))];devTemplateSetZoom(next);}
+function devTemplateCenterPlayerRef(){devTemplateState.playerRef.x=Math.round(devTemplateState.current.width/2);devTemplateState.playerRef.y=Math.round(devTemplateState.current.height/2);devTemplateState.playerRef.shown=true;devTemplatePersistView();devTemplateState.selection={kind:'reference',id:'player'};devTemplateRenderCanvas();devTemplateRenderInspector();}
+function devTemplateRefresh(){devTemplateRenderLibrary();devTemplateRenderAssets();devTemplateRenderCanvas();devTemplateRenderInspector();}
+function devTemplateSetOpen(value){
+  devTemplateState.open=!!value;if(devTemplateState.open){if(!devPlacement.enabled)devSetMode(true);document.body.classList.add('dev-template-open');devTemplateWorkshop.hidden=false;devTemplateRefresh();setTimeout(()=>{if(devTemplateStage){const z=devTemplateState.zoom||1;devTemplateStage.scrollLeft=Math.max(0,(devTemplateState.current.width*z-devTemplateStage.clientWidth)/2+32);devTemplateStage.scrollTop=Math.max(0,(devTemplateState.current.height*z-devTemplateStage.clientHeight)/2+32);}},0);}else{document.body.classList.remove('dev-template-open');if(devTemplateWorkshop)devTemplateWorkshop.hidden=true;devTemplateState.drag=null;devTemplateState.regionTool=null;devTemplateState.regionDraw=null;devTemplateHidePicker();}
+}
+function devTemplatePathFromFolderFile(file){
+  const rel=String(file?.webkitRelativePath||file?.name||'').replace(/\\/g,'/');if(!DEV_TEMPLATE_IMAGE_EXT.test(rel))return'';const lower=rel.toLowerCase(),marker='/assets/';let i=lower.indexOf(marker);if(i>=0)return`./${rel.slice(i+1)}`;if(lower.startsWith('assets/'))return`./${rel}`;return'';
+}
+function devTemplateScanAssetFolder(files){
+  const list=Array.from(files||[]),found=[];for(const file of list){const path=devTemplatePathFromFolderFile(file);if(path)found.push(path);}const unique=[...new Set(found)];if(!unique.length){if(devTemplateAssetScanMeta)devTemplateAssetScanMeta.textContent='No supported images were found. Choose the project assets folder (or project root containing assets/).';toast('No assets found. Choose the project assets folder.');return;}
+  const before=new Set(devTemplateState.assets);for(const path of unique)before.add(path);devTemplateState.assets=[...before].sort();devTemplatePersistAssets();const categories=[...new Set(unique.map(devTemplateAssetCategory))].sort();if(devTemplateAssetScanMeta)devTemplateAssetScanMeta.innerHTML=`Found <b>${unique.length}</b> image asset${unique.length===1?'':'s'} across <b>${categories.length}</b> folder categor${categories.length===1?'y':'ies'}: ${categories.map(devTemplateEsc).join(', ')}.`;toast(`Asset catalogue refreshed: ${unique.length} image${unique.length===1?'':'s'} found.`);
+}
+function devTemplateOpenAssetFolderPicker(){
+  if(!devTemplateAssetFolderInput)return;devTemplateAssetFolderInput.value='';devTemplateAssetFolderInput.click();
+}
+function devTemplateRegisterAsset(){const path=devTemplateNormalizeAssetPath(devTemplateAssetPathInput?.value);if(!path||/\/$/.test(path)){toast('Enter a PNG filename or complete project-relative asset path.');return;}if(!devTemplateState.assets.includes(path)){devTemplateState.assets.push(path);devTemplateState.assets.sort();devTemplatePersistAssets();toast(`Registered ${devTemplateFilename(path)}.`);}if(devTemplateAssetPathInput)devTemplateAssetPathInput.value='./assets/buildings/';}
+function devTemplateAddAsset(path){
+  path=devTemplateNormalizeAssetPath(path);if(!path)return;const isBuilding=devTemplateAssetCategory(path)==='buildings';const o={id:devTemplateId('asset'),type:'asset',assetPath:path,label:devTemplateFilename(path).replace(/\.[^.]+$/,''),x:Math.round(devTemplateState.current.width/2-32),y:Math.round(devTemplateState.current.height/2-32),scale:1,assetWidth:64,assetHeight:64,locked:false,collision:{enabled:true,x:0,y:16,w:64,h:48},occlusion:{enabled:isBuilding,x:0,y:0,w:64,h:32},door:{enabled:true,x:32,y:64}};devTemplateState.current.objects.push(o);devTemplateSetSelection({kind:'asset',id:o.id});devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();
+}
+function devTemplateDeleteSelected(){const o=devTemplateSelectedObject();if(!o)return false;devTemplateState.current.objects=devTemplateState.current.objects.filter(v=>v.id!==o.id);devTemplateState.selection=null;devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();return true;}
+function devTemplateDuplicateSelected(){const o=devTemplateSelectedObject();if(!o)return;const copy=devTemplateDeepClone(o);copy.id=devTemplateId('asset');copy.label=`${o.label} copy`;copy.x+=16;copy.y+=16;copy.locked=false;devTemplateState.current.objects.push(copy);devTemplateState.selection={kind:'asset',id:copy.id};devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();}
+function devTemplateNudge(dx,dy){
+  const o=devTemplateSelectedObject();if(o){if(o.locked){toast('That asset is position-locked.');return true;}o.x+=dx;o.y+=dy;devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();return true;}const a=devTemplateSelectedAnchor();if(a){a.x=devTemplateClamp(a.x+dx,0,devTemplateState.current.width);a.y=devTemplateClamp(a.y+dy,0,devTemplateState.current.height);devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();return true;}const ref=devTemplateSelectedReference();if(ref){ref.x=devTemplateClamp(ref.x+dx,0,devTemplateState.current.width);ref.y=devTemplateClamp(ref.y+dy,0,devTemplateState.current.height);devTemplatePersistView();devTemplateRenderCanvas();devTemplateRenderInspector();return true;}return false;
+}
+function devTemplateSaveCurrent(){
+  const t=devTemplateState.current;t.name=String(devTemplateNameInput?.value||t.name||'Untitled Town').trim().slice(0,80)||'Untitled Town';t.kind=devTemplateKindSelect?.value||t.kind;if(!t.id)t.id=`${devTemplateSlug(t.name)}-${Date.now().toString(36)}`;t.updatedAt=new Date().toISOString();devTemplateState.library[t.id]=devTemplateDeepClone(t);devTemplatePersistLibrary();devTemplateStorageSet(DEV_TEMPLATE_DRAFT_STORAGE,t);devTemplateState.dirty=false;devTemplateRenderStatus();if(devTemplateLibrarySelect)devTemplateLibrarySelect.value=t.id;toast(`Saved template: ${t.name}.`);
+}
+function devTemplateLoadSaved(id){const raw=devTemplateState.library[id];if(!raw){toast('Choose a saved template first.');return;}devTemplateState.current=devTemplateSanitize(devTemplateDeepClone(raw));devTemplateState.selection=null;devTemplateState.dirty=false;devTemplateStorageSet(DEV_TEMPLATE_DRAFT_STORAGE,devTemplateState.current);devTemplateRefresh();toast(`Loaded ${devTemplateState.current.name}.`);}
+function devTemplateNew(){if(devTemplateState.dirty&&!confirm('Start a new template? The current draft is auto-saved locally, but unsaved changes are not committed to the named template library.'))return;devTemplateState.current=devTemplateDefault();devTemplateState.selection=null;devTemplateState.dirty=true;devTemplatePersistDraft();devTemplateRefresh();}
+function devTemplateDuplicateCurrent(){const copy=devTemplateDeepClone(devTemplateState.current);copy.id='';copy.name=`${copy.name} Copy`.slice(0,80);devTemplateState.current=devTemplateSanitize(copy);devTemplateState.selection=null;devTemplatePersistDraft();devTemplateRefresh();toast('Template duplicated as a new draft. Save it when ready.');}
+function devTemplateDeleteSaved(){const id=devTemplateState.current.id;if(!id||!devTemplateState.library[id]){toast('The current draft is not a saved template.');return;}if(!confirm(`Delete saved template “${devTemplateState.current.name}” from the local library? Exported JSON files are unaffected.`))return;delete devTemplateState.library[id];devTemplatePersistLibrary();devTemplateState.current.id='';devTemplatePersistDraft();toast('Saved template removed from local library.');}
+function devTemplateExportCurrent(){const t=devTemplateSanitize(devTemplateState.current);devTemplateDownload(`${devTemplateSlug(t.name)}.json`,t);}
+function devTemplateExportLibrary(){const payload={format:'lowfathom-settlement-template-library',version:1,build:'v0.219.2',templates:Object.values(devTemplateState.library)};devTemplateDownload('lowfathom-settlement-template-library.json',payload);}
+async function devTemplateImport(file){
+  if(!file)return;try{const parsed=JSON.parse(await file.text());if(parsed?.format==='lowfathom-settlement-template-library'&&Array.isArray(parsed.templates)){for(const raw of parsed.templates){const t=devTemplateSanitize(raw);if(!t.id)t.id=`${devTemplateSlug(t.name)}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,5)}`;devTemplateState.library[t.id]=t;}devTemplatePersistLibrary();toast(`Imported ${parsed.templates.length} templates into the library.`);}else{const t=devTemplateSanitize(parsed?.template||parsed);t.id=String(t.id||'');devTemplateState.current=t;devTemplateState.selection=null;devTemplatePersistDraft();devTemplateRefresh();toast('Template imported as an editable draft.');}}catch(err){console.error(err);toast('That template JSON could not be imported.');}finally{if(devTemplateImportInput)devTemplateImportInput.value='';}
+}
+function devTemplateApplyInspectorField(path,value){
+  const o=devTemplateSelectedObject(),a=devTemplateSelectedAnchor(),ref=devTemplateSelectedReference();if(ref&&path.startsWith('reference.')){const key=path.slice(10);ref[key]=devTemplateClamp(value,0,key==='x'?devTemplateState.current.width:devTemplateState.current.height);devTemplatePersistView();devTemplateRenderCanvas();devTemplateRenderInspector();return;}if(a&&path.startsWith('anchor.')){const key=path.slice(7);a[key]=devTemplateClamp(value,0,key==='x'?devTemplateState.current.width:devTemplateState.current.height);}else if(o){if(path==='x')o.x=devTemplateClamp(value,-2048,devTemplateState.current.width+2048);else if(path==='y')o.y=devTemplateClamp(value,-2048,devTemplateState.current.height+2048);else if(path==='scale')o.scale=devTemplateClamp(value,.25,4);else if(path.startsWith('collision.')){const k=path.slice(10),max=(k==='x'||k==='w')?o.assetWidth:o.assetHeight;o.collision[k]=devTemplateClamp(value,k==='w'||k==='h'?1:0,max);}else if(path.startsWith('occlusion.')){const k=path.slice(10),max=(k==='x'||k==='w')?o.assetWidth:o.assetHeight;if(!o.occlusion)o.occlusion={enabled:true,x:0,y:0,w:o.assetWidth,h:Math.max(1,Math.round(o.assetHeight*.5))};o.occlusion[k]=devTemplateClamp(value,k==='w'||k==='h'?1:0,max);}else if(path.startsWith('door.')){const k=path.slice(5);o.door[k]=devTemplateClamp(value,0,k==='x'?o.assetWidth:o.assetHeight);}}else return;devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();
+}
+function devTemplateApplyInspectorAction(action){const o=devTemplateSelectedObject();if(!o)return;if(action==='delete')devTemplateDeleteSelected();else if(action==='duplicate')devTemplateDuplicateSelected();else if(action==='scale-reset'){o.scale=1;devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();}else if(action==='collision-reset'){o.collision={enabled:true,x:0,y:Math.round(o.assetHeight*.25),w:o.assetWidth,h:Math.max(1,Math.round(o.assetHeight*.75))};o.door.x=Math.round(o.assetWidth/2);o.door.y=o.assetHeight;devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();}else if(action==='occlusion-reset'){o.occlusion={enabled:true,x:0,y:0,w:o.assetWidth,h:Math.max(1,Math.round(o.assetHeight*.50))};devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();}else if(action==='draw-occlusion'){o.occlusion=o.occlusion||{enabled:true,x:0,y:0,w:o.assetWidth,h:Math.max(1,Math.round(o.assetHeight*.50))};o.occlusion.enabled=true;devTemplateState.regionTool={type:'occlusion',objectId:o.id};devTemplateState.regionDraw=null;devTemplateRenderCanvas();devTemplateRenderInspector();toast('Drag over the building artwork to draw its Behind zone.');}}
+
+devTemplateOpenBtn?.addEventListener('click',()=>devTemplateSetOpen(true));
+devTemplateCloseBtn?.addEventListener('click',()=>devTemplateSetOpen(false));
+devTemplateNewBtn?.addEventListener('click',devTemplateNew);devTemplateSaveBtn?.addEventListener('click',devTemplateSaveCurrent);devTemplateDuplicateBtn?.addEventListener('click',devTemplateDuplicateCurrent);devTemplateExportBtn?.addEventListener('click',devTemplateExportCurrent);devTemplateExportAllBtn?.addEventListener('click',devTemplateExportLibrary);devTemplateImportInput?.addEventListener('change',()=>devTemplateImport(devTemplateImportInput.files?.[0]));devTemplateDeleteTemplateBtn?.addEventListener('click',devTemplateDeleteSaved);devTemplateLoadBtn?.addEventListener('click',()=>devTemplateLoadSaved(devTemplateLibrarySelect?.value));devTemplateScanAssetsBtn?.addEventListener('click',devTemplateOpenAssetFolderPicker);devTemplateAssetFolderInput?.addEventListener('change',()=>devTemplateScanAssetFolder(devTemplateAssetFolderInput.files));devTemplateRegisterAssetBtn?.addEventListener('click',devTemplateRegisterAsset);devTemplateAssetPathInput?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();devTemplateRegisterAsset();}});
+devTemplateNameInput?.addEventListener('input',()=>{devTemplateState.current.name=String(devTemplateNameInput.value||'').slice(0,80);devTemplatePersistDraft();});devTemplateKindSelect?.addEventListener('change',()=>{devTemplateState.current.kind=devTemplateKindSelect.value;devTemplatePersistDraft();});
+function devTemplateResizeFromInputs(){const t=devTemplateState.current;t.width=Math.round(devTemplateClamp(devTemplateWidthInput?.value,256,4096));t.height=Math.round(devTemplateClamp(devTemplateHeightInput?.value,256,4096));for(const key of ['entrance','exit']){t.anchors[key].x=devTemplateClamp(t.anchors[key].x,0,t.width);t.anchors[key].y=devTemplateClamp(t.anchors[key].y,0,t.height);}devTemplateState.playerRef.x=devTemplateClamp(devTemplateState.playerRef.x,0,t.width);devTemplateState.playerRef.y=devTemplateClamp(devTemplateState.playerRef.y,0,t.height);devTemplatePersistView();devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();}
+devTemplateWidthInput?.addEventListener('change',devTemplateResizeFromInputs);devTemplateHeightInput?.addEventListener('change',devTemplateResizeFromInputs);devTemplateShowCollision?.addEventListener('change',()=>{devTemplateState.showCollision=devTemplateShowCollision.checked;devTemplateRenderCanvas();});devTemplateShowOcclusion?.addEventListener('change',()=>{devTemplateState.showOcclusion=devTemplateShowOcclusion.checked;devTemplateRenderCanvas();});devTemplateShowDoors?.addEventListener('change',()=>{devTemplateState.showDoors=devTemplateShowDoors.checked;devTemplateRenderCanvas();});devTemplateSnap?.addEventListener('change',()=>{devTemplateState.snap=Math.max(1,Number(devTemplateSnap.value)||1);});
+devTemplateZoom?.addEventListener('change',()=>devTemplateSetZoom(Number(devTemplateZoom.value)));devTemplateZoomOutBtn?.addEventListener('click',()=>devTemplateStepZoom(-1));devTemplateZoomResetBtn?.addEventListener('click',()=>devTemplateSetZoom(1));devTemplateZoomInBtn?.addEventListener('click',()=>devTemplateStepZoom(1));devTemplatePixelGrid?.addEventListener('change',()=>{devTemplateState.pixelGrid=devTemplatePixelGrid.checked;devTemplatePersistView();devTemplateRenderCanvas();});devTemplateShowPlayerRef?.addEventListener('change',()=>{devTemplateState.playerRef.shown=devTemplateShowPlayerRef.checked;if(devTemplateState.playerRef.shown&&(devTemplateState.playerRef.x<0||devTemplateState.playerRef.x>devTemplateState.current.width||devTemplateState.playerRef.y<0||devTemplateState.playerRef.y>devTemplateState.current.height)){devTemplateState.playerRef.x=Math.round(devTemplateState.current.width/2);devTemplateState.playerRef.y=Math.round(devTemplateState.current.height/2);}if(!devTemplateState.playerRef.shown&&devTemplateState.selection?.kind==='reference')devTemplateState.selection=null;devTemplatePersistView();devTemplateRenderCanvas();devTemplateRenderInspector();});devTemplatePlayerRefClass?.addEventListener('change',()=>{devTemplateState.playerRef.className=DEV_TEMPLATE_PLAYER_REF_SPRITES[devTemplatePlayerRefClass.value]?devTemplatePlayerRefClass.value:'Votary';devTemplatePersistView();devTemplateRenderCanvas();devTemplateRenderInspector();});devTemplatePlayerRefCenterBtn?.addEventListener('click',devTemplateCenterPlayerRef);
+devTemplateInspector?.addEventListener('change',e=>{const field=e.target.closest('[data-template-field]');if(field){devTemplateApplyInspectorField(field.dataset.templateField,field.value);return;}const toggle=e.target.closest('[data-template-toggle]');if(toggle){const o=devTemplateSelectedObject();if(!o)return;if(toggle.dataset.templateToggle==='locked')o.locked=toggle.checked;else if(toggle.dataset.templateToggle==='collision')o.collision.enabled=toggle.checked;else if(toggle.dataset.templateToggle==='occlusion'){o.occlusion=o.occlusion||{enabled:true,x:0,y:0,w:o.assetWidth,h:Math.max(1,Math.round(o.assetHeight*.5))};o.occlusion.enabled=toggle.checked;}else if(toggle.dataset.templateToggle==='door')o.door.enabled=toggle.checked;devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();}});
+devTemplateInspector?.addEventListener('input',e=>{if(e.target.matches('input[type="range"][data-template-field]'))devTemplateApplyInspectorField(e.target.dataset.templateField,e.target.value);});devTemplateInspector?.addEventListener('click',e=>{const b=e.target.closest('[data-template-action]');if(b)devTemplateApplyInspectorAction(b.dataset.templateAction);});
+devTemplateCanvas?.addEventListener('pointerdown',e=>{if(e.button!==0)return;const p=devTemplateCanvasPoint(e.clientX,e.clientY);if(devTemplateState.regionTool){const tool=devTemplateState.regionTool,o=devTemplateState.current.objects.find(v=>v.id===tool.objectId);if(!o){devTemplateState.regionTool=null;devTemplateRenderCanvas();return;}const r=devTemplateObjectRect(o);if(p.x<r.x||p.x>r.x+r.w||p.y<r.y||p.y>r.y+r.h){toast('Start the Behind zone inside the selected artwork.');return;}const lx=devTemplateClamp((p.x-o.x)/o.scale,0,o.assetWidth),ly=devTemplateClamp((p.y-o.y)/o.scale,0,o.assetHeight);devTemplateState.regionDraw={pointerId:e.pointerId,type:tool.type,objectId:o.id,startX:lx,startY:ly};o.occlusion={enabled:true,x:Math.round(lx),y:Math.round(ly),w:1,h:1};devTemplateCanvas.setPointerCapture?.(e.pointerId);devTemplateRenderCanvas();return;}const candidates=devTemplateCandidatesAt(p);if(!candidates.length){devTemplateSetSelection(null);return;}const selected=devTemplateState.selection,candidateSelected=selected&&candidates.some(c=>c.kind===selected.kind&&c.id===selected.id);if(candidates.length>1&&!candidateSelected){devTemplateShowPicker(candidates,e.clientX,e.clientY);return;}const target=candidateSelected?candidates.find(c=>c.kind===selected.kind&&c.id===selected.id):candidates[0];devTemplateSetSelection({kind:target.kind,id:target.id});const o=devTemplateSelectedObject(),a=devTemplateSelectedAnchor(),ref=devTemplateSelectedReference();if(o?.locked){toast('That asset is position-locked.');return;}const origin=o?{x:o.x,y:o.y}:a?{x:a.x,y:a.y}:ref?{x:ref.x,y:ref.y}:null;if(!origin)return;devTemplateState.drag={pointerId:e.pointerId,kind:target.kind,id:target.id,offsetX:p.x-origin.x,offsetY:p.y-origin.y};devTemplateCanvas.setPointerCapture?.(e.pointerId);});
+devTemplateCanvas?.addEventListener('pointermove',e=>{const rd=devTemplateState.regionDraw;if(rd&&rd.pointerId===e.pointerId){const o=devTemplateState.current.objects.find(v=>v.id===rd.objectId);if(!o)return;const p=devTemplateCanvasPoint(e.clientX,e.clientY),lx=devTemplateClamp((p.x-o.x)/o.scale,0,o.assetWidth),ly=devTemplateClamp((p.y-o.y)/o.scale,0,o.assetHeight),x=Math.min(rd.startX,lx),y=Math.min(rd.startY,ly),w=Math.max(1,Math.abs(lx-rd.startX)),h=Math.max(1,Math.abs(ly-rd.startY));o.occlusion={enabled:true,x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)};devTemplateRenderCanvas();return;}const d=devTemplateState.drag;if(!d||d.pointerId!==e.pointerId)return;const p=devTemplateCanvasPoint(e.clientX,e.clientY),snap=Math.max(1,devTemplateState.snap||1),nx=Math.round((p.x-d.offsetX)/snap)*snap,ny=Math.round((p.y-d.offsetY)/snap)*snap;if(d.kind==='asset'){const o=devTemplateState.current.objects.find(v=>v.id===d.id);if(!o||o.locked)return;o.x=nx;o.y=ny;}else if(d.kind==='reference'){devTemplateState.playerRef.x=devTemplateClamp(nx,0,devTemplateState.current.width);devTemplateState.playerRef.y=devTemplateClamp(ny,0,devTemplateState.current.height);}else{const a=devTemplateState.current.anchors[d.id];if(!a)return;a.x=devTemplateClamp(nx,0,devTemplateState.current.width);a.y=devTemplateClamp(ny,0,devTemplateState.current.height);}devTemplateRenderCanvas();});
+function devTemplateFinishDrag(e){const rd=devTemplateState.regionDraw;if(rd&&rd.pointerId===e.pointerId){devTemplateState.regionDraw=null;devTemplateState.regionTool=null;try{devTemplateCanvas.releasePointerCapture?.(e.pointerId);}catch{}devTemplatePersistDraft();devTemplateRenderCanvas();devTemplateRenderInspector();return;}const d=devTemplateState.drag;if(!d||d.pointerId!==e.pointerId)return;devTemplateState.drag=null;try{devTemplateCanvas.releasePointerCapture?.(e.pointerId);}catch{}if(d.kind==='reference')devTemplatePersistView();else devTemplatePersistDraft();devTemplateRenderInspector();}
+devTemplateCanvas?.addEventListener('pointerup',devTemplateFinishDrag);devTemplateCanvas?.addEventListener('pointercancel',devTemplateFinishDrag);
+
+devTemplateRefresh();
+
+devToggle?.addEventListener('click',()=>devSetMode(!devPlacement.enabled));
+devClose?.addEventListener('click',()=>devSetMode(false));
+devDragBtn?.addEventListener('click',()=>{if(devDragBtn.disabled)return;devPlacement.dragUnlocked=!devPlacement.dragUnlocked;devDragBtn.classList.toggle('active',devPlacement.dragUnlocked);devDragBtn.textContent=devPlacement.dragUnlocked?'Drag unlocked':'Drag locked';devDragBtn.setAttribute('aria-pressed',String(devPlacement.dragUnlocked));});
+devResetBtn?.addEventListener('click',devResetSelected);devResetAllBtn?.addEventListener('click',devResetAll);devExportBtn?.addEventListener('click',devExport);devImportInput?.addEventListener('change',()=>devImport(devImportInput.files?.[0]));
+devInspector?.addEventListener('input',event=>{const el=event.target.closest('[data-dev-path]');if(!el)return;const min=Number(el.min),max=Number(el.max),raw=Number(el.value);if(!Number.isFinite(raw))return;devApplyPath(el.dataset.devPath,Math.max(Number.isFinite(min)?min:-Infinity,Math.min(Number.isFinite(max)?max:Infinity,raw)));});
 
 const fathomMeter=document.getElementById("fathomMeter"),currentFathomRow=document.getElementById("travelCurrentRow");
 fathomMeter?.addEventListener("click",()=>{const open=fathomMeter.getAttribute("aria-expanded")==="true";fathomMeter.setAttribute("aria-expanded",String(!open));if(currentFathomRow)currentFathomRow.hidden=open;});
@@ -196,6 +517,7 @@ function syntheticCombatEntity(state){
 }
 
 function uiAllowsWorld(){
+  if(devPlacement.enabled)return false;
   const s=api.getState();
   if(!s||s.over||s.travelEvent||s.hollow||s.interaction)return false;
   if(s.foe&&!s.foe.worldRealtime)return false;
@@ -740,7 +1062,7 @@ function reconcileWorldGate(){
     syncWorldHud(state);syncCombatVisual(state);updateRealtimeCombat(state,dt);updateSecondaryHostiles(dt);updateReadChannel();
     state=api.getState();syncWorldHud(state);
     const threatened=!!world.hasActiveThreats?.();if(threatened!==lastThreatened){lastThreatened=threatened;api.setWorldThreatened?.(threatened);}
-    const allowed=uiAllowsWorld();if(world.inputEnabled!==allowed)world.setInputEnabled(allowed);
+    const allowed=!devPlacement.enabled&&uiAllowsWorld();if(world.inputEnabled!==allowed)world.setInputEnabled(allowed);
   }catch(err){
     // Do not let one combat-frame exception permanently stop bridge updates.
     // Keep the Canvas/UI alive and surface the real error in DevTools.
@@ -803,6 +1125,16 @@ lookBtn.addEventListener('click',()=>{if(uiAllowsWorld())world.look();});
 // on one input path without forcing bump-to-fight.
 let canvasTouch=null;
 canvas.addEventListener('pointerdown',e=>{
+  if(devPlacement.enabled){
+    e.preventDefault();closeEnemyMenu();devHidePicker();
+    const point=worldPointFromClient(e.clientX,e.clientY);
+    if(devPlacement.dragUnlocked&&devPlacement.selection==='playerLanternGlow'){
+      const pos=world.playerLanternScreenPosition?.();if(pos&&Math.hypot(point.x-pos.x,point.y-pos.y)<=30){devPlacement.drag={id:e.pointerId};canvas.setPointerCapture?.(e.pointerId);return;}
+    }
+    const candidates=world.getDevPlacementCandidates?.(point.x,point.y)||[];
+    if(candidates.length===1)devSelect(candidates[0]);else if(candidates.length>1)devShowPicker(candidates,e.clientX,e.clientY);else devSelect(null);
+    return;
+  }
   if(!uiAllowsWorld())return;const enemy=enemyFromPointerEvent(e);if(!enemy)return closeEnemyMenu();
   if(e.pointerType==='mouse'){
     if(e.button===0){e.preventDefault();closeEnemyMenu();beginWorldTarget(enemy,{enemyInitiated:false});}
@@ -813,11 +1145,16 @@ canvas.addEventListener('pointerdown',e=>{
   const timer=setTimeout(()=>{if(canvasTouch?.id!==id)return;canvasTouch.long=true;openEnemyMenu(enemy,e.clientX,e.clientY);},430);
   canvasTouch={id,enemy,startX,startY,lastX:e.clientX,lastY:e.clientY,timer,long:false};
 });
-canvas.addEventListener('pointermove',e=>{if(!canvasTouch||e.pointerId!==canvasTouch.id)return;canvasTouch.lastX=e.clientX;canvasTouch.lastY=e.clientY;if(Math.hypot(e.clientX-canvasTouch.startX,e.clientY-canvasTouch.startY)>16&&!canvasTouch.long){clearTimeout(canvasTouch.timer);canvasTouch=null;}});
-function finishCanvasPointer(e){if(!canvasTouch||e.pointerId!==canvasTouch.id)return;const p=canvasTouch;clearTimeout(p.timer);canvasTouch=null;if(!p.long)beginWorldTarget(p.enemy,{enemyInitiated:false});}
+canvas.addEventListener('pointermove',e=>{
+  if(devPlacement.enabled&&devPlacement.drag?.id===e.pointerId){
+    e.preventDefault();const point=worldPointFromClient(e.clientX,e.clientY),pos=world.playerLanternScreenPosition?.();if(!pos)return;const cfg=world.getDevPlacementConfig(),g=cfg.playerLanternGlow;g.sideOffset=Math.max(0,Math.min(40,Math.abs(point.x-pos.playerX)));g.y=Math.max(-32,Math.min(32,point.y-pos.playerY));world.setDevPlacementConfig(cfg);devSaveConfig();devRenderInspector();return;
+  }
+  if(!canvasTouch||e.pointerId!==canvasTouch.id)return;canvasTouch.lastX=e.clientX;canvasTouch.lastY=e.clientY;if(Math.hypot(e.clientX-canvasTouch.startX,e.clientY-canvasTouch.startY)>16&&!canvasTouch.long){clearTimeout(canvasTouch.timer);canvasTouch=null;}
+});
+function finishCanvasPointer(e){if(devPlacement.drag?.id===e.pointerId){devPlacement.drag=null;try{canvas.releasePointerCapture?.(e.pointerId);}catch{}return;}if(!canvasTouch||e.pointerId!==canvasTouch.id)return;const p=canvasTouch;clearTimeout(p.timer);canvasTouch=null;if(!p.long)beginWorldTarget(p.enemy,{enemyInitiated:false});}
 canvas.addEventListener('pointerup',finishCanvasPointer);canvas.addEventListener('pointercancel',e=>{if(canvasTouch&&e.pointerId===canvasTouch.id){clearTimeout(canvasTouch.timer);canvasTouch=null;}});
 arena?.addEventListener('contextmenu',e=>{e.preventDefault();},{capture:true});
-canvas.addEventListener('contextmenu',e=>{e.preventDefault();const enemy=enemyFromPointerEvent(e);if(!enemy){closeEnemyMenu();return;}openEnemyMenu(enemy,e.clientX,e.clientY);});
+canvas.addEventListener('contextmenu',e=>{e.preventDefault();if(devPlacement.enabled){devHidePicker();return;}const enemy=enemyFromPointerEvent(e);if(!enemy){closeEnemyMenu();return;}openEnemyMenu(enemy,e.clientX,e.clientY);});
 enemyMenu.addEventListener('click',e=>{const b=e.target.closest('[data-enemy-context]');if(!b||!contextEntity)return;const entity=contextEntity;if(b.dataset.enemyContext==='target'){closeEnemyMenu();beginWorldTarget(entity,{enemyInitiated:false});}else if(b.dataset.enemyContext==='examine')examineEntity(entity);else if(b.dataset.enemyContext==='read')startRead(entity);});
 window.addEventListener('pointerdown',e=>{if(enemyMenu.hidden)return;if(e.target===enemyMenu||enemyMenu.contains(e.target))return;if(e.target===canvas)return;closeEnemyMenu();},{capture:true});
 
@@ -830,7 +1167,17 @@ function worldShortcutTargetIsEditable(target){
   return !!el&&(el.matches('input,textarea,select,[contenteditable="true"]')||!!el.closest('[contenteditable="true"]'));
 }
 window.addEventListener('keydown',e=>{
+  if(e.code==='F3'&&!e.repeat){e.preventDefault();devSetMode(!devPlacement.enabled);return;}
   if(worldShortcutTargetIsEditable(e.target))return;
+  if(devPlacement.enabled){
+    if(devTemplateState?.open){
+      if(e.code==='Escape'){e.preventDefault();if(devTemplateState.regionTool||devTemplateState.regionDraw){devTemplateState.regionTool=null;devTemplateState.regionDraw=null;devTemplateRenderCanvas();toast('Behind-zone drawing cancelled.');}else if(devTemplateState.selection)devTemplateSetSelection(null);else devTemplateSetOpen(false);return;}
+      const step=e.shiftKey?5:1;if(e.code==='ArrowLeft'){e.preventDefault();devTemplateNudge(-step,0);return;}if(e.code==='ArrowRight'){e.preventDefault();devTemplateNudge(step,0);return;}if(e.code==='ArrowUp'){e.preventDefault();devTemplateNudge(0,-step);return;}if(e.code==='ArrowDown'){e.preventDefault();devTemplateNudge(0,step);return;}if((e.code==='Delete'||e.code==='Backspace')&&devTemplateState.selection?.kind==='asset'){e.preventDefault();devTemplateDeleteSelected();return;}return;
+    }
+    if(e.code==='Escape'){e.preventDefault();devSelect(null);return;}
+    const step=e.shiftKey?5:1;if(e.code==='ArrowLeft'){e.preventDefault();devNudge(-step,0);return;}if(e.code==='ArrowRight'){e.preventDefault();devNudge(step,0);return;}if(e.code==='ArrowUp'){e.preventDefault();devNudge(0,-step);return;}if(e.code==='ArrowDown'){e.preventDefault();devNudge(0,step);return;}
+    return;
+  }
   if(e.code==='KeyI'&&!e.repeat&&api.getState?.()){e.preventDefault();if(api.inventoryOpen())api.closeInventory();else api.openInventory();sync();return;}
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'].includes(e.code)){if(uiAllowsWorld()){e.preventDefault();world.keyDown(e.code);}}
   if((e.code==='KeyE'||e.code==='Space')&&!e.repeat&&uiAllowsWorld()){e.preventDefault();doInteract();}
