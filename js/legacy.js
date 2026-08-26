@@ -208,12 +208,14 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.212.2 · Unified HUD Card Styling";
+const BUILD_VERSION = "v0.219.31 · Dev Placeable Light Sources";
 const SETTINGS_KEY = "lowfathom:settings";
-const SETTINGS_SCHEMA = 5;
+const SETTINGS_SCHEMA = 7;
 const MINIMAP_SIZE_OPTIONS=["small","medium","large","extra"];
 const MINIMAP_ZOOM_OPTIONS=[0,1,2,3,4];
-const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept",worldZoom:"standard",worldShadows:true,worldEdgeShadows:false,minimapSize:"medium",minimapZoom:2});
+const PLAYER_SPRITE_SIZE_OPTIONS=["double"];
+const PLAYER_SPRITE_SIZE_MULTIPLIERS=Object.freeze({double:2});
+const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept",worldZoom:"standard",worldShadows:true,worldEdgeShadows:false,minimapSize:"medium",minimapZoom:2,playerSpriteSize:"double"});
 const WINDOW_LAYOUT_KEY="lowfathom:window-layout:v1";
 const COMBAT_FONT_OPTIONS=["concept","slab"];
 const ENCOUNTER_GRACE_OPTIONS = [5,15,30];
@@ -239,18 +241,18 @@ const TRAIL_H = 154;
 const TRAIL_MARKER_Y = 77;             // visually centered while the route slopes downward
 const TRAIL_VERTICAL_ZOOM = 0.80;      // compact minimap route height
 
-/* v0.206.0 opening-world pass. Grey Lantern is now the physical Fathom 0
+/* v0.206.0 opening-world pass. Dawngate is now the physical Fathom 0
    starting village. Lantern City remains the major settlement at 450 fathoms and
    Ashwick remains the next authored stop at 550. The old illustrated settlement
    images are retained only for dormant legacy UI compatibility; live play uses
    walkable Canvas geometry. */
 const TOWN_DEFS = Object.freeze([
   Object.freeze({
-    id:"grey-lantern",name:"Grey Lantern",kind:"village",depth:0,
+    id:"grey-lantern",name:"Dawngate",kind:"village",depth:0,
     image:"./assets/ui/town-grey-lantern.png",aspectRatio:"4 / 4.55",focusY:"43%",
     locations:Object.freeze([
       Object.freeze({id:"market",name:"Market",type:"Trade",x:49.0,y:44.0,description:"The central market district.",service:"market"}),
-      Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"Grey Lantern's tavern and rest house.",service:"tavern"}),
+      Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"Dawngate's tavern and rest house.",service:"tavern"}),
       Object.freeze({id:"herbalist",name:"Herbalist",type:"Medicine",x:70.0,y:45.0,description:"The herbalist's shop and treatment room.",service:"herbalist"}),
       Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:80.0,y:28.5,description:"A hall used by delvers, guards, and local employers.",service:"guild"}),
     ])
@@ -261,7 +263,7 @@ const TOWN_DEFS = Object.freeze([
     locations:Object.freeze([
       Object.freeze({id:"market",name:"Market",type:"Trade",x:49.0,y:44.0,description:"Lantern City's crowded trade quarter.",service:"market"}),
       Object.freeze({id:"inn",name:"Tavern",type:"Recovery",x:27.0,y:58.0,description:"A large rest house serving delvers and caravan crews.",service:"tavern"}),
-      Object.freeze({id:"herbalist",name:"Herbalist",npcName:"Mara Venn",type:"Medicine",x:70.0,y:45.0,description:"Mara Venn keeps a medicine shop here and receives field samples for Grey Lantern.",service:"herbalist"}),
+      Object.freeze({id:"herbalist",name:"Herbalist",npcName:"Mara Venn",type:"Medicine",x:70.0,y:45.0,description:"Mara Venn keeps a medicine shop here and receives field samples for Dawngate.",service:"herbalist"}),
       Object.freeze({id:"guild",name:"Guild Hall",type:"Contracts",x:80.0,y:28.5,description:"Lantern City's Guild Hall posts work for the road below.",service:"guild"}),
     ])
   }),
@@ -286,29 +288,29 @@ const TOWN_DEFS = Object.freeze([
 const QUEST_DEFS = Object.freeze([
   Object.freeze({
     id:"grey-lantern-cave-mushrooms",title:"Cave Mushroom Samples",kind:"quota-delivery",
-    giverTownId:"grey-lantern",giverLocationId:"guild",giverName:"Grey Lantern Guild Hall",
+    giverTownId:"grey-lantern",giverLocationId:"guild",giverName:"Dawngate Guild Hall",
     targetTownId:"lantern-city",targetLocationId:"herbalist",targetNpcName:"Mara Venn",targetName:"Mara Venn · Lantern City Herbalist",repeatable:false,
     summary:"Gather up to 5 cave mushrooms during the descent and deliver what you recover to Mara Venn in Lantern City.",
-    details:"Grey Lantern's Guild wants fresh samples carried forward to Lantern City. Mara Venn pays by usable sample, so arriving with fewer than five still earns a proportional reward.",
-    lore:"A practical field order from Grey Lantern: gather what survives the road and place it directly in the hands of Lantern City's herbalist.",
+    details:"Dawngate's Guild wants fresh samples carried forward to Lantern City. Mara Venn pays by usable sample, so arriving with fewer than five still earns a proportional reward.",
+    lore:"A practical field order from Dawngate: gather what survives the road and place it directly in the hands of Lantern City's herbalist.",
     objectives:Object.freeze([Object.freeze({
       id:"mushrooms",type:"quota-item",required:5,
-      item:Object.freeze({id:"quest-cave-mushroom",name:"Cave Mushroom",desc:"A cave mushroom gathered under this specific Grey Lantern contract.",onAbandon:"convert",mundaneName:"Cave Mushroom"}),
+      item:Object.freeze({id:"quest-cave-mushroom",name:"Cave Mushroom",desc:"A cave mushroom gathered under this specific Dawngate contract.",onAbandon:"convert",mundaneName:"Cave Mushroom"}),
       sources:Object.freeze(["combat","explore"]),combatChance:.36,exploreChance:.55,exploreInterval:1.25
     })]),
     reward:Object.freeze({goldPerUnit:10,maxGold:50})
   }),
   Object.freeze({
     id:"grey-lantern-missing-physician",title:"Missing Physician",kind:"rescue-escort",
-    giverTownId:"grey-lantern",giverLocationId:"guild",giverName:"Grey Lantern Guild Hall",
+    giverTownId:"grey-lantern",giverLocationId:"guild",giverName:"Dawngate Guild Hall",
     targetTownId:"lantern-city",targetLocationId:"guild",targetNpcName:"Lantern City Guild Representative",targetName:"Lantern City · Lower Gate",repeatable:false,
     interactionId:"zeshava-contract",rescueInteractionId:"zeshava-found",arrivalInteractionId:"zeshava-arrival",
     subject:Object.freeze({id:"zeshava-brightsong",name:"Zeshava Brightsong",role:"Physician / Herbalist"}),
     summary:"Find Zeshava Brightsong, a physician who never arrived in Lantern City, and escort them there if they are still alive.",
-    details:"Search the Grey Lantern–Lantern City road for signs of Zeshava Brightsong. If you find them alive, see them safely to Lantern City. Payment is made on arrival.",
-    lore:"Grey Lantern sent a physician down-road. Lantern City sent word back when Zeshava Brightsong failed to arrive.",
+    details:"Search the Dawngate–Lantern City road for signs of Zeshava Brightsong. If you find them alive, see them safely to Lantern City. Payment is made on arrival.",
+    lore:"Dawngate sent a physician down-road. Lantern City sent word back when Zeshava Brightsong failed to arrive.",
     objectives:Object.freeze([
-      Object.freeze({id:"writ",type:"quest-proof",required:1,issuedQty:1,item:Object.freeze({id:"quest-grey-lantern-writ",name:"Grey Lantern Guild Writ",desc:"A sealed Guild writ naming Zeshava Brightsong and authorizing you to search for them.",onAbandon:"discard"})}),
+      Object.freeze({id:"writ",type:"quest-proof",required:1,issuedQty:1,item:Object.freeze({id:"quest-grey-lantern-writ",name:"Dawngate Guild Writ",desc:"A sealed Guild writ naming Zeshava Brightsong and authorizing you to search for them.",onAbandon:"discard"})}),
       Object.freeze({id:"satchel",type:"quest-clue",required:1,item:Object.freeze({id:"quest-zeshava-satchel",name:"Zeshava's Medicine Satchel",desc:"A battered physician's satchel bearing Zeshava Brightsong's mark. Several wrapped medicines remain inside.",onAbandon:"convert",mundaneName:"Medicine Satchel"})})
     ]),
     reward:Object.freeze({gold:80})
@@ -329,10 +331,10 @@ const QUEST_DEFS = Object.freeze([
   }),
   Object.freeze({
     id:"caravan-sealed-dispatch",title:"Sealed Caravan Dispatch",kind:"delivery",
-    giverTownId:null,giverLocationId:null,giverName:"Damaged caravan on the Grey Lantern road",
+    giverTownId:null,giverLocationId:null,giverName:"Damaged caravan on the Dawngate road",
     targetTownId:"lantern-city",targetLocationId:"guild",targetNpcName:"Lantern City Quartermaster",targetName:"Lantern City Guild Hall",repeatable:false,
     summary:"Carry a sealed dispatch recovered from a damaged caravan forward to Lantern City.",
-    details:"A caravan crew on the Grey Lantern road asked you to carry one sealed dispatch to the Guild Hall in Lantern City. The parcel is already in your pack; only delivery remains.",
+    details:"A caravan crew on the Dawngate road asked you to carry one sealed dispatch to the Guild Hall in Lantern City. The parcel is already in your pack; only delivery remains.",
     lore:"The road keeps moving even when a wagon cannot. Someone still has to carry the message forward.",
     objectives:Object.freeze([Object.freeze({
       id:"dispatch",type:"delivery-item",required:1,issuedQty:1,
@@ -738,8 +740,8 @@ const INTERACTION_DEFS=Object.freeze({
         ])
       }),
       accepted:Object.freeze({
-        speaker:"Guild Representative",text:"Take this writ. It names Brightsong and carries Grey Lantern's seal. If you find them, get them to Lantern City. They'll settle the payment there.",
-        choices:Object.freeze([Object.freeze({id:"leave",label:"Take the writ",sub:"return to Grey Lantern",end:true,wide:true,style:"reward"})])
+        speaker:"Guild Representative",text:"Take this writ. It names Brightsong and carries Dawngate's seal. If you find them, get them to Lantern City. They'll settle the payment there.",
+        choices:Object.freeze([Object.freeze({id:"leave",label:"Take the writ",sub:"return to Dawngate",end:true,wide:true,style:"reward"})])
       })
     })
   }),
@@ -749,13 +751,13 @@ const INTERACTION_DEFS=Object.freeze({
       wary:Object.freeze({
         speaker:"Zeshava Brightsong",text:"Stop there. Who are you?",
         choices:Object.freeze([
-          Object.freeze({id:"persuade",label:"I was sent by Grey Lantern's Guild.",sub:"Persuasion · earn practice even if the writ is needed",style:"skill",skill:Object.freeze({id:"persuasion",challenge:()=>rescueSkillChallenge(S?.depth||0,0),practiceSource:"zeshava-trust"}),success:"trusted",failure:"skeptical"})
+          Object.freeze({id:"persuade",label:"I was sent by Dawngate's Guild.",sub:"Persuasion · earn practice even if the writ is needed",style:"skill",skill:Object.freeze({id:"persuasion",challenge:()=>rescueSkillChallenge(S?.depth||0,0),practiceSource:"zeshava-trust"}),success:"trusted",failure:"skeptical"})
         ])
       }),
       skeptical:Object.freeze({
         speaker:"Zeshava Brightsong",text:"Anyone could say that. I need more than your word.",
         choices:Object.freeze([
-          Object.freeze({id:"writ",label:"Show the Guild Writ",sub:"Grey Lantern's seal is proof enough",next:"trusted",showWhen:Object.freeze({type:"questItemAtLeast",objectiveId:"writ",amount:1})}),
+          Object.freeze({id:"writ",label:"Show the Guild Writ",sub:"Dawngate's seal is proof enough",next:"trusted",showWhen:Object.freeze({type:"questItemAtLeast",objectiveId:"writ",amount:1})}),
           Object.freeze({id:"satchel",label:"Show the medicine satchel",sub:"return the equipment you found on the road",next:"satchel-proof",showWhen:Object.freeze({type:"questItemAtLeast",objectiveId:"satchel",amount:1})})
         ])
       }),
@@ -2487,8 +2489,8 @@ function newDelver(profile){
   $("restAbilityPick").hidden = true;
   $("charSheet").hidden = true;
 
-  travelLogAdd(`You begin in <b>Grey Lantern</b>, the village at Fathom 0. The lower gate leads into the Forest Plains.`, "beat");
-  say(`<p class="note">You begin in Grey Lantern. Walk the village, prepare, then leave through the lower gate when you are ready.</p>`);
+  travelLogAdd(`You begin in <b>Dawngate</b>, the village at Fathom 0. The outer gate leads into the Forest Plains.`, "beat");
+  say(`<p class="note">You begin in Dawngate. Walk the village, prepare, then leave through the outer gate when you are ready.</p>`);
   travelLogAdd(`<b>${esc(classInfo.name)}</b> specialization: ${esc(classInfo.specialization)}.`,"good");
   travelLogAdd(`Starting kit: <b>${esc(equipmentItemDef(startingEquipment.rightHand)?.name||"Unarmed")}</b>${startingEquipment.leftHand?` + <b>${esc(equipmentItemDef(startingEquipment.leftHand)?.name||"")}</b>`:""} · Salvage Top · Salvage Bottoms · Salvage Boots.`,"note");
   if(cls==="Rogue") travelLogAdd(`Rogue proficiency: <b>+5 Sleight of Hand Rating</b>. Rogue Tools are packed and ready.`,"note");
@@ -8383,10 +8385,10 @@ let worldRecoverUiSecond=-1;
 // slider. Reach is measured surface-to-surface between combat bodies. Daggers
 // are deliberately tight, ordinary melee shares one readable distance, and
 // Great Weapons receive the longer reach identity discussed for the family.
-const WORLD_COMBAT_DAGGER_REACH=15;
-const WORLD_COMBAT_STANDARD_MELEE_REACH=20;
-const WORLD_COMBAT_GREAT_WEAPON_REACH=25;
-const WORLD_COMBAT_REACH_BONUS=12;
+const WORLD_COMBAT_DAGGER_REACH=30;
+const WORLD_COMBAT_STANDARD_MELEE_REACH=40;
+const WORLD_COMBAT_GREAT_WEAPON_REACH=50;
+const WORLD_COMBAT_REACH_BONUS=24;
 const WORLD_COMBAT_ENEMY_MELEE_REACH=10;
 const WORLD_COMBAT_MELEE_FAMILIES=new Set(["unarmed","dagger","sword","axe","shortsword","greatsword"]);
 
@@ -8433,7 +8435,7 @@ function weaponWorldRange(def=equippedWeaponDef()){
     const authoredReach=def?.reach===true?WORLD_COMBAT_REACH_BONUS:Math.max(0,Number(def?.reach)||0);
     return base+authoredReach;
   }
-  return ({staff:42,wand:112,bow:150})[family]||WORLD_COMBAT_STANDARD_MELEE_REACH;
+  return ({staff:84,wand:224,bow:300})[family]||WORLD_COMBAT_STANDARD_MELEE_REACH;
 }
 // Compatibility helpers retained for older bridge/save code. Fixed family reach
 // no longer accepts a global runtime override.
@@ -9894,6 +9896,7 @@ function normalizeSettings(value){
     if(typeof value.worldShadows==="boolean") next.worldShadows=value.worldShadows;
     if(typeof value.worldEdgeShadows==="boolean") next.worldEdgeShadows=value.worldEdgeShadows;
     if(MINIMAP_SIZE_OPTIONS.includes(value.minimapSize)) next.minimapSize=value.minimapSize;
+    if(PLAYER_SPRITE_SIZE_OPTIONS.includes(value.playerSpriteSize)) next.playerSpriteSize=value.playerSpriteSize;
     const minimapZoom=Math.round(Number(value.minimapZoom));
     if(MINIMAP_ZOOM_OPTIONS.includes(minimapZoom)) next.minimapZoom=minimapZoom;
   }
@@ -10066,6 +10069,17 @@ function setWorldZoom(mode){
   window.LowfathomWorldBridge?.world?.setZoom?.(WORLD_ZOOM_VALUES[mode]||WORLD_ZOOM_VALUES.standard);
   renderSettingsSheet();
 }
+function playerSpriteVisualScale(){
+  // v0.219.7: 64×64 is now the canonical player scale. Older settings may still
+  // carry a historical value, but runtime presentation no longer branches.
+  return 2;
+}
+function setPlayerSpriteSize(_mode){
+  settings.playerSpriteSize='double';
+  saveSettingsNow();
+  window.LowfathomWorldBridge?.refreshPlayerVisualScale?.();
+  renderSettingsSheet();
+}
 function setWorldShadows(enabled){
   settings.worldShadows=!!enabled;
   saveSettingsNow();
@@ -10086,6 +10100,7 @@ function resetSettings(){
   window.LowfathomWorldBridge?.world?.setAtmosphereEffectsEnabled?.(settings.worldShadows);
   window.LowfathomWorldBridge?.world?.setEdgeAtmosphereEnabled?.(settings.worldEdgeShadows);
   window.LowfathomWorldBridge?.world?.setMinimapZoom?.(settings.minimapZoom,{notify:false});
+  window.LowfathomWorldBridge?.refreshPlayerVisualScale?.();
   saveSettingsNow();
   renderSettingsSheet();
   if(S){renderCharacterSheet();renderCharacterNotices();requestRunSave();}
@@ -10266,6 +10281,9 @@ function renderSettingsSheet(){
   });
   document.querySelectorAll("[data-world-zoom]").forEach(btn=>{
     btn.classList.toggle("selected",btn.dataset.worldZoom===settings.worldZoom);
+  });
+  document.querySelectorAll("[data-player-sprite-size]").forEach(btn=>{
+    btn.classList.toggle("selected",btn.dataset.playerSpriteSize===settings.playerSpriteSize);
   });
   const worldShadowBtn=$("btnSettingWorldShadows");
   if(worldShadowBtn){
@@ -11979,7 +11997,7 @@ function worldCurrentState(){
   return {name:String(S.name||""),slot:currentRunSlot,depth:Number(S.depth)||0,hp:Number(S.hp)||0,hpMax:Number(S.hpMax)||1,xp:Number(S.xp)||0,xpNeed:Math.max(1,xpToNext(S.level)),level:Number(S.level)||1,statPoints:Number(S.statPoints)||0,resources,foe:S.foe?{key:S.foe.key,name:S.foe.name,hp:S.foe.hp,hpMax:S.foe.hpMax,defeated:!!S.foe.defeated,worldRealtime:!!S.foe.worldRealtime,hostile:!!S.foe.hostile,evading:!!S.foe.evading,worldEntityId:S.foe.worldEntityId||null,worldLootRecordId:S.foe.worldLootRecordId||null}:null,over:!!over,town:currentTown()?.id||null,townLocationOpenId:townLocationOpenId||null,townDepartureArmed:!!townDepartureArmed,travelEvent:!!S.travelEvent,hollow:!!S.activeHollow,interaction:!!activeInteraction()};
 }
 window.LowfathomLegacy={
-  getState:worldCurrentState,getRawState:()=>S,getProfiles:worldProfiles,getTowns:worldTowns,getWorldZoom:()=>WORLD_ZOOM_VALUES[settings.worldZoom]||WORLD_ZOOM_VALUES.standard,getWorldShadows:()=>settings.worldShadows!==false,getWorldEdgeShadows:()=>settings.worldEdgeShadows===true,getMinimapZoom:()=>Number(settings.minimapZoom),persistMinimapZoom,
+  getState:worldCurrentState,getRawState:()=>S,getProfiles:worldProfiles,getTowns:worldTowns,getWorldZoom:()=>WORLD_ZOOM_VALUES[settings.worldZoom]||WORLD_ZOOM_VALUES.standard,getPlayerVisualScale:()=>playerSpriteVisualScale(),getWorldShadows:()=>settings.worldShadows!==false,getWorldEdgeShadows:()=>settings.worldEdgeShadows===true,getMinimapZoom:()=>Number(settings.minimapZoom),persistMinimapZoom,
   canMove:()=>!worldBlocked()&&!worldUiBlocking(),uiBlocking:worldUiBlocking,
   getWorldCombat:worldCombatResourceSnapshot,getWorldCombatMeleeReach,setWorldCombatMeleeReach,tickWorldCombatResources,useWorldCombatPower:worldCombatUsePower,queueWorldCombatPower:worldCombatQueuePower,cancelWorldCombatPower:worldCombatCancelQueuedPower,worldCombatPlayerAttack,worldCombatGuard,worldCombatSandThrow,worldCombatEnemyAttack,worldCombatEnemyAttackFrom,getWorldEnemyCombatConfig:worldEnemyCombatConfig,getWorldDetectionRadius:worldDetectionRadius,beginWorldCombatEvade:worldCombatBeginEvade,tickWorldCombatEvadeHeal:worldCombatEvadeHeal,finishWorldCombatEvade:worldCombatFinishEvade,
   getWorldReadInfo:worldReadInfo,readWorldFoe:worldReadFoe,getWorldExamineInfo:worldExamineInfo,openDelverJournal,closeDelverJournal,setWorldCombatHostile:worldSetCombatHostile,setWorldThreatened:worldSetThreatened,suspendWorldCombatTarget:worldSuspendCombatTarget,resumeWorldCombatTarget:worldResumeCombatTarget,
@@ -12195,6 +12213,7 @@ $("btnSettingDice").addEventListener("click", () => setDiceAnimation(!settings.d
 $("btnSettingWorldShadows")?.addEventListener("click", () => setWorldShadows(!(settings.worldShadows!==false)));
 $("btnSettingWorldEdgeShadows")?.addEventListener("click", () => setWorldEdgeShadows(!(settings.worldEdgeShadows===true)));
 document.getElementById("worldZoomChoices")?.addEventListener("click",e=>{const b=e.target.closest("[data-world-zoom]");if(b)setWorldZoom(b.dataset.worldZoom);});
+document.getElementById("playerSpriteSizeChoices")?.addEventListener("click",e=>{const b=e.target.closest("[data-player-sprite-size]");if(b)setPlayerSpriteSize(b.dataset.playerSpriteSize);});
 document.getElementById("minimapSizeChoices")?.addEventListener("click",e=>{const b=e.target.closest("[data-minimap-size]");if(b)setMinimapSize(b.dataset.minimapSize);});
 $("btnResetWindowPositions")?.addEventListener("click",resetFloatingWindowPositions);
 $("combatFontChoices").addEventListener("click", e => {
