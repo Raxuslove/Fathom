@@ -1260,3 +1260,311 @@ Do not present legacy AC/Deflection as the active-world defensive model.
 The next major phase should begin at **Fathom 0** and build/rework the opening city as the player's real starting point.
 
 The goal is not to invent a new stack of systems. The city and the first stretch below it should become the chronological spine used to **reconnect existing systems** — quests, NPCs, services, merchants, Perception/Investigation, road events, rescue/escort content, loot and exploration — in the order a new player actually encounters them.
+
+## 31. Developer Tools / Template Workshop
+
+**Tooling reference:** v0.219.4 — Pixel-Precise Template Guides  
+**Important:** this section documents developer tooling added after the v0.205.4 balance reconciliation above. It does **not** mean every combat/balance value in this file has been re-reconciled against v0.219.4.
+
+Fathom now has a developer-facing editing layer intended to reduce repeated code-positioning passes and screenshot back-and-forth.
+
+### Dev Tools structure
+
+Press **F3** / use the **DEV** control to access developer tooling.
+
+There are two different editing purposes:
+
+```text
+Live Placement
+→ adjust selected things in the running game.
+
+Template Workshop
+→ author reusable settlement layouts outside the procedural world.
+```
+
+Do not confuse a live-world edit with a reusable settlement template.
+
+### Live Placement
+
+Live Placement is for controlled adjustment of existing runtime elements.
+
+The initial safe implementation includes player-light controls and deliberately protects dangerous state such as the player's actual world/collision position.
+
+Developer placement values use separate local browser storage rather than the delver/run save.
+
+Where several selectable things overlap, use an **overlap picker** rather than guessing which object the user intended to edit.
+
+### Template Workshop purpose
+
+The Template Workshop is a neutral-grid authoring environment for complete reusable settlements.
+
+The intended settlement workflow is:
+
+```text
+existing procedural biome/floor
+        ↓
+optional authored road/path layer
+        ↓
+complete authored settlement template
+        ↓
+buildings / props / NPCs / interactions
+```
+
+The user does **not** need to paint grass, cavern floor or ordinary biome texture into the settlement template. Building/prop artwork can remain transparent so the live stratum/biome floor shows underneath it.
+
+When these templates are eventually inserted into the procedural world, the template should be authoritative for major objects inside its reserved footprint. Procedural blockers such as boulders, ponds, large decorative obstacles and hostile spawns should not be allowed to appear through authored buildings/roads unless explicitly intended.
+
+### Complete templates, not random interchangeable house slots
+
+The current design direction is to author **finished towns/cities/settlements** rather than having the generator freely substitute differently sized houses into generic building slots.
+
+Reason:
+
+- building artwork can have different dimensions;
+- collision footprints differ;
+- doors/interactions can be in different places;
+- roof/overhang extents differ;
+- random substitution can overlap roads, props or neighboring buildings.
+
+Procedural settlement generation should therefore choose among approved complete templates, for example:
+
+```text
+small-town-01
+small-town-02
+small-town-03
+medium-town-01
+city-01
+city-02
+```
+
+More templates can be added over time to increase variation.
+
+Templates must remain editable indefinitely. A template authored weeks or months earlier should be loadable back into the Workshop, modified with new assets, and saved again without rebuilding it from scratch.
+
+### Asset catalogue / folder scanning
+
+The Workshop has an asset catalogue.
+
+A browser cannot silently enumerate arbitrary project folders, so Dev Tools includes **Scan Assets Folder**.
+
+Normal workflow:
+
+```text
+1. Add PNG assets to the project, e.g.
+   assets/buildings/
+   assets/props/
+   assets/npcs/
+   assets/environment/
+
+2. Open Template Workshop.
+
+3. Choose Scan Assets Folder.
+
+4. Explicitly select the project's `assets` directory.
+
+5. Dev Tools recursively discovers supported images and groups them by subfolder.
+```
+
+Browser security requires the developer to explicitly choose the directory. If folder scanning is unavailable in the current browser, manual asset-path registration remains the fallback.
+
+Adding a PNG to a folder by itself does not make the running browser automatically discover it until the catalogue is refreshed.
+
+### Template object editing
+
+Placed assets can currently be positioned and edited visually.
+
+Important controls/data include:
+
+- drag placement;
+- arrow-key nudging;
+- configurable snap size;
+- position locking;
+- duplicate/delete;
+- **uniform scaling** (used to reconcile differently sized source assets without modifying the original PNG);
+- collision bounds;
+- optional interaction/door marker;
+- behind/occlusion region;
+- template entrance/exit anchors.
+
+Uniform scaling is preferred over independent X/Y stretching so pixel-art proportions are not unintentionally distorted.
+
+### Collision, interaction and occlusion
+
+These are separate concepts and must remain separate.
+
+```text
+RED / collision
+→ physically blocks the player.
+
+YELLOW / interaction
+→ optional door/service/interaction reference.
+
+PURPLE / behind/occlusion
+→ player may occupy the region, but the building artwork should render over
+  the player so it appears the player is walking behind a roof/building.
+```
+
+Do not solve roof occlusion by simply expanding collision over the entire roof. Large invisible collision footprints can make navigation feel wrong.
+
+The interaction marker remains useful even if building interiors are not currently used. It can later act as a service/NPC/door anchor.
+
+### Workshop zoom and pixel precision
+
+Workshop zoom is visual/editor-only.
+
+Current range:
+
+```text
+50%–600%
+```
+
+Changing zoom must **never alter saved template coordinates, scale or collision data**.
+
+High zoom uses pixel-precise editor guides:
+
+- collision/selection/occlusion guides remain approximately one screen pixel thick instead of scaling into thick blurry borders;
+- guide placement is aligned to the zoomed source-pixel grid;
+- a **Pixel grid** option is available at high zoom for precise placement.
+
+Prefer clean integer zoom levels such as 400% or 600% when inspecting individual source pixels.
+
+### Player reference
+
+The Workshop can show a draggable player reference at the active-world render scale.
+
+Purpose:
+
+- compare doors/buildings to player height;
+- judge road width;
+- test prop spacing;
+- inspect collision clearance;
+- preview behind/occlusion behavior.
+
+The player reference is **developer-only** and must not be exported as part of a settlement template.
+
+### Template persistence
+
+There are two persistence levels:
+
+```text
+Draft autosave
+→ browser/local storage for quick recovery while editing.
+
+Saved template/library
+→ named reusable template stored by Dev Tools.
+```
+
+For long-term project safety, use JSON export rather than relying only on browser local storage.
+
+Important actions include:
+
+- Save Template;
+- Load Template;
+- Duplicate / Save As;
+- Export Current;
+- Export Library;
+- Import JSON.
+
+Exported JSON is the reusable/source representation of the settlement. Do not flatten an authored template into irreversible hard-coded draw calls if the editable template data can remain authoritative.
+
+### Procedural-world integration status
+
+As of **v0.219.4**, the Template Workshop is an authoring tool and template format.
+
+**Settlement templates are not yet automatically selected and spawned by the procedural world generator.**
+
+The next integration step should make the generator:
+
+```text
+1. Determine an appropriate settlement class/type.
+2. Choose one compatible finished template.
+3. Reserve enough world space for its bounds.
+4. Place the complete template at a world origin.
+5. Connect procedural cavern/path geometry to the template IN/OUT anchors.
+6. Suppress conflicting procedural obstacles/spawns inside the reserved footprint.
+7. Use the template's exact artwork positions, scales, collision and occlusion.
+```
+
+Do not allow the runtime generator to casually rearrange an approved template unless a later system is explicitly designed for that purpose.
+
+### NPCs and settlement services
+
+Important service NPCs should eventually be placeable as authored template objects, for example:
+
+```text
+Guild Manager
+Market Merchant
+Innkeeper
+Herbalist
+Quest NPC
+```
+
+Their visual sprite, exact position and facing can be authored in the Workshop.
+
+Their **role/service identity** should be stored separately from their sprite. Example concept:
+
+```text
+sprite = guild-manager-01.png
+role   = guild_manager
+```
+
+This allows artwork to change without losing gameplay behavior.
+
+Stationary service NPC collision should remain conservative so a badly positioned NPC cannot unintentionally block a settlement route.
+
+### Recommended user workflow
+
+For settlement authoring:
+
+```text
+1. Put new artwork into the appropriate asset folder.
+2. Refresh/scan the asset catalogue.
+3. Open Template Workshop.
+4. Create or load a settlement template.
+5. Add buildings/props/NPC references.
+6. Position and uniformly scale them visually.
+7. Set collision.
+8. Set behind/occlusion zones where needed.
+9. Set optional interaction markers.
+10. Position IN/OUT anchors.
+11. Use the player reference to inspect scale and walkability.
+12. Save the template.
+13. Export Current JSON when the template is ready for implementation/back-up.
+```
+
+Old templates should normally be **loaded and edited**, not recreated from screenshots.
+
+### What to send ChatGPT when implementing a Workshop settlement
+
+When asking ChatGPT to wire an authored settlement into the actual procedural game, provide:
+
+1. **The latest complete Fathom build ZIP** being used as the source of truth.
+2. **The exported settlement template JSON** from the Workshop.
+3. Any **new PNG assets** referenced by that JSON if they are not already included in the supplied build ZIP.
+4. A screenshot only if there is a visual issue that the JSON alone does not communicate.
+
+If all referenced assets are already present in the latest build ZIP, there is no need to upload duplicate PNGs.
+
+The exported template JSON should be treated as the authoritative placement specification. Do not ask the user to manually re-describe coordinates that already exist in the template.
+
+### Instructions for a future assistant implementing template data
+
+If continuing this work without prior conversational context:
+
+1. Inspect the latest supplied build first. Do not rebuild Dev Tools or settlement rendering from memory.
+2. Read this section and inspect the exported template JSON format actually present in that build.
+3. Preserve exact authored positions, scales, collision boxes, interaction markers, occlusion regions and IN/OUT anchors.
+4. Resolve asset paths against the supplied project. If an asset is missing, report the exact missing path instead of substituting unrelated art.
+5. Keep procedural biome floor rendering underneath transparent template artwork.
+6. Prevent conflicting procedural blockers/spawns from being generated inside the settlement's reserved footprint.
+7. Connect surrounding procedural geography to the authored entrance/exit anchors rather than regenerating the town interior.
+8. Keep template source data reusable/editable so the user can reopen and revise the settlement later.
+9. Do not randomly substitute differently sized buildings or rearrange the user's authored layout unless explicitly requested.
+10. After integration, test at minimum:
+   - entrance → exit traversability;
+   - collision around each building;
+   - player-behind-building occlusion;
+   - interaction/service reachability;
+   - no procedural boulder/pond/enemy obstruction through authored structures.
+
+The purpose of Dev Tools is to make visual authoring user-controlled and reduce repeated screenshot → code edit → screenshot iteration. Preserve that workflow when extending the tooling.

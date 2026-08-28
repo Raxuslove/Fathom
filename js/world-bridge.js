@@ -102,6 +102,7 @@ const world=new World(canvas,{
   getSideArea:()=>api.getSideArea?.()||null,
   getPlayerClass:()=>api.getState?.()?.className||'Votary',
   getPlayerVisualScale:()=>api.getPlayerVisualScale?.()||1,
+  getTownQuestMarker:info=>api.getTownQuestMarker?.(info)||null,
   onToast:toast,
   onMinimapZoom:index=>api.persistMinimapZoom?.(index),
   getDetectionRadius:(profileId)=>api.getWorldDetectionRadius?.(profileId)||5.5,
@@ -114,9 +115,11 @@ const world=new World(canvas,{
   // and therefore no callback may return/reposition the player.
   onLeaveSide:()=>{},
   onPassWorldEvent:event=>{if(api.retireWorldEvent?.(event.type,event.id)){sync();api.saveWorld(world.snapshot());}},
-  onInteract:(entity,label)=>{pendingEntity=entity;interactBtn.disabled=!entity;interactBtn.textContent=label||'Interact';},
+  onInteract:(entity,label)=>{pendingEntity=entity;interactBtn.disabled=!entity||!!world.isMining?.();interactBtn.textContent=label||'Interact';},
   onLoot:entity=>pickupLoot(entity),
   onLootExpired:bag=>{if(bag?.recordId)api.expireWorldLoot?.(bag.recordId);lastWorldSave=performance.now();api.saveWorld(world.snapshot());},
+  onMineUnit:detail=>{const result=api.mineOreUnit?.(detail);if(result?.ok){api.saveWorld(world.snapshot());sync();}else if(result?.reason)toast(result.reason);return result;},
+  onMineComplete:()=>{api.saveWorld(world.snapshot());sync();},
   onEncounter:entity=>{
     pendingEntity=entity;
     const bossLike=['midboss','boss'].includes(entity?.type);
@@ -189,6 +192,12 @@ const devInspector=document.getElementById('devPlacementInspector');
 const devPicker=document.getElementById('devPlacementPicker');
 const devPickerList=document.getElementById('devPlacementPickerList');
 const devPlaceLightBtn=document.getElementById('btnDevPlacementPlaceLight');
+const devMiningSwingBtn=document.getElementById('btnDevPlacementMiningSwing');
+const devSmithingHammerBtn=document.getElementById('btnDevPlacementSmithingHammer');
+const devOreMinimapBtn=document.getElementById('btnDevPlacementOreMinimap');
+const devOreVeinsBtn=document.getElementById('btnDevPlacementOreVeins');
+const devQuestTrackerBtn=document.getElementById('btnDevPlacementQuestTracker');
+const devSmithingAnvilBtn=document.getElementById('btnDevPlacementSmithingAnvil');
 const devDragBtn=document.getElementById('btnDevPlacementDrag');
 const devResetBtn=document.getElementById('btnDevPlacementReset');
 const devDeleteBtn=document.getElementById('btnDevPlacementDelete');
@@ -196,6 +205,7 @@ const devResetAllBtn=document.getElementById('btnDevPlacementResetAll');
 const devExportBtn=document.getElementById('btnDevPlacementExport');
 const devImportInput=document.getElementById('devPlacementImport');
 const travelRoot=document.getElementById('travel');
+const devWorldSeed=document.getElementById('devWorldSeed');
 let devPlacement={enabled:false,selection:'',selectionMeta:null,dragUnlocked:false,drag:null,placeMode:''};
 
 function devLoadConfig(){
@@ -206,6 +216,18 @@ function devSaveConfig(){
 }
 world.setDevPlacementConfig?.(devLoadConfig());
 
+function devApplyUiConfig(){
+  const scale=Math.max(.75,Math.min(2,Number(world.getDevPlacementConfig?.()?.questTracker?.fontScale)||1.5));
+  // These variables are declared on the tracker itself in CSS. Setting them on
+  // :root cannot override that local declaration, which made the old DEV slider
+  // appear to do nothing. Apply the live override directly to the tracker.
+  const tracker=document.getElementById('worldQuestTracker');if(!tracker)return;
+  tracker.style.setProperty('--quest-tracker-header-font',`${Math.round(7*scale*10)/10}px`);
+  tracker.style.setProperty('--quest-tracker-title-font',`${Math.round(8*scale*10)/10}px`);
+  tracker.style.setProperty('--quest-tracker-progress-font',`${Math.round(7*scale*10)/10}px`);
+}
+devApplyUiConfig();
+
 function devGetPath(obj,path){return String(path||'').split('.').reduce((v,k)=>v&&v[k],obj);}
 function devSetPath(obj,path,value){const parts=String(path||'').split('.');let cur=obj;for(let i=0;i<parts.length-1;i++){if(!cur[parts[i]]||typeof cur[parts[i]]!=='object')cur[parts[i]]={};cur=cur[parts[i]];}cur[parts.at(-1)]=value;}
 function devField(path,title,sub,min,max,step){
@@ -215,6 +237,12 @@ function devField(path,title,sub,min,max,step){
 function devSelectionInfo(id){
   if(id==='playerLanternGlow')return{id,label:'Player lantern · warm glow',editable:true,kind:'light'};
   if(id==='playerLanternVisibility')return{id,label:'Player lantern · visibility radius',editable:true,kind:'light'};
+  if(id==='miningSwing')return{id,label:'Mining pickaxe · swing preview',editable:true,kind:'animation'};
+  if(id==='smithingHammer')return{id,label:'Smithing hammer · swing preview',editable:true,kind:'animation'};
+  if(id==='oreMinimap')return{id,label:'Ore minimap · pickaxe markers',editable:true,kind:'map'};
+  if(id==='oreVeins')return{id,label:'Ore veins · visual sizes',editable:true,kind:'resource'};
+  if(id==='questTracker')return{id,label:'Quest tracker · text size',editable:true,kind:'ui'};
+  if(id==='smithingAnvil')return{id,label:'Dawngate anvil · placement',editable:true,kind:'prop'};
   if(String(id||'').startsWith('campfireVisibility:'))return{id,label:'Campfire · visibility radius',editable:true,kind:'light'};
   if(String(id||'').startsWith('placedLight:')){const key=String(id).slice('placedLight:'.length),light=(world.getDevPlacementConfig?.().placedLights||[]).find(v=>String(v?.id||'')===key);return light?{id,label:'Placed light · warm source',editable:true,kind:'light'}:null;}
   if(id==='playerSprite')return{id,label:'Player sprite',editable:false,kind:'protected'};
@@ -231,11 +259,23 @@ function devRenderInspector(){
   if(!meta){devSelected.innerHTML='<em>Selected</em><b>Nothing</b><span>'+((devPlacement.placeMode==='light')?'Click the world to place a light source.':'Click near the player or a placed light to choose a target.')+'</span>';devInspector.innerHTML='';devDragBtn.disabled=true;devResetBtn.disabled=true;if(devDeleteBtn)devDeleteBtn.disabled=true;return;}
   devSelected.innerHTML=`<em>Selected</em><b>${meta.label}</b><span>${meta.editable?'Editable visual override. Saved automatically.':'Protected in this first editor pass.'}</span>`;
   const placedLight=String(meta.id||'').startsWith('placedLight:');
-  devDragBtn.disabled=!meta.editable||!(meta.id==='playerLanternGlow'||placedLight);devResetBtn.disabled=!meta.editable;if(devDeleteBtn)devDeleteBtn.disabled=!placedLight;
+  devDragBtn.disabled=!meta.editable||!(meta.id==='playerLanternGlow'||meta.id==='smithingAnvil'||placedLight);devResetBtn.disabled=!meta.editable;if(devDeleteBtn)devDeleteBtn.disabled=!placedLight;
   if(meta.id==='playerLanternGlow'){
     devInspector.innerHTML=`<div class="dev-placement-fields">${devField('playerLanternGlow.sideOffset','Side offset','Distance from player toward the held lantern.',0,40,1)}${devField('playerLanternGlow.y','Vertical offset','Positive values move the glow downward.',-32,32,1)}${devField('playerLanternGlow.innerRadius','Inner glow radius','Bright warm halo immediately around the lantern.',3,64,1)}${devField('playerLanternGlow.outerRadius','Outer glow radius','Fainter warm halo beyond the inner glow.',5,96,1)}${devField('playerLanternGlow.brightness','Brightness','1.00 is the original intensity.',.15,2.5,.05)}</div>`;
   }else if(meta.id==='playerLanternVisibility'){
     devInspector.innerHTML=`<div class="dev-placement-fields">${devField('playerLanternVisibility.clearRadius','Clear radius','Fully revealed world around the player.',80,600,4)}${devField('playerLanternVisibility.featherRadius','Feather radius','Soft edge immediately outside the clear area.',90,680,4)}${devField('playerLanternVisibility.falloffOuter','Falloff reach','Outer edge of partial visibility.',120,900,4)}${devField('playerLanternVisibility.falloffStrength','Falloff strength','How strongly the partial-visibility band cuts darkness.',0,.8,.02)}</div>`;
+  }else if(meta.id==='miningSwing'){
+    devInspector.innerHTML=`<div class="dev-placement-protected" style="margin-bottom:8px">Live mining-animation preview. The crosshair marks the hand/pivot. Tune these values, then use <b>Export JSON</b> and send that file back to make the result permanent.</div><div class="dev-placement-fields">${devField('miningSwing.pivotX','Pivot X','Horizontal position of the hand/grip relative to the player.',-18,18,.5)}${devField('miningSwing.pivotY','Pivot Y','Vertical position of the hand/grip; negative moves upward.',-22,10,.5)}${devField('miningSwing.startDeg','Overhead angle','Where the pickaxe waits before the downward swing.',-160,80,1)}${devField('miningSwing.impactDeg','Impact angle','Where the pickaxe finishes at the vein.',-80,160,1)}${devField('miningSwing.handleLength','Handle length','Length from the player hand to the pickaxe head.',4,20,.5)}${devField('miningSwing.headWidth','Head width','Width of the temporary pickaxe head.',3,16,.5)}${devField('miningSwing.handleThickness','Handle thickness','Temporary Canvas handle thickness.',.5,3,.25)}${devField('miningSwing.headThickness','Head thickness','Temporary Canvas pick head thickness.',1,5,.25)}</div>`;
+  }else if(meta.id==='smithingHammer'){
+    devInspector.innerHTML=`<div class="dev-placement-protected" style="margin-bottom:8px">Live forging-animation preview. The crosshair marks the hand/pivot. Tune the hammer arc and speed, then export JSON if you want these values baked into the build.</div><div class="dev-placement-fields">${devField('smithingHammer.pivotX','Pivot X','Horizontal hand/grip position relative to the player.',-18,18,.5)}${devField('smithingHammer.pivotY','Pivot Y','Vertical hand/grip position; negative moves upward.',-22,10,.5)}${devField('smithingHammer.startDeg','Overhead angle','Raised hammer angle before the strike.',-170,100,1)}${devField('smithingHammer.impactDeg','Impact angle','Hammer angle when it hits the anvil.',-100,170,1)}${devField('smithingHammer.handleLength','Handle length','Distance from the hand to the hammer head.',4,18,.5)}${devField('smithingHammer.headWidth','Head width','Width of the temporary Canvas hammer head.',3,14,.5)}${devField('smithingHammer.handleThickness','Handle thickness','Temporary Canvas handle thickness.',.5,3,.25)}${devField('smithingHammer.headHeight','Head height','Thickness/height of the hammer head.',2,8,.5)}${devField('smithingHammer.cycleMs','Strike speed','Milliseconds for one full raise/strike/recover cycle.',420,1400,20)}</div>`;
+  }else if(meta.id==='oreMinimap'){
+    devInspector.innerHTML=`<div class="dev-placement-protected" style="margin-bottom:8px">Tunes the discovered-vein pickaxe marker. Nearby productive veins are clustered into one icon; mined-out veins are removed from the minimap.</div><div class="dev-placement-fields">${devField('oreMinimap.iconSize','Icon size','Rendered size of mini-pickaxe-icon.png on the minimap.',3,16,.5)}${devField('oreMinimap.clusterRadiusTiles','Cluster radius','Veins within roughly this many world tiles share one marker.',2,24,1)}</div>`;
+  }else if(meta.id==='oreVeins'){
+    devInspector.innerHTML=`<div class="dev-placement-protected" style="margin-bottom:8px">Live visual scale for the three ore silhouettes. Capacity and placement do not change here; this is only for judging how the Canvas veins read in-world.</div><div class="dev-placement-fields">${devField('oreVeins.standardScale','Standard size','Common edge-biased deposits.',.65,1.8,.05)}${devField('oreVeins.remoteScale','Remote size','Larger deposits farther from the route or in passages.',.75,2.1,.05)}${devField('oreVeins.richScale','Rich size','Largest exploration-reward deposits.',.85,2.5,.05)}</div>`;
+  }else if(meta.id==='questTracker'){
+    devInspector.innerHTML=`<div class="dev-placement-protected" style="margin-bottom:8px">Changes the tracked quest helper text only. Export JSON when the size feels readable at your normal screen resolution.</div><div class="dev-placement-fields">${devField('questTracker.fontScale','Text scale','1.50 is the current recommended size; tune this for your normal screen resolution.',.75,2,.05)}</div>`;
+  }else if(meta.id==='smithingAnvil'){
+    devInspector.innerHTML=`<div class="dev-placement-protected" style="margin-bottom:8px">The anvil is anchored to Dawngate's blacksmith. Unlock dragging and move it directly, or tune the offsets here. Export JSON when it sits correctly.</div><div class="dev-placement-fields">${devField('smithingAnvil.offsetX','Offset X','Horizontal offset from the blacksmith.',-220,220,1)}${devField('smithingAnvil.offsetY','Offset Y','Vertical offset from the blacksmith.',-220,220,1)}${devField('smithingAnvil.scale','Scale','Visual scale of assets/props/anvil1.png.',.4,2.5,.05)}</div>`;
   }else if(String(meta.id||'').startsWith('campfireVisibility:')){
     devInspector.innerHTML=`<div class="dev-placement-protected" style="margin-bottom:8px">Shared campfire light preset. Changes apply live to every Safe Hollow campfire; the campfire object itself remains protected.</div><div class="dev-placement-fields">${devField('campfireVisibility.clearRadius','Clear radius','Fully revealed terrain immediately around every campfire.',8,300,1)}${devField('campfireVisibility.featherRadius','Feather radius','Soft edge just outside the clear campfire circle.',12,360,1)}${devField('campfireVisibility.falloffOuter','Falloff reach','Outer edge of partial campfire visibility.',16,500,2)}${devField('campfireVisibility.falloffStrength','Falloff strength','Strength of the partial-visibility outer band.',0,.8,.02)}${devField('campfireVisibility.revealStrength','Reveal strength','How completely the inner campfire pocket cuts through darkness.',.1,1,.02)}</div>`;
   }else if(placedLight){
@@ -270,12 +310,13 @@ function devSetMode(enabled){
   else{for(const code of ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'])world.keyUp(code);world.setJoystick(0,0);devRenderInspector();}
 }
 function devApplyPath(path,value){
-  const cfg=world.getDevPlacementConfig();devSetPath(cfg,path,value);world.setDevPlacementConfig(cfg);devSaveConfig();
+  const cfg=world.getDevPlacementConfig();devSetPath(cfg,path,value);world.setDevPlacementConfig(cfg);devApplyUiConfig();devSaveConfig();
   for(const el of devInspector?.querySelectorAll(`[data-dev-path="${path}"]`)||[]){if(String(el.value)!==String(value))el.value=String(value);}
 }
 function devNudge(dx,dy){
   const cfg=world.getDevPlacementConfig();
   if(devPlacement.selection==='playerLanternGlow'){const g=cfg.playerLanternGlow,facing=world.playerLanternScreenPosition?.().facing||'right';if(dx){const screenSigned=(facing==='left'?g.sideOffset:-g.sideOffset)+dx;g.sideOffset=Math.max(0,Math.min(40,Math.abs(screenSigned)));}if(dy)g.y=Math.max(-32,Math.min(32,g.y+dy));}
+  else if(devPlacement.selection==='smithingAnvil'){cfg.smithingAnvil.offsetX=Math.max(-220,Math.min(220,(Number(cfg.smithingAnvil.offsetX)||0)+dx));cfg.smithingAnvil.offsetY=Math.max(-220,Math.min(220,(Number(cfg.smithingAnvil.offsetY)||0)+dy));}
   else{const light=devPlacedLightFromConfig(cfg);if(!light)return false;light.x=Math.round((Number(light.x)||0)+dx);light.y=Math.round((Number(light.y)||0)+dy);}
   world.setDevPlacementConfig(cfg);devSaveConfig();devRenderInspector();return true;
 }
@@ -283,18 +324,24 @@ function devResetSelected(){
   const id=devPlacement.selection;if(!id)return;const cfg=world.getDevPlacementConfig(),defaults=world.defaultDevPlacementConfig?.();if(!defaults)return;
   if(id==='playerLanternGlow')cfg.playerLanternGlow=defaults.playerLanternGlow;
   else if(id==='playerLanternVisibility')cfg.playerLanternVisibility=defaults.playerLanternVisibility;
+  else if(id==='miningSwing')cfg.miningSwing=defaults.miningSwing;
+  else if(id==='smithingHammer')cfg.smithingHammer=defaults.smithingHammer;
+  else if(id==='oreMinimap')cfg.oreMinimap=defaults.oreMinimap;
+  else if(id==='oreVeins')cfg.oreVeins=defaults.oreVeins;
+  else if(id==='questTracker')cfg.questTracker=defaults.questTracker;
+  else if(id==='smithingAnvil')cfg.smithingAnvil=defaults.smithingAnvil;
   else if(String(id).startsWith('campfireVisibility:'))cfg.campfireVisibility=defaults.campfireVisibility;
   else if(String(id).startsWith('placedLight:')){const light=devPlacedLightFromConfig(cfg);if(!light)return;const base=world.defaultDevPlacedLight?.()||{};Object.assign(light,base,{id:light.id,x:light.x,y:light.y});}
-  else return;world.setDevPlacementConfig(cfg);devSaveConfig();devRenderInspector();toast('Selected developer override reset.');
+  else return;world.setDevPlacementConfig(cfg);devApplyUiConfig();devSaveConfig();devRenderInspector();toast('Selected developer override reset.');
 }
 function devResetAll(){
-  if(!confirm('Reset all developer placement overrides to their build defaults?'))return;world.setDevPlacementConfig(world.defaultDevPlacementConfig?.());try{localStorage.removeItem(DEV_PLACEMENT_STORAGE);}catch{}devRenderInspector();toast('Developer placement overrides reset.');
+  if(!confirm('Reset all developer placement overrides to their build defaults?'))return;world.setDevPlacementConfig(world.defaultDevPlacementConfig?.());devApplyUiConfig();try{localStorage.removeItem(DEV_PLACEMENT_STORAGE);}catch{}devRenderInspector();toast('Developer placement overrides reset.');
 }
 function devExport(){
-  const payload={format:'lowfathom-dev-placement',version:3,build:'v0.219.31',config:world.getDevPlacementConfig()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='lowfathom-dev-placement.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const payload={format:'lowfathom-dev-placement',version:9,build:'v0.219.50',config:world.getDevPlacementConfig()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='lowfathom-dev-placement.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 async function devImport(file){
-  if(!file)return;try{const parsed=JSON.parse(await file.text()),cfg=parsed?.config||parsed;world.setDevPlacementConfig(cfg);devSaveConfig();devRenderInspector();toast('Developer placement settings imported.');}catch(err){console.error(err);toast('That developer placement JSON could not be imported.');}finally{if(devImportInput)devImportInput.value='';}
+  if(!file)return;try{const parsed=JSON.parse(await file.text()),cfg=parsed?.config||parsed;world.setDevPlacementConfig(cfg);devApplyUiConfig();devSaveConfig();devRenderInspector();toast('Developer placement settings imported.');}catch(err){console.error(err);toast('That developer placement JSON could not be imported.');}finally{if(devImportInput)devImportInput.value='';}
 }
 
 
@@ -826,9 +873,15 @@ devTemplateHistoryInit();
 window.addEventListener('beforeunload',()=>{devTemplateFlushDraftStorage();devTemplateHistoryPersist({immediate:true});});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){devTemplateFlushDraftStorage();devTemplateHistoryPersist({immediate:true});}});
 
-devToggle?.addEventListener('click',()=>devSetMode(!devPlacement.enabled));
+devToggle?.addEventListener('click',()=>{updateDevWorldSeed();devSetMode(!devPlacement.enabled);});
 devClose?.addEventListener('click',()=>devSetMode(false));
 devPlaceLightBtn?.addEventListener('click',()=>devSetPlaceLightMode(devPlacement.placeMode!=='light'));
+devMiningSwingBtn?.addEventListener('click',()=>{devSetPlaceLightMode(false);devSelect({id:'miningSwing',label:'Mining pickaxe · swing preview',editable:true,kind:'animation'});});
+devSmithingHammerBtn?.addEventListener('click',()=>{devSetPlaceLightMode(false);devSelect({id:'smithingHammer',label:'Smithing hammer · swing preview',editable:true,kind:'animation'});});
+devOreMinimapBtn?.addEventListener('click',()=>{devSetPlaceLightMode(false);devSelect({id:'oreMinimap',label:'Ore minimap · pickaxe markers',editable:true,kind:'map'});world.refreshMinimap?.();});
+devOreVeinsBtn?.addEventListener('click',()=>{devSetPlaceLightMode(false);devSelect({id:'oreVeins',label:'Ore veins · visual sizes',editable:true,kind:'resource'});});
+devQuestTrackerBtn?.addEventListener('click',()=>{devSetPlaceLightMode(false);devSelect({id:'questTracker',label:'Quest tracker · text size',editable:true,kind:'ui'});});
+devSmithingAnvilBtn?.addEventListener('click',()=>{devSetPlaceLightMode(false);devSelect({id:'smithingAnvil',label:'Dawngate anvil · placement',editable:true,kind:'prop'});});
 devDeleteBtn?.addEventListener('click',devDeleteSelectedLight);
 devDragBtn?.addEventListener('click',()=>{if(devDragBtn.disabled)return;devPlacement.dragUnlocked=!devPlacement.dragUnlocked;devDragBtn.classList.toggle('active',devPlacement.dragUnlocked);devDragBtn.textContent=devPlacement.dragUnlocked?'Drag unlocked':'Drag locked';devDragBtn.setAttribute('aria-pressed',String(devPlacement.dragUnlocked));});
 devResetBtn?.addEventListener('click',devResetSelected);devResetAllBtn?.addEventListener('click',devResetAll);devExportBtn?.addEventListener('click',devExport);devImportInput?.addEventListener('change',()=>devImport(devImportInput.files?.[0]));
@@ -839,6 +892,7 @@ fathomMeter?.addEventListener("click",()=>{const open=fathomMeter.getAttribute("
 
 const restored=api.restoreWorld();
 world.restore(restored,api.getWorldPositionDepth());
+updateDevWorldSeed();
 // Repair the v0.203.9 new-delver leak if it already made it into a save: the
 // canonical run depth is authoritative for progression. A world snapshot that
 // claims to be materially deeper than that run belongs to the previous delver.
@@ -858,6 +912,7 @@ function syntheticCombatEntity(state){
 
 function uiAllowsWorld(){
   if(devPlacement.enabled)return false;
+  if(world.isSmithingForge?.())return false;
   const s=api.getState();
   if(!s||s.over||s.travelEvent||s.hollow||s.interaction)return false;
   if(s.foe&&!s.foe.worldRealtime)return false;
@@ -1370,17 +1425,41 @@ function updateRealtimeCombat(state,dt){
   }
 }
 
+function freshWorldSeed(){
+  try{
+    const values=new Uint32Array(1);
+    globalThis.crypto?.getRandomValues?.(values);
+    const seed=Number(values[0])>>>0;
+    if(seed)return seed;
+  }catch(err){console.warn('Secure world seed generation unavailable; using fallback.',err);}
+  return (Math.floor(Math.random()*0xffffffff)>>>0)||1;
+}
+function updateDevWorldSeed(){if(devWorldSeed)devWorldSeed.textContent=String(Number(world.seed)>>>0);}
 function resetForNewRun(){
   flushMovement();
   movementMs=0;movementKind='world';lastDepthPush=0;lastWorldSave=performance.now();lastMoving=false;lastThreatened=false;
   world.endCombat({defeated:false});secondaryHostiles.clear();readChannel=null;closeEnemyMenu();
+  // Each delver owns a fresh procedural descent. The seed is then stored in the
+  // normal world snapshot, so reloads keep this character's exact geography.
+  world.seed=freshWorldSeed();
   world.restore(null,0);
+  updateDevWorldSeed();
   previous={state:null,foeHp:null,heroHp:null,foeDefeated:false,foeEntityId:null};
   api.saveWorld(world.snapshot());
   sync();
 }
 
-window.LowfathomWorldBridge={sync,world,resetForNewRun,startScriptedCombat,refreshPlayerVisualScale:()=>{if(devTemplateState?.open){devTemplateRenderCanvas();devTemplateRenderInspector();}}};
+function startForgeAnimation(detail={}){
+  const started=world.beginSmithingForge?.(detail,()=>{
+    const item=api.completeBronzeForge?.(detail.recipeId);
+    if(item){toast(`${detail.name||'Item'} forged.`);sync();api.saveWorld?.(world.snapshot());}
+    else toast('Forging could not be completed.');
+  });
+  if(started)sync();
+  return !!started;
+}
+
+window.LowfathomWorldBridge={sync,world,resetForNewRun,startScriptedCombat,startForgeAnimation,refreshPlayerVisualScale:()=>{if(devTemplateState?.open){devTemplateRenderCanvas();devTemplateRenderInspector();}}};
 sync();
 
 // Legacy sheets often close without calling the full render() path. Reconcile the
@@ -1425,10 +1504,17 @@ function doInteract(){
   const result=world.interact();if(!result)return;
   if(result.type==='loot'){pickupLoot(result.entity);return;}
   if(result.type==='target'){beginWorldTarget(result.entity,{enemyInitiated:false});return;}
-  if(result.type==='chest')api.openChest(result.entity.id,result.depth);
+  if(result.type==='ore'){
+    const cfg=api.getMiningConfig?.(result.entity?.oreId||'copper');
+    if(!cfg?.canMine){toast(cfg?.reason||'A suitable pickaxe is required.');return;}
+    if(!world.beginMining?.(result.entity,cfg))toast('Move closer to the vein.');
+  }
+  else if(result.type==='smithingstation')api.openSmithingStation?.(result.station||'anvil');
+  else if(result.type==='chest')api.openChest(result.entity.id,result.depth);
   else if(result.type==='glint')api.investigateGlint(result.entity.id,result.depth);
   else if(result.type==='hollow')api.useHollow(result.entity.id,result.depth,result.entity.kind||'ordinary');
   else if(result.type==='townlocation')api.openTownLocation?.(result.location?.id);
+  else if(result.type==='townnpc')api.interactTownNpc?.(result.npc);
   else if(result.type==='side-stage')api.triggerSideStage?.();
   else if(result.type==='side-finale')api.triggerSideFinale?.();
   else if(result.type==='worldevent')api.triggerWorldEvent?.(result.eventKind,result.eventId,result.depth);
@@ -1456,7 +1542,7 @@ powerBtn?.addEventListener('click',()=>{
 guardBtn?.addEventListener('click',()=>{const r=api.worldCombatGuard?.();if(!r?.ok){if(r?.reason)toast(r.reason);return;}realtimeCombat.playerChargeMs=Math.max(0,realtimeCombat.playerChargeMs-(Number(r.attackDelayMs)||0));world.spawnText(world.player.x,world.player.y,'GUARD','status');syncWorldHud(api.getState());});
 readBtn?.addEventListener('click',()=>{const entity=world.combatFoe;if(!entity){toast('No active target.');return;}startRead(entity);updateCombatHud(api.getState?.(),api.getWorldCombat?.());});
 sandBtn?.addEventListener('click',()=>{const cfg=api.getWorldCombat?.();const r=api.worldCombatSandThrow?.();if(!r?.ok){if(r?.reason)toast(r.reason);return;}const beat=Math.max(250,Number(cfg?.weapon?.attackIntervalMs)||900);realtimeCombat.playerChargeMs=Math.max(0,realtimeCombat.playerChargeMs-beat);if(world.combatFoe)world.spawnText(world.combatFoe.x,world.combatFoe.y,r.success?'BLINDED':'MISS','status');toast(r.success?'Sand catches the target’s eyes.':'The sand misses.');updateCombatHud(api.getState?.(),api.getWorldCombat?.());});
-interactBtn.addEventListener('click',doInteract);
+interactBtn.addEventListener('click',()=>{if(api.activateUiPrimary?.())return;if(api.finishInteractionText?.())return;doInteract();});
 lookBtn.addEventListener('click',()=>{if(uiAllowsWorld())world.look();});
 
 
@@ -1473,6 +1559,7 @@ canvas.addEventListener('pointerdown',e=>{
       const pos=world.playerLanternScreenPosition?.();if(pos&&Math.hypot(point.x-pos.x,point.y-pos.y)<=30){devPlacement.drag={id:e.pointerId,kind:'playerLanternGlow'};canvas.setPointerCapture?.(e.pointerId);return;}
     }
     if(devPlacement.dragUnlocked&&devPlacedLightKey()){const light=devPlacedLightFromConfig(world.getDevPlacementConfig());if(light){const pos=world.worldToScreen?.(light.x,light.y);if(pos&&Math.hypot(point.x-pos.x,point.y-pos.y)<=24){devPlacement.drag={id:e.pointerId,kind:'placedLight',key:String(light.id)};canvas.setPointerCapture?.(e.pointerId);return;}}}
+    if(devPlacement.dragUnlocked&&devPlacement.selection==='smithingAnvil'){const pos=world.smithingAnvilWorldPosition?.();const sp=pos?world.worldToScreen?.(pos.x,pos.y):null;if(sp&&Math.hypot(point.x-sp.x,point.y-sp.y)<=28){devPlacement.drag={id:e.pointerId,kind:'smithingAnvil'};canvas.setPointerCapture?.(e.pointerId);return;}}
     const candidates=world.getDevPlacementCandidates?.(point.x,point.y)||[];
     if(candidates.length===1)devSelect(candidates[0]);else if(candidates.length>1)devShowPicker(candidates,e.clientX,e.clientY);else devSelect(null);
     return;
@@ -1491,6 +1578,7 @@ canvas.addEventListener('pointermove',e=>{
   if(devPlacement.enabled&&devPlacement.drag?.id===e.pointerId){
     e.preventDefault();const point=worldPointFromClient(e.clientX,e.clientY),cfg=world.getDevPlacementConfig();
     if(devPlacement.drag.kind==='placedLight'){const light=devPlacedLightFromConfig(cfg,devPlacement.drag.key);if(!light)return;const wp=devScreenToWorld(point);light.x=Math.round(wp.x);light.y=Math.round(wp.y);}
+    else if(devPlacement.drag.kind==='smithingAnvil'){const wp=devScreenToWorld(point),anchor=world.smithingBlacksmithAnchor?.();if(!anchor)return;cfg.smithingAnvil.offsetX=Math.round(wp.x-anchor.x);cfg.smithingAnvil.offsetY=Math.round(wp.y-anchor.y);}
     else{const pos=world.playerLanternScreenPosition?.();if(!pos)return;const g=cfg.playerLanternGlow;g.sideOffset=Math.max(0,Math.min(40,Math.abs(point.x-pos.playerX)));g.y=Math.max(-32,Math.min(32,point.y-pos.playerY));}
     world.setDevPlacementConfig(cfg);devSaveConfig();devRenderInspector();return;
   }
@@ -1525,9 +1613,10 @@ window.addEventListener('keydown',e=>{
     const step=e.shiftKey?5:1;if(e.code==='ArrowLeft'){e.preventDefault();devNudge(-step,0);return;}if(e.code==='ArrowRight'){e.preventDefault();devNudge(step,0);return;}if(e.code==='ArrowUp'){e.preventDefault();devNudge(0,-step);return;}if(e.code==='ArrowDown'){e.preventDefault();devNudge(0,step);return;}
     return;
   }
+  if(e.code==='Escape'&&!e.repeat){if(api.closeTopUi?.()){e.preventDefault();sync();return;}if(!enemyMenu.hidden){e.preventDefault();closeEnemyMenu();return;}}
   if(e.code==='KeyI'&&!e.repeat&&api.getState?.()){e.preventDefault();if(api.inventoryOpen())api.closeInventory();else api.openInventory();sync();return;}
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'].includes(e.code)){if(uiAllowsWorld()){e.preventDefault();world.keyDown(e.code);}}
-  if((e.code==='KeyE'||e.code==='Space')&&!e.repeat&&uiAllowsWorld()){e.preventDefault();doInteract();}
+  if((e.code==='KeyE'||e.code==='Space')&&!e.repeat){if(api.activateUiPrimary?.()){e.preventDefault();sync();return;}if(api.finishInteractionText?.()){e.preventDefault();return;}if(uiAllowsWorld()){e.preventDefault();doInteract();}}
 });
 window.addEventListener('keyup',e=>{world.keyUp(e.code);});
 window.addEventListener('blur',()=>{for(const code of ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'])world.keyUp(code);world.setJoystick(0,0);});

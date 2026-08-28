@@ -1,5 +1,5 @@
 "use strict";
-const CACHE_NAME="lowfathom-v0.219.31-dev-placeable-light-sources";
+const CACHE_NAME="lowfathom-v0.219.50-interaction-forge-5050-ore";
 const CORE=[
   "./","./index.html","./manifest.json",
   "./js/legacy.js","./js/world-core.js","./js/world.js","./js/world-bridge.js","./js/dawngate-template.js","./js/dice.js"
@@ -9,7 +9,7 @@ const OPTIONAL=[
   "./assets/ui/frame-button.png","./assets/ui/frame-button-red.png","./assets/ui/frame-panel.png","./assets/ui/frame-map.png","./assets/ui/frame-teal.png",
   "./assets/ui/glyph-gear.png","./assets/ui/glyph-abilities.png","./assets/ui/glyph-pack.png","./assets/ui/glyph-run.png",
   "./assets/ui/icon-heavy.png","./assets/ui/icon-guard.png","./assets/ui/icon-recover.png","./assets/ui/icon-strike.png",
-  "./assets/ui/bag_coins.png","./assets/ui/goblin-cutter.png","./assets/ui/goblin-skitter.png","./assets/ui/goblin-shieldback.png","./assets/ui/goblin-mauler.png","./assets/ui/goblin-oldhand.png","./assets/creatures/slime1-right.png","./assets/creatures/slime2-right.png",
+  "./assets/ui/bag_coins.png","./assets/ui/mini-pickaxe-icon.png","./assets/ui/quest-mark1.png","./assets/ui/quest-mark2gold.png","./assets/ui/quest-mark2-excl.png","./assets/ui/quest-mark2gold-excl.png","./assets/ui/goblin-cutter.png","./assets/ui/goblin-skitter.png","./assets/ui/goblin-shieldback.png","./assets/ui/goblin-mauler.png","./assets/ui/goblin-oldhand.png","./assets/creatures/slime1-right.png","./assets/creatures/slime2-right.png",
   "./assets/ui/town-grey-lantern.png","./assets/ui/city-lantern.png","./assets/ui/companion-torch.png",
   "./assets/props/campfire-sheet.png",
   "./assets/buildings/building1-storage.png",
@@ -37,6 +37,7 @@ const OPTIONAL=[
   "./assets/npc/soldier-mnpc.png",
   "./assets/npc/tavern-fnpc.png",
   "./assets/props/furnace1.png",
+  "./assets/props/anvil1.png",
   "./assets/props/handcart1.png",
   "./assets/props/sacks1.png",
   "./assets/props/sacks2.png",

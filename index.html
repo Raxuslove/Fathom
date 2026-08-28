@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lowfathom">
-<title>Lowfathom v0.219.31 — Dev Placeable Light Sources</title>
+<title>Lowfathom v0.219.50 — Interaction QOL + Forge Handoff + 50/50 Ore</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -21,6 +21,13 @@
    Camp Supplies for a full Camp, and inspect a minimal Pack while travel continues.
 
    Revision notes:
+   - v0.219.50: Interaction QOL + Forge Handoff + 50/50 Ore — ESC closes ordinary popup windows, Interact/Space confirms conversation and selected smithing actions, Copper/Tin deposit identity is true 50/50 with symmetric clustering, and the Blacksmith Bronze-bar handoff now clearly directs the player back for the hammer
+   - v0.219.46: Quest Markers + Gate Occlusion Fix — adds authored quest-state icons over NPCs, replaces the unsafe broad town occlusion fallback with targeted gate layering, and removes stray tile redraw artifacts around guards
+   - v0.219.45: Town Interaction + Occlusion Fix — moves the Dawngate miner onto the real conversation UI, repairs the F3 quest-tracker text tuner, depth-sorts authored fences/buildings on the same layer, and adds automatic player-behind-fence/roof/gate occlusion fallback
+   - v0.219.44: Smithing Hammer VFX — confirming a forge recipe closes the anvil window, locks the delver in place for a timed hammering sequence, shows forging progress over the anvil, adds hammer/anvil impact motion and sparks, and adds an F3 Hammer swing tuner
+   - v0.219.37.1: Build Label in Settings — shows the exact running build name/version inside Settings so screenshots and bug reports can immediately confirm which files are actually loaded
+   - v0.219.37: Tin + Exploration Veins — keeps Canvas ore art, adds Tin Veins, biases ordinary ore away from the descent route into side pockets/chamber edges, adds clustered discovered-vein minimap pickaxe markers using assets/ui/mini-pickaxe-icon.png, removes markers when depleted, and adds DEV tuning for marker size/cluster radius
+   - v0.219.36: Tuned Mining Swing — bakes the developer-tuned mining swing placement, arc and temporary pickaxe dimensions into the default game configuration
    - v0.219.31: Dev Placeable Light Sources — F3 Live Placement can create persistent invisible warm light nodes anywhere in the running world, then select, drag, nudge, tune, export/import or delete them without touching run/collision state
    - v0.219.30: Dawngate Authored Fathom 0 — replaces the generated opening village with the finished Workshop template, preserves authored tiles/assets/layers/collision/Behind regions and NPC placement, suppresses procedural blockers inside the town footprint, and anchors OUT at world y=0 so the fathom counter starts only after the upper gate
    - v0.219.28.1: Pre-Split Workshop Performance — keeps the embedded Workshop intact while reducing editor lag: canvas rebuilds are frame-coalesced and batched, hidden collision/Behind/door guides are no longer created for every unselected asset, overlap warnings are cached during drag operations, draft autosave is debounced, and persistent Undo/Redo history is saved during idle time instead of synchronously on every edit
@@ -667,18 +674,20 @@ button{
 /* ---------- v0.108.0: reusable NPC Interaction Engine ---------- */
 .interaction-sheet{
   position:absolute;inset:0;z-index:44;display:flex;align-items:flex-end;justify-content:center;
-  background:rgba(1,4,6,.68);padding-top:calc(12px + env(safe-area-inset-top));
+  background:transparent;padding:12px 12px max(12px,env(safe-area-inset-bottom));pointer-events:none;
 }
 .interaction-sheet[hidden]{display:none}
 .interaction-panel{
-  width:100%;max-height:min(82%,640px);overflow-y:auto;overscroll-behavior:contain;
-  background:#020608;border-top:1px solid var(--lamp-dim);box-shadow:0 -18px 42px rgba(0,0,0,.46);
+  width:min(760px,100%);max-height:min(58%,470px);overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;
+  background:rgba(2,6,8,.97);border:1px solid rgba(138,117,80,.48);box-shadow:0 9px 34px rgba(0,0,0,.48);
 }
 .interaction-head{padding:11px 13px 9px;background:#010406;border-bottom:1px solid var(--rule)}
 .interaction-head em{display:block;font-style:normal;font-family:var(--cond);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--lamp-dim)}
 .interaction-head h2{margin:2px 0 0;font-family:var(--slab);font-size:20px;line-height:1.08;font-weight:600;color:var(--bone)}
 .interaction-copy{padding:13px;background:#020608;border-bottom:1px solid var(--rule)}
 .interaction-copy p{margin:0;font-family:var(--slab);font-size:15px;line-height:1.45;color:#c8c3b7}
+.interaction-reveal-prompt{padding:8px 11px;background:#050a0c;border-bottom:1px solid var(--rule);font:9px/1.3 var(--cond);letter-spacing:.08em;text-transform:uppercase;color:#68777a}
+.interaction-copy{cursor:pointer}.interaction-copy:hover p{color:#ddd6c9}
 .interaction-result{margin-top:10px;padding:8px 9px;border-left:2px solid var(--verdigris);background:#061013;font-family:var(--cond);font-size:10px;line-height:1.45;color:#9fb5b3}
 .interaction-result[hidden]{display:none}
 .interaction-result b{color:var(--bone);font-weight:600}.interaction-result .good{color:#92b896}.interaction-result .bad{color:#c77965}
@@ -897,17 +906,19 @@ button{
   box-shadow:0 0 0 2px rgba(230,194,136,.13),0 0 14px rgba(230,194,136,.30),0 3px 10px rgba(0,0,0,.72);
 }
 .town-hotspot.selected span{color:var(--lamp);border-color:rgba(230,194,136,.52)}
-/* Phase 5: quest state can temporarily replace a location's ordinary diamond.
-   Silver ! = a contract is available here. Gold ? = an active quest resolves here. */
-.town-hotspot.quest-available::before,.town-hotspot.quest-target::before{
-  width:30px;height:36px;transform:translate(-50%,-50%);border:0;box-shadow:none;background-color:transparent;
+/* Quest state can temporarily replace a location's ordinary diamond.
+   Gold ! = available. Grey ? = active/incomplete. Gold ? = ready to hand in. */
+.town-hotspot.quest-available::before,.town-hotspot.quest-target-active::before,.town-hotspot.quest-target-ready::before{
+  width:20px;height:22px;transform:translate(-50%,-50%);border:0;box-shadow:none;background-color:transparent;
   background-position:center;background-repeat:no-repeat;background-size:contain;
 }
-.town-hotspot.quest-available::before{background-image:url("./assets/ui/excl-silver-mark.png")}
-.town-hotspot.quest-target::before{background-image:url("./assets/ui/gold-question-mark.png")}
-.town-hotspot.quest-available::after,.town-hotspot.quest-target::after{display:none}
+.town-hotspot.quest-available::before{background-image:url("./assets/ui/quest-mark2gold-excl.png")}
+.town-hotspot.quest-target-active::before{background-image:url("./assets/ui/quest-mark1.png")}
+.town-hotspot.quest-target-ready::before{background-image:url("./assets/ui/quest-mark2gold.png")}
+.town-hotspot.quest-available::after,.town-hotspot.quest-target-active::after,.town-hotspot.quest-target-ready::after{display:none}
 .town-hotspot.quest-available:hover::before,.town-hotspot.quest-available:focus-visible::before,.town-hotspot.quest-available.selected::before,
-.town-hotspot.quest-target:hover::before,.town-hotspot.quest-target:focus-visible::before,.town-hotspot.quest-target.selected::before{
+.town-hotspot.quest-target-active:hover::before,.town-hotspot.quest-target-active:focus-visible::before,.town-hotspot.quest-target-active.selected::before,
+.town-hotspot.quest-target-ready:hover::before,.town-hotspot.quest-target-ready:focus-visible::before,.town-hotspot.quest-target-ready.selected::before{
   transform:translate(-50%,-50%) scale(1.10);filter:drop-shadow(0 0 8px rgba(230,194,136,.38));
 }
 .town-map-hint{
@@ -1567,6 +1578,13 @@ button{
 .char-section-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:10px 13px;background:#101418;border-bottom:1px solid var(--rule)}
 .char-section-head b{font-family:var(--cond);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--lamp-dim)}
 .char-section-head span{font-family:var(--cond);font-size:10.5px;color:var(--verdigris)}
+.char-section-head.collapsible{align-items:center}
+.char-section-head.collapsible>span{margin-left:auto}
+.char-section-collapse{flex:0 0 28px;width:28px;height:24px;border:1px solid var(--rule-hi);background:#11171c;padding:0;font-family:var(--slab);font-size:17px;line-height:1;color:var(--lamp-dim)}
+.char-section-collapse:active{background:#20272d;color:var(--lamp);border-color:var(--lamp-dim)}
+.char-collapsible-body[hidden]{display:none}
+.char-trades .char-field-skill p strong{color:#b8bcb7}
+.char-trades .char-field-progress strong{color:#c7cbc5}
 .char-skill{padding:11px 13px;border-bottom:1px solid var(--rule);background:#141a20}
 .char-skill-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
 .char-skill-top b{font-family:var(--slab);font-size:15px;color:var(--lamp)}
@@ -1606,6 +1624,18 @@ button{
   padding:6px 10px;background:#0e1317;border-bottom:1px solid var(--rule);
   font-family:var(--cond);font-size:9px;line-height:1.3;color:#59636e;
 }
+.equipment-toolbelt{border-top:1px solid var(--lamp-dim);border-bottom:1px solid var(--rule);background:#0d1216}
+.equipment-toolbelt-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 10px 7px;background:#101418;border-bottom:1px solid var(--rule)}
+.equipment-toolbelt-head b{font-family:var(--cond);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--lamp-dim)}
+.equipment-toolbelt-head span{font-family:var(--cond);font-size:9px;color:var(--dim)}
+.equipment-toolbelt-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:7px}
+.toolbelt-slot{position:relative;min-height:52px;border:1px solid var(--rule-hi);background:#12181e;padding:7px 6px;text-align:center;color:var(--bone);overflow:hidden}
+.toolbelt-slot.empty{background:#0f1418;border-color:#28323b;color:#4a545f}
+.toolbelt-slot .toolbelt-kind{display:block;font-family:var(--cond);font-size:8px;letter-spacing:.11em;text-transform:uppercase;color:var(--dim)}
+.toolbelt-slot .toolbelt-item{display:block;margin-top:6px;font-family:var(--slab);font-size:11px;line-height:1.08;color:var(--bone)}
+.toolbelt-slot .toolbelt-tier{display:block;margin-top:3px;font-family:var(--cond);font-size:8px;color:var(--verdigris)}
+.toolbelt-slot.empty .toolbelt-item,.toolbelt-slot.empty .toolbelt-tier{color:#3f4954}
+@media(max-width:520px){.equipment-toolbelt-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .equipment-stage{
   display:grid;grid-template-columns:44px minmax(0,1fr) 112px;gap:5px;
   padding:7px;background:#0d1216;border-bottom:1px solid var(--rule);
@@ -2282,6 +2312,7 @@ button{
 .creator-choice.class-card span{line-height:1.35}
 .pack-item.compact{padding:10px 13px}
 .pack-item .pack-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.pack-actions-split{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:7px}.pack-actions-split .pack-actions{margin-top:0}.item-lock-btn{margin-left:auto;min-width:72px}.item-lock-btn.locked{border-color:#9f7d38!important;color:#e2c16e!important;background:#201a0d!important}.dismantle-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:7px 8px;border:1px solid rgba(151,130,84,.28);background:#0b1113}.dismantle-toolbar>span{font:7.5px var(--mono);color:#778687}.dismantle-toolbar>div{display:flex;gap:5px;flex-wrap:wrap}.dismantle-selected{outline:1px solid rgba(205,151,74,.85);box-shadow:inset 0 0 0 1px rgba(205,151,74,.25)}.dismantle-locked{opacity:.62}.smithing-forge-row.selected{border-color:rgba(210,172,93,.78);background:#1b1810}.smithing-confirm{margin-top:8px;padding:9px;border:1px solid rgba(210,172,93,.42);background:#12130d;display:grid;gap:6px}.smithing-confirm b{color:#e1cf99;font:600 10px var(--slab)}.smithing-confirm span{font:7.5px/1.45 var(--mono);color:#8d9997}
 .pack-mini-btn{border:1px solid var(--rule-hi);background:#11171c;padding:6px 8px;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone)}
 .pack-mini-btn.good{border-color:var(--verdigris);color:#9fbdba}
 .pack-mini-btn.warn{border-color:var(--warn);color:var(--warn)}
@@ -3725,7 +3756,7 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
 .journal-creature-card:hover,.journal-creature-card:focus-visible{background:rgba(255,241,202,.55);outline:2px solid rgba(92,57,33,.28);outline-offset:-4px}.journal-creature-card .portrait{width:52px;height:52px;display:grid;place-items:center;border:1px solid #927054;background:rgba(68,47,32,.10);image-rendering:pixelated;overflow:hidden}.journal-creature-card img{max-width:48px;max-height:48px;image-rendering:pixelated}.journal-creature-card .portrait.placeholder{font:700 22px var(--slab);color:#846c50}
 .journal-creature-card b{display:block;font:700 12px var(--slab);text-transform:uppercase;letter-spacing:.04em}.journal-creature-card span{display:block;margin-top:4px;font:700 7px var(--cond);letter-spacing:.10em;text-transform:uppercase;color:#725941}.journal-creature-card em{font-style:normal;color:#3e2d20}
 .journal-empty-card{min-height:0;border:2px dashed rgba(126,91,60,.35);display:grid;place-items:center;color:rgba(89,66,48,.46);font:700 8px var(--cond);letter-spacing:.14em;text-transform:uppercase}
-.journal-book-footer{position:absolute;z-index:4;left:18px;right:18px;bottom:11px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}.journal-book-footer button{pointer-events:auto;border:1px solid #805f43;background:rgba(219,197,153,.80);color:#3c2a1e;padding:5px 10px;font:700 8px var(--cond);letter-spacing:.08em;text-transform:uppercase}.journal-book-footer button:disabled{opacity:.28}.journal-book-footer span{font:700 7px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:#72563d}
+.journal-book-footer{position:absolute;z-index:4;left:18px;right:18px;bottom:11px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}.journal-book-footer button{pointer-events:auto;border:1px solid #805f43;background:rgba(219,197,153,.80);color:#3c2a1e;padding:5px 10px;font:700 8px var(--cond);letter-spacing:.08em;text-transform:uppercase}.journal-book-footer button:disabled{opacity:.28}.journal-book-footer span{font:700 var(--quest-tracker-header-font) var(--cond);letter-spacing:.12em;text-transform:uppercase;color:#72563d}
 .journal-detail-head{display:grid;grid-template-columns:minmax(0,1fr) 94px;gap:14px;align-items:start;margin-bottom:12px}.journal-detail-portrait{width:90px;height:90px;display:grid;place-items:center;border:2px solid #9c7451;background:rgba(71,49,31,.10);image-rendering:pixelated}.journal-detail-portrait img{max-width:82px;max-height:82px;image-rendering:pixelated}.journal-detail-portrait.placeholder{font:700 30px var(--slab);color:#846c50}.journal-detail-name{margin:0;font:700 21px var(--slab);text-transform:uppercase;color:#2e2118}.journal-knowledge-badge{display:inline-block;margin-top:7px;padding:3px 6px;border:1px solid #99734f;background:rgba(255,242,203,.28);font:700 7px var(--cond);letter-spacing:.13em;text-transform:uppercase;color:#61462f}
 .journal-rule{height:1px;background:rgba(108,75,49,.43);margin:10px 0}.journal-info-grid{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 10px;font:10px/1.35 var(--mono);color:#392b21}.journal-info-grid b{font:700 8px var(--cond);letter-spacing:.09em;text-transform:uppercase;color:#76583d}.journal-locked{color:#8a765f;font-style:italic}.journal-hint{margin:12px 0 0;padding:8px 9px;border:1px dashed #9f7b58;background:rgba(255,243,207,.22);font:italic 9px/1.45 var(--slab);color:#67513c}
 .journal-section-title{margin:0 0 7px;font:700 10px var(--cond);letter-spacing:.15em;text-transform:uppercase;color:#63462f}.journal-copy{font:10px/1.5 var(--slab);color:#35291f}.journal-copy p{margin:0 0 8px}.journal-ability-list{display:grid;gap:7px}.journal-ability{padding:7px 8px;border-left:3px solid #936946;background:rgba(251,237,201,.24);font:9px/1.4 var(--mono)}.journal-ability b{display:block;font:700 9px var(--cond);letter-spacing:.08em;text-transform:uppercase}.journal-specimen{margin-top:10px;padding:9px;border:2px solid #936845;background:rgba(255,238,195,.30)}.journal-specimen h4{margin:0 0 6px;font:700 9px var(--cond);letter-spacing:.13em;text-transform:uppercase}.journal-threat{font-weight:800}.journal-threat.weak{color:#426b3c}.journal-threat.even{color:#806b21}.journal-threat.tough{color:#a75c22}.journal-threat.deadly{color:#9d312b}
@@ -3743,11 +3774,11 @@ body[data-minimap-size="extra"] .world-minimap-panel{width:380px!important}body[
 .dev-placement-panel[hidden],.dev-placement-picker[hidden]{display:none!important}
 .dev-placement-head{position:sticky;z-index:2;top:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 9px;border-bottom:1px solid rgba(215,181,107,.28);background:#0d1417}.dev-placement-head div{min-width:0}.dev-placement-head b{display:block;font:700 11px var(--slab);letter-spacing:.07em;text-transform:uppercase;color:#ead49b}.dev-placement-head span{display:block;margin-top:1px;font:7px var(--cond);letter-spacing:.1em;text-transform:uppercase;color:#748084}.dev-placement-head button{width:28px;height:28px;padding:0;border:1px solid rgba(215,181,107,.34);background:#090e10;color:#c9b783;font-size:17px}
 .dev-placement-body{padding:9px}.dev-placement-note{margin:0 0 8px;padding:7px 8px;border-left:2px solid #8d7546;background:rgba(141,117,70,.09);color:#aeb6b4;font:9px/1.45 var(--mono)}
-.dev-placement-selected{padding:7px 8px;margin-bottom:8px;border:1px solid rgba(122,139,140,.28);background:#0a1114}.dev-placement-selected em{display:block;font:700 7px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:#6f7b7c}.dev-placement-selected b{display:block;margin-top:2px;color:#e6d7ae;font:600 11px var(--slab)}.dev-placement-selected span{display:block;margin-top:3px;color:#8b9899;font:8px var(--mono)}
+.dev-placement-selected{padding:7px 8px;margin-bottom:8px;border:1px solid rgba(122,139,140,.28);background:#0a1114}.dev-placement-selected em{display:block;font:700 var(--quest-tracker-header-font) var(--cond);letter-spacing:.12em;text-transform:uppercase;color:#6f7b7c}.dev-placement-selected b{display:block;margin-top:2px;color:#e6d7ae;font:600 11px var(--slab)}.dev-placement-selected span{display:block;margin-top:3px;color:#8b9899;font:8px var(--mono)}
 .dev-placement-fields{display:grid;gap:8px}.dev-placement-field{display:grid;grid-template-columns:minmax(0,1fr) 68px;gap:7px;align-items:center}.dev-placement-field label{min-width:0;color:#bac1bd}.dev-placement-field label b{display:block;font:600 9px var(--cond);letter-spacing:.05em;text-transform:uppercase;color:#d5c69e}.dev-placement-field label span{display:block;margin-top:1px;font:7px var(--mono);color:#718083}.dev-placement-field input[type="number"]{width:100%;min-width:0;height:30px;border:1px solid rgba(130,147,149,.32);background:#070c0f;color:#e7dfcd;padding:3px 5px;font:10px var(--mono)}.dev-placement-field input[type="range"]{grid-column:1/-1;width:100%;accent-color:#c9a858;margin:0}
 .dev-placement-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.dev-placement-actions button,.dev-placement-file-label{min-height:31px;padding:5px 8px;border:1px solid rgba(150,132,89,.38);background:#0c1316;color:#cfc3a6;font:700 7px var(--cond);letter-spacing:.08em;text-transform:uppercase;display:inline-flex;align-items:center;justify-content:center}.dev-placement-actions button.active{border-color:#e2bc63;background:#392f1b;color:#ffe7a7}.dev-placement-actions button.danger{border-color:rgba(150,70,61,.55);color:#d8a09a}.dev-placement-file-label input{display:none}
 .dev-placement-help{margin:10px 0 0;color:#6f7c7d;font:8px/1.5 var(--mono)}.dev-placement-help b{color:#a99b77}.dev-placement-protected{padding:8px;border:1px dashed rgba(120,132,130,.34);color:#869291;background:rgba(76,91,91,.06)}
-.dev-placement-picker{position:absolute;z-index:90;width:min(290px,calc(100% - 20px));padding:7px;border:1px solid rgba(224,190,104,.55);background:rgba(4,8,10,.97);box-shadow:0 10px 28px rgba(0,0,0,.58);pointer-events:auto}.dev-placement-picker>span{display:block;padding:2px 4px 6px;font:700 7px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:#9b8b67}.dev-placement-picker-list{display:grid;gap:4px}.dev-placement-picker button{width:100%;padding:7px 8px;border:1px solid rgba(121,139,140,.28);background:#0c1316;color:#d2cab8;text-align:left;font:9px var(--mono)}.dev-placement-picker button small{display:block;margin-top:2px;color:#718083;font:7px var(--mono)}
+.dev-placement-picker{position:absolute;z-index:90;width:min(290px,calc(100% - 20px));padding:7px;border:1px solid rgba(224,190,104,.55);background:rgba(4,8,10,.97);box-shadow:0 10px 28px rgba(0,0,0,.58);pointer-events:auto}.dev-placement-picker>span{display:block;padding:2px 4px 6px;font:700 var(--quest-tracker-header-font) var(--cond);letter-spacing:.12em;text-transform:uppercase;color:#9b8b67}.dev-placement-picker-list{display:grid;gap:4px}.dev-placement-picker button{width:100%;padding:7px 8px;border:1px solid rgba(121,139,140,.28);background:#0c1316;color:#d2cab8;text-align:left;font:9px var(--mono)}.dev-placement-picker button small{display:block;margin-top:2px;color:#718083;font:7px var(--mono)}
 body.dev-placement-active #worldCanvas{cursor:crosshair}body.dev-placement-active .world-controls{opacity:.36;pointer-events:none}body.dev-placement-active .world-combat-hud,body.dev-placement-active .world-field-hud{pointer-events:none;opacity:.45}
 @media(max-width:560px){.dev-placement-toggle{top:8px;left:8px}.dev-placement-panel{left:8px;top:44px;width:min(318px,calc(100% - 16px));max-height:68vh}.dev-placement-field{grid-template-columns:minmax(0,1fr) 64px}}
 
@@ -3773,6 +3804,24 @@ body.dev-placement-active #worldCanvas{cursor:crosshair}body.dev-placement-activ
 body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placement-picker{display:none!important}body.dev-template-open #worldCanvas{filter:brightness(.34);pointer-events:none}body.dev-template-open .world-controls,body.dev-template-open .world-combat-hud,body.dev-template-open .world-field-hud{display:none!important}
 @media(max-width:900px){.dev-template-layout{grid-template-columns:185px minmax(330px,1fr) 215px}.dev-template-head{flex-wrap:wrap}.dev-template-head-title{width:100%}}
 
+
+/* v0.219.38 — tracked quest + Dawngate smithing */
+.world-quest-tracker{--quest-tracker-header-font:10.5px;--quest-tracker-title-font:12px;--quest-tracker-progress-font:10.5px;width:230px;box-sizing:border-box;border:1px solid rgba(138,117,80,.42);background:rgba(2,6,8,.92);box-shadow:0 5px 16px rgba(0,0,0,.3);pointer-events:auto}
+.world-quest-tracker[hidden]{display:none!important}.world-quest-tracker header{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 5px 0 7px;border-bottom:1px solid rgba(138,117,80,.24);color:#bda873;font:700 var(--quest-tracker-header-font) var(--cond);letter-spacing:.12em}
+.world-quest-tracker header button{width:22px;height:19px;padding:0;border:1px solid rgba(138,117,80,.38);background:#080d0f;color:#d7c58e;font:12px/1 var(--mono)}.world-quest-tracker.collapsed header{border-bottom:0}.world-quest-tracker.collapsed #worldQuestTrackerBody{display:none}
+#worldQuestTrackerBody{padding:3px 6px 6px;max-height:42vh;overflow-y:auto}.world-quest-tracker-entry{padding:5px 0 6px;border-top:1px solid rgba(138,117,80,.16)}.world-quest-tracker-entry:first-child{border-top:0}.world-quest-tracker-name{display:block;width:100%;padding:1px 0 4px;border:0;background:transparent;color:#ddd0aa;text-align:left;font:700 var(--quest-tracker-title-font)/1.3 var(--slab);cursor:pointer}.world-quest-tracker-name:hover{color:#f1dda6;text-decoration:underline}
+.world-quest-tracker-progress{display:grid;gap:2px}.world-quest-tracker-progress span{display:flex;justify-content:space-between;gap:8px;color:#788789;font:var(--quest-tracker-progress-font)/1.35 var(--mono)}.world-quest-tracker-progress b{font-weight:500;color:#879798}.world-quest-tracker-progress i{font-style:normal;color:#c2c6bc}
+.world-quest-tracker-entry.ready{margin:2px -4px 1px;padding:6px 4px 7px;border:1px solid rgba(208,170,82,.58);background:rgba(116,84,25,.16);box-shadow:inset 3px 0 0 rgba(224,184,82,.85),0 0 9px rgba(196,153,63,.10)}.world-quest-tracker-entry.ready .world-quest-tracker-name{color:#efd58b}.world-quest-tracker-entry.ready .world-quest-tracker-progress i{color:#ead79a}
+body[data-minimap-size="medium"] .world-quest-tracker{width:260px}body[data-minimap-size="large"] .world-quest-tracker{width:320px}body[data-minimap-size="extra"] .world-quest-tracker{width:380px}
+.smithing-sheet{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px}.smithing-sheet[hidden]{display:none!important}.smithing-scrim{position:absolute;inset:0;background:rgba(0,0,0,.58);backdrop-filter:blur(1px)}
+.smithing-panel{position:relative;width:min(680px,calc(100vw - 24px));max-height:min(82vh,760px);display:flex;flex-direction:column;border:1px solid rgba(151,130,84,.62);background:linear-gradient(180deg,#0b1215,#070c0e);box-shadow:0 18px 54px rgba(0,0,0,.62);color:#c7c2b3}
+.smithing-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-bottom:1px solid rgba(151,130,84,.30);background:#0d1518}.smithing-head em{display:block;color:#758487;font:700 var(--quest-tracker-header-font) var(--cond);letter-spacing:.12em;text-transform:uppercase}.smithing-head h2{margin:2px 0 0;color:#ded1a8;font:600 15px var(--slab)}.smithing-head button{width:30px;height:30px;border:1px solid rgba(151,130,84,.42);background:#080d0f;color:#d5c89e;font:18px/1 var(--mono)}
+.smithing-body{min-height:0;overflow:auto;padding:11px}.smithing-tabs{display:flex;gap:4px;margin-bottom:9px}.smithing-tabs button{padding:6px 11px;border:1px solid rgba(151,130,84,.35);background:#0a1114;color:#7c898a;font:700 7px var(--cond);letter-spacing:.11em}.smithing-tabs button.active{border-color:rgba(210,172,93,.62);background:#221c12;color:#dfc27c}
+.smithing-recipe,.smithing-material-line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px;border:1px solid rgba(111,130,131,.23);background:#0c1316}.smithing-recipe div{display:grid;gap:2px}.smithing-recipe b,.smithing-material-line b{color:#d9d0b9;font:600 10px var(--slab)}.smithing-recipe span{color:#7d8b8c;font:7.5px var(--mono)}.smithing-recipe strong,.smithing-material-line span{color:#bcc6bf;font:8px var(--mono)}.smithing-body .bad{color:#c66c62!important}.smithing-note{margin:7px 1px;color:#778687;font:7.5px/1.5 var(--mono)}
+.smithing-actions{display:flex;gap:6px;margin:9px 0}.smithing-actions button,.smithing-maint-row button{min-height:31px;padding:5px 9px;border:1px solid rgba(157,135,84,.43);background:#17170f;color:#d1c298;font:700 7px var(--cond);letter-spacing:.05em}.smithing-actions button:disabled,.smithing-maint-row button:disabled{opacity:.3;cursor:not-allowed}
+.smithing-forge-list{display:grid;gap:5px;margin-top:6px}.smithing-forge-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 9px;border:1px solid rgba(111,130,131,.25);background:#0c1316;color:#c9c4b4;text-align:left}.smithing-forge-row>span{display:grid;gap:2px}.smithing-forge-row b{font:600 9px var(--slab);color:#ded4bc}.smithing-forge-row i{font:7px var(--mono);font-style:normal;color:#718082}.smithing-forge-row strong{display:grid;justify-items:end;gap:2px;font:8px var(--mono);font-weight:500}.smithing-forge-row small{color:#6f7f80;font:6.5px var(--mono)}.smithing-forge-row.locked{opacity:.62}
+.smithing-body h3{margin:14px 0 6px;padding-top:8px;border-top:1px solid rgba(151,130,84,.22);color:#c9b983;font:700 8px var(--cond);letter-spacing:.11em;text-transform:uppercase}.smithing-maint-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 8px;margin-top:4px;border:1px solid rgba(111,130,131,.20);background:#0a1113}.smithing-maint-row>span{display:grid;gap:2px}.smithing-maint-row b{font:600 8.5px var(--slab);color:#cfc7b2}.smithing-maint-row i{font:6.5px var(--mono);font-style:normal;color:#758486}.smithing-maint-row>div{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px}
+@media(max-width:700px){.world-quest-tracker{width:174px}.smithing-sheet{padding:8px}.smithing-panel{width:calc(100vw - 16px);max-height:86vh}.smithing-forge-row,.smithing-maint-row{grid-template-columns:1fr}.smithing-forge-row strong{justify-items:start}.smithing-maint-row>div{justify-content:flex-start}body[data-minimap-size="small"] .world-quest-tracker{width:190px}body[data-minimap-size="medium"] .world-quest-tracker{width:230px}body[data-minimap-size="large"] .world-quest-tracker{width:280px}body[data-minimap-size="extra"] .world-quest-tracker{width:calc(100vw - 16px)}}
 </style>
 
 </head>
@@ -3871,11 +3920,18 @@ body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placemen
       <header class="dev-placement-head"><div><b>Dev Tools</b><span>live placement · safe visual overrides</span></div><button id="btnDevPlacementClose" type="button" aria-label="Close developer tools">×</button></header>
       <div class="dev-placement-body">
         <p class="dev-placement-note">Live Placement edits the running world safely. Use <b>Place light</b> to add invisible warm light nodes for authored areas such as Dawngate. Overlapping targets open a picker instead of guessing.</p>
+        <p class="dev-placement-note"><b>World seed:</b> <span id="devWorldSeed">—</span> · saved with this delver; a new delver receives a new seed.</p>
         <button class="dev-workshop-launch" id="btnDevTemplateOpen" type="button">Open Template Workshop</button>
         <div class="dev-placement-selected" id="devPlacementSelected"><em>Selected</em><b>Nothing</b><span>Click near the player to begin.</span></div>
         <div id="devPlacementInspector"></div>
         <div class="dev-placement-actions">
           <button id="btnDevPlacementPlaceLight" type="button" aria-pressed="false">Place light</button>
+          <button id="btnDevPlacementMiningSwing" type="button">Mining swing</button>
+          <button id="btnDevPlacementSmithingHammer" type="button">Hammer swing</button>
+          <button id="btnDevPlacementOreMinimap" type="button">Ore minimap</button>
+          <button id="btnDevPlacementOreVeins" type="button">Ore veins</button>
+          <button id="btnDevPlacementQuestTracker" type="button">Quest tracker</button>
+          <button id="btnDevPlacementSmithingAnvil" type="button">Anvil</button>
           <button id="btnDevPlacementDrag" type="button" aria-pressed="false">Drag locked</button>
           <button id="btnDevPlacementReset" type="button">Reset selected</button>
           <button class="danger" id="btnDevPlacementDelete" type="button" disabled>Delete light</button>
@@ -3883,7 +3939,7 @@ body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placemen
           <label class="dev-placement-file-label">Import JSON<input id="devPlacementImport" type="file" accept="application/json,.json"></label>
           <button class="danger" id="btnDevPlacementResetAll" type="button">Reset all</button>
         </div>
-        <p class="dev-placement-help"><b>F3</b> toggles Dev Tools. Place light → click the world. Select a placed light to drag or nudge it; <b>Delete</b> removes it. Arrow keys nudge by 1 px; <b>Shift</b> + arrows uses 5 px. Live edits remain separate from the run save.</p>
+        <p class="dev-placement-help"><b>F3</b> toggles Dev Tools. <b>Mining swing</b> tunes the pickaxe animation. <b>Hammer swing</b> tunes the forging hammer animation and strike speed. <b>Ore minimap</b> tunes marker size/clustering. <b>Ore veins</b> tunes Standard, Remote and Rich vein scale. <b>Quest tracker</b> tunes tracked-quest text size. <b>Anvil</b> selects the blacksmith anvil; unlock Drag to place it. Export JSON preserves tuned values. Live edits remain separate from the run save.</p>
       </div>
     </section>
     <div class="dev-placement-picker" id="devPlacementPicker" hidden><span>Choose target</span><div class="dev-placement-picker-list" id="devPlacementPickerList"></div></div>
@@ -4024,6 +4080,10 @@ body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placemen
         <canvas class="world-minimap-canvas" id="worldMinimapCanvas" aria-label="Discovered local cavern map"></canvas>
         <div class="world-minimap-legend" aria-hidden="true"><span><b>T</b> town</span><span><b class="h">H</b> hollow</span><span><b>S</b> passage</span><span><b>C</b> caravan</span><span><b>M</b> merchant</span><span><b class="b">B</b> boss</span><span><b>Q</b> quest</span><span><b style="color:#d84a43">●</b> enemy</span></div>
       </div>
+      <section class="world-quest-tracker" id="worldQuestTracker" hidden aria-label="Tracked quest">
+        <header><b>QUESTS</b><button id="btnWorldQuestTrackerToggle" type="button" aria-expanded="true" aria-label="Collapse quest tracker">−</button></header>
+        <div id="worldQuestTrackerBody"></div>
+      </section>
     </div>
     <div class="travel-top">
       <div class="trail-view mini" aria-label="Nearby route through the caves">
@@ -4184,12 +4244,13 @@ body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placemen
   </section>
 
   <section class="interaction-sheet" id="interactionSheet" hidden aria-live="polite" aria-label="NPC interaction">
-    <div class="interaction-panel" role="dialog" aria-modal="true" aria-labelledby="interactionSpeaker">
+    <div class="interaction-panel" role="dialog" aria-modal="false" aria-labelledby="interactionSpeaker">
       <div class="interaction-head"><em id="interactionKind">Conversation</em><h2 id="interactionSpeaker">Traveller</h2></div>
-      <div class="interaction-copy">
+      <div class="interaction-copy" id="interactionCopy" title="Tap to reveal the full line">
         <p id="interactionText"></p>
         <div class="interaction-result" id="interactionResult" hidden></div>
       </div>
+      <div class="interaction-reveal-prompt" id="interactionRevealPrompt" hidden>Interact / Space / tap dialogue to reveal</div>
       <div class="interaction-actions" id="interactionActions"></div>
     </div>
   </section>
@@ -4199,6 +4260,14 @@ body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placemen
       <div class="quest-reward-head"><em>Quest complete</em><h2 id="questRewardTitle">Reward received</h2></div>
       <div class="quest-reward-copy"><p id="questRewardText">You have received your promised reward.</p></div>
       <button class="quest-reward-close" id="btnQuestRewardClose" type="button">Continue</button>
+    </div>
+  </section>
+
+  <section class="smithing-sheet" id="smithingSheet" hidden aria-label="Smithing station">
+    <div class="smithing-scrim"></div>
+    <div class="smithing-panel" role="dialog" aria-modal="true" aria-labelledby="smithingTitle">
+      <header class="smithing-head"><div><em>Crafting / Smithing</em><h2 id="smithingTitle">Dawngate Anvil</h2></div><button id="btnSmithingClose" type="button" aria-label="Close smithing">×</button></header>
+      <div class="smithing-body" id="smithingBody"></div>
     </div>
   </section>
 
@@ -4296,9 +4365,16 @@ body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placemen
       </section>
 
       <section class="char-page" data-char-page="skills" hidden>
-        <div class="char-section-head"><b>Skills</b><span>practice through use</span></div>
-        <div class="char-field-skills" id="charSkills"></div>
-        <div class="char-field-note">Skill Rank is an endless expertise rating. Relevant attributes add logarithmic aptitude; class proficiency and circumstances add small rating shifts. Only uncertain contests roll percentile. Rank requirements grow over time, while meaningful practice rewards rise slowly with expertise. Trivial challenges resolve automatically and give no useful practice.</div>
+        <div class="char-section-head collapsible"><b>Skills</b><span>practice through use</span><button class="char-section-collapse" id="btnCharSkillsCollapse" type="button" aria-expanded="true" aria-label="Collapse Skills" title="Collapse Skills">−</button></div>
+        <div class="char-collapsible-body" id="charSkillsBody">
+          <div class="char-field-skills" id="charSkills"></div>
+          <div class="char-field-note">Skill Rank is an endless expertise rating. Relevant attributes add logarithmic aptitude; class proficiency and circumstances add small rating shifts. Only uncertain contests roll percentile. Rank requirements grow over time, while meaningful practice rewards rise slowly with expertise. Trivial challenges resolve automatically and give no useful practice.</div>
+        </div>
+        <div class="char-section-head collapsible"><b>Trades</b><span>work through practice</span><button class="char-section-collapse" id="btnCharTradesCollapse" type="button" aria-expanded="true" aria-label="Collapse Trades" title="Collapse Trades">−</button></div>
+        <div class="char-collapsible-body char-trades" id="charTradesBody">
+          <div class="char-field-skills" id="charTrades"></div>
+          <div class="char-field-note">Trade Skills are separate from adventuring Skills. They improve by doing the work; ordinary gathering does not make a success/failure roll.</div>
+        </div>
       </section>
 
       <section class="char-page equipment-page" data-char-page="equipment" hidden>
@@ -4312,6 +4388,10 @@ body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placemen
           <div class="equipment-ring-rail" id="equipmentRingRail"></div>
           <div class="equipment-body-grid" id="equipmentBodyGrid"></div>
           <aside class="equipment-info" id="equipmentInfo" aria-live="polite"></aside>
+        </div>
+        <div class="equipment-toolbelt">
+          <div class="equipment-toolbelt-head"><b>Toolbelt</b><span>trade tools · separate from combat gear</span></div>
+          <div class="equipment-toolbelt-grid" id="equipmentToolbelt"></div>
         </div>
         <div class="equipment-list" id="equipmentCompactList" hidden>
           <div class="equipment-list-head"><b>Full equipment list</b><span>equipped + Backpack comparisons</span></div>
@@ -4398,6 +4478,15 @@ body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placemen
         <div class="settings-row stack">
           <div class="settings-copy"><b>Floating window positions</b><span>Backpack, Character/Equipment, Delver's Journal and Delve Log remember where you drag them on this device.</span></div>
           <button class="settings-reset" id="btnResetWindowPositions" type="button">Reset window positions</button>
+        </div>
+        <div class="settings-row stack">
+          <div class="settings-copy"><b>Conversation text speed</b><span>NPC dialogue reveals like traditional RPG text. Interact / Space or tapping the dialogue instantly reveals the current line.</span></div>
+          <div class="settings-choice-grid settings-choice-grid-four" id="conversationSpeedChoices">
+            <button class="settings-choice" type="button" data-conversation-speed="instant">Instant</button>
+            <button class="settings-choice" type="button" data-conversation-speed="fast">Fast</button>
+            <button class="settings-choice" type="button" data-conversation-speed="normal">Normal</button>
+            <button class="settings-choice" type="button" data-conversation-speed="slow">Slow</button>
+          </div>
         </div>
         <div class="settings-row stack">
           <div class="settings-copy"><b>Player scale</b><span>The delver is now canonically presented at 64×64. Collision and player weapon-family reach were recalibrated around that larger body, and the Template Workshop player reference follows the same in-game scale.</span></div>
@@ -4493,6 +4582,13 @@ body.dev-template-open .dev-placement-panel,body.dev-template-open .dev-placemen
         <div class="settings-section-title">Character slots</div>
         <div class="settings-slot-list" id="characterSlotList"></div>
         <div class="settings-note">Three independent autosaved chronicles. Switching freezes the inactive delver exactly where they were; slots are not backup copies and permadeath still applies inside each chronicle.</div>
+      </section>
+      <section class="settings-section">
+        <div class="settings-section-title">Build</div>
+        <div class="settings-row stack">
+          <div class="settings-copy"><b>Running build</b><span id="settingsBuildVersion">—</span></div>
+        </div>
+        <div class="settings-note">Use this exact build label when reporting a bug or checking whether a new patch actually loaded.</div>
       </section>
       <div class="settings-note">Settings are stored separately from the current chronicle. They survive permadeath and starting a new delver.</div>
       <button class="settings-reset" id="btnResetSettings" type="button">Reset settings to defaults</button>

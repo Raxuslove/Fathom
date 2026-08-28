@@ -1,4 +1,5 @@
 import {TILE,FATHOMS_PER_TILE,depthFromY,yFromDepth,hash2,clamp,stratumIndex} from './world-core.js';
+import {DAWNGATE_TEMPLATE} from './dawngate-template.js';
 
 const DIRS={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
 const BASE_ENTITY_MARGIN_TILES=4;
@@ -38,6 +39,32 @@ const LOOT_BAG_FILE='./assets/ui/bag_coins.png';
 const LOOT_BAG_LIFETIME_MS=60000;
 const LOOT_BAG_BLINK_MS=10000;
 const COMPANION_TORCH_FILE='./assets/ui/companion-torch.png';
+// v0.219.10: authored looping campfire sheet used by Safe Hollows.
+const CAMPFIRE_SHEET_FILE='./assets/props/campfire-sheet.png';
+const CAMPFIRE_FRAME_W=32;
+const CAMPFIRE_FRAME_H=64;
+const CAMPFIRE_FRAME_COUNT=8;
+const CAMPFIRE_FPS=10;
+// v0.219.8: authored rock-prop set. The source pack contains BIG + small
+// versions; only BIG is used for procedural boulders so the world keeps the
+// deliberately chunky obstacle scale and does not drift back toward pebbles.
+const AMBIENT_BOULDER_ASSETS=Object.freeze([
+  {src:'./assets/props/rocks/Rock Pile 1 - MOSSY - BIG.PNG',w:62,h:34},
+  {src:'./assets/props/rocks/Rock Pile 2 - MOSSY - BIG.PNG',w:76,h:40},
+  {src:'./assets/props/rocks/Rock Pile 3 - MOSSY - BIG.PNG',w:50,h:39},
+  {src:'./assets/props/rocks/Rock Pile 4 - MOSSY - BIG.PNG',w:67,h:39},
+  {src:'./assets/props/rocks/Rock Pile 5 - MOSSY - BIG.PNG',w:52,h:30},
+  {src:'./assets/props/rocks/Rock Pile 6 - MOSSY - BIG.PNG',w:74,h:41},
+  {src:'./assets/props/rocks/Rock Pile 7 - MOSSY - BIG.PNG',w:70,h:38},
+  {src:'./assets/props/rocks/Rock Pile 8 - MOSSY - BIG.PNG',w:60,h:40},
+  {src:'./assets/props/rocks/Rock Pile 9 - MOSSY - BIG.PNG',w:50,h:29},
+  {src:'./assets/props/rocks/Rock Pile 10 - MOSSY - BIG.PNG',w:58,h:33},
+  {src:'./assets/props/rocks/Rock Pile 11 - MOSSY - BIG.PNG',w:47,h:29},
+  {src:'./assets/props/rocks/Rock Pile 12 - MOSSY - BIG.PNG',w:77,h:33},
+  {src:'./assets/props/rocks/Rock Pile 13 - MOSSY - BIG.PNG',w:42,h:25},
+  {src:'./assets/props/rocks/Rock Pile 14 - MOSSY - BIG.PNG',w:63,h:33},
+  {src:'./assets/props/rocks/Rock Pile 15 - MOSSY - BIG.PNG',w:53,h:27}
+]);
 const ORDINARY_HOLLOW_FIRST=20;
 const ORDINARY_HOLLOW_GAP=30;
 const HOLLOW_LOOKAHEAD=42;
@@ -48,7 +75,37 @@ const HOLLOW_SAFE_Y=6;
 const TOWN_TILE=TILE;
 const CHEST_SECTOR_TILES=18;
 const CHEST_SECTOR_CHANCE=.26;
+// v0.219.42: ore remains exploration-biased, but the first Smithing quest must
+// be realistically completable. Standard deposits favour chamber/route edges,
+// while Remote/Rich deposits and Side Passage deposits reward deeper detours.
+const ORE_SECTOR_TILES=14;
+const ORE_SECTOR_CHANCE=.90;
+const ORE_MAX_DEPTH=500;
+// Copper and Tin are world resources, not recipe-weighted drops. Their base
+// deposit identity is deliberately 50/50. Cluster generation below applies the
+// same rules to both metals so one ore cannot silently dominate total spawns.
+const TIN_VEIN_SHARE=.50;
+const ORE_VARIANTS=Object.freeze({
+  standard:Object.freeze({minOffset:3,maxOffset:7,copper:[3,6],tin:[2,4],weight:.66}),
+  remote:Object.freeze({minOffset:9,maxOffset:16,copper:[5,8],tin:[3,6],weight:.24}),
+  rich:Object.freeze({minOffset:18,maxOffset:28,copper:[7,11],tin:[5,8],weight:.10})
+});
+const STARTER_COPPER_DEPTH=6;
+const MINIMAP_ORE_ICON_PATH='./assets/ui/mini-pickaxe-icon.png';
+const SMITHING_ANVIL_ASSET='./assets/props/anvil1.png';
 const TOWN_BUILDING_IDS=new Set(['inn','herbalist','guild']);
+const AUTHORED_START_TOWN_ID='grey-lantern';
+const AUTHORED_TOWN_NPC_ROLES=Object.freeze({
+  'guild-npc.png':Object.freeze({role:'guild_manager',label:'Guild Manager',service:'guild'}),
+  'herb-mnpc.png':Object.freeze({role:'herbalist_owner',label:'Herbalist Owner'}),
+  'herb-fnpc.png':Object.freeze({role:'herbalist_shopkeeper',label:'Herbalist',service:'herbalist'}),
+  'tavern-fnpc.png':Object.freeze({role:'tavern_keeper',label:'Tavern Keeper',service:'inn'}),
+  'mine-fnpc.png':Object.freeze({role:'miner',label:'Miner'}),
+  'bsmith-mnpc.png':Object.freeze({role:'blacksmith',label:'Blacksmith'}),
+  'merchant-fnpc.png':Object.freeze({role:'merchant',label:'Merchant',service:'market'}),
+  'merchant-mnpc.png':Object.freeze({role:'merchant',label:'Merchant',service:'market'}),
+  'soldier-mnpc.png':Object.freeze({role:'gate_guard',label:'Gate Guard'})
+});
 const BOSS_ROOM_HALF_W_TILES=8;
 const BOSS_ROOM_HALF_H_TILES=6;
 const BOSS_ROOM_RING_X_TILES=10;
@@ -136,7 +193,7 @@ const MINIMAP_ZOOM_LEVELS=Object.freeze([
 ]);
 const TOWN_WALL_THICKNESS=TILE*.42;
 const TOWN_GATE_HALF_WIDTH=TILE*2.15;
-const WORLD_SNAPSHOT_VERSION=2035;
+const WORLD_SNAPSHOT_VERSION=2036;
 // Claude's temporary live-terrain build stored Infinity in the snapshot. JSON
 // serializes Infinity as null. Convert those null markers to a large finite value
 // so the currently-generated v0.203.12 terrain stays stable instead of collapsing
@@ -144,7 +201,7 @@ const WORLD_SNAPSHOT_VERSION=2035;
 const LIVE_TERRAIN_LOCK_TY=1000000000;
 
 export class World{
-  constructor(canvas,{seed=41729,onEncounter,onToast,onInteract,onLoot,onLootExpired,onDepth,onSettlementEnter,onSettlementLeave,onLocationTitle,onEnterSide,onLeaveSide,onPassWorldEvent,onHostile,onMinimapZoom,getDetectionRadius,getProfiles,getTowns,getWorldEvents,getCompanion,getSideArea,getPlayerClass}={}){
+  constructor(canvas,{seed=41729,onEncounter,onToast,onInteract,onLoot,onLootExpired,onDepth,onSettlementEnter,onSettlementLeave,onLocationTitle,onEnterSide,onLeaveSide,onPassWorldEvent,onHostile,onMinimapZoom,onMineUnit,onMineComplete,getDetectionRadius,getProfiles,getTowns,getWorldEvents,getCompanion,getSideArea,getPlayerClass,getPlayerVisualScale,getTownQuestMarker}={}){
     this.canvas=canvas;
     this.ctx=canvas.getContext('2d',{alpha:false});
     this.ctx.imageSmoothingEnabled=false;
@@ -154,6 +211,8 @@ export class World{
     this.onInteract=onInteract;
     this.onLoot=onLoot;
     this.onLootExpired=typeof onLootExpired==='function'?onLootExpired:null;
+    this.onMineUnit=typeof onMineUnit==='function'?onMineUnit:null;
+    this.onMineComplete=typeof onMineComplete==='function'?onMineComplete:null;
     this.onDepth=onDepth;
     this.onSettlementEnter=onSettlementEnter;
     this.onSettlementLeave=onSettlementLeave;
@@ -168,6 +227,8 @@ export class World{
     this.getCompanion=getCompanion||(()=>null);
     this.getSideArea=getSideArea||(()=>null);
     this.getPlayerClass=typeof getPlayerClass==='function'?getPlayerClass:(()=>'Votary');
+    this.getPlayerVisualScale=typeof getPlayerVisualScale==='function'?getPlayerVisualScale:(()=>1);
+    this.getTownQuestMarker=typeof getTownQuestMarker==='function'?getTownQuestMarker:(()=>null);
     this.worldEvents=[];
     this.worldEventSignature='';
     this.persistentEventSites=[];
@@ -187,7 +248,10 @@ export class World{
     this.sideOrganicStartDepth=0;
     this.sideVarietyStartDepth=0;
 
-    this.player={x:TILE*.5,y:0,deepestY:0,r:7,speed:95,dir:'up',facing:'right',moving:false};
+    // v0.219.7: the delver is now canonically presented at 64×64 scale, so
+    // the gameplay body is recalibrated as well instead of remaining a tiny
+    // 32px-era footprint. Collision/reach therefore follow the larger player.
+    this.player={x:TILE*.5,y:0,deepestY:0,r:14,speed:95,dir:'up',facing:'right',moving:false};
     this.camera={x:0,y:-80};
     this.zoom=1.15;
     this.atmosphereEffectsEnabled=true;
@@ -199,6 +263,7 @@ export class World{
     this.devPlacementConfig=this.sanitizeDevPlacementConfig(null);
     this.lightSources=[];
     this.fireflyAttractors=[];
+    this.campfireSprite={img:null,ready:false,failed:false};
     this.playerFacingBeforeCombat=null;
     this.lightingCanvas=document.createElement('canvas');
     this.lightingCtx=this.lightingCanvas.getContext('2d',{alpha:true});
@@ -244,6 +309,23 @@ export class World{
     this.nearby=null;
     this.defeated=new Set();
     this.opened=new Set();
+    this.oreRemaining=new Map();
+    // Ore markers are based on deposits the delver has actually approached,
+    // rather than every procedural vein whose terrain cell happens to be explored.
+    this.discoveredOre=new Set();
+    this.orePlanCache=new Map();
+    this.oreClusterPlanCache=new Map();
+    // v0.219.42 performance: these deterministic world-placement results were
+    // being recomputed from collision/entity scans. Cache them per world seed.
+    this.ambientBoulderSpecCache=new Map();
+    this.ordinaryEcologySectorCache=new Map();
+    this.starterOreSpecCache=undefined;
+    // Nearby static/entity discovery does not need a full viewport tile scan at
+    // render-frame frequency. Roamer objects continue updating every frame.
+    this.activeEntityRefresh={ptx:null,pty:null,rx:null,ry:null,last:-999};
+    this.minimapOreIcon={img:null,ready:false,failed:false};
+    this.activeMining=null;
+    this.activeSmithingForge=null;
     this.visitedSettlements=new Set();
     this.roamers=new Map();
     this.lootBags=new Map();
@@ -274,6 +356,15 @@ export class World{
     this.foeSprites=new Map();
     this.playerSprites=new Map();
     this.cleanedPlayerSpriteCache=new WeakMap();
+    this.ambientBoulderSprites=new Map();
+    this.ambientBoulderTintCache=new Map();
+    // v0.219.30: authored settlement artwork is static, so render it into cached
+    // layer canvases instead of replaying hundreds of Workshop tile draws every frame.
+    this.authoredImageCache=new Map();
+    this.authoredProcessedImageCache=new Map();
+    this.authoredTileSpriteCache=new Map();
+    this.authoredTownLayerCache=new Map();
+    this.authoredTownRenderEpoch=1;
     this.lootBagSprite={img:new Image(),ready:false};
     this.lootBagSprite.img.onload=()=>this.lootBagSprite.ready=true;
     this.lootBagSprite.img.onerror=()=>this.lootBagSprite.ready=false;
@@ -293,10 +384,10 @@ export class World{
     // A restore is also a runtime-world handoff (slot switch/new delver). Never
     // carry transient actors, passed-event flags, or terrain caches across runs.
     this.roamers.clear();this.bossActors.clear();this.passedWorldEvents.clear();
-    this.activeEntities=[];this.particles=[];this.animations=[];this.combatFoe=null;this.combatEntityId=null;this.combat=false;this.combatPlayerRange=10;this.combatPlayerMelee=true;this.combatPlayerInRange=false;this.combatEnemyThreatRange=10;this.combatThreatActive=false;this.combatPlayerAttacking=false;this.autoApproach=false;this.playerFacingBeforeCombat=null;this.nearby=null;
+    this.activeEntities=[];this.particles=[];this.animations=[];this.combatFoe=null;this.combatEntityId=null;this.combat=false;this.combatPlayerRange=10;this.combatPlayerMelee=true;this.combatPlayerInRange=false;this.combatEnemyThreatRange=10;this.combatThreatActive=false;this.combatPlayerAttacking=false;this.autoApproach=false;this.playerFacingBeforeCombat=null;this.nearby=null;this.activeMining=null;this.activeSmithingForge=null;this.orePlanCache.clear();this.ambientBoulderSpecCache.clear();this.ordinaryEcologySectorCache.clear();this.starterOreSpecCache=undefined;this.activeEntityRefresh={ptx:null,pty:null,rx:null,ry:null,last:-999};
     this.worldEvents=[];this.worldEventSignature='';this.towns=[];this.townPlanCache=[];this.townSignature='';
     this.activeSide=null;this.activeSidePlan=null;this.sideSignature='';this.transitionLock='';this.sideWasInside=false;this.locationTitleZone='';
-    this.companionVisual={x:0,y:0,ready:false,id:null};this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.sideGeometryCache.clear();
+    this.companionVisual={x:0,y:0,ready:false,id:null};this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.sideGeometryCache.clear();this.ambientBoulderSpecCache?.clear();this.ordinaryEcologySectorCache?.clear();this.starterOreSpecCache=undefined;
     // Completed/abandoned side passages are real world geometry. Keep plans in
     // the world snapshot so closing a passage never makes the floor disappear.
     this.persistentSidePlans=Array.isArray(data?.sidePlans)?data.sidePlans.filter(v=>v&&v.id&&Number.isFinite(Number(v.mouthTx))&&Number.isFinite(Number(v.mouthTy))).map(v=>({
@@ -333,7 +424,7 @@ export class World{
     let deepest=migratedReturn&&Number.isFinite(Number(migratedReturn.deepestY))?Number(migratedReturn.deepestY):Number.isFinite(Number(data?.deepestY))?Number(data.deepestY):Math.min(y,yFromDepth(legacyDepth));
     if(!data&&Math.max(0,Number(legacyDepth)||0)<=.001){
       const home=this.townPlans().find(t=>t.current&&t.depth<=.001);
-      if(home){x=home.originX;y=home.originY+home.layoutH*.24;deepest=0;}
+      if(home){x=Number.isFinite(Number(home.spawnX))?Number(home.spawnX):home.originX;y=Number.isFinite(Number(home.spawnY))?Number(home.spawnY):home.originY+home.layoutH*.24;deepest=0;}
     }
     const topologyFallbackTy=data?Math.floor(Math.min(deepest,yFromDepth(legacyDepth))/TILE)-12:-8;
     this.antTopologyStartTy=savedTopologyTy('antTopologyStartTy',topologyFallbackTy);
@@ -373,14 +464,18 @@ export class World{
     const canonicalDepth=Math.max(0,Number(legacyDepth)||0);
     const needsSpatialRepair=!!data&&snapshotVersion>0&&snapshotVersion<WORLD_SNAPSHOT_VERSION;
     if(needsSpatialRepair){
-      y=yFromDepth(canonicalDepth);
-      const ty=Math.floor(y/TILE);
-      x=(this.corridorCenter(ty)+.5)*TILE;
-      deepest=y;
+      const authoredHome=canonicalDepth<=.001?this.townPlans().find(t=>t.current&&t.authored&&t.depth<=.001):null;
+      if(authoredHome){x=Number(authoredHome.spawnX);y=Number(authoredHome.spawnY);deepest=0;}
+      else{y=yFromDepth(canonicalDepth);const ty=Math.floor(y/TILE);x=(this.corridorCenter(ty)+.5)*TILE;deepest=y;}
     }
 
     this.defeated=new Set(data?.defeated||[]);
     this.opened=new Set(data?.opened||[]);
+    this.oreRemaining=new Map(Object.entries(data?.oreRemaining&&typeof data.oreRemaining==='object'?data.oreRemaining:{}).map(([id,value])=>[String(id),Math.max(0,Math.floor(Number(value)||0))]));
+    this.discoveredOre=new Set(Array.isArray(data?.discoveredOre)?data.discoveredOre.map(String):[]);
+    // Migration: any vein recorded in oreRemaining has already been worked and
+    // therefore was definitely discovered on older saves.
+    for(const id of this.oreRemaining.keys())this.discoveredOre.add(String(id));
     this.visitedSettlements=new Set(data?.visited||[]);
     this.sealedTownGates=new Set();
     const lootRestoreNow=Date.now();
@@ -425,6 +520,8 @@ export class World{
       sidePlans:this.persistentSidePlans.map(p=>({id:p.id,count:p.count,lengthTiles:p.lengthTiles,mouthTx:p.mouthTx,mouthTy:p.mouthTy,centerTx:p.centerTx,sign:p.sign,generation:p.generation||1,archetype:p.archetype||0,shapeSeed:p.shapeSeed||0,depth:Number.isFinite(Number(p.depth))?Number(p.depth):depthFromY(p.mouthTy*TILE)})),
       defeated:[...this.defeated],
       opened:[...this.opened],
+      oreRemaining:Object.fromEntries(this.oreRemaining),
+      discoveredOre:[...this.discoveredOre],
       visited:[...this.visitedSettlements],
       sealedTownGates:[...this.sealedTownGates],
       exploredCells:[...this.exploredCells],
@@ -669,7 +766,7 @@ export class World{
         this.sideSignature=sig;
         const count=Math.max(1,Number(side.encountersNeeded)||1),event={type:'sidepassage',id:side.id||'parked-side',depth:Number(side.entryDepth)||0};
         this.rememberSidePlan(this.prospectiveSidePlan(event,{forceLegacy:true,count}));
-        this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.minimapDirty=true;
+        this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.ambientBoulderSpecCache?.clear();this.ordinaryEcologySectorCache?.clear();this.starterOreSpecCache=undefined;this.minimapDirty=true;
       }
       this.activeSide=null;this.activeSidePlan=null;return;
     }
@@ -678,12 +775,12 @@ export class World{
     this.sideSignature=sig;this.activeSide=side;
     if(!side){
       if(previousPlan)this.rememberSidePlan(previousPlan);
-      this.activeSidePlan=null;this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.minimapDirty=true;return;
+      this.activeSidePlan=null;this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.ambientBoulderSpecCache?.clear();this.ordinaryEcologySectorCache?.clear();this.starterOreSpecCache=undefined;this.minimapDirty=true;return;
     }
     this.persistentSidePlans=this.persistentSidePlans.filter(p=>p.id!==String(side.id));
     const count=Math.max(1,Number(side.encountersNeeded)||1),event={type:'sidepassage',id:side.id||'active-side',depth:Number(side.entryDepth)||0};
     this.activeSidePlan={...this.prospectiveSidePlan(event,{count}),side};
-    this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.minimapDirty=true;
+    this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.ambientBoulderSpecCache?.clear();this.ordinaryEcologySectorCache?.clear();this.starterOreSpecCache=undefined;this.minimapDirty=true;
   }
   sidePlan(){return this.activeSidePlan;}
 
@@ -933,8 +1030,250 @@ export class World{
     return Math.abs(this.player.y-p.y)<=TILE*4.25;
   }
 
+  authoredTownTemplateFor(town){
+    return String(town?.id||'')===AUTHORED_START_TOWN_ID?DAWNGATE_TEMPLATE:null;
+  }
+
+  authoredFilename(path){return String(path||'').replace(/\\/g,'/').split('/').filter(Boolean).at(-1)||'';}
+
+  authoredNormalizeLayer(value){return ['ground','normal','foreground'].includes(String(value||''))?String(value):'normal';}
+
+  authoredVisualKey(visual){
+    const v=visual||{};
+    return `${Number(v.brightness)||1}|${Number(v.saturation)||1}|${String(v.tint||'#71806f')}|${clamp(Number(v.tintStrength)||0,0,.8)}`;
+  }
+
+  authoredAssetRecord(path){
+    path=String(path||'');if(!path)return null;
+    let rec=this.authoredImageCache.get(path);if(rec)return rec;
+    const img=new Image();rec={path,img,ready:false,failed:false};this.authoredImageCache.set(path,rec);
+    const refresh=()=>{this.authoredTownRenderEpoch++;this.authoredTownLayerCache.clear();this.minimapDirty=true;};
+    img.onload=()=>{rec.ready=true;rec.failed=false;refresh();};
+    img.onerror=()=>{rec.ready=false;rec.failed=true;console.warn(`Authored settlement asset could not be loaded: ${path}`);refresh();};
+    img.src=path;
+    return rec;
+  }
+
+  authoredTintCanvas(canvas,visual){
+    const strength=clamp(Number(visual?.tintStrength)||0,0,.8);if(strength<=0)return canvas;
+    const c=canvas.getContext('2d',{alpha:true});c.save();c.globalCompositeOperation='source-atop';c.globalAlpha=strength;c.fillStyle=String(visual?.tint||'#71806f');c.fillRect(0,0,canvas.width,canvas.height);c.restore();return canvas;
+  }
+
+  authoredProcessedAsset(path,visual){
+    const rec=this.authoredAssetRecord(path);if(!rec?.ready||!rec.img?.naturalWidth||!rec.img?.naturalHeight)return null;
+    const key=`asset|${path}|${this.authoredVisualKey(visual)}`;let canvas=this.authoredProcessedImageCache.get(key);if(canvas)return canvas;
+    canvas=document.createElement('canvas');canvas.width=rec.img.naturalWidth;canvas.height=rec.img.naturalHeight;
+    const c=canvas.getContext('2d',{alpha:true});c.imageSmoothingEnabled=false;c.filter=`brightness(${Number(visual?.brightness)||1}) saturate(${Number(visual?.saturation)||1})`;c.drawImage(rec.img,0,0);c.filter='none';this.authoredTintCanvas(canvas,visual);this.authoredProcessedImageCache.set(key,canvas);return canvas;
+  }
+
+  authoredProcessedTile(tile){
+    const path=String(tile?.assetPath||''),rec=this.authoredAssetRecord(path);if(!rec?.ready||!rec.img?.naturalWidth||!rec.img?.naturalHeight)return null;
+    const size=Math.max(1,Math.floor(Number(tile?.tileSize)||16)),index=Math.max(0,Math.floor(Number(tile?.tileIndex)||0)),cols=Math.max(1,Math.floor(rec.img.naturalWidth/size)),sx=(index%cols)*size,sy=Math.floor(index/cols)*size;
+    if(sx+size>rec.img.naturalWidth||sy+size>rec.img.naturalHeight)return null;
+    const key=`tile|${path}|${size}|${index}|${this.authoredVisualKey(tile?.visual)}`;let canvas=this.authoredTileSpriteCache.get(key);if(canvas)return canvas;
+    canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;const c=canvas.getContext('2d',{alpha:true});c.imageSmoothingEnabled=false;c.filter=`brightness(${Number(tile?.visual?.brightness)||1}) saturate(${Number(tile?.visual?.saturation)||1})`;c.drawImage(rec.img,sx,sy,size,size,0,0,size,size);c.filter='none';this.authoredTintCanvas(canvas,tile?.visual);this.authoredTileSpriteCache.set(key,canvas);return canvas;
+  }
+
+  authoredDrawObjectLocal(c,o,offsetX=0,offsetY=0){
+    const img=this.authoredProcessedAsset(o?.assetPath,o?.visual);if(!img)return false;
+    const scale=Math.max(.01,Number(o?.scale)||1),w=Math.max(1,Number(o?.assetWidth)||img.width)*scale,h=Math.max(1,Number(o?.assetHeight)||img.height)*scale;
+    c.imageSmoothingEnabled=false;c.drawImage(img,(Number(o?.x)||0)-offsetX,(Number(o?.y)||0)-offsetY,w,h);return true;
+  }
+
+  authoredDrawTileLocal(c,tile,offsetX=0,offsetY=0){
+    const img=this.authoredProcessedTile(tile);if(!img)return false;
+    const scale=Math.max(.01,Number(tile?.scale)||1),rendered=Math.max(1,Number(tile?.tileSize)||16)*scale;c.imageSmoothingEnabled=false;c.drawImage(img,(Number(tile?.x)||0)-offsetX,(Number(tile?.y)||0)-offsetY,rendered,rendered);return true;
+  }
+
+  authoredDrawRoadGroupLocal(c,group,offsetX=0,offsetY=0){let drew=false;for(const tile of group?.tiles||[])drew=this.authoredDrawTileLocal(c,tile,offsetX,offsetY)||drew;return drew;}
+
+  authoredTownAssetsSettled(t){for(const o of t?.template?.objects||[]){const rec=this.authoredAssetRecord(o?.assetPath);if(rec&&!rec.ready&&!rec.failed)return false;}for(const layer of t?.template?.tileLayers||[])for(const tile of layer?.tiles||[]){const rec=this.authoredAssetRecord(tile?.assetPath);if(rec&&!rec.ready&&!rec.failed)return false;}return true;}
+
+  authoredTownLayerBounds(t,layerName){
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    const add=(x,y,w,h)=>{x=Number(x)||0;y=Number(y)||0;w=Math.max(0,Number(w)||0);h=Math.max(0,Number(h)||0);if(w<=0||h<=0)return;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+w);maxY=Math.max(maxY,y+h);};
+    for(const o of t?.template?.objects||[])if(this.authoredNormalizeLayer(o?.layer)===layerName){const scale=Math.max(.01,Number(o?.scale)||1);add(o?.x,o?.y,Math.max(1,Number(o?.assetWidth)||1)*scale,Math.max(1,Number(o?.assetHeight)||1)*scale);}
+    for(const layer of t?.template?.tileLayers||[])for(const tile of layer?.tiles||[])if(this.authoredNormalizeLayer(tile?.layer||'ground')===layerName){const rendered=Math.max(1,Number(tile?.tileSize)||16)*Math.max(.01,Number(tile?.scale)||1);add(tile?.x,tile?.y,rendered,rendered);}
+    if(!Number.isFinite(minX))return{x:0,y:0,w:1,h:1,empty:true};
+    const x=Math.floor(minX),y=Math.floor(minY),right=Math.ceil(maxX),bottom=Math.ceil(maxY);return{x,y,w:Math.max(1,right-x),h:Math.max(1,bottom-y),empty:false};
+  }
+
+  authoredTownLayerRecord(t){
+    if(!t?.authored||!this.authoredTownAssetsSettled(t))return null;
+    const key=String(t.id||'authored-town');let rec=this.authoredTownLayerCache.get(key);if(rec&&rec.epoch===this.authoredTownRenderEpoch)return rec;
+    const layers={};
+    for(const name of ['ground','normal','foreground']){
+      const b=this.authoredTownLayerBounds(t,name),canvas=document.createElement('canvas');canvas.width=b.w;canvas.height=b.h;const c=canvas.getContext('2d',{alpha:true});c.imageSmoothingEnabled=false;
+      if(!b.empty){
+        if(name==='normal'){
+          // Town walls/fences and buildings often share the normal layer. Drawing
+          // every tile after every object made long fence runs paint over roofs.
+          // Sort normal-layer artwork by its visual bottom edge instead, matching
+          // ordinary top-down depth: farther/northern things first, lower things last.
+          const items=[];
+          for(const o of t.template?.objects||[])if(this.authoredNormalizeLayer(o?.layer)==='normal'){
+            const scale=Math.max(.01,Number(o?.scale)||1),bottom=(Number(o?.y)||0)+Math.max(1,Number(o?.assetHeight)||1)*scale;
+            items.push({kind:'object',item:o,bottom});
+          }
+          for(const layerDef of t.template?.tileLayers||[])for(const tile of layerDef?.tiles||[])if(this.authoredNormalizeLayer(tile?.layer||'ground')==='normal'){
+            const size=Math.max(1,Number(tile?.tileSize)||16)*Math.max(.01,Number(tile?.scale)||1),bottom=(Number(tile?.y)||0)+size;
+            items.push({kind:'tile',item:tile,bottom});
+          }
+          items.sort((a,b)=>a.bottom-b.bottom);
+          for(const row of items){if(row.kind==='object')this.authoredDrawObjectLocal(c,row.item,b.x,b.y);else this.authoredDrawTileLocal(c,row.item,b.x,b.y);}
+        }else{
+          for(const o of t.template?.objects||[])if(this.authoredNormalizeLayer(o?.layer)===name)this.authoredDrawObjectLocal(c,o,b.x,b.y);
+          for(const layerDef of t.template?.tileLayers||[])for(const tile of layerDef?.tiles||[])if(this.authoredNormalizeLayer(tile?.layer||'ground')===name)this.authoredDrawTileLocal(c,tile,b.x,b.y);
+        }
+      }
+      layers[name]={...b,canvas};
+    }
+    rec={epoch:this.authoredTownRenderEpoch,layers};this.authoredTownLayerCache.set(key,rec);return rec;
+  }
+
+  drawAuthoredTownLayer(layer){
+    for(const t of this.townPlans()){
+      if(!t.authored)continue;const rec=this.authoredTownLayerRecord(t),lr=rec?.layers?.[layer];if(!lr||lr.empty)continue;
+      const worldX=t.templateOriginX+lr.x,worldY=t.templateOriginY+lr.y,s=this.worldToScreen(worldX,worldY),margin=Math.max(lr.w,lr.h);
+      if(s.x>this.logicalViewW()+margin||s.x+lr.w<-margin||s.y>this.logicalViewH()+margin||s.y+lr.h<-margin)continue;
+      this.ctx.imageSmoothingEnabled=false;this.ctx.drawImage(lr.canvas,Math.round(s.x),Math.round(s.y),lr.w,lr.h);
+    }
+  }
+
+  authoredPointInZone(x,y,zone){return !!zone&&x>=zone.x&&x<=zone.x+zone.w&&y>=zone.y&&y<=zone.y+zone.h;}
+
+  drawAuthoredTownOcclusion(){
+    const footX=this.player.x,footY=this.player.y;
+    for(const t of this.townPlans()){
+      if(!t.authored)continue;
+      const redrawnObjects=new Set(),redrawnTiles=new Set();
+      const drawObject=o=>{
+        const key=String(o?.id||o?.assetPath||'');if(redrawnObjects.has(key))return;const img=this.authoredProcessedAsset(o?.assetPath,o?.visual);if(!img)return;
+        const scale=Math.max(.01,Number(o?.scale)||1),s=this.worldToScreen(t.templateOriginX+(Number(o?.x)||0),t.templateOriginY+(Number(o?.y)||0));
+        this.ctx.imageSmoothingEnabled=false;this.ctx.drawImage(img,Math.round(s.x),Math.round(s.y),Math.max(1,Number(o?.assetWidth)||img.width)*scale,Math.max(1,Number(o?.assetHeight)||img.height)*scale);redrawnObjects.add(key);
+      };
+      const drawTile=tile=>{
+        const key=String(tile?.id||`${tile?.assetPath}:${tile?.x}:${tile?.y}`);if(redrawnTiles.has(key))return;const img=this.authoredProcessedTile(tile);if(!img)return;
+        const scale=Math.max(.01,Number(tile?.scale)||1),size=Math.max(1,Number(tile?.tileSize)||16)*scale,s=this.worldToScreen(t.templateOriginX+(Number(tile?.x)||0),t.templateOriginY+(Number(tile?.y)||0));
+        this.ctx.imageSmoothingEnabled=false;this.ctx.drawImage(img,Math.round(s.x),Math.round(s.y),size,size);redrawnTiles.add(key);
+      };
+
+      // Workshop Behind zones are authoritative. Unlike the old v0.219.45
+      // fallback, do not guess by redrawing every normal-layer tile under the
+      // player's X coordinate: that could pull isolated fence/gate pixels over
+      // nearby guards and create the stray fragments seen at Dawngate.
+      for(const occ of t.occluders||[]){
+        if(!(occ.zones||[]).some(zone=>this.authoredPointInZone(footX,footY,zone)))continue;
+        if(occ.kind==='object')drawObject(occ.item);else if(occ.kind==='road')for(const tile of occ.item?.tiles||[])drawTile(tile);
+      }
+
+      // Gate occlusion is redrawn from gate-area tiles/props only. Never redraw
+      // the cached normal layer here: it also contains authored NPC sprites, which
+      // created the stray square/"quest-target"-looking fragment above guards.
+      for(const gate of [{x:t.shallowGateX,y:t.shallowGateY},{x:t.deepGateX,y:t.deepGateY}]){
+        if(!Number.isFinite(gate.x)||!Number.isFinite(gate.y))continue;const dx=Math.abs(footX-gate.x),dy=Math.abs(footY-gate.y);if(dx>TILE*5.0||dy>TILE*3.8)continue;
+        const minX=gate.x-TILE*5,maxX=gate.x+TILE*5,minY=gate.y-TILE*4,maxY=gate.y+TILE*1.6,gs=this.worldToScreen(gate.x,gate.y),c=this.ctx;c.save();c.beginPath();c.rect(Math.round(gs.x-TILE*5),Math.round(gs.y-TILE*4),Math.round(TILE*10),Math.round(TILE*5.6));c.clip();
+        for(const layerDef of t.template?.tileLayers||[])for(const tile of layerDef?.tiles||[]){if(this.authoredNormalizeLayer(tile?.layer||'ground')!=='normal')continue;const size=Math.max(1,Number(tile?.tileSize)||16)*Math.max(.01,Number(tile?.scale)||1),wx=t.templateOriginX+(Number(tile?.x)||0),wy=t.templateOriginY+(Number(tile?.y)||0);if(wx+size<minX||wx>maxX||wy+size<minY||wy>maxY)continue;drawTile(tile);}
+        for(const o of t.template?.objects||[]){if(this.authoredNormalizeLayer(o?.layer)!=='normal')continue;const path=String(o?.assetPath||'').toLowerCase();if(path.includes('/npc/')||path.includes('/buildings/'))continue;const scale=Math.max(.01,Number(o?.scale)||1),w=Math.max(1,Number(o?.assetWidth)||1)*scale,h=Math.max(1,Number(o?.assetHeight)||1)*scale,wx=t.templateOriginX+(Number(o?.x)||0),wy=t.templateOriginY+(Number(o?.y)||0);if(wx+w<minX||wx>maxX||wy+h<minY||wy>maxY)continue;drawObject(o);}
+        c.restore();
+      }
+    }
+  }
+
+  drawTownQuestMarkers(){
+    for(const e of this.activeEntities||[]){
+      if(e?.type!=='townnpc'&&!(e?.type==='townlocation'&&e.authoredNpc))continue;
+      const npc=e.npc||{},townId=e.town?.id||'',locationId=e.location?.id||null;
+      const marker=this.getTownQuestMarker?.({townId,locationId,role:npc.role||'',npcId:npc.id||'',label:npc.label||''});
+      if(!marker?.asset)continue;
+      const rec=this.authoredAssetRecord(marker.asset);if(!rec?.ready||!rec.img)continue;
+      const wx=Number.isFinite(Number(npc.x))?Number(npc.x):Number(e.x)||0,wy=Number.isFinite(Number(npc.y))?Number(npc.y):Number(e.y)||0,s=this.worldToScreen(wx,wy);
+      const npcScale=Math.max(.01,Number(npc.object?.scale)||1),npcH=Math.max(18,(Number(npc.object?.assetHeight)||32)*npcScale),iw=20,ih=22,bob=Math.round(Math.sin(this.time*3.1+(wx+wy)*.01)*1);
+      const c=this.ctx;c.save();c.imageSmoothingEnabled=false;c.drawImage(rec.img,Math.round(s.x-iw/2),Math.round(s.y-npcH-ih-4+bob),iw,ih);c.restore();
+    }
+  }
+
+  authoredTownRoadGroups(template){
+    const map=new Map();
+    for(const layer of template?.tileLayers||[])for(const tile of layer?.tiles||[]){
+      const key=String(tile?.groupId||tile?.id||'');if(!key)continue;
+      let group=map.get(key);
+      if(!group){group={id:key,tiles:[],scale:Math.max(.01,Number(tile?.scale)||1),layer:String(tile?.layer||'ground'),collisionZones:Array.isArray(tile?.collisionZones)?tile.collisionZones:[],occlusionZones:Array.isArray(tile?.occlusionZones)?tile.occlusionZones:[]};map.set(key,group);}
+      group.tiles.push(tile);
+    }
+    for(const group of map.values()){
+      let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+      for(const tile of group.tiles){const size=Math.max(1,Number(tile?.tileSize)||16)*Math.max(.01,Number(tile?.scale)||1),x=Number(tile?.x)||0,y=Number(tile?.y)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+size);maxY=Math.max(maxY,y+size);}
+      group.rect={x:Number.isFinite(minX)?minX:0,y:Number.isFinite(minY)?minY:0,w:Number.isFinite(maxX-minX)?maxX-minX:0,h:Number.isFinite(maxY-minY)?maxY-minY:0};
+    }
+    return [...map.values()];
+  }
+
+  makeAuthoredTownPlan(town,template){
+    const width=Math.max(1,Number(template?.width)||1),height=Math.max(1,Number(template?.height)||1),entrance=template?.anchors?.entrance||{x:width*.5,y:height},exit=template?.anchors?.exit||{x:width*.5,y:0};
+    // The authored OUT anchor is the progression origin. At Fathom 0 it sits on
+    // world y=0, so walking anywhere inside Dawngate remains 0.0 fathoms and the
+    // counter starts only after the player actually crosses the upper gate.
+    const depth=Math.max(0,Number(town?.depth)||0),deepGateY=yFromDepth(depth),deepTy=Math.floor(deepGateY/TILE),deepGateX=(this.corridorCenter(deepTy)+.5)*TILE;
+    const templateOriginX=deepGateX-(Number(exit.x)||0),templateOriginY=deepGateY-(Number(exit.y)||0),originX=templateOriginX+width/2,originY=templateOriginY+height/2;
+    const shallowGateX=templateOriginX+(Number(entrance.x)||0),shallowGateY=templateOriginY+(Number(entrance.y)||0);
+    const deepJoinY=deepGateY-TILE*8,deepJoinTy=Math.floor(deepJoinY/TILE),deepJoinX=(this.corridorCenter(deepJoinTy)+.5)*TILE;
+    const vx=deepGateX-shallowGateX,vy=deepGateY-shallowGateY,vlen=Math.hypot(vx,vy)||1,spawnInset=Math.min(52,Math.max(28,TILE*1.8)),spawnX=shallowGateX+vx/vlen*spawnInset,spawnY=shallowGateY+vy/vlen*spawnInset;
+    const groups=this.authoredTownRoadGroups(template),collisionRects=[],occluders=[],npcs=[];
+    const pushCollision=(lx,ly,w,h)=>{w=Math.max(0,Number(w)||0);h=Math.max(0,Number(h)||0);if(w<=0||h<=0)return;collisionRects.push({x:templateOriginX+(Number(lx)||0)+w/2,y:templateOriginY+(Number(ly)||0)+h/2,w,h});};
+    const worldZone=(lx,ly,w,h)=>({x:templateOriginX+(Number(lx)||0),y:templateOriginY+(Number(ly)||0),w:Math.max(0,Number(w)||0),h:Math.max(0,Number(h)||0)});
+    let artMinX=0,artMinY=0,artMaxX=width,artMaxY=height;
+    for(const o of template?.objects||[]){
+      const scale=Math.max(.01,Number(o?.scale)||1),ow=Math.max(1,Number(o?.assetWidth)||1),oh=Math.max(1,Number(o?.assetHeight)||1),ox=Number(o?.x)||0,oy=Number(o?.y)||0,renderW=ow*scale,renderH=oh*scale;
+      artMinX=Math.min(artMinX,ox);artMinY=Math.min(artMinY,oy);artMaxX=Math.max(artMaxX,ox+renderW);artMaxY=Math.max(artMaxY,oy+renderH);
+      if(o?.collision?.enabled!==false&&o?.collision){pushCollision(ox+(Number(o.collision.x)||0)*scale,oy+(Number(o.collision.y)||0)*scale,(Number(o.collision.w)||0)*scale,(Number(o.collision.h)||0)*scale);}
+      for(const q of o?.collisionZones||[])if(q?.enabled!==false)pushCollision(ox+(Number(q.x)||0)*scale,oy+(Number(q.y)||0)*scale,(Number(q.w)||0)*scale,(Number(q.h)||0)*scale);
+      const occ=[];
+      if(o?.occlusion?.enabled){const q=o.occlusion;occ.push(worldZone(ox+(Number(q.x)||0)*scale,oy+(Number(q.y)||0)*scale,(Number(q.w)||0)*scale,(Number(q.h)||0)*scale));}
+      for(const q of o?.occlusionZones||[])if(q?.enabled!==false)occ.push(worldZone(ox+(Number(q.x)||0)*scale,oy+(Number(q.y)||0)*scale,(Number(q.w)||0)*scale,(Number(q.h)||0)*scale));
+      if(occ.length)occluders.push({kind:'object',item:o,zones:occ});
+      if(String(o?.assetPath||'').replace(/\\/g,'/').includes('/assets/npc/')){
+        const filename=this.authoredFilename(o.assetPath),role=AUTHORED_TOWN_NPC_ROLES[filename]||Object.freeze({role:'townsperson',label:String(o?.label||'Townsperson')}),x=templateOriginX+ox+renderW/2,y=templateOriginY+oy+renderH;
+        npcs.push({id:String(o?.id||`npc:${filename}:${Math.round(x)}:${Math.round(y)}`),object:o,filename,x,y,role:role.role,label:role.label||'Townsperson',service:role.service||null});
+      }
+      this.authoredAssetRecord(o?.assetPath);
+    }
+    for(const group of groups){
+      artMinX=Math.min(artMinX,group.rect.x);artMinY=Math.min(artMinY,group.rect.y);artMaxX=Math.max(artMaxX,group.rect.x+group.rect.w);artMaxY=Math.max(artMaxY,group.rect.y+group.rect.h);
+      const scale=Math.max(.01,Number(group.scale)||1);
+      for(const q of group.collisionZones||[])if(q?.enabled!==false)pushCollision(group.rect.x+(Number(q.x)||0)*scale,group.rect.y+(Number(q.y)||0)*scale,(Number(q.w)||0)*scale,(Number(q.h)||0)*scale);
+      const occ=[];for(const q of group.occlusionZones||[])if(q?.enabled!==false)occ.push(worldZone(group.rect.x+(Number(q.x)||0)*scale,group.rect.y+(Number(q.y)||0)*scale,(Number(q.w)||0)*scale,(Number(q.h)||0)*scale));
+      if(occ.length)occluders.push({kind:'road',item:group,zones:occ});
+      for(const tile of group.tiles)this.authoredAssetRecord(tile?.assetPath);
+    }
+    // Service sprites can legitimately sit behind counters or other authored
+    // collision. Build one small reachability field from the player spawn and
+    // attach the interaction trigger to the closest reachable point. The sprite
+    // itself never moves; this only prevents a shopkeeper behind a counter from
+    // becoming impossible to use.
+    const interactionStep=TILE*.5,interactionRadius=14,gridW=Math.max(1,Math.ceil(width/interactionStep)),gridH=Math.max(1,Math.ceil(height/interactionStep));
+    const gridPoint=(gx,gy)=>({x:templateOriginX+Math.min(width-interactionStep*.5,interactionStep*.5+gx*interactionStep),y:templateOriginY+Math.min(height-interactionStep*.5,interactionStep*.5+gy*interactionStep)});
+    const blockedPoint=(x,y)=>collisionRects.some(rect=>this.townRectHit(x,y,interactionRadius,rect));
+    const startGX=clamp(Math.round((spawnX-templateOriginX-interactionStep*.5)/interactionStep),0,gridW-1),startGY=clamp(Math.round((spawnY-templateOriginY-interactionStep*.5)/interactionStep),0,gridH-1);
+    let startKey=null,startBest=Infinity;
+    for(let gy=0;gy<gridH;gy++)for(let gx=0;gx<gridW;gx++){const pt=gridPoint(gx,gy);if(blockedPoint(pt.x,pt.y))continue;const d=(gx-startGX)*(gx-startGX)+(gy-startGY)*(gy-startGY);if(d<startBest){startBest=d;startKey=`${gx},${gy}`;if(d===0)break;}}
+    const reachable=[],seen=new Set(),queue=[];
+    if(startKey){const [gx,gy]=startKey.split(',').map(Number);seen.add(startKey);queue.push([gx,gy]);}
+    for(let qi=0;qi<queue.length;qi++){const [gx,gy]=queue[qi],pt=gridPoint(gx,gy);reachable.push(pt);for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=gx+dx,ny=gy+dy;if(nx<0||ny<0||nx>=gridW||ny>=gridH)continue;const key=`${nx},${ny}`;if(seen.has(key))continue;const np=gridPoint(nx,ny);if(blockedPoint(np.x,np.y))continue;seen.add(key);queue.push([nx,ny]);}}
+    const nearestReachable=(x,y)=>{let best=null,bestD=Infinity;for(const pt of reachable){const d=(pt.x-x)*(pt.x-x)+(pt.y-y)*(pt.y-y);if(d<bestD){bestD=d;best=pt;}}return best?{x:best.x,y:best.y,distance:Math.sqrt(bestD)}:{x,y,distance:0};};
+    const baseLocations=(town?.locations||[]).map(loc=>({...loc,x:originX,y:originY})),serviceNpcs=[];
+    for(const npc of npcs){
+      if(!npc.service)continue;const loc=(town?.locations||[]).find(v=>String(v.id)===String(npc.service));if(!loc)continue;
+      const interaction=nearestReachable(npc.x,npc.y);
+      serviceNpcs.push({...npc,interactionX:interaction.x,interactionY:interaction.y,interactionDistance:interaction.distance,location:{...loc,x:interaction.x,y:interaction.y,npcName:npc.label}});
+      const stored=baseLocations.find(v=>String(v.id)===String(loc.id));if(stored&&stored.x===originX&&stored.y===originY){stored.x=interaction.x;stored.y=interaction.y;stored.npcName=npc.label;}
+    }
+    return {...town,name:String(template?.name||town?.name||'Dawngate'),authored:true,template,templateOriginX,templateOriginY,artBounds:{x:artMinX,y:artMinY,w:artMaxX-artMinX,h:artMaxY-artMinY},depth,entryX:shallowGateX,entryY:shallowGateY,entryTx:Math.floor(shallowGateX/TILE),entryTy:Math.floor(shallowGateY/TILE),originX,originY,layoutW:width,layoutH:height,halfW:width/2,halfH:height/2,shallowGateX,shallowGateY,deepGateX,deepGateY,gateY:deepGateY,deepRoadEndY:deepJoinY,shallowJoinX:shallowGateX,shallowJoinY:shallowGateY,shallowBendX:shallowGateX,shallowBendY:shallowGateY,deepJoinX,deepJoinY,deepBendX:deepGateX,deepBendY:deepGateY-TILE*2,wallSegs:[],signX:shallowGateX,signY:shallowGateY,approachSignX:shallowGateX,approachSignY:shallowGateY,locations:baseLocations,buildings:[],stalls:[],collisionRects,occluders,roadGroups:groups,npcs,serviceNpcs,spawnX,spawnY};
+  }
+
   makeTownPlan(town){
     if(!town)return null;
+    const authored=this.authoredTownTemplateFor(town);if(authored)return this.makeAuthoredTownPlan(town,authored);
     const city=town.kind==='city',village=town.kind==='village';
     // Settlements are physical world spaces. Fathom 0 gets a broad, leafy
     // village footprint; the major city is larger and denser rather than being
@@ -998,7 +1337,7 @@ export class World{
     const towns=this.getTowns?.()||[];
     const sig=towns.map(t=>`${t.id}:${Number(t.depth)||0}:${t.current?1:0}:${t.departed?1:0}`).join('|');
     if(sig===this.townSignature){this.towns=towns;for(let i=0;i<this.townPlanCache.length;i++)if(towns[i])Object.assign(this.townPlanCache[i],{current:!!towns[i].current,departed:!!towns[i].departed,visited:!!towns[i].visited});return;}
-    this.townSignature=sig;this.towns=towns;this.townPlanCache=towns.map(t=>this.makeTownPlan(t)).filter(Boolean);this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.minimapDirty=true;
+    this.townSignature=sig;this.towns=towns;this.townPlanCache=towns.map(t=>this.makeTownPlan(t)).filter(Boolean);this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.ambientBoulderSpecCache?.clear();this.ordinaryEcologySectorCache?.clear();this.starterOreSpecCache=undefined;this.minimapDirty=true;
   }
 
   townPlans(){return this.townPlanCache;}
@@ -1012,6 +1351,16 @@ export class World{
   townCarvesFloor(tx,ty){
     const x=(tx+.5)*TOWN_TILE,y=(ty+.5)*TOWN_TILE;
     for(const t of this.townPlans()){
+      if(t.authored){
+        // Dawngate owns its full authored footprint. The procedural biome floor
+        // remains underneath, but cave walls cannot punch through the template.
+        const b=t.artBounds||{x:0,y:0,w:t.layoutW,h:t.layoutH},minX=t.templateOriginX+Math.min(0,b.x)-TOWN_TILE*.8,maxX=t.templateOriginX+Math.max(t.layoutW,b.x+b.w)+TOWN_TILE*.8,minY=t.templateOriginY+Math.min(0,b.y)-TOWN_TILE*.8,maxY=t.templateOriginY+Math.max(t.layoutH,b.y+b.h)+TOWN_TILE*.8;
+        if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY)return true;
+        // Only the OUT/deep gate needs to join procedural geography. Aligning
+        // this anchor with y=0 makes the first negative-y step the first fathom.
+        if(this.pointSegmentDistance(x,y,t.deepGateX,t.deepGateY,t.deepJoinX,t.deepJoinY)<=TOWN_TILE*3.15)return true;
+        continue;
+      }
       // The fortified footprint stays readable, while the surrounding cave
       // pocket uses a rounded margin instead of a giant square cutout.
       if(Math.abs(x-t.originX)<=t.halfW+TOWN_TILE*.8&&Math.abs(y-t.originY)<=t.halfH+TOWN_TILE*.8)return true;
@@ -1026,7 +1375,10 @@ export class World{
 
   townSafeZone(tx,ty){
     const x=(tx+.5)*TOWN_TILE,y=(ty+.5)*TOWN_TILE;
-    return this.townPlans().some(t=>Math.abs(x-t.originX)<=t.halfW+TOWN_TILE*1.5&&Math.abs(y-t.originY)<=t.halfH+TOWN_TILE*1.5);
+    return this.townPlans().some(t=>{
+      if(t.authored){const b=t.artBounds||{x:0,y:0,w:t.layoutW,h:t.layoutH},margin=TOWN_TILE*1.5,minX=t.templateOriginX+Math.min(0,b.x)-margin,maxX=t.templateOriginX+Math.max(t.layoutW,b.x+b.w)+margin,minY=t.templateOriginY+Math.min(0,b.y)-margin,maxY=t.templateOriginY+Math.max(t.layoutH,b.y+b.h)+margin;return x>=minX&&x<=maxX&&y>=minY&&y<=maxY;}
+      return Math.abs(x-t.originX)<=t.halfW+TOWN_TILE*1.5&&Math.abs(y-t.originY)<=t.halfH+TOWN_TILE*1.5;
+    });
   }
 
   townEnemyExclusionAtTile(tx,ty){
@@ -1045,6 +1397,7 @@ export class World{
 
   townObstacleCollides(x,y,r){
     for(const t of this.townPlans()){
+      if(t.authored){if((t.collisionRects||[]).some(rect=>this.townRectHit(x,y,r,rect)))return true;continue;}
       if(Math.abs(y-t.originY)>t.halfH+TOWN_TILE*6)continue;
       if(t.buildings.some(b=>this.townRectHit(x,y,r,b)))return true;
       if(t.stalls.some(b=>this.townRectHit(x,y,r,b)))return true;
@@ -1053,9 +1406,41 @@ export class World{
     return false;
   }
 
+  smithingBlacksmithAnchor(town=null){
+    const t=town||this.townPlans().find(v=>String(v?.id||'')===AUTHORED_START_TOWN_ID&&v?.authored);
+    if(!t)return null;
+    const npc=(t.npcs||[]).find(v=>String(v?.role||'')==='blacksmith');
+    return npc?{x:Number(npc.x)||0,y:Number(npc.y)||0,town:t,npc}:null;
+  }
+
+  smithingAnvilWorldPosition(town=null){
+    const anchor=this.smithingBlacksmithAnchor(town);if(!anchor)return null;
+    const cfg=this.devPlacementConfig?.smithingAnvil||this.defaultDevPlacementConfig().smithingAnvil;
+    return{x:anchor.x+(Number(cfg.offsetX)||0),y:anchor.y+(Number(cfg.offsetY)||0),scale:Number(cfg.scale)||1,anchor};
+  }
+
+  smithingStationEntities(t){
+    if(!t?.authored||String(t.id)!==AUTHORED_START_TOWN_ID)return[];
+    const out=[],objects=t.template?.objects||[];
+    const furnace=objects.find(o=>this.authoredFilename(o?.assetPath).toLowerCase()==='furnace1.png');
+    if(furnace){
+      const scale=Math.max(.01,Number(furnace.scale)||1),door=furnace.door||{},lx=(Number(furnace.x)||0)+(door.enabled===false?(Number(furnace.assetWidth)||32)*.5:(Number(door.x)||((Number(furnace.assetWidth)||32)*.5)))*scale,ly=(Number(furnace.y)||0)+(door.enabled===false?(Number(furnace.assetHeight)||32):(Number(door.y)||Number(furnace.assetHeight)||32))*scale;
+      out.push({type:'smithingstation',station:'furnace',id:`smithing:${t.id}:furnace`,x:t.templateOriginX+lx,y:t.templateOriginY+ly,town:t,drawAsset:false,label:'Furnace'});
+    }
+    const anvil=this.smithingAnvilWorldPosition(t);
+    if(anvil)out.push({type:'smithingstation',station:'anvil',id:`smithing:${t.id}:anvil`,x:anvil.x,y:anvil.y,town:t,drawAsset:true,label:'Anvil',scale:anvil.scale});
+    return out;
+  }
+
   townEntities(ptx,pty,rx,ry){
     const out=[];
     for(const t of this.townPlans()){
+      if(t.authored){
+        for(const npc of t.serviceNpcs||[]){const x=Number.isFinite(Number(npc.interactionX))?Number(npc.interactionX):npc.x,y=Number.isFinite(Number(npc.interactionY))?Number(npc.interactionY):npc.y,tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(Math.abs(tx-ptx)<=rx+5&&Math.abs(ty-pty)<=ry+5)out.push({type:'townlocation',id:`town:${t.id}:${npc.location.id}:${npc.id}`,x,y,location:npc.location,town:t,authoredNpc:true,npc});}
+        for(const npc of t.npcs||[]){if(npc.service)continue;const tx=Math.floor(npc.x/TILE),ty=Math.floor(npc.y/TILE);if(Math.abs(tx-ptx)<=rx+5&&Math.abs(ty-pty)<=ry+5)out.push({type:'townnpc',id:`townnpc:${t.id}:${npc.id}`,x:npc.x,y:npc.y,town:t,npc,authoredNpc:true});}
+        for(const station of this.smithingStationEntities(t)){const tx=Math.floor(station.x/TILE),ty=Math.floor(station.y/TILE);if(Math.abs(tx-ptx)<=rx+5&&Math.abs(ty-pty)<=ry+5)out.push(station);}
+        continue;
+      }
       const stx=Math.floor(t.signX/TILE),sty=Math.floor(t.signY/TILE);
       if(Math.abs(stx-ptx)<=rx+4&&Math.abs(sty-pty)<=ry+4)out.push({type:'signpost',id:`sign:${t.id}:gate`,x:t.signX,y:t.signY,town:t,signKind:'gate'});
       const atx=Math.floor(t.approachSignX/TILE),aty=Math.floor(t.approachSignY/TILE);
@@ -1282,11 +1667,86 @@ export class World{
     ctx.fillStyle=palette[kind]||'#ddd';ctx.font='bold 7px monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,Math.round(x),Math.round(y+.3));
   }
 
+  minimapEnemyDot(entity,ctx,originCx,originCy,cellPx){
+    if(!entity||!['foe','midboss','boss'].includes(entity.type)||entity.combatEvading)return;
+    const tx=Math.floor(Number(entity.x)/TILE),ty=Math.floor(Number(entity.y)/TILE);
+    if(!Number.isFinite(tx)||!Number.isFinite(ty)||!this.isExploredTile(tx,ty))return;
+    // Unlike landmark markers, enemies use their live position inside the map
+    // cell so movement is readable instead of snapping between cell centres.
+    const ex=(Number(entity.x)/TILE)/MINIMAP_CELL_TILES,ey=(Number(entity.y)/TILE)/MINIMAP_CELL_TILES;
+    const x=(ex-originCx)*cellPx,y=(ey-originCy)*cellPx;
+    const size=entity.type==='boss'||entity.type==='midboss'?4:3;
+    ctx.fillStyle='#d84a43';
+    ctx.fillRect(Math.round(x-size/2),Math.round(y-size/2),size,size);
+  }
+
+  minimapPickaxeImage(){
+    const rec=this.minimapOreIcon||(this.minimapOreIcon={img:null,ready:false,failed:false});
+    if(rec.ready)return rec.img;
+    if(rec.failed||rec.img)return null;
+    const img=new Image();rec.img=img;
+    img.onload=()=>{rec.ready=true;this.minimapDirty=true;this.drawMinimap(true);};
+    img.onerror=()=>{rec.failed=true;rec.ready=false;};
+    img.src=MINIMAP_ORE_ICON_PATH;
+    return null;
+  }
+
+  minimapOreMarker(tx,ty,ctx,originCx,originCy,cellPx){
+    if(!this.isExploredTile(Math.floor(tx),Math.floor(ty)))return;
+    const ex=(Number(tx)+.5)/MINIMAP_CELL_TILES,ey=(Number(ty)+.5)/MINIMAP_CELL_TILES;
+    const x=(ex-originCx)*cellPx,y=(ey-originCy)*cellPx;
+    const cfg=this.devPlacementConfig?.oreMinimap||this.defaultDevPlacementConfig().oreMinimap;
+    const size=Math.max(3,Number(cfg?.iconSize)||8),img=this.minimapPickaxeImage();
+    ctx.save();ctx.imageSmoothingEnabled=false;
+    if(img)ctx.drawImage(img,Math.round(x-size/2),Math.round(y-size/2),size,size);
+    else{
+      // Fallback is deliberately tiny and schematic. The real project icon at
+      // assets/ui/mini-pickaxe-icon.png takes over as soon as it loads.
+      ctx.translate(Math.round(x),Math.round(y));ctx.rotate(-Math.PI/4);
+      ctx.fillStyle='#8a6239';ctx.fillRect(-1,-1,2,6);
+      ctx.fillStyle='#b9c0bd';ctx.fillRect(-4,-3,8,2);ctx.fillRect(-4,-2,2,2);
+    }
+    ctx.restore();
+  }
+
+  minimapOreVeins(ptx,pty,rangeX,rangeY){
+    const out=[],tyLo=pty-rangeY-4,tyHi=pty+rangeY+4,sy0=Math.floor(tyLo/ORE_SECTOR_TILES)-1,sy1=Math.floor(tyHi/ORE_SECTOR_TILES)+1;
+    for(let sy=sy0;sy<=sy1;sy++){
+      const plan=this.orePlanForSector(sy);if(!plan)continue;
+      if(Math.abs(plan.tx-ptx)>rangeX+6||Math.abs(plan.ty-pty)>rangeY+6)continue;
+      const depth=depthFromY(plan.ty*TILE);if(depth<3||depth>=ORE_MAX_DEPTH)continue;
+      if(this.townSafeZone(plan.tx,plan.ty)||this.bossExclusionAtTile(plan.tx,plan.ty)||this.sideCarvesFloor(plan.tx,plan.ty)||this.hollowSafeZone(plan.tx,plan.ty))continue;
+      const id=this.entityId(`ore:${plan.oreId}`,plan.tx,plan.ty),vein=this.makeOreVein(plan.oreId,id,plan.tx,plan.ty,{veinClass:plan.veinClass});
+      if(this.discoveredOre.has(String(vein.id))&&!vein.depleted&&this.isExploredTile(plan.tx,plan.ty))out.push(vein);
+    }
+    for(const vein of this.mainOreClusterEntities(ptx,pty,rangeX+6,rangeY+6))if(this.discoveredOre.has(String(vein.id))&&!vein.depleted&&this.isExploredTile(vein.tx,vein.ty)&&!out.some(v=>v.id===vein.id))out.push(vein);
+    const starter=this.starterCopperVein(ptx,pty,rangeX+4,rangeY+4);
+    if(starter&&this.discoveredOre.has(String(starter.id))&&!starter.depleted&&this.isExploredTile(starter.tx,starter.ty)&&!out.some(v=>v.id===starter.id))out.push(starter);
+    for(const vein of this.sideOreEntities(ptx,pty,rangeX+8,rangeY+8))if(this.discoveredOre.has(String(vein.id))&&!vein.depleted&&this.isExploredTile(vein.tx,vein.ty)&&!out.some(v=>v.id===vein.id))out.push(vein);
+    return out;
+  }
+
+  drawMinimapOreClusters(veins,ctx,originCx,originCy,cellPx){
+    if(!Array.isArray(veins)||!veins.length)return;
+    const cfg=this.devPlacementConfig?.oreMinimap||this.defaultDevPlacementConfig().oreMinimap,clusterRadius=Math.max(2,Number(cfg?.clusterRadiusTiles)||10),clusters=[];
+    for(const vein of veins){
+      let cluster=clusters.find(g=>Math.hypot(vein.tx-g.cx,vein.ty-g.cy)<=clusterRadius);
+      if(!cluster){cluster={members:[],cx:vein.tx,cy:vein.ty};clusters.push(cluster);}
+      cluster.members.push(vein);cluster.cx=cluster.members.reduce((sum,v)=>sum+v.tx,0)/cluster.members.length;cluster.cy=cluster.members.reduce((sum,v)=>sum+v.ty,0)/cluster.members.length;
+    }
+    for(const cluster of clusters){
+      const marker=cluster.members.reduce((best,v)=>!best||Math.hypot(v.tx-cluster.cx,v.ty-cluster.cy)<Math.hypot(best.tx-cluster.cx,best.ty-cluster.cy)?v:best,null);
+      if(marker)this.minimapOreMarker(marker.tx,marker.ty,ctx,originCx,originCy,cellPx);
+    }
+  }
+
   drawMinimap(force=false){
     const canvas=this.minimapCanvas,ctx=this.minimapCtx;if(!this.minimapOpen||!canvas||!ctx)return;
-    // The map is discovery-driven, not an animation. Redraw only when discovery,
-    // landmarks, resize, or the player's minimap cell actually changes.
-    if(!force&&!this.minimapDirty)return;
+    // Static terrain/landmarks remain discovery-driven. Live enemy dots only need
+    // a low-frequency tactical refresh; a full minimap redraw is comparatively
+    // expensive because it samples terrain, landmarks and discovered ore.
+    const dynamicEnemies=(this.activeEntities||[]).some(e=>['foe','midboss','boss'].includes(e?.type)&&!e.combatEvading)||!!(this.combatFoe&&!this.combatFoe.combatEvading);
+    if(!force&&!this.minimapDirty&&(!dynamicEnemies||this.time-this.minimapLastDraw<.25))return;
     this.minimapDirty=false;this.minimapLastDraw=this.time;
     const cssW=Math.max(120,canvas.clientWidth||190),cssH=Math.max(90,canvas.clientHeight||138),dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
     const needW=Math.round(cssW*dpr),needH=Math.round(cssH*dpr);if(canvas.width!==needW||canvas.height!==needH){canvas.width=needW;canvas.height=needH;ctx.imageSmoothingEnabled=false;}
@@ -1325,12 +1785,24 @@ export class World{
       else if(event.type==='quest-target')this.minimapMarker(p.tx,p.ty,'Q','quest',ctx,originCx,originCy,cellPx);
       else if(event.type==='rescue-tracks'||event.type==='rescue-satchel'||event.type==='rescue-hideout'||event.type==='escort-pursuit')this.minimapMarker(p.tx,p.ty,'R','quest',ctx,originCx,originCy,cellPx);
     }
+    // Discovered, still-productive ore deposits. Nearby veins collapse into a
+    // single pickaxe marker so a rich pocket stays readable instead of becoming
+    // a stack of overlapping icons. Depleted veins disappear automatically.
+    this.drawMinimapOreClusters(this.minimapOreVeins(ptx,pty,rangeX,rangeY),ctx,originCx,originCy,cellPx);
+    // Live enemies: red dots, but only on already-explored terrain. This gives
+    // tactical local awareness without using the minimap to reveal fogged space.
+    const seenEnemyIds=new Set();
+    for(const e of this.activeEntities||[]){
+      if(!e?.id||seenEnemyIds.has(String(e.id)))continue;
+      if(['foe','midboss','boss'].includes(e.type)){seenEnemyIds.add(String(e.id));this.minimapEnemyDot(e,ctx,originCx,originCy,cellPx);}
+    }
+    if(this.combatFoe&&(!this.combatFoe.id||!seenEnemyIds.has(String(this.combatFoe.id))))this.minimapEnemyDot(this.combatFoe,ctx,originCx,originCy,cellPx);
     const px=(pc.cx-originCx+.5)*cellPx,py=(pc.cy-originCy+.5)*cellPx;ctx.fillStyle='#e6d9aa';ctx.fillRect(Math.round(px-2),Math.round(py-2),5,5);
     ctx.restore();ctx.strokeStyle='rgba(153,128,79,.55)';ctx.strokeRect(.5,.5,cssW-1,cssH-1);
   }
 
   start(){this.last=performance.now();requestAnimationFrame(t=>this.loop(t));}
-  setInputEnabled(v){this.inputEnabled=!!v;if(!v){this.joy.x=this.joy.y=0;this.player.moving=false;}}
+  setInputEnabled(v){this.inputEnabled=!!v;if(!v){this.cancelMining('ui');this.joy.x=this.joy.y=0;this.player.moving=false;}}
   setCombat(v){this.combat=!!v;if(!this.combat){if(this.playerFacingBeforeCombat)this.player.facing=this.playerFacingBeforeCombat;this.playerFacingBeforeCombat=null;this.combatFoe=null;this.combatEntityId=null;this.combatPlayerRange=10;this.combatPlayerMelee=true;this.combatPlayerInRange=false;this.combatEnemyThreatRange=10;this.combatThreatActive=false;this.combatPlayerAttacking=false;this.playerReachGuideVisible=false;this.autoApproach=false;}}
   setCombatPlayerAttacking(v=true){this.combatPlayerAttacking=!!v;}
   setAutoApproach(v=true){this.autoApproach=!!v;}
@@ -1407,7 +1879,7 @@ export class World{
       }
       const liveBossIds=new Set(next.filter(e=>e&&['midboss','boss'].includes(e.type)).map(e=>`worldevent:${e.id}`));
       for(const id of this.bossActors.keys())if(!liveBossIds.has(id))this.bossActors.delete(id);
-      this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.minimapDirty=true;
+      this.reachabilityCache.clear();this.wallCache.clear();this.minimapFloorCache.clear();this.ambientBoulderSpecCache?.clear();this.ordinaryEcologySectorCache?.clear();this.starterOreSpecCache=undefined;this.minimapDirty=true;
     }else this.worldEvents=next;
   }
 
@@ -1420,6 +1892,7 @@ export class World{
       const wantsMove=Math.hypot(m.x,m.y)>.08;
       this.player.moving=false;
       if(wantsMove){
+        if(this.activeMining)this.cancelMining('movement');
         this.autoApproach=false;
         if(Math.abs(m.y)>=Math.abs(m.x))this.player.dir=m.y<0?'up':'down';
         else{this.player.dir=m.x<0?'left':'right';this.player.facing=this.player.dir;}
@@ -1443,9 +1916,24 @@ export class World{
     const follow=1-Math.pow(.001,dt);
     this.camera.x+=(this.player.x-this.camera.x)*follow;
     this.camera.y+=(this.player.y-40-this.camera.y)*follow;
-    this.activeEntities=this.dynamicEntities();
+    const ptx=Math.floor(this.player.x/TILE),pty=Math.floor(this.player.y/TILE),radii=this.entityRadii(),refresh=this.activeEntityRefresh||{ptx:null,pty:null,rx:null,ry:null,last:-999};
+    // Rebuild static/procedural nearby entities immediately when entering a new
+    // tile, otherwise at 5 Hz as a safety refresh. Previously this scanned every
+    // visible tile at ~60 Hz, which made lag strongly dependent on what was on
+    // screen. Mutable roamer references still animate/think every frame below.
+    if(refresh.ptx!==ptx||refresh.pty!==pty||refresh.rx!==radii.rx||refresh.ry!==radii.ry||this.time-refresh.last>=.20){
+      this.activeEntities=this.dynamicEntities();
+      refresh.ptx=ptx;refresh.pty=pty;refresh.rx=radii.rx;refresh.ry=radii.ry;refresh.last=this.time;this.activeEntityRefresh=refresh;
+    }
+    for(const e of this.activeEntities){
+      if(e?.type!=='ore'||e.depleted||Math.hypot(e.x-this.player.x,e.y-this.player.y)>TILE*8)continue;
+      const id=String(e.id||'');if(!id||this.discoveredOre.has(id))continue;
+      this.discoveredOre.add(id);this.minimapDirty=true;
+    }
     if(this.inputEnabled){this.updateRoamers(dt,this.activeEntities);this.updateBossActors(dt,this.activeEntities);}
     this.separateWorldActors(this.activeEntities);
+    this.updateMining(dt);
+    this.updateSmithingForge(dt);
     this.updateNearby(this.activeEntities);
     this.updateCompanion(dt);
     this.updateAnimations(dt);
@@ -1471,16 +1959,28 @@ export class World{
     if(this.hasActiveThreats()||!this.inputEnabled)return;
     const current=this.townPlans().find(t=>t.current)||null;
     if(current){
-      const aligned=Math.abs(this.player.x-current.originX)<=TOWN_GATE_HALF_WIDTH+TILE;
-      const leftShallow=this.player.y>current.shallowGateY+TILE*.85;
-      const leftDeep=this.player.y<current.deepGateY-TILE*.85;
-      if(aligned&&(leftShallow||leftDeep)){
-        const key=`leave-town:${current.id}:${leftDeep?'deep':'shallow'}`;
-        if(this.transitionLock!==key){this.transitionLock=key;this.onSettlementLeave?.(current);}
-        return;
+      if(current.authored){
+        // The Workshop IN and OUT anchors are independent points; do not assume
+        // both gates share the settlement centre X like the old generated town.
+        const gateHalf=TILE*3.1,deepAligned=Math.abs(this.player.x-current.deepGateX)<=gateHalf,shallowAligned=Math.abs(this.player.x-current.shallowGateX)<=gateHalf,leftDeep=deepAligned&&this.player.y<current.deepGateY,leftShallow=shallowAligned&&this.player.y>current.shallowGateY;
+        if(leftDeep||leftShallow){const key=`leave-town:${current.id}:${leftDeep?'deep':'shallow'}`;if(this.transitionLock!==key){this.transitionLock=key;this.onSettlementLeave?.(current);}return;}
+      }else{
+        const aligned=Math.abs(this.player.x-current.originX)<=TOWN_GATE_HALF_WIDTH+TILE;
+        const leftShallow=this.player.y>current.shallowGateY+TILE*.85;
+        const leftDeep=this.player.y<current.deepGateY-TILE*.85;
+        if(aligned&&(leftShallow||leftDeep)){
+          const key=`leave-town:${current.id}:${leftDeep?'deep':'shallow'}`;
+          if(this.transitionLock!==key){this.transitionLock=key;this.onSettlementLeave?.(current);}
+          return;
+        }
       }
     }else{
       for(const t of this.townPlans()){
+        if(t.authored){
+          const gateHalf=TILE*3.1,deepEntry=Math.abs(this.player.x-t.deepGateX)<=gateHalf&&this.player.y>=t.deepGateY&&this.player.y<t.deepGateY+TILE*3.5,shallowEntry=Math.abs(this.player.x-t.shallowGateX)<=gateHalf&&this.player.y<=t.shallowGateY&&this.player.y>t.shallowGateY-TILE*3.5;
+          if(deepEntry||shallowEntry){const key=`enter-town:${t.id}`;if(this.transitionLock!==key){this.transitionLock=key;this.visitedSettlements.add(t.id);this.onSettlementEnter?.(t);}return;}
+          continue;
+        }
         const insideVertical=this.player.y<t.shallowGateY-TILE*.35&&this.player.y>t.deepGateY+TILE*.35;
         const aligned=Math.abs(this.player.x-t.originX)<=TOWN_GATE_HALF_WIDTH+TILE*.65;
         if(insideVertical&&aligned){
@@ -1626,12 +2126,32 @@ export class World{
     this.combatShowPlayerReach=!!showPlayerReach;
   }
 
+  oreCollides(x,y,r=this.player.r){
+    for(const e of this.activeEntities){
+      if(e?.type!=='ore')continue;
+      const ex=Number(e.x)||0,ey=(Number(e.y)||0)+3,cls=String(e.veinClass||'standard'),sizes=this.devPlacementConfig?.oreVeins||this.defaultDevPlacementConfig().oreVeins,scale=Math.max(.6,Number(sizes?.[`${cls}Scale`])||1);
+      const baseRX=cls==='rich'?16:cls==='remote'?13:11,baseRY=cls==='rich'?10:cls==='remote'?8:7;
+      const rx=(e.depleted?baseRX*.72:baseRX)*scale+Math.max(1,Number(r)||0),ry=(e.depleted?baseRY*.68:baseRY)*scale+Math.max(1,Number(r)||0)*.85;
+      const dx=(x-ex)/Math.max(1,rx),dy=(y-ey)/Math.max(1,ry);
+      if(dx*dx+dy*dy<1)return true;
+    }
+    return false;
+  }
+
+  smithingStationCollides(x,y,r=this.player.r){
+    const anvil=this.smithingAnvilWorldPosition();if(!anvil)return false;
+    const rr=7*Math.max(.6,Number(anvil.scale)||1)+Math.max(1,Number(r)||0);
+    return Math.hypot(x-anvil.x,y-(anvil.y+2))<rr;
+  }
+
   collisionReason(x,y,r,{ignoreBossGate=false}={}){
     if(this.sideBarrierCollides(x,y,r))return 'side-stage';
     if(this.townObstacleCollides(x,y,r))return 'town-structure';
     if(!ignoreBossGate){const bossGate=this.bossGateReason(x,y,r);if(bossGate)return bossGate;}
     if([[x-r,y-r],[x+r,y-r],[x-r,y+r],[x+r,y+r]].some(([px,py])=>this.isWall(Math.floor(px/TILE),Math.floor(py/TILE))))return 'rock';
     if(this.ambientBoulderCollides(x,y,r))return 'boulder';
+    if(this.oreCollides(x,y,r))return 'ore';
+    if(this.smithingStationCollides(x,y,r))return 'anvil';
     return null;
   }
 
@@ -2180,6 +2700,7 @@ export class World{
     if(depth<3)return false;
     if(this.townSafeZone(tx,ty)||this.sideCarvesFloor(tx,ty))return false;
     if(this.bossExclusionAtTile(tx,ty)||this.townEnemyExclusionAtTile(tx,ty)||this.hollowSafeZone(tx,ty))return false;
+    const x=(tx+.5)*TILE,y=(ty+.5)*TILE;if(this.ambientBoulderCollides(x,y,10)||this.mainOreBlocksTile(tx,ty,2))return false;
     return this.isSpawnAccessible(tx,ty);
   }
 
@@ -2203,9 +2724,11 @@ export class World{
   }
 
   ordinaryEcologySectorSpawns(sx,sy,profiles){
+    const cacheKey=`${sx}:${sy}`;
+    if(this.ordinaryEcologySectorCache.has(cacheKey))return this.ordinaryEcologySectorCache.get(cacheKey);
     const size=ORDINARY_ECOLOGY_SECTOR_TILES,x0=sx*size,y0=sy*size;
     const depth=depthFromY((y0+size*.5)*TILE),eligible=this.ecologyProfilesAtDepth(profiles,depth),out=[];
-    if(!eligible.length)return out;
+    if(!eligible.length){this.ordinaryEcologySectorCache.set(cacheKey,out);return out;}
 
     // Each profile gets a deterministic roll keyed by its own id. Crucially, the
     // roll does not use array position or pool size: adding another monster later
@@ -2229,6 +2752,7 @@ export class World{
       }
       if(placed)out.push(placed);
     }
+    this.ordinaryEcologySectorCache.set(cacheKey,out);
     return out;
   }
 
@@ -2266,6 +2790,7 @@ export class World{
       }else if(!this.isSpawnAccessible(tx,ty)||this.hollowSafeZone(tx,ty)||this.townEnemyExclusionAtTile(tx,ty)||this.bossExclusionAtTile(tx,ty)||this.sideCarvesFloor(tx,ty))continue;
       const x=(tx+.5)*TILE,y=(ty+.5)*TILE;
       if(Math.hypot(x-e.homeX,y-e.homeY)>TILE*4.2)continue;
+      if(this.collides(x,y,8,{ignoreBossGate:true}))continue;
       e.targetX=x;e.targetY=y;e.roamTimer=1.2+Math.random()*2.8;return;
     }
     e.targetX=e.homeX;e.targetY=e.homeY;e.roamTimer=1+Math.random()*2;
@@ -2340,6 +2865,7 @@ export class World{
       const ox=Math.floor(hash2(seed,i+41,this.seed+3533)*3)-1,oy=Math.floor(hash2(seed,i+53,this.seed+3541)*3)-1;
       if(this.sidePlanCarvesFloor(plan,tx+ox,ty+oy)){tx+=ox;ty+=oy;}
       if(!this.sidePlanCarvesFloor(plan,tx,ty)||this.isWall(tx,ty))continue;
+      if(this.sideOreBlocksTile(plan,tx,ty,2.5))continue;
       if(out.some(p=>Math.hypot(p.tx-tx,p.ty-ty)<4))continue;
       out.push({tx,ty,index:out.length});
     }
@@ -2347,33 +2873,24 @@ export class World{
   }
 
   sideEcologyEntities(ptx,pty,rx,ry){
-    const out=[],seen=new Set(),plans=[];
-    if(this.activeSidePlan){plans.push(this.activeSidePlan);seen.add(this.activeSidePlan.id);}
-    for(const p of this.persistentSidePlans)if(p&&!seen.has(p.id)){seen.add(p.id);plans.push(p);}
-    const profiles=this.getProfiles();
-    if(!profiles.length)return out;
-    for(const plan of plans){
-      if(!plan||Number(plan.depth||0)<this.sideOrganicStartDepth)continue;
-      const points=this.sideEcologySpawnPoints(plan);
-      if(!points.length)continue;
-      const d=Math.max(0,Number(plan.depth)||0),eligible=this.ecologyProfilesAtDepth(profiles,d),usedPoints=new Set();
-      for(const foe of eligible){
-        const creatureSeed=stableCreatureSeed(foe.id),chance=this.ecologySpawnChance(foe,d);
-        const roll=hash2((Number(plan.shapeSeed)||plan.mouthTx)+(creatureSeed%997),plan.mouthTy-(creatureSeed%991),this.seed+3761+(creatureSeed%100003));
-        if(roll>=chance)continue;
-        const startIndex=Math.floor(hash2(creatureSeed%10007,Number(plan.shapeSeed)||0,this.seed+3767)*points.length);
-        let pointIndex=-1;
-        for(let step=0;step<points.length;step++){const idx=(startIndex+step)%points.length;if(!usedPoints.has(idx)){pointIndex=idx;break;}}
-        if(pointIndex<0)continue;
-        usedPoints.add(pointIndex);
-        const sp=points[pointIndex];
-        if(Math.abs(sp.tx-ptx)>rx+5||Math.abs(sp.ty-pty)>ry+5)continue;
-        const id=`sidefoe:${plan.id}:${foe.id}`;
-        if(this.defeated.has(id)||id===this.combatEntityId)continue;
-        const e=this.getRoamer(id,sp.tx,sp.ty,foe);e.sidePlanId=String(plan.id);out.push(e);
+    const out=[],profiles=this.getProfiles();if(!profiles.length)return out;
+    for(const plan of this.sideContentPlans()){
+      if(!plan)continue;const points=this.sideEcologySpawnPoints(plan);if(!points.length)continue;const d=Math.max(0,Number(plan.depth)||0),eligible=this.ecologyProfilesAtDepth(profiles,d);if(!eligible.length)continue;
+      const wanted=Math.min(points.length,d<150?2:d<320?3:4),seed=Number(plan.shapeSeed)||plan.mouthTx;
+      for(let i=0;i<wanted;i++){
+        const sp=points[i%points.length];if(Math.abs(sp.tx-ptx)>rx+5||Math.abs(sp.ty-pty)>ry+5)continue;const foe=eligible[Math.floor(hash2(seed,i+3773,this.seed+3779)*eligible.length)%eligible.length],id=`sidefoe:${plan.id}:${i}:${foe.id}`;
+        if(this.defeated.has(id)||id===this.combatEntityId)continue;const e=this.getRoamer(id,sp.tx,sp.ty,foe);e.sidePlanId=String(plan.id);out.push(e);
       }
     }
     return out;
+  }
+
+  sideBonusEntities(ptx,pty,rx,ry){
+    const out=[];for(const plan of this.sideContentPlans()){
+      const g=this.sideNetworkGeometry(plan),seed=Number(plan.shapeSeed)||plan.mouthTx,candidates=[];if(g?.rooms?.length){for(const r of g.rooms)candidates.push({tx:Math.round(r.x),ty:Math.round(r.y)});}else{for(const u of [.55,.82].map(v=>(Number(plan.lengthTiles)||50)*v)){const q=this.sidePoint(plan,u);candidates.push({tx:Math.round(q.tx),ty:Math.round(q.ty)});}}
+      if(!candidates.length)continue;const far=candidates[candidates.length-1],chestId=`sidechest:${plan.id}`;if(!this.opened.has(chestId)&&Math.abs(far.tx-ptx)<=rx+5&&Math.abs(far.ty-pty)<=ry+5&&!this.sideOreBlocksTile(plan,far.tx,far.ty,2.2))out.push({type:'chest',id:chestId,tx:far.tx,ty:far.ty,x:(far.tx+.5)*TILE,y:(far.ty+.5)*TILE});
+      if(candidates.length>1&&hash2(seed,6121,this.seed+6121)>.25){const q=candidates[0],glintId=`sideglint:${plan.id}`;if(!this.opened.has(glintId)&&Math.abs(q.tx-ptx)<=rx+5&&Math.abs(q.ty-pty)<=ry+5&&!this.sideOreBlocksTile(plan,q.tx,q.ty,2.2))out.push({type:'glint',id:glintId,tx:q.tx,ty:q.ty,x:(q.tx+.5)*TILE,y:(q.ty+.5)*TILE});}
+    }return out;
   }
 
   hollowPosition(depth){
@@ -2424,6 +2941,238 @@ export class World{
     return out;
   }
 
+  oreVariantForSector(sy){
+    const r=hash2(sy,5103,this.seed+5103),std=ORE_VARIANTS.standard.weight,remote=ORE_VARIANTS.remote.weight;
+    return r<std?'standard':r<std+remote?'remote':'rich';
+  }
+
+  oreCapacity(oreId,tx,ty,veinClass='standard'){
+    const tin=String(oreId||'copper')==='tin',variant=ORE_VARIANTS[veinClass]||ORE_VARIANTS.standard,range=tin?variant.tin:variant.copper,min=range[0],max=range[1],span=max-min+1;
+    return min+Math.floor(hash2(tx,ty,this.seed+(tin?5129:5107))*span);
+  }
+
+  oreRemainingFor(id,maxUnits){
+    if(this.oreRemaining.has(id))return clamp(Math.floor(Number(this.oreRemaining.get(id))||0),0,maxUnits);
+    return maxUnits;
+  }
+
+  makeOreVein(oreId,id,tx,ty,{starter=false,veinClass='standard'}={}){
+    const kind=String(oreId||'copper')==='tin'?'tin':'copper',cls=starter?'standard':(ORE_VARIANTS[veinClass]?veinClass:'standard'),maxUnits=this.oreCapacity(kind,tx,ty,cls),remaining=this.oreRemainingFor(id,maxUnits);
+    const tin=kind==='tin',baseName=tin?'Tin Vein':'Copper Vein',oreName=cls==='rich'?`Rich ${baseName}`:cls==='remote'?`Large ${baseName}`:baseName;
+    return{type:'ore',oreId:kind,oreName,itemName:tin?'Tin Ore':'Copper Ore',id,tx,ty,x:(tx+.5)*TILE,y:(ty+.5)*TILE,maxUnits,remaining,depleted:remaining<=0,starter,veinClass:cls};
+  }
+
+  makeCopperVein(id,tx,ty,options={}){return this.makeOreVein('copper',id,tx,ty,options);}
+
+  starterCopperSpec(){
+    if(this.starterOreSpecCache!==undefined)return this.starterOreSpecCache||null;
+    const baseTy=Math.floor(yFromDepth(STARTER_COPPER_DEPTH)/TILE),primarySide=hash2(baseTy,611,this.seed+5113)>.5?1:-1;
+    let best=null;
+    // The teaching vein has one deterministic home. Cache the expensive search;
+    // callers only need to test whether that home is currently in range.
+    for(const jy of [0,-2,2,-4,4,-6,6,-8,8,-10,10]){
+      const ty=baseTy+jy,center=this.corridorCenter(ty);
+      for(const side of [primarySide,-primarySide]){
+        const edge=this.mainRouteEdgeTx(ty,center,side);
+        for(const separation of [6,7,8,9,10,11]){
+          const tx=edge+side*separation;
+          if(!this.isSpawnAccessible(tx,ty)||this.walkableNeighborCount(tx,ty)<3)continue;
+          if(this.hollowSafeZone(tx,ty)||this.bossExclusionAtTile(tx,ty)||this.townSafeZone(tx,ty)||this.sideCarvesFloor(tx,ty))continue;
+          best={tx,ty};break;
+        }
+        if(best)break;
+      }
+      if(best)break;
+    }
+    this.starterOreSpecCache=best||false;
+    return best;
+  }
+
+  starterCopperVein(ptx,pty,rx,ry){
+    const best=this.starterCopperSpec();
+    if(!best||Math.abs(best.tx-ptx)>rx+3||Math.abs(best.ty-pty)>ry+3)return null;
+    return this.makeCopperVein('ore:copper:starter',best.tx,best.ty,{starter:true,veinClass:'standard'});
+  }
+
+  orePocketScore(tx,ty,preferredSeparation,routeEdgeTx){
+    const open=this.walkableNeighborCount(tx,ty),separation=Math.abs(tx-routeEdgeTx);
+    let edge=0;
+    for(let oy=-2;oy<=2;oy++)for(let ox=-2;ox<=2;ox++)if(Math.abs(ox)+Math.abs(oy)>=2&&this.isWall(tx+ox,ty+oy))edge++;
+    // High open-neighbour counts favour pockets/chambers. A little nearby wall
+    // gives chamber-edge deposits a bonus without forcing veins into corridors.
+    return open*5+Math.min(7,edge)*1.2-Math.abs(separation-preferredSeparation)*.35;
+  }
+
+  orePlanForSector(sy){
+    sy=Math.floor(Number(sy)||0);if(this.orePlanCache.has(sy))return this.orePlanCache.get(sy);
+    if(hash2(sy,5077,this.seed+5077)>=ORE_SECTOR_CHANCE){this.orePlanCache.set(sy,null);return null;}
+    const size=ORE_SECTOR_TILES,baseTy=sy*size+2+Math.floor(hash2(sy,5081,this.seed+5081)*(size-4)),primarySide=hash2(sy,5099,this.seed+5099)>.5?1:-1;
+    const veinClass=this.oreVariantForSector(sy),variant=ORE_VARIANTS[veinClass],preferred=variant.minOffset+Math.floor(hash2(sy,5101,this.seed+5101)*(variant.maxOffset-variant.minOffset+1));
+    const yJitter=[0,-2,2,-4,4,-6,6,-8,8,-10,10,-12,12],offsetJitter=[0,2,-2,4,-4,6,-6,8,-8,10,-10];let plan=null,bestScore=-Infinity;
+    for(const jy of yJitter){
+      const ty=baseTy+jy;if(Math.floor(ty/size)!==sy)continue;
+      const center=this.corridorCenter(ty);
+      for(const side of [primarySide,-primarySide]){
+        const routeEdge=this.mainRouteEdgeTx(ty,center,side);
+        for(const jo of offsetJitter){
+          const separation=clamp(preferred+jo,variant.minOffset,variant.maxOffset),tx=routeEdge+side*separation;
+          if(Math.abs(tx-routeEdge)<variant.minOffset||!this.isSpawnAccessible(tx,ty)||this.walkableNeighborCount(tx,ty)<3)continue;
+          if(this.hollowSafeZone(tx,ty)||this.bossExclusionAtTile(tx,ty)||this.townSafeZone(tx,ty)||this.sideCarvesFloor(tx,ty))continue;
+          const score=this.orePocketScore(tx,ty,preferred,routeEdge)+hash2(tx,ty,this.seed+5111)*.5;
+          if(score<=bestScore)continue;
+          const oreId=hash2(sy,5119,this.seed+5119)<TIN_VEIN_SHARE?'tin':'copper';plan={sy,tx,ty,oreId,veinClass};bestScore=score;
+        }
+      }
+    }
+    this.orePlanCache.set(sy,plan);return plan;
+  }
+
+  isOreCandidate(tx,ty){const plan=this.orePlanForSector(Math.floor(ty/ORE_SECTOR_TILES));return !!plan&&plan.tx===tx&&plan.ty===ty?plan:null;}
+
+  oreClusterExtrasForPlan(plan){
+    if(!plan)return[];const key=`${plan.sy}:${plan.tx}:${plan.ty}:${plan.veinClass}:${plan.oreId}`;if(this.oreClusterPlanCache.has(key))return this.oreClusterPlanCache.get(key);
+    const depth=Math.max(0,depthFromY(plan.ty*TILE)),variant=ORE_VARIANTS[plan.veinClass]||ORE_VARIANTS.standard;
+    // Cluster chance and size are identical for Copper and Tin. This preserves
+    // the useful "found a deposit" feeling without turning Tin into the dominant
+    // ore merely because only Tin used to receive extra veins.
+    const clusterChance=plan.veinClass==='rich'?.88:plan.veinClass==='remote'?.68:.48;
+    if(hash2(plan.sy,5225,this.seed+5225)>=clusterChance){this.oreClusterPlanCache.set(key,[]);return[];}
+    const roll=hash2(plan.sy,5227,this.seed+5227);let total=depth<140?2:(depth<300?(roll>.52?3:2):(roll>.48?4:3));if(plan.veinClass==='rich')total=Math.min(4,total+1);
+    const center=this.corridorCenter(plan.ty),side=plan.tx<center?-1:1,out=[];
+    const offsets=[[3,0],[-3,1],[2,-2],[-2,-2],[5,2],[-5,-1],[1,4],[-1,-4],[6,-3],[-6,3],[4,4],[-4,-4]];
+    const start=Math.floor(hash2(plan.sy,5231,this.seed+5231)*offsets.length);
+    for(let step=0;step<offsets.length&&out.length<total-1;step++){
+      const [ox0,oy]=(offsets[(start+step)%offsets.length]),ox=ox0*side,tx=plan.tx+ox,ty=plan.ty+oy,routeEdge=this.mainRouteEdgeTx(ty,this.corridorCenter(ty),side);
+      if(Math.abs(tx-routeEdge)<Math.max(2,variant.minOffset-1)||!this.isSpawnAccessible(tx,ty)||this.walkableNeighborCount(tx,ty)<2)continue;
+      if(this.hollowSafeZone(tx,ty)||this.bossExclusionAtTile(tx,ty)||this.townSafeZone(tx,ty)||this.sideCarvesFloor(tx,ty))continue;
+      if(out.some(v=>Math.hypot(v.tx-tx,v.ty-ty)<2.4))continue;out.push({tx,ty});
+    }
+    this.oreClusterPlanCache.set(key,out);return out;
+  }
+  mainOreClusterEntities(ptx,pty,rx,ry){
+    const out=[],sy0=Math.floor((pty-ry-8)/ORE_SECTOR_TILES)-1,sy1=Math.floor((pty+ry+8)/ORE_SECTOR_TILES)+1;
+    for(let sy=sy0;sy<=sy1;sy++){
+      const plan=this.orePlanForSector(sy);if(!plan)continue;const extras=this.oreClusterExtrasForPlan(plan);
+      for(let i=0;i<extras.length;i++){
+        const q=extras[i];if(Math.abs(q.tx-ptx)>rx+5||Math.abs(q.ty-pty)>ry+5)continue;
+        const id=this.entityId(`ore:${plan.oreId}`,q.tx,q.ty);out.push(this.makeOreVein(plan.oreId,id,q.tx,q.ty,{veinClass:plan.veinClass}));
+      }
+    }
+    return out;
+  }
+
+  mainOreBlocksTile(tx,ty,padding=1.6){
+    const sy0=Math.floor((ty-padding)/ORE_SECTOR_TILES)-1,sy1=Math.floor((ty+padding)/ORE_SECTOR_TILES)+1;
+    for(let sy=sy0;sy<=sy1;sy++){const plan=this.orePlanForSector(sy);if(plan&&Math.hypot(plan.tx-tx,plan.ty-ty)<=padding)return true;if(plan)for(const q of this.oreClusterExtrasForPlan(plan))if(Math.hypot(q.tx-tx,q.ty-ty)<=padding)return true;}
+    const starter=this.starterCopperSpec();
+    return !!(starter&&Math.hypot(starter.tx-tx,starter.ty-ty)<=padding);
+  }
+
+  sideContentPlans(){
+    const plans=[],seen=new Set(),push=p=>{if(!p||seen.has(String(p.id)))return;seen.add(String(p.id));plans.push(p);};push(this.activeSidePlan);for(const p of this.persistentSidePlans||[])push(p);for(const e of this.worldEvents||[])if(e?.type==="sidepassage")push(this.prospectiveSidePlan(e));return plans;
+  }
+  sideOreSpecsForPlan(plan){
+    if(!plan)return[];const depth=Math.max(0,Number(plan.depth)||depthFromY((Number(plan.mouthTy)||0)*TILE));if(depth<3||depth>=ORE_MAX_DEPTH)return[];
+    const seed=Number(plan.shapeSeed)||Math.floor(hash2(plan.mouthTx,plan.mouthTy,this.seed+5161)*1000000),g=this.sideNetworkGeometry(plan),candidates=[];
+    if(g?.rooms?.length){for(let i=0;i<g.rooms.length;i++){const r=g.rooms[i];for(const phase of [.42,.68]){const a=hash2(seed,i+71+Math.round(phase*100),this.seed+5167)*Math.PI*2;candidates.push({tx:Math.round(r.x+Math.cos(a)*r.rx*phase),ty:Math.round(r.y+Math.sin(a)*r.ry*phase)});}}}
+    else{for(const u of [Math.max(10,(Number(plan.lengthTiles)||50)*.42),Math.max(18,(Number(plan.lengthTiles)||50)*.66),Math.max(24,(Number(plan.lengthTiles)||50)*.86)]){const q=this.sidePoint(plan,u);candidates.push({tx:Math.round(q.tx),ty:Math.round(q.ty)});}}
+    const wanted=depth<150?3:depth<320?4:5,out=[],jitter=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[2,0],[-2,0],[0,2],[0,-2],[1,1],[-1,1],[1,-1],[-1,-1],[3,0],[-3,0]];
+    const firstTin=hash2(seed,107,this.seed+5181)<.50;
+    for(let i=0;i<candidates.length&&out.length<wanted;i++){
+      const base=candidates[(i+Math.floor(hash2(seed,i+109,this.seed+5189)*candidates.length))%candidates.length];let found=null;
+      for(const [ox,oy] of jitter){const tx=base.tx+ox,ty=base.ty+oy;if(!this.sidePlanCarvesFloor(plan,tx,ty)||this.isWall(tx,ty))continue;if(this.hollowSafeZone(tx,ty)||this.townSafeZone(tx,ty)||this.bossExclusionAtTile(tx,ty))continue;if(out.some(v=>Math.hypot(v.tx-tx,v.ty-ty)<3.1))continue;found={tx,ty};break;}
+      if(!found)continue;const slot=out.length,oreId=((slot+(firstTin?0:1))%2===0)?'tin':'copper',veinClass=slot<2?'remote':'rich',id=`ore:side:${String(plan.id||seed)}:${slot}`;out.push(this.makeOreVein(oreId,id,found.tx,found.ty,{veinClass}));
+    }
+    return out;
+  }
+
+  sideOreEntities(ptx,pty,rx,ry){const out=[];for(const plan of this.sideContentPlans())for(const vein of this.sideOreSpecsForPlan(plan))if(Math.abs(vein.tx-ptx)<=rx+5&&Math.abs(vein.ty-pty)<=ry+5)out.push(vein);return out;}
+
+  sideOreBlocksTile(plan,tx,ty,padding=2){return this.sideOreSpecsForPlan(plan).some(v=>Math.hypot(v.tx-tx,v.ty-ty)<=padding);}
+
+  beginMining(entity,config={}){
+    if(!entity||entity.type!=='ore'||entity.depleted||this.hasActiveThreats()||!this.inputEnabled)return false;
+    if(Math.hypot(entity.x-this.player.x,entity.y-this.player.y)>44)return false;
+    const swingMs=Math.max(750,Number(config.swingMs)||2400);
+    this.autoApproach=false;
+    if(Math.abs(entity.x-this.player.x)>=Math.abs(entity.y-this.player.y))this.player.facing=entity.x<this.player.x?'left':'right';
+    this.activeMining={id:String(entity.id),entity:{...entity},swingMs,elapsedMs:0,minedUnits:0,swingFlash:0,impactFlash:0,toolName:String(config.toolName||'Pickaxe')};
+    this.onToast?.(`Mining ${entity.oreName||'vein'}… move to stop.`);
+    return true;
+  }
+
+  isMining(){return !!this.activeMining;}
+
+  cancelMining(reason='cancelled'){
+    const mining=this.activeMining;if(!mining)return false;
+    this.activeMining=null;
+    if(reason==='threat')this.onToast?.('Mining interrupted by danger.');
+    return true;
+  }
+
+  updateMining(dt){
+    const mining=this.activeMining;if(!mining)return;
+    if(!this.inputEnabled){this.cancelMining('ui');return;}
+    if(this.hasActiveThreats()){this.cancelMining('threat');return;}
+    const current=(this.activeEntities||[]).find(e=>e?.id===mining.id)||mining.entity;
+    const maxUnits=Math.max(1,Number(current.maxUnits)||Number(mining.entity.maxUnits)||1),remaining=this.oreRemainingFor(mining.id,maxUnits);
+    if(remaining<=0){this.activeMining=null;return;}
+    if(Math.hypot(current.x-this.player.x,current.y-this.player.y)>46){this.cancelMining('distance');return;}
+    mining.entity={...current,remaining,maxUnits,depleted:false};
+    mining.elapsedMs+=Math.max(0,dt*1000);
+    mining.swingFlash=Math.max(0,(Number(mining.swingFlash)||0)-dt);
+    mining.impactFlash=Math.max(0,(Number(mining.impactFlash)||0)-dt);
+    while(mining.elapsedMs>=mining.swingMs&&this.activeMining===mining){
+      mining.elapsedMs-=mining.swingMs;
+      const before=this.oreRemainingFor(mining.id,maxUnits),after=Math.max(0,before-1);
+      this.oreRemaining.set(mining.id,after);mining.minedUnits++;mining.swingFlash=.22;mining.impactFlash=.18;
+      this.spawnMiningDebris(current.x,current.y-4,6);
+      const detail={id:mining.id,oreId:current.oreId||'copper',oreName:current.oreName||'Copper Vein',itemName:current.itemName||'Copper Ore',remaining:after,maxUnits,x:current.x,y:current.y};
+      const award=this.onMineUnit?.(detail);
+      if(award===false||award?.ok===false){this.oreRemaining.set(mining.id,before);this.cancelMining('cancelled');return;}
+      this.spawnText(current.x,current.y-10,`+1 ${String(detail.itemName||'ORE').replace(/ Ore$/i,'').toUpperCase()}`,'status');
+      this.minimapDirty=true;
+      if(after<=0){
+        this.discoveredOre.delete(String(mining.id));
+        this.minimapDirty=true;
+        this.activeMining=null;
+        this.onToast?.(`${detail.oreName} depleted.`);
+        this.onMineComplete?.({...detail,minedUnits:mining.minedUnits});
+        break;
+      }
+    }
+  }
+
+  beginSmithingForge(detail={},onComplete=null){
+    if(this.activeSmithingForge||this.hasActiveThreats())return false;
+    const anvil=this.smithingAnvilWorldPosition();if(!anvil)return false;
+    if(Math.hypot(anvil.x-this.player.x,anvil.y-this.player.y)>54)return false;
+    const durationMs=Math.max(1800,Number(detail.durationMs)||5000),cfg=this.devPlacementConfig?.smithingHammer||this.defaultDevPlacementConfig().smithingHammer,cycleMs=Math.max(420,Number(cfg.cycleMs)||820);
+    if(Math.abs(anvil.x-this.player.x)>=Math.abs(anvil.y-this.player.y))this.player.facing=anvil.x<this.player.x?'left':'right';
+    this.autoApproach=false;this.player.moving=false;
+    this.activeSmithingForge={recipeId:String(detail.recipeId||''),name:String(detail.name||'Item'),bars:Math.max(1,Math.floor(Number(detail.bars)||1)),durationMs,elapsedMs:0,cycleMs,lastStrike:-1,impactFlash:0,onComplete:typeof onComplete==='function'?onComplete:null,anvilX:anvil.x,anvilY:anvil.y};
+    this.onToast?.(`Forging ${this.activeSmithingForge.name}…`);
+    return true;
+  }
+
+  isSmithingForge(){return !!this.activeSmithingForge;}
+
+  updateSmithingForge(dt){
+    const f=this.activeSmithingForge;if(!f)return;
+    f.elapsedMs=Math.min(f.durationMs,f.elapsedMs+Math.max(0,dt*1000));
+    f.impactFlash=Math.max(0,(Number(f.impactFlash)||0)-dt);
+    const cfg=this.devPlacementConfig?.smithingHammer||this.defaultDevPlacementConfig().smithingHammer,cycleMs=Math.max(420,Number(cfg.cycleMs)||f.cycleMs||820),strike=Math.floor(f.elapsedMs/cycleMs),cycle=(f.elapsedMs%cycleMs)/cycleMs;
+    if(cycle>=.58&&strike!==f.lastStrike){f.lastStrike=strike;f.impactFlash=.16;this.spawnSmithingSparks(f.anvilX,f.anvilY-7,7);}
+    if(f.elapsedMs>=f.durationMs){
+      const done=f.onComplete,detail={recipeId:f.recipeId,name:f.name,bars:f.bars},x=f.anvilX,y=f.anvilY;
+      this.activeSmithingForge=null;this.spawnText(x,y-10,'FORGED','status');done?.(detail);
+    }
+  }
+
+  spawnSmithingSparks(x,y,count=6){
+    for(let i=0;i<count;i++){const angle=-2.75+Math.random()*2.35,speed=28+Math.random()*36,size=Math.random()<.72?1:2,life=.22+Math.random()*.20;this.particles.push({kind:'spark',x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-4,size,life,max:life,tone:Math.random()<.55?'#f3c56d':'#d98242'});}
+  }
+
   isChestCandidate(tx,ty){
     // One deterministic candidate per large sector, and only some sectors are
     // eligible at all. This replaces the old per-floor-tile roll that produced
@@ -2455,10 +3204,20 @@ export class World{
         const id=this.entityId('glint',tx,ty);
         if(!this.opened.has(id)&&this.isSpawnAccessible(tx,ty))out.push({type:'glint',id,tx,ty,x:(tx+.5)*TILE,y:(ty+.5)*TILE});
       }
+      const orePlan=!authoredZone&&!bossExclusion&&d>=3&&d<ORE_MAX_DEPTH?this.isOreCandidate(tx,ty):null;
+      if(orePlan&&this.isSpawnAccessible(tx,ty)&&!this.hollowSafeZone(tx,ty)){
+        const id=this.entityId(`ore:${orePlan.oreId}`,tx,ty);
+        out.push(this.makeOreVein(orePlan.oreId,id,tx,ty,{veinClass:orePlan.veinClass}));
+      }
     }
+    const starterOre=this.starterCopperVein(ptx,pty,rx,ry);
+    if(starterOre&&!out.some(e=>e.id===starterOre.id))out.push(starterOre);
+    for(const vein of this.mainOreClusterEntities(ptx,pty,rx,ry))if(!out.some(e=>e.id===vein.id))out.push(vein);
+    for(const vein of this.sideOreEntities(ptx,pty,rx,ry))if(!out.some(e=>e.id===vein.id))out.push(vein);
 
     out.push(...this.ordinaryEcologyEntities(ptx,pty,rx,ry));
     out.push(...this.sideEcologyEntities(ptx,pty,rx,ry));
+    out.push(...this.sideBonusEntities(ptx,pty,rx,ry));
     out.push(...this.scheduledHollows(ptx,pty,rx,ry));
     out.push(...this.worldEventEntities(ptx,pty,rx,ry));
     out.push(...this.sideEntities());
@@ -2481,12 +3240,13 @@ export class World{
     // Creature targeting is pointer-driven. Nearby interaction remains for loot,
     // camps and world objects; hostile pressure suppresses noncombat interactions.
     if(this.hasActiveThreats()){this.nearby=null;this.onInteract?.(null,null);return;}
+    if(this.activeMining){const mine=(entities||[]).find(e=>e?.id===this.activeMining.id)||this.activeMining.entity;this.nearby=mine;this.onInteract?.(mine,'Mining…');return;}
     let best=null,bestD=Infinity;
-    for(const e of entities){const d=Math.hypot(e.x-this.player.x,e.y-this.player.y);if(d<bestD){bestD=d;best=e;}}
+    for(const e of entities){if(e?.type==='ore'&&e.depleted)continue;const d=Math.hypot(e.x-this.player.x,e.y-this.player.y);if(d<bestD){bestD=d;best=e;}}
     this.nearby=bestD<40?best:null;
     if(this.nearby?.type==='loot'&&bestD<13&&this.inputEnabled){this.onLoot?.(this.nearby);return;}
     if(this.nearby&&bestD<40){
-      const label={chest:'Open chest',glint:'Investigate',hollow:'Use Safe Hollow',signpost:'Read sign',foe:'Target',loot:'Loot',caravan:'Approach caravan',merchant:'Approach merchant','rescue-tracks':'Inspect tracks','rescue-satchel':'Inspect satchel','rescue-hideout':'Approach refuge','escort-pursuit':'Face the movement','quest-target':'Approach destination',midboss:'Target foe',boss:'Target guardian','side-stage':'Face obstacle','side-finale':'Inspect end chamber',townlocation:this.nearby.location?.departure?'Use Lower Gate':`Enter ${this.nearby.location?.name||'building'}`}[this.nearby.type];
+      const label={ore:`Mine ${this.nearby.oreName||'Vein'} · ${this.nearby.remaining}/${this.nearby.maxUnits}`,smithingstation:this.nearby.station==='anvil'?'Use Anvil':'Use Furnace',chest:'Open chest',glint:'Investigate',hollow:'Use Safe Hollow',signpost:'Read sign',foe:'Target',loot:'Loot',caravan:'Approach caravan',merchant:'Approach merchant','rescue-tracks':'Inspect tracks','rescue-satchel':'Inspect satchel','rescue-hideout':'Approach refuge','escort-pursuit':'Face the movement','quest-target':'Approach destination',midboss:'Target foe',boss:'Target guardian','side-stage':'Face obstacle','side-finale':'Inspect end chamber',townnpc:`Talk to ${this.nearby.npc?.label||'Townsperson'}`,townlocation:this.nearby.authoredNpc?`Talk to ${this.nearby.npc?.label||this.nearby.location?.name||'Shopkeeper'}`:(this.nearby.location?.departure?'Use Lower Gate':`Enter ${this.nearby.location?.name||'building'}`)}[this.nearby.type];
       this.onInteract?.(this.nearby,label);
     }else this.onInteract?.(null,null);
   }
@@ -2496,11 +3256,14 @@ export class World{
     if(!e)return false;
     if(e.type==='foe')return{type:'target',entity:e};
     if(e.type==='loot')return{type:'loot',entity:e,recordId:e.recordId};
+    if(e.type==='ore'){return{type:'ore',entity:e,depth:depthFromY(e.y)};}
+    if(e.type==='smithingstation')return{type:'smithingstation',entity:e,station:e.station,town:e.town};
     if(e.type==='chest'){this.opened.add(e.id);this.spawnText(e.x,e.y,'LOOT');return{type:'chest',entity:e,depth:depthFromY(e.y)};}
     if(e.type==='glint'){this.opened.add(e.id);this.spawnText(e.x,e.y,'FOUND');return{type:'glint',entity:e,depth:depthFromY(e.y)};}
     if(e.type==='hollow'){this.opened.add(e.id);return{type:'hollow',entity:e,depth:e.depth??depthFromY(e.y),kind:e.kind||'ordinary'};}
     if(e.type==='signpost'){this.opened.add(e.id);const place=e.town?.name||'Settlement',depth=Number(e.town?.depth||0).toFixed(0);this.onToast?.(e.signKind==='approach'?`${place} · ${depth} fathoms · follow the road ahead`:`${place} · ${depth} fathoms`);return{type:'signpost',entity:e};}
     if(e.type==='townlocation')return{type:'townlocation',entity:e,location:e.location,town:e.town};
+    if(e.type==='townnpc'){const label=e.npc?.label||'Townsperson',role=String(e.npc?.role||'townsperson').replace(/_/g,' ');this.onToast?.(`${label} · ${role}`);return{type:'townnpc',entity:e,npc:e.npc,town:e.town};}
     if(e.type==='side-stage')return{type:'side-stage',entity:e,stage:e.stage};
     if(e.type==='side-finale')return{type:'side-finale',entity:e};
     if(['caravan','merchant','rescue-tracks','rescue-satchel','rescue-hideout','escort-pursuit','quest-target','midboss','boss'].includes(e.type)){
@@ -2521,6 +3284,8 @@ export class World{
       chest:'An old chest wedged against the stone.',
       glint:'Something catches the lantern-light.',
       hollow:e.kind==='stage'?'A sheltered outcropping waits before the boundary.':'A small protected outcropping makes defensible camp ground.',
+      ore:e.depleted?`The ${e.oreName||'ore vein'} has been worked out.`:`${e.oreName||'An ore vein'} holds ${e.remaining}/${e.maxUnits} resource units.`,
+      smithingstation:e.station==='anvil'?'A working anvil stands ready for forging, repairs and dismantling.':'The blacksmith furnace is hot enough to smelt ore into bars.',
       signpost:e.signKind==='approach'?`A wooden post reads ${e.town?.name||'a settlement'} and points along the approach road.`:`The wooden sign marks ${e.town?.name||'a settlement'}.`,
       'rescue-tracks':'Fresh tracks leave the main route and disappear into the stone shadows.',
       'rescue-satchel':'A battered medicine satchel lies where someone dropped it in haste.',
@@ -2532,7 +3297,8 @@ export class World{
       'side-finale':'The passage opens into a deliberate end chamber.',
       caravan:'A wagon and its crew occupy a natural widening in the cavern.',
       merchant:'A trader has made camp beside the route.',
-      townlocation:e.location?.departure?'The lower gate opens onto the road deeper into the dark.':`${e.location?.name||'A building'} stands within ${e.town?.name||'the settlement'}.`
+      townnpc:`${e.npc?.label||'A townsperson'} waits in ${e.town?.name||'the settlement'}.`,
+      townlocation:e.authoredNpc?`${e.npc?.label||'A shopkeeper'} is ready to speak with you.`:(e.location?.departure?'The lower gate opens onto the road deeper into the dark.':`${e.location?.name||'A building'} stands within ${e.town?.name||'the settlement'}.`)
     }[e.type]||'Something is here.');
     else this.onToast?.('Stone, damp air, and the way upward into deeper dark.');
   }
@@ -2617,15 +3383,45 @@ export class World{
     });
   }
 
-  spawnText(x,y,text,tone='player'){this.particles.push({x,y,text,tone,life:1.1,max:1.1});}
-  updateParticles(dt){for(const p of this.particles)p.life-=dt;this.particles=this.particles.filter(p=>p.life>0);}
+  spawnText(x,y,text,tone='player'){this.particles.push({kind:'text',x,y,text,tone,life:1.1,max:1.1});}
+  spawnMiningDebris(x,y,count=5){
+    for(let i=0;i<count;i++){
+      const angle=-1.9+Math.random()*1.2,speed=20+Math.random()*26,size=Math.random()<.45?1:2;
+      this.particles.push({kind:'chip',x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-.5,size,life:.30+Math.random()*.18,max:.30+Math.random()*.18,tone:Math.random()<.35?'#c98a53':'#7f8583',shadow:Math.random()<.35?'#5c3421':'#4a514f'});
+    }
+  }
+  updateParticles(dt){
+    for(const p of this.particles){
+      p.life-=dt;
+      if(p.kind==='chip'||p.kind==='spark'){
+        p.x+=(Number(p.vx)||0)*dt;
+        p.y+=(Number(p.vy)||0)*dt;
+        p.vy=(Number(p.vy)||0)+(p.kind==='spark'?58:46)*dt;
+      }
+    }
+    this.particles=this.particles.filter(p=>p.life>0);
+  }
   worldToScreen(x,y){return{x:(x-this.camera.x)+this.logicalViewW()/2,y:(y-this.camera.y)+this.logicalViewH()/2};}
 
-  queueLightSource(x,y,{radius=24,cutout=12,color='rgba(244,188,100,.14)',alpha=.16}={}){
+  queueLightSource(x,y,{radius=24,cutout=12,feather=null,strength=.68,falloffOuter=null,falloffStrength=0,color='rgba(244,188,100,.14)',alpha=.16}={}){
     if(!this.atmosphereEffectsEnabled)return;
     radius=Math.max(1,Number(radius)||24);cutout=Math.max(1,Number(cutout)||radius*.55);alpha=clamp(Number(alpha)||0,0,1);
+    feather=Number.isFinite(feather)?Math.max(cutout+1,Number(feather)):null;
+    strength=clamp(Number(strength)||0,0,1);
+    falloffOuter=Number.isFinite(falloffOuter)?Math.max((feather||cutout)+1,Number(falloffOuter)):null;
+    falloffStrength=clamp(Number(falloffStrength)||0,0,1);
     if(x<-radius||x>this.logicalViewW()+radius||y<-radius||y>this.logicalViewH()+radius)return;
-    this.lightSources.push({x,y,radius,cutout,color:String(color||'rgba(244,188,100,.14)'),alpha});
+    this.lightSources.push({x,y,radius,cutout,feather,strength,falloffOuter,falloffStrength,color:String(color||'rgba(244,188,100,.14)'),alpha});
+  }
+
+  queueDevPlacedLights(){
+    if(!this.atmosphereEffectsEnabled)return;
+    for(const light of this.devPlacementConfig?.placedLights||[]){const s=this.worldToScreen(light.x,light.y),outer=Math.max(light.clearRadius,light.featherRadius,light.falloffOuter,light.glowRadius)+8;this.queueLightSource(Math.round(s.x),Math.round(s.y),{radius:outer,cutout:light.clearRadius,feather:light.featherRadius,strength:light.revealStrength,falloffOuter:light.falloffOuter,falloffStrength:light.falloffStrength,color:'rgba(240,179,91,.18)',alpha:light.glowAlpha});}
+  }
+
+  drawDevPlacedLightGlows(){
+    if(!this.atmosphereEffectsEnabled)return;
+    const c=this.ctx;for(const light of this.devPlacementConfig?.placedLights||[]){const s=this.worldToScreen(light.x,light.y),r=Math.max(1,Number(light.glowRadius)||1);if(s.x<-r||s.x>this.logicalViewW()+r||s.y<-r||s.y>this.logicalViewH()+r)continue;c.save();c.globalCompositeOperation='screen';this.drawLightGlow(c,s.x,s.y,r,'rgba(240,179,91,.18)',light.glowAlpha);c.restore();}
   }
 
   queueFireflyAttractor(x,y,{radius=26,warm=false,density=1,seedBase=0}={}){
@@ -2638,67 +3434,101 @@ export class World{
   }
 
   ambientBoulderSpecForSector(gx,gy){
+    const cacheKey=`${gx}:${gy}`;
+    if(this.ambientBoulderSpecCache.has(cacheKey))return this.ambientBoulderSpecCache.get(cacheKey);
+    const remember=value=>{this.ambientBoulderSpecCache.set(cacheKey,value);return value;};
     const roll=hash2(gx,gy,this.seed+9801);
-    if(roll<.80)return null;
+    // Ordinary boulders are background geology. Resource nodes and traversable
+    // routes must read more clearly, so keep these genuinely sparse.
+    if(roll<.94)return remember(null);
     const sector=TILE*9;
     const wx=(gx+.22+hash2(gx,gy,this.seed+9811)*.54)*sector;
     const wy=(gy+.22+hash2(gx,gy,this.seed+9821)*.54)*sector;
     const tx=Math.floor(wx/TILE),ty=Math.floor(wy/TILE);
-    if(this.isWall(tx,ty)||this.isWall(tx-1,ty)||this.isWall(tx+1,ty)||this.isWall(tx,ty-1)||this.isWall(tx,ty+1))return null;
-    if(Math.abs(tx-this.corridorCenter(ty))<=4)return null;
-    const stratum=stratumIndex(depthFromY(wy)),moss=stratum===0&&hash2(gx,gy,this.seed+9833)>.38;
-    const variant=Math.floor(hash2(gx,gy,this.seed+9847)*6);
-    const bodyRadius=variant===0?20:variant===1?24:variant===2?28:variant===3?22:variant===4?26:18;
-    return{gx,gy,wx,wy,tx,ty,stratum,moss,variant,bodyRadius};
+    if(this.townSafeZone(tx,ty)||this.townCarvesFloor(tx,ty)||this.hollowSafeZone(tx,ty)||this.sideCarvesFloor(tx,ty))return remember(null);
+    if(this.isWall(tx,ty)||this.isWall(tx-1,ty)||this.isWall(tx+1,ty)||this.isWall(tx,ty-1)||this.isWall(tx,ty+1))return remember(null);
+    if(this.mainOreBlocksTile(tx,ty,2.8))return remember(null);
+    const spineDist=Math.abs(tx-this.corridorCenter(ty));
+    if(spineDist<=5)return remember(null);
+    if(spineDist<=16&&hash2(gx,gy,this.seed+9851)<.74)return remember(null);
+    const stratum=stratumIndex(depthFromY(wy));
+    const assetIndex=Math.min(AMBIENT_BOULDER_ASSETS.length-1,Math.floor(hash2(gx,gy,this.seed+9847)*AMBIENT_BOULDER_ASSETS.length));
+    const asset=AMBIENT_BOULDER_ASSETS[assetIndex]||AMBIENT_BOULDER_ASSETS[0];
+    // Every supplied source file is labelled MOSSY. Vary the cached colour pass
+    // so roughly half retain a restrained moss read and half become much more
+    // neutral-looking without altering the master PNGs.
+    const moss=hash2(gx,gy,this.seed+9833)>.48;
+    // Collision follows the lower physical pile rather than the whole transparent
+    // rectangle/roofline. An ellipse fits wide piles far better than the old
+    // circular placeholder collision and remains deterministic before images load.
+    const collisionRX=Math.max(13,Math.round(asset.w*.40));
+    const collisionRY=Math.max(7,Math.round(asset.h*.27));
+    return remember({gx,gy,wx,wy,tx,ty,stratum,moss,assetIndex,asset,collisionRX,collisionRY});
   }
 
   ambientBoulderCollides(x,y,r=0){
     const sector=TILE*9,gx0=Math.floor((x-sector)/sector),gx1=Math.ceil((x+sector)/sector),gy0=Math.floor((y-sector)/sector),gy1=Math.ceil((y+sector)/sector);
+    const pr=Math.max(1,Number(r)||0);
     for(let gy=gy0;gy<=gy1;gy++)for(let gx=gx0;gx<=gx1;gx++){
       const spec=this.ambientBoulderSpecForSector(gx,gy);
       if(!spec)continue;
-      const dx=x-spec.wx,dy=y-(spec.wy+3);
-      if(Math.hypot(dx,dy)<spec.bodyRadius+Math.max(1,Number(r)||0))return spec;
+      const rx=spec.collisionRX+pr,ry=spec.collisionRY+pr,cx=spec.wx,cy=spec.wy+4;
+      const nx=(x-cx)/Math.max(1,rx),ny=(y-cy)/Math.max(1,ry);
+      if(nx*nx+ny*ny<1)return spec;
     }
     return null;
   }
 
+  getAmbientBoulderSprite(assetIndex){
+    assetIndex=Math.max(0,Math.min(AMBIENT_BOULDER_ASSETS.length-1,Math.trunc(Number(assetIndex)||0)));
+    let rec=this.ambientBoulderSprites.get(assetIndex);
+    if(rec)return rec;
+    const asset=AMBIENT_BOULDER_ASSETS[assetIndex],img=new Image();
+    rec={img,ready:false,failed:false};
+    img.onload=()=>{rec.ready=true;rec.failed=false;this.ambientBoulderTintCache.clear();};
+    img.onerror=()=>{rec.ready=false;rec.failed=true;};
+    img.src=asset.src;
+    this.ambientBoulderSprites.set(assetIndex,rec);
+    return rec;
+  }
+
+  getAmbientBoulderTintedSprite(spec){
+    const rec=this.getAmbientBoulderSprite(spec.assetIndex);
+    if(!rec?.ready||!rec.img?.naturalWidth)return null;
+    // Forest Plains gets a slightly darker, still only-slightly-green treatment
+    // so the authored stones sit into the floor better instead of popping off it.
+    // Deeper strata use a neutral dark pass for now; their individual palette
+    // treatments can be tuned later without touching the source art.
+    const mode=spec.stratum===0?(spec.moss?'forest-moss':'forest-neutral'):'deep-neutral';
+    const key=`${spec.assetIndex}:${mode}`;
+    if(this.ambientBoulderTintCache.has(key))return this.ambientBoulderTintCache.get(key);
+    const asset=spec.asset||AMBIENT_BOULDER_ASSETS[spec.assetIndex],oc=document.createElement('canvas');
+    oc.width=Math.max(1,asset.w);oc.height=Math.max(1,asset.h);
+    const cc=oc.getContext('2d',{alpha:true});cc.imageSmoothingEnabled=false;
+    cc.drawImage(rec.img,0,0,oc.width,oc.height);
+    // A source-atop veil is deliberately used instead of a CSS/canvas filter so
+    // the treatment is identical in desktop browsers and mobile/PWA canvases.
+    // Forest moss stays readable but restrained; neutral placements push the
+    // same mossy master art closer to stone without creating duplicate PNGs.
+    cc.globalCompositeOperation='source-atop';
+    cc.fillStyle=mode==='forest-moss'?'rgba(18,30,18,.35)':mode==='forest-neutral'?'rgba(22,27,22,.41)':'rgba(24,28,31,.36)';
+    cc.fillRect(0,0,oc.width,oc.height);cc.globalCompositeOperation='source-over';
+    this.ambientBoulderTintCache.set(key,oc);
+    return oc;
+  }
+
   drawAmbientBoulderSpec(spec){
-    const c=this.ctx,s=this.worldToScreen(spec.wx,spec.wy),variant=spec.variant,moss=spec.moss;
-    const dims=[{w:38,h:27},{w:46,h:33},{w:54,h:40},{w:42,h:30},{w:50,h:29},{w:34,h:24}][variant]||{w:42,h:30};
-    const w=dims.w,h=dims.h;
-    const x=Math.round(s.x-w/2),y=Math.round(s.y-h/2-2);
-    const base=spec.stratum===0?'#4f554a':'#525962',mid=spec.stratum===0?'#6a6f62':'#69727a',hi=spec.stratum===0?'#8a8f7f':'#88909a',dark=spec.stratum===0?'#34372f':'#383d44';
-    c.fillStyle='rgba(0,0,0,.22)';c.fillRect(x+3,y+h-2,w-4,4);
-    c.fillStyle=dark;c.fillRect(x+3,y+8,w-6,h-9);c.fillRect(x+8,y+3,w-16,h-4);
-    c.fillStyle=base;c.fillRect(x+5,y+5,w-10,h-8);c.fillRect(x+1,y+10,w-2,h-12);
-    if(variant===0||variant===4){
-      c.fillStyle=mid;c.fillRect(x+8,y+4,Math.round(w*.34),Math.max(3,Math.round(h*.16)));c.fillRect(x+4,y+9,Math.max(3,Math.round(w*.14)),Math.round(h*.42));
-      c.fillRect(x+Math.round(w*.58),y+8,Math.max(3,Math.round(w*.14)),Math.max(3,Math.round(h*.12)));
-      c.fillStyle=hi;c.fillRect(x+Math.round(w*.24),y+5,Math.max(3,Math.round(w*.16)),2);c.fillRect(x+Math.round(w*.55),y+6,Math.max(2,Math.round(w*.10)),1);
-      c.fillRect(x+Math.round(w*.16),y+10,2,2);
-    }else if(variant===1){
-      c.fillStyle=mid;c.fillRect(x+7,y+6,Math.round(w*.22),Math.round(h*.22));c.fillRect(x+Math.round(w*.54),y+7,Math.round(w*.18),Math.round(h*.18));
-      c.fillRect(x+Math.round(w*.34),y+12,Math.round(w*.18),Math.round(h*.14));
-      c.fillStyle=hi;c.fillRect(x+Math.round(w*.18),y+7,Math.round(w*.12),2);c.fillRect(x+Math.round(w*.62),y+9,Math.round(w*.10),2);
-    }else if(variant===2){
-      c.fillStyle=mid;c.fillRect(x+8,y+5,Math.round(w*.26),Math.round(h*.16));c.fillRect(x+Math.round(w*.46),y+10,Math.round(w*.18),Math.round(h*.12));
-      c.fillStyle=dark;c.fillRect(x+1,y+15,5,h-18);c.fillRect(x+w-6,y+13,5,h-16);
-      c.fillStyle=hi;c.fillRect(x+Math.round(w*.18),y+8,Math.round(w*.10),2);c.fillRect(x+Math.round(w*.62),y+8,Math.round(w*.12),2);
-    }else if(variant===3){
-      c.fillStyle=mid;c.fillRect(x+5,y+12,Math.round(w*.22),Math.round(h*.20));c.fillRect(x+Math.round(w*.48),y+6,Math.round(w*.24),Math.round(h*.16));
-      c.fillStyle=hi;c.fillRect(x+Math.round(w*.52),y+7,Math.round(w*.12),2);c.fillRect(x+Math.round(w*.24),y+13,Math.round(w*.10),2);
-      c.fillStyle=dark;c.fillRect(x+w-8,y+12,4,h-15);
-    }else if(variant===5){
-      c.fillStyle=mid;c.fillRect(x+6,y+8,Math.round(w*.20),Math.round(h*.18));c.fillRect(x+Math.round(w*.42),y+11,Math.round(w*.16),Math.round(h*.14));
-      c.fillStyle=hi;c.fillRect(x+Math.round(w*.22),y+7,Math.round(w*.10),1);c.fillRect(x+Math.round(w*.54),y+12,Math.round(w*.08),1);
-    }
-    if(moss){
-      if(variant===1||variant===3){c.fillStyle='#3a522f';c.fillRect(x+Math.round(w*.14),y+8,Math.round(w*.22),3);c.fillRect(x+Math.round(w*.50),y+6,Math.round(w*.16),3);}
-      else if(variant===5){c.fillStyle='#3a522f';c.fillRect(x+Math.round(w*.20),y+7,Math.round(w*.18),3);}
-      else{c.fillStyle='#3a522f';c.fillRect(x+8,y+5,Math.round(w*.28),4);c.fillRect(x+5,y+12,Math.round(w*.18),3);}
-      c.fillStyle='#5f7b48';c.fillRect(x+Math.round(w*.22),y+6,Math.max(2,Math.round(w*.10)),2);if(w>38)c.fillRect(x+Math.round(w*.58),y+9,Math.max(3,Math.round(w*.10)),2);
-    }
+    const c=this.ctx,s=this.worldToScreen(spec.wx,spec.wy),asset=spec.asset||AMBIENT_BOULDER_ASSETS[spec.assetIndex],sprite=this.getAmbientBoulderTintedSprite(spec);
+    const w=asset.w,h=asset.h,x=Math.round(s.x-w/2),y=Math.round(s.y-h+8);
+    // Ground shadow stays procedural so the authored transparent PNG sits in the
+    // existing world instead of looking pasted onto the floor.
+    c.fillStyle='rgba(0,0,0,.20)';
+    c.beginPath();c.ellipse(Math.round(s.x),Math.round(s.y+5),Math.max(8,Math.round(spec.collisionRX*.88)),Math.max(3,Math.round(spec.collisionRY*.48)),0,0,Math.PI*2);c.fill();
+    if(sprite){c.imageSmoothingEnabled=false;c.drawImage(sprite,x,y,w,h);return;}
+    // Tiny loading fallback: keep collision readable for a frame without bringing
+    // back the old six hand-drawn boulder variants.
+    c.fillStyle=spec.stratum===0?'#3f473d':'#464b50';
+    c.fillRect(Math.round(s.x-spec.collisionRX*.7),Math.round(s.y-spec.collisionRY),Math.max(3,Math.round(spec.collisionRX*1.4)),Math.max(3,Math.round(spec.collisionRY*1.3)));
   }
 
   drawAmbientBoulders(){
@@ -2708,37 +3538,33 @@ export class World{
     for(let gy=gy0;gy<=gy1;gy++)for(let gx=gx0;gx<=gx1;gx++){const spec=this.ambientBoulderSpecForSector(gx,gy);if(spec)specs.push(spec);}
     specs.sort((a,b)=>a.wy-b.wy);
     for(const spec of specs){
-      const s=this.worldToScreen(spec.wx,spec.wy);
-      if(s.x<-70||s.x>w+70||s.y<-60||s.y>h+60)continue;
+      const s=this.worldToScreen(spec.wx,spec.wy),pad=Math.max(90,spec.asset?.w||70);
+      if(s.x<-pad||s.x>w+pad||s.y<-70||s.y>h+70)continue;
       this.drawAmbientBoulderSpec(spec);
     }
   }
 
   drawForestGlowMushrooms(x,y,tx,ty,paletteSeed,landmarkBoost=0){
-    const c=this.ctx,phase=hash2(tx,ty,this.seed+9323)*Math.PI*2,pulse=.72+.28*(.5+.5*Math.sin(this.time*1.9+phase));
-    const pick=hash2(tx*7,ty*5,this.seed+9341),warm=pick>.68,cool=pick<.34;
-    const cap=warm?'#cda25d':cool?'#6eb6c8':'#7dd29f';
-    const capBright=warm?'#f0c887':cool?'#a3dff0':'#bbefc1';
-    const stem=warm?'#8a7455':cool?'#6f8c92':'#73936f';
-    const shadow=warm?'#7c5631':cool?'#436874':'#47634a';
-    const cluster=landmarkBoost>0?4:3;
-    const sway=Math.sin(this.time*1.3+phase)>0?1:0;
-    const positions=[[8,15],[12,12],[16,16],[19,13]];
+    // Decorative mushrooms should read as background flora, not as loot or a
+    // future Herbalism resource. Keep some colour, but no self-light or halo.
+    const c=this.ctx,phase=hash2(tx,ty,this.seed+9323)*Math.PI*2;
+    const pick=hash2(tx*7,ty*5,this.seed+9341),purple=pick>.68,cool=pick<.34;
+    const cap=purple?'#655474':cool?'#527982':'#58735d';
+    const capBright=purple?'#806c91':cool?'#6b949c':'#718d73';
+    const stem=purple?'#5b5363':cool?'#596c6d':'#596b57';
+    const shadow=purple?'#43394d':cool?'#3d555a':'#3e5140';
+    const cluster=landmarkBoost>0?3:2;
+    const sway=Math.sin(this.time*.7+phase)>0?1:0;
+    const positions=[[8,15],[12,12],[16,16]];
     for(let i=0;i<cluster;i++){
       const [ox,oy]=positions[i];
       const h=i===1?5:4;
       c.fillStyle=stem;c.fillRect(x+ox,y+oy,h>4?2:1,h);
       c.fillStyle=shadow;c.fillRect(x+ox-1,y+oy-1,3,2);c.fillRect(x+ox+1,y+oy-2,2,1);
       c.fillStyle=cap;c.fillRect(x+ox-2+sway,y+oy-3,5,2);c.fillRect(x+ox-1+sway,y+oy-4,3,1);
-      c.fillStyle=capBright;c.fillRect(x+ox-1+sway,y+oy-4,1,1);c.fillRect(x+ox+sway,y+oy-3,1,1);
+      c.fillStyle=capBright;c.fillRect(x+ox-1+sway,y+oy-4,1,1);
     }
-    if(landmarkBoost>0){
-      c.fillStyle='rgba(180,206,140,.24)';c.fillRect(x+5,y+18,14,2);c.fillRect(x+13,y+17,5,2);
-    }
-    const cx=x+13,cy=y+14,alpha=.055+.055*pulse+landmarkBoost*.015;
-    const glowColor=warm?'rgba(240,188,104,.12)':cool?'rgba(120,201,226,.11)':'rgba(132,220,166,.11)';
-    this.queueLightSource(cx,cy,{radius:14+Math.round(pulse*6)+landmarkBoost*4,cutout:7+Math.round(pulse*2),color:glowColor,alpha});
-    this.queueFireflyAttractor(cx,cy,{radius:20+landmarkBoost*6,warm,density:1.05+landmarkBoost*.3,seedBase:tx*4099+ty*131+9323});
+    if(landmarkBoost>0){c.fillStyle='rgba(99,118,79,.18)';c.fillRect(x+6,y+18,12,2);}
   }
 
   drawForestPond(cx,cy,gx,gy,landmarkBoost=0){
@@ -2807,6 +3633,7 @@ export class World{
       const wx=(gx+.18+hash2(gx,gy,this.seed+9407)*.64)*sector;
       const wy=(gy+.18+hash2(gx,gy,this.seed+9411)*.64)*sector;
       const tx=Math.floor(wx/TILE),ty=Math.floor(wy/TILE);
+      if(this.townSafeZone(tx,ty)||this.townCarvesFloor(tx,ty)||this.hollowSafeZone(tx,ty))continue;
       if(this.isWall(tx,ty)||this.isWall(tx-1,ty)||this.isWall(tx+1,ty)||this.isWall(tx,ty-1)||this.isWall(tx,ty+1))continue;
       if(Math.abs(tx-this.corridorCenter(ty))<=4)continue;
       const s=this.worldToScreen(wx,wy);
@@ -2823,6 +3650,7 @@ export class World{
     for(let gy=gy0;gy<=gy1;gy++)for(let gx=gx0;gx<=gx1;gx++){
       const roll=hash2(gx,gy,this.seed+9861);if(roll<.84)continue;
       const wx=(gx+.18+hash2(gx,gy,this.seed+9871)*.64)*sector,wy=(gy+.18+hash2(gx,gy,this.seed+9883)*.64)*sector;
+      if(this.townSafeZone(Math.floor(wx/TILE),Math.floor(wy/TILE)))continue;
       const s=this.worldToScreen(wx,wy);if(s.x<-20||s.x>w+20||s.y<-30||s.y>h+30)continue;
       const phase=hash2(gx,gy,this.seed+9897),cycle=(this.time*.52+phase)%1,fall=Math.min(1,cycle/.60),dropY=s.y-17+fall*24;
       if(cycle<.60){c.fillStyle=`rgba(133,185,195,${.30+.30*fall})`;c.fillRect(Math.round(s.x),Math.round(dropY),1,2);}
@@ -2857,11 +3685,21 @@ export class World{
     }
   }
 
+  defaultDevPlacedLight(){return{id:'',x:0,y:0,clearRadius:48,featherRadius:66,falloffOuter:118,falloffStrength:.24,revealStrength:.94,glowRadius:68,glowAlpha:.13};}
+
   defaultDevPlacementConfig(){
     return{
-      version:1,
+      version:9,
       playerLanternGlow:{sideOffset:8,y:3,innerRadius:18,outerRadius:31,brightness:1},
-      playerLanternVisibility:{clearRadius:336,featherRadius:368,falloffOuter:520,falloffStrength:.24}
+      playerLanternVisibility:{clearRadius:336,featherRadius:368,falloffOuter:520,falloffStrength:.24},
+      campfireVisibility:{clearRadius:35,featherRadius:45,falloffOuter:80,falloffStrength:.24,revealStrength:.92},
+      miningSwing:{pivotX:5.5,pivotY:-8,startDeg:-62,impactDeg:125,handleLength:15,headWidth:8,handleThickness:1.5,headThickness:1.5},
+      smithingHammer:{pivotX:5,pivotY:-7,startDeg:-82,impactDeg:42,handleLength:11,headWidth:7,handleThickness:1.5,headHeight:4,cycleMs:820},
+      oreMinimap:{iconSize:8,clusterRadiusTiles:10},
+      oreVeins:{standardScale:1,remoteScale:1.12,richScale:1.28},
+      smithingAnvil:{offsetX:-127,offsetY:26,scale:1},
+      questTracker:{fontScale:1.5},
+      placedLights:[]
     };
   }
 
@@ -2869,9 +3707,18 @@ export class World{
     const base=this.defaultDevPlacementConfig(),src=value&&typeof value==='object'?value:{};
     const glow=src.playerLanternGlow&&typeof src.playerLanternGlow==='object'?src.playerLanternGlow:{};
     const vis=src.playerLanternVisibility&&typeof src.playerLanternVisibility==='object'?src.playerLanternVisibility:{};
+    const fireVis=src.campfireVisibility&&typeof src.campfireVisibility==='object'?src.campfireVisibility:{};
+    const miningSwing=src.miningSwing&&typeof src.miningSwing==='object'?src.miningSwing:{};
+    const smithingHammer=src.smithingHammer&&typeof src.smithingHammer==='object'?src.smithingHammer:{};
+    const oreMinimap=src.oreMinimap&&typeof src.oreMinimap==='object'?src.oreMinimap:{};
+    const oreVeins=src.oreVeins&&typeof src.oreVeins==='object'?src.oreVeins:{};
+    const smithingAnvil=src.smithingAnvil&&typeof src.smithingAnvil==='object'?src.smithingAnvil:{};
+    const questTracker=src.questTracker&&typeof src.questTracker==='object'?src.questTracker:{};
     const num=(v,fallback,min,max)=>clamp(Number.isFinite(Number(v))?Number(v):fallback,min,max);
+    const lightBase=this.defaultDevPlacedLight(),placedLights=(Array.isArray(src.placedLights)?src.placedLights:[]).slice(0,128).map((raw,i)=>{const l=raw&&typeof raw==='object'?raw:{};return{id:String(l.id||`devlight-${i}`).slice(0,80),x:num(l.x,0,-100000,100000),y:num(l.y,0,-100000,100000),clearRadius:num(l.clearRadius,lightBase.clearRadius,8,320),featherRadius:num(l.featherRadius,lightBase.featherRadius,12,400),falloffOuter:num(l.falloffOuter,lightBase.falloffOuter,16,520),falloffStrength:num(l.falloffStrength,lightBase.falloffStrength,0,.8),revealStrength:num(l.revealStrength,lightBase.revealStrength,.1,1),glowRadius:num(l.glowRadius,lightBase.glowRadius,4,220),glowAlpha:num(l.glowAlpha,lightBase.glowAlpha,0,.5)}});
+    const sourceVersion=Math.max(0,Number(src.version)||0),trackerScale=(sourceVersion<9&&Math.abs(Number(questTracker.fontScale)-1.25)<.001)?1.5:questTracker.fontScale;
     return{
-      version:1,
+      version:9,
       playerLanternGlow:{
         sideOffset:num(glow.sideOffset,base.playerLanternGlow.sideOffset,0,40),
         y:num(glow.y,base.playerLanternGlow.y,-32,32),
@@ -2884,11 +3731,55 @@ export class World{
         featherRadius:num(vis.featherRadius,base.playerLanternVisibility.featherRadius,90,680),
         falloffOuter:num(vis.falloffOuter,base.playerLanternVisibility.falloffOuter,120,900),
         falloffStrength:num(vis.falloffStrength,base.playerLanternVisibility.falloffStrength,0,.8)
-      }
+      },
+      campfireVisibility:{
+        clearRadius:num(fireVis.clearRadius,base.campfireVisibility.clearRadius,8,300),
+        featherRadius:num(fireVis.featherRadius,base.campfireVisibility.featherRadius,12,360),
+        falloffOuter:num(fireVis.falloffOuter,base.campfireVisibility.falloffOuter,16,500),
+        falloffStrength:num(fireVis.falloffStrength,base.campfireVisibility.falloffStrength,0,.8),
+        revealStrength:num(fireVis.revealStrength,base.campfireVisibility.revealStrength,.1,1)
+      },
+      miningSwing:{
+        pivotX:num(miningSwing.pivotX,base.miningSwing.pivotX,-18,18),
+        pivotY:num(miningSwing.pivotY,base.miningSwing.pivotY,-22,10),
+        startDeg:num(miningSwing.startDeg,base.miningSwing.startDeg,-160,80),
+        impactDeg:num(miningSwing.impactDeg,base.miningSwing.impactDeg,-80,160),
+        handleLength:num(miningSwing.handleLength,base.miningSwing.handleLength,4,20),
+        headWidth:num(miningSwing.headWidth,base.miningSwing.headWidth,3,16),
+        handleThickness:num(miningSwing.handleThickness,base.miningSwing.handleThickness,.5,3),
+        headThickness:num(miningSwing.headThickness,base.miningSwing.headThickness,1,5)
+      },
+      smithingHammer:{
+        pivotX:num(smithingHammer.pivotX,base.smithingHammer.pivotX,-18,18),
+        pivotY:num(smithingHammer.pivotY,base.smithingHammer.pivotY,-22,10),
+        startDeg:num(smithingHammer.startDeg,base.smithingHammer.startDeg,-170,100),
+        impactDeg:num(smithingHammer.impactDeg,base.smithingHammer.impactDeg,-100,170),
+        handleLength:num(smithingHammer.handleLength,base.smithingHammer.handleLength,4,18),
+        headWidth:num(smithingHammer.headWidth,base.smithingHammer.headWidth,3,14),
+        handleThickness:num(smithingHammer.handleThickness,base.smithingHammer.handleThickness,.5,3),
+        headHeight:num(smithingHammer.headHeight,base.smithingHammer.headHeight,2,8),
+        cycleMs:num(smithingHammer.cycleMs,base.smithingHammer.cycleMs,420,1400)
+      },
+      oreMinimap:{
+        iconSize:num(oreMinimap.iconSize,base.oreMinimap.iconSize,3,16),
+        clusterRadiusTiles:num(oreMinimap.clusterRadiusTiles,base.oreMinimap.clusterRadiusTiles,2,24)
+      },
+      oreVeins:{
+        standardScale:num(oreVeins.standardScale,base.oreVeins.standardScale,.65,1.8),
+        remoteScale:num(oreVeins.remoteScale,base.oreVeins.remoteScale,.75,2.1),
+        richScale:num(oreVeins.richScale,base.oreVeins.richScale,.85,2.5)
+      },
+      smithingAnvil:{
+        offsetX:num(smithingAnvil.offsetX,base.smithingAnvil.offsetX,-220,220),
+        offsetY:num(smithingAnvil.offsetY,base.smithingAnvil.offsetY,-220,220),
+        scale:num(smithingAnvil.scale,base.smithingAnvil.scale,.4,2.5)
+      },
+      questTracker:{fontScale:num(trackerScale,base.questTracker.fontScale,.75,2)},
+      placedLights
     };
   }
 
-  setDevPlacementConfig(value){this.devPlacementConfig=this.sanitizeDevPlacementConfig(value);return this.getDevPlacementConfig();}
+  setDevPlacementConfig(value){this.devPlacementConfig=this.sanitizeDevPlacementConfig(value);this.minimapDirty=true;return this.getDevPlacementConfig();}
   getDevPlacementConfig(){return JSON.parse(JSON.stringify(this.devPlacementConfig||this.defaultDevPlacementConfig()));}
   setDevPlacementEnabled(value){this.devPlacementEnabled=!!value;if(!this.devPlacementEnabled)this.devPlacementSelection='';}
   setDevPlacementSelection(id){this.devPlacementSelection=String(id||'');}
@@ -2899,36 +3790,57 @@ export class World{
     return facing;
   }
 
+  playerVisualScale(){
+    // v0.219.7: the larger player is no longer a cosmetic toggle. 64×64 is now
+    // the canonical delver presentation used by both the live world and the
+    // Template Workshop reference actor.
+    return 2;
+  }
+
+  playerSpriteRenderSize(){
+    return Math.max(1,Math.round(PLAYER_SPRITE_SIZE*this.playerVisualScale()));
+  }
+
   playerLanternScreenPosition(){
     const p=this.player,ps=this.worldToScreen(p.x+(p.renderOffsetX||0),p.y+(p.renderOffsetY||0));
-    const cfg=this.devPlacementConfig?.playerLanternGlow||this.defaultDevPlacementConfig().playerLanternGlow;
-    const facing=this.playerVisualFacing(),localX=facing==='left'?cfg.sideOffset:-cfg.sideOffset;
-    return{x:ps.x+localX,y:ps.y+cfg.y,facing,playerX:ps.x,playerY:ps.y};
+    const cfg=this.devPlacementConfig?.playerLanternGlow||this.defaultDevPlacementConfig().playerLanternGlow,visualScale=this.playerVisualScale();
+    const facing=this.playerVisualFacing(),localX=(facing==='left'?cfg.sideOffset:-cfg.sideOffset)*visualScale,localY=cfg.y*visualScale;
+    return{x:ps.x+localX,y:ps.y+localY,facing,playerX:ps.x,playerY:ps.y};
   }
 
   getDevPlacementCandidates(screenX,screenY){
     if(!this.devPlacementEnabled)return[];
     const x=Number(screenX)||0,y=Number(screenY)||0,out=[];
-    const lp=this.playerLanternScreenPosition(),pd=Math.hypot(x-lp.playerX,y-lp.playerY),ld=Math.hypot(x-lp.x,y-lp.y);
+    const lp=this.playerLanternScreenPosition(),pd=Math.hypot(x-lp.playerX,y-lp.playerY),ld=Math.hypot(x-lp.x,y-lp.y),spritePickRadius=Math.max(28,this.playerSpriteRenderSize()*.55);
     if(ld<=24)out.push({id:'playerLanternGlow',label:'Player lantern · warm glow',editable:true,kind:'light'});
-    if(pd<=28){
+    if(pd<=spritePickRadius){
       out.push({id:'playerLanternVisibility',label:'Player lantern · visibility radius',editable:true,kind:'light'});
+      out.push({id:'miningSwing',label:'Mining pickaxe · swing preview',editable:true,kind:'animation'});
+      out.push({id:'smithingHammer',label:'Smithing hammer · swing preview',editable:true,kind:'animation'});
       out.push({id:'playerSprite',label:'Player sprite',editable:false,kind:'protected'});
       out.push({id:'playerCollision',label:'Player collision',editable:false,kind:'protected'});
     }
+    for(const light of this.devPlacementConfig?.placedLights||[]){const s=this.worldToScreen(Number(light.x)||0,Number(light.y)||0);if(Math.hypot(x-s.x,y-s.y)<=18)out.push({id:`placedLight:${light.id}`,label:'Placed light · warm source',editable:true,kind:'light'});}
     for(const e of this.activeEntities||[]){
       if(!e||e.dead)continue;
       const s=this.worldToScreen(Number(e.x)||0,Number(e.y)||0),r=Math.max(12,Number(e.r)||8)+8;
       if(Math.hypot(x-s.x,y-s.y)>r)continue;
-      const label=String(e.name||e.profile?.name||e.type||'World entity');
-      out.push({id:`entity:${e.id||label}`,label:`${label} · world entity`,editable:false,kind:'protected'});
+      const label=String(e.name||e.profile?.name||e.type||'World entity'),entityKey=String(e.id||label);
+      if(e.type==='hollow')out.push({id:`campfireVisibility:${entityKey}`,label:'Campfire · visibility radius',editable:true,kind:'light'});
+      if(e.type==='ore')out.push({id:'oreVeins',label:'Ore veins · visual sizes',editable:true,kind:'resource'});
+      if(e.type==='smithingstation'&&e.station==='anvil')out.push({id:'smithingAnvil',label:'Dawngate anvil · placement',editable:true,kind:'prop'});
+      out.push({id:`entity:${entityKey}`,label:`${label} · world entity`,editable:false,kind:'protected'});
     }
     return out;
   }
 
   drawDevPlacementOverlay(){
     if(!this.devPlacementEnabled)return;
-    const c=this.ctx,id=this.devPlacementSelection;if(!id)return;
+    const c=this.ctx,id=this.devPlacementSelection;
+    c.save();c.setLineDash([]);c.lineWidth=1;c.strokeStyle='rgba(228,192,107,.72)';c.fillStyle='rgba(228,192,107,.46)';
+    for(const light of this.devPlacementConfig?.placedLights||[]){const s=this.worldToScreen(light.x,light.y);if(s.x<-12||s.x>this.logicalViewW()+12||s.y<-12||s.y>this.logicalViewH()+12)continue;c.globalAlpha=id===`placedLight:${light.id}`?.96:.58;c.strokeRect(Math.round(s.x-4)+.5,Math.round(s.y-4)+.5,8,8);c.fillRect(Math.round(s.x-1),Math.round(s.y-1),3,3);}
+    c.restore();
+    if(!id)return;
     c.save();c.globalAlpha=.92;c.lineWidth=1;c.setLineDash([4,3]);c.strokeStyle='#e4c06b';c.fillStyle='rgba(228,192,107,.12)';
     const ps=this.worldToScreen(this.player.x+(this.player.renderOffsetX||0),this.player.y+(this.player.renderOffsetY||0));
     if(id==='playerLanternGlow'){
@@ -2936,8 +3848,25 @@ export class World{
       c.beginPath();c.arc(pos.x,pos.y,cfg.innerRadius,0,Math.PI*2);c.stroke();c.globalAlpha=.55;c.beginPath();c.arc(pos.x,pos.y,cfg.outerRadius,0,Math.PI*2);c.stroke();c.globalAlpha=.95;c.setLineDash([]);c.fillRect(Math.round(pos.x-2),Math.round(pos.y-2),5,5);
     }else if(id==='playerLanternVisibility'){
       const cfg=this.devPlacementConfig.playerLanternVisibility;c.beginPath();c.arc(ps.x,ps.y,cfg.clearRadius,0,Math.PI*2);c.stroke();c.globalAlpha=.48;c.beginPath();c.arc(ps.x,ps.y,cfg.falloffOuter,0,Math.PI*2);c.stroke();
+    }else if(id==='miningSwing'){
+      const cfg=this.devPlacementConfig.miningSwing||this.defaultDevPlacementConfig().miningSwing,vs=this.playerVisualScale(),facing=this.playerVisualFacing(),px=ps.x+(facing==='left'?-cfg.pivotX:cfg.pivotX)*vs,py=ps.y+cfg.pivotY*vs;
+      c.setLineDash([]);c.globalAlpha=.95;c.strokeStyle='#e4c06b';c.beginPath();c.moveTo(px-4,py);c.lineTo(px+4,py);c.moveTo(px,py-4);c.lineTo(px,py+4);c.stroke();
+    }else if(id==='smithingHammer'){
+      const cfg=this.devPlacementConfig.smithingHammer||this.defaultDevPlacementConfig().smithingHammer,vs=this.playerVisualScale(),facing=this.playerVisualFacing(),px=ps.x+(facing==='left'?-cfg.pivotX:cfg.pivotX)*vs,py=ps.y+cfg.pivotY*vs;
+      c.setLineDash([]);c.globalAlpha=.95;c.strokeStyle='#e4c06b';c.beginPath();c.moveTo(px-4,py);c.lineTo(px+4,py);c.moveTo(px,py-4);c.lineTo(px,py+4);c.stroke();
+    }else if(id==='smithingAnvil'){
+      const pos=this.smithingAnvilWorldPosition();if(pos){const s=this.worldToScreen(pos.x,pos.y);c.setLineDash([]);c.strokeStyle='#e4c06b';c.strokeRect(Math.round(s.x-14),Math.round(s.y-14),28,24);c.beginPath();c.moveTo(s.x-5,s.y);c.lineTo(s.x+5,s.y);c.moveTo(s.x,s.y-5);c.lineTo(s.x,s.y+5);c.stroke();}
+    }else if(id==='oreVeins'){
+      c.setLineDash([]);c.font='bold 8px monospace';c.textAlign='center';for(const e of this.activeEntities||[]){if(e?.type!=='ore')continue;const s=this.worldToScreen(e.x,e.y);c.fillStyle='#e4c06b';c.fillText(String(e.veinClass||'standard').toUpperCase(),s.x,s.y-28);}
+    }else if(id.startsWith('campfireVisibility:')){
+      const key=id.slice('campfireVisibility:'.length),e=(this.activeEntities||[]).find(v=>String(v?.id||v?.name||v?.type||'')===key&&v?.type==='hollow');
+      if(e){const s=this.worldToScreen(e.x,e.y-8),cfg=this.devPlacementConfig.campfireVisibility;c.beginPath();c.arc(s.x,s.y,cfg.clearRadius,0,Math.PI*2);c.stroke();c.globalAlpha=.68;c.beginPath();c.arc(s.x,s.y,cfg.featherRadius,0,Math.PI*2);c.stroke();c.globalAlpha=.42;c.beginPath();c.arc(s.x,s.y,cfg.falloffOuter,0,Math.PI*2);c.stroke();}
+    }else if(id.startsWith('placedLight:')){
+      const key=id.slice('placedLight:'.length),light=(this.devPlacementConfig?.placedLights||[]).find(v=>String(v?.id||'')===key);
+      if(light){const s=this.worldToScreen(light.x,light.y);c.beginPath();c.arc(s.x,s.y,light.clearRadius,0,Math.PI*2);c.stroke();c.globalAlpha=.58;c.beginPath();c.arc(s.x,s.y,light.featherRadius,0,Math.PI*2);c.stroke();c.globalAlpha=.38;c.beginPath();c.arc(s.x,s.y,light.falloffOuter,0,Math.PI*2);c.stroke();c.globalAlpha=.96;c.setLineDash([]);c.fillRect(Math.round(s.x-2),Math.round(s.y-2),5,5);}
     }else if(id==='playerSprite'){
-      c.strokeRect(Math.round(ps.x-PLAYER_SPRITE_SIZE/2),Math.round(ps.y+11-PLAYER_SPRITE_SIZE),PLAYER_SPRITE_SIZE,PLAYER_SPRITE_SIZE);
+      const size=this.playerSpriteRenderSize();
+      c.strokeRect(Math.round(ps.x-size/2),Math.round(ps.y+11-size),size,size);
     }else if(id==='playerCollision'){
       c.beginPath();c.arc(ps.x,ps.y,this.player.r,0,Math.PI*2);c.stroke();
     }else if(id.startsWith('entity:')){
@@ -3037,9 +3966,12 @@ export class World{
     // Environmental lights punch smaller visibility pockets through the same
     // darkness mask. They reveal terrain instead of painting blurry colour blobs.
     for(const light of this.lightSources){
-      const clear=Math.max(4,Math.min(light.cutout,light.radius*.46));
-      const feather=Math.max(clear+3,Math.min(light.radius,clear+10));
-      this.cutVisibilityCircle(m,light.x,light.y,clear,feather,.68);
+      const clear=Math.max(4,Math.min(Number(light.cutout)||0,(Number(light.radius)||0)*.95));
+      const feather=Math.max(clear+3,Number.isFinite(light.feather)?Number(light.feather):Math.min(Number(light.radius)||clear+10,clear+10));
+      const strength=clamp(Number(light.strength)||0,0,1);
+      this.cutVisibilityCircle(m,light.x,light.y,clear,feather,strength);
+      const falloffOuter=Math.max(feather+1,Number(light.falloffOuter)||0),falloffStrength=clamp(Number(light.falloffStrength)||0,0,1);
+      if(falloffOuter>feather&&falloffStrength>0)this.cutVisibilityFalloff(m,light.x,light.y,clear,falloffOuter,falloffStrength);
     }
 
     m.globalCompositeOperation='source-over';
@@ -3057,6 +3989,7 @@ export class World{
     c.fillStyle='#020507';c.fillRect(0,0,w,h);
     this.lightSources.length=0;
     this.fireflyAttractors.length=0;
+    this.queueDevPlacedLights();
     const left=this.camera.x-w/2,top=this.camera.y-h/2;
     const tx0=Math.floor(left/TILE)-1,tx1=Math.ceil((left+w)/TILE)+1,ty0=Math.floor(top/TILE)-1,ty1=Math.ceil((top+h)/TILE)+1;
     for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++)this.drawTile(tx,ty);
@@ -3065,7 +3998,9 @@ export class World{
     this.drawBossChambers(ty0,ty1);
     this.drawWorldEventRoutes();
     this.drawActiveSideRoute();
+    this.drawAuthoredTownLayer('ground');
     this.drawTownOverlays();
+    this.drawAuthoredTownLayer('normal');
     this.drawAmbientFireflies();
     this.drawAmbientWaterDrips();
     if(this.edgeAtmosphereEnabled&&stratumIndex(depthFromY(this.player.y))===0)this.drawForestAtmosphere();
@@ -3083,7 +4018,11 @@ export class World{
       if(item.combat)this.drawCombatFoe(e);else this.drawEntity(e);
     }
     if(!drewPlayer){this.drawCompanion();this.drawPlayer();}
+    this.drawAuthoredTownLayer('foreground');
+    this.drawAuthoredTownOcclusion();
+    this.drawDevPlacedLightGlows();
     this.drawAtmosphericLighting();
+    this.drawTownQuestMarkers();
     for(const p of this.particles)this.drawParticle(p);
     this.drawDepthDirection();
     this.drawDevPlacementOverlay();
@@ -3114,20 +4053,20 @@ export class World{
       c.fillStyle='rgba(21,27,15,.28)';
       if(floorAbove)c.fillRect(x,y,TILE,6);
     }else{
-      const path=Math.abs(tx-this.corridorCenter(ty))<=3,fleck=hash2(tx*3,ty*5,this.seed+8117),damp=hash2(tx*7,ty*11,this.seed+8161),flora=hash2(tx*11,ty*13,this.seed+9301),water=hash2(tx*17,ty*19,this.seed+9377),landmark=hash2(Math.floor(tx/3),Math.floor(ty/3),this.seed+9451);
+      const settlementFloor=this.townSafeZone(tx,ty),path=!settlementFloor&&Math.abs(tx-this.corridorCenter(ty))<=3,fleck=hash2(tx*3,ty*5,this.seed+8117),damp=hash2(tx*7,ty*11,this.seed+8161),flora=hash2(tx*11,ty*13,this.seed+9301),water=hash2(tx*17,ty*19,this.seed+9377),landmark=hash2(Math.floor(tx/3),Math.floor(ty/3),this.seed+9451);
       c.fillStyle=path?'#262518':(n>.55?'#1a2515':'#1c2816');c.fillRect(x,y,TILE+1,TILE+1);
       if(path){c.fillStyle='rgba(95,76,44,.23)';c.fillRect(x,y+9,TILE,7);c.fillStyle='rgba(58,52,31,.18)';c.fillRect(x,y+5,TILE,2);}
       if(fleck>.48){c.fillStyle='#314023';c.fillRect(x+4,y+5,2,4);c.fillRect(x+16,y+14,3,2);}
       if(fleck>.79){c.fillStyle='#535a37';c.fillRect(x+9,y+17,2,2);c.fillRect(x+12,y+6,1,3);}
       if(fleck<.05){c.fillStyle='#566250';c.fillRect(x+6,y+11,11,3);c.fillStyle='#6f7666';c.fillRect(x+9,y+7,3,7);} // buried stone/ruin rib
-      if(fleck>.985){c.fillStyle='#a57939';c.fillRect(x+3,y+18,2,2);c.fillRect(x+19,y+8,2,2);if(hash2(tx,ty,this.seed+8187)>.5)this.queueLightSource(x+20,y+9,{radius:12,cutout:6,color:'rgba(240,178,86,.10)',alpha:.06});} // rare warm spores / fireflies
+      if(!settlementFloor&&fleck>.985){c.fillStyle='#a57939';c.fillRect(x+3,y+18,2,2);c.fillRect(x+19,y+8,2,2);if(hash2(tx,ty,this.seed+8187)>.5)this.queueLightSource(x+20,y+9,{radius:12,cutout:6,color:'rgba(240,178,86,.10)',alpha:.06});} // rare warm spores / fireflies
       if(damp>.72){c.fillStyle='rgba(37,55,32,.28)';c.fillRect(x+1,y+15,7,4);c.fillRect(x+13,y+3,6,3);} // damp moss bands
-      if(damp<.05){c.fillStyle='#7d8667';c.fillRect(x+10,y+13,1,3);c.fillRect(x+12,y+14,1,2);c.fillStyle='#d9caa1';c.fillRect(x+9,y+12,1,1);c.fillRect(x+13,y+13,1,1);if(hash2(tx,ty,this.seed+8199)>.72)this.queueLightSource(x+11,y+13,{radius:12,cutout:6,color:'rgba(151,224,188,.08)',alpha:.05});} // rare pale fungi
+      if(!settlementFloor&&damp<.05){c.fillStyle='#7d8667';c.fillRect(x+10,y+13,1,3);c.fillRect(x+12,y+14,1,2);c.fillStyle='#d9caa1';c.fillRect(x+9,y+12,1,1);c.fillRect(x+13,y+13,1,1);if(hash2(tx,ty,this.seed+8199)>.72)this.queueLightSource(x+11,y+13,{radius:12,cutout:6,color:'rgba(151,224,188,.08)',alpha:.05});} // rare pale fungi
 
       // Atmospheric flora and landmarks. These are decorative and separate from
       // future gatherable mushrooms, giving the biome more life right now.
-      const special=!path && landmark>.945;
-      if(!path && flora>.92 && damp<.52)this.drawForestGlowMushrooms(x,y,tx,ty,flora,special?1:0);
+      const special=!settlementFloor&&!path&&landmark>.945;
+      if(!settlementFloor&&!path&&flora>.965&&damp<.52)this.drawForestGlowMushrooms(x,y,tx,ty,flora,special?1:0);
       if(special && water>.72 && damp>.40 && flora>.52){
         c.fillStyle='rgba(86,122,76,.26)';c.fillRect(x+2,y+18,5,2);c.fillRect(x+17,y+18,4,2);c.fillRect(x+11,y+7,3,2);
         this.queueFireflyAttractor(x+12,y+13,{radius:24,warm:flora>.9,density:1.35,seedBase:tx*4099+ty*131+9451});
@@ -3563,6 +4502,7 @@ export class World{
 
   drawTownOverlays(){
     for(const t of this.townPlans()){
+      if(t.authored)continue;
       const s=this.worldToScreen(t.originX,t.originY),margin=Math.max(t.layoutW,t.layoutH);
       if(s.x<-margin||s.x>this.logicalViewW()+margin||s.y<-margin||s.y>this.logicalViewH()+margin)continue;
       this.drawTownPlan(t);
@@ -3652,6 +4592,28 @@ export class World{
     c.fillStyle=aggro?'#e24e39':'#b64635';c.fillRect(-4,-9,2,2);c.fillRect(3,-9,2,2);c.fillStyle='#5a493a';c.fillRect(-13,3,7,5);c.fillRect(6,3,7,5);c.restore();
   }
 
+  getCampfireSprite(){
+    const rec=this.campfireSprite||(this.campfireSprite={img:null,ready:false,failed:false});
+    if(rec.img||rec.failed)return rec;
+    const img=new Image();rec.img=img;
+    img.onload=()=>{rec.ready=true;rec.failed=false;};
+    img.onerror=()=>{rec.ready=false;rec.failed=true;};
+    img.src=CAMPFIRE_SHEET_FILE;
+    return rec;
+  }
+
+  drawCampfireSprite(x,y){
+    const rec=this.getCampfireSprite();
+    if(!rec?.ready||!rec.img?.naturalWidth)return false;
+    const frame=Math.floor(this.time*CAMPFIRE_FPS)%CAMPFIRE_FRAME_COUNT;
+    // Frames are 32×64. The visible art ends around source y=57, so anchoring
+    // the frame at y-49 places the ember/log base on the old Hollow fire ground.
+    const dx=Math.round(x-CAMPFIRE_FRAME_W/2),dy=Math.round(y-49);
+    this.ctx.imageSmoothingEnabled=false;
+    this.ctx.drawImage(rec.img,frame*CAMPFIRE_FRAME_W,0,CAMPFIRE_FRAME_W,CAMPFIRE_FRAME_H,dx,dy,CAMPFIRE_FRAME_W,CAMPFIRE_FRAME_H);
+    return true;
+  }
+
   drawHollow(s,stage=false){
     const c=this.ctx,x=Math.round(s.x),y=Math.round(s.y);
     c.save();
@@ -3663,12 +4625,22 @@ export class World{
     c.fillStyle=stage?'#33322b':'#2b3032';
     for(const [ox,oy,sw,sh] of stones)c.fillRect(x+ox,y+oy,sw,sh);
     c.fillStyle='#3d4547';c.fillRect(x-11,y+2,2,2);c.fillRect(x+12,y+1,2,2);
-    // Fire ring + fire.
+    // Fire ring + authored 8-frame looping campfire. The sprite is visual
+    // only: Safe Hollows keep their existing interaction/safe-zone behavior and
+    // the campfire itself adds no collision.
     c.fillStyle='#62605a';c.fillRect(x-7,y+4,4,3);c.fillRect(x+3,y+4,4,3);c.fillRect(x-2,y+6,4,2);
-    c.fillStyle='#8a4b2d';c.fillRect(x-4,y-1,8,7);
-    c.fillStyle='#d6763a';c.fillRect(x-3,y-5,6,8);
-    c.fillStyle='#e8b65e';c.fillRect(x-1,y-8,3,7);
-    c.globalAlpha=.16+.05*Math.sin(this.time*5);c.fillStyle='#e6a64e';c.fillRect(x-13,y-13,26,24);
+    if(!this.drawCampfireSprite(x,y)){
+      // Loading/error fallback preserves a readable fire until the PNG arrives.
+      c.fillStyle='#8a4b2d';c.fillRect(x-4,y-1,8,7);
+      c.fillStyle='#d6763a';c.fillRect(x-3,y-5,6,8);
+      c.fillStyle='#e8b65e';c.fillRect(x-1,y-8,3,7);
+    }
+    const flamePulse=.82+.18*(.5+.5*Math.sin(this.time*5.2));
+    // Stronger local fire glow: this should read as a real light source in the
+    // darkness rather than only a decorative aura around the sprite.
+    this.drawLightGlow(c,x,y-8,40+flamePulse*10,'rgba(244,178,92,.22)',.22+.07*flamePulse);
+    this.drawLightGlow(c,x,y-8,20+flamePulse*5,'rgba(255,212,132,.30)',.24+.08*flamePulse);
+    c.globalAlpha=.15+.06*Math.sin(this.time*5);c.fillStyle='#e6a64e';c.fillRect(x-15,y-15,30,28);
     c.restore();
   }
 
@@ -3694,15 +4666,76 @@ export class World{
     c.restore();
   }
 
+  drawOreVein(s,e){
+    const c=this.ctx,max=Math.max(1,Number(e.maxUnits)||1),remaining=clamp(Number(e.remaining)||0,0,max),ratio=remaining/max,depleted=remaining<=0,mining=this.activeMining?.id===e.id,cls=String(e.veinClass||'standard');
+    const sizes=this.devPlacementConfig?.oreVeins||this.defaultDevPlacementConfig().oreVeins,scale=Math.max(.6,Number(sizes?.[`${cls}Scale`])||1);
+    let x=Math.round(s.x),y=Math.round(s.y);
+    if(mining){const impact=clamp((Number(this.activeMining.impactFlash)||0)/.18,0,1);x+=Math.round(Math.sin(this.time*92)*impact*1.6);y-=Math.round(impact*1.2);}
+    c.save();c.translate(x,y);c.scale(scale,scale);
+    const wide=cls==='rich'?20:cls==='remote'?17:15;
+    c.fillStyle='rgba(0,0,0,.40)';c.fillRect(-wide,depleted?7:8,wide*2,4);
+    if(depleted){
+      // Each class collapses into its own rubble silhouette instead of a scaled
+      // copy of the standard pile. Larger finds leave broader broken stone.
+      if(cls==='rich'){
+        c.fillStyle='#2d3335';c.fillRect(-16,1,8,5);c.fillRect(-7,-2,10,6);c.fillRect(4,0,9,5);c.fillRect(12,3,6,4);c.fillRect(-12,6,7,3);c.fillRect(-2,5,8,4);
+        c.fillStyle='#4a5355';c.fillRect(-13,0,4,2);c.fillRect(-4,-3,5,2);c.fillRect(6,-1,4,2);c.fillRect(13,2,3,2);
+        c.fillStyle='#5b4639';c.fillRect(-19,6,4,2);c.fillRect(-4,8,4,2);c.fillRect(9,7,5,2);c.fillRect(17,6,2,2);
+      }else if(cls==='remote'){
+        c.fillStyle='#2d3335';c.fillRect(-13,1,8,5);c.fillRect(-4,-2,9,6);c.fillRect(6,1,8,5);c.fillRect(-8,6,6,3);c.fillRect(2,5,7,3);
+        c.fillStyle='#4a5355';c.fillRect(-10,0,4,2);c.fillRect(-2,-3,4,2);c.fillRect(8,0,3,2);c.fillStyle='#5b4639';c.fillRect(-15,6,3,2);c.fillRect(11,6,4,2);
+      }else{
+        c.fillStyle='#2d3335';c.fillRect(-10,1,7,4);c.fillRect(-2,-1,8,5);c.fillRect(5,2,6,4);c.fillRect(-6,4,5,3);
+        c.fillStyle='#475053';c.fillRect(-8,0,4,2);c.fillRect(1,-2,4,2);c.fillRect(6,1,3,2);c.fillStyle='#5b4639';c.fillRect(-12,5,3,2);c.fillRect(-1,5,4,2);c.fillRect(10,5,2,2);
+      }
+    }else{
+      // Standard is the compact teaching/resource shape. Remote and Rich use
+      // additional lobes/chunks, so their silhouettes remain distinct even when
+      // the user later tunes visual scale in Dev Tools.
+      c.fillStyle='#303738';c.fillRect(-13,-6,26,14);
+      c.fillStyle='#444b4a';c.fillRect(-9,-11,12,7);c.fillRect(4,-8,10,10);c.fillRect(-15,-2,7,8);
+      if(cls==='remote'){c.fillRect(11,-3,8,9);c.fillRect(-13,-10,7,6);}
+      if(cls==='rich'){c.fillRect(10,-8,11,14);c.fillRect(-19,-4,9,11);c.fillRect(-5,-16,11,8);c.fillRect(3,-13,9,7);}
+      c.fillStyle='#69706a';c.fillRect(-7,-9,6,3);c.fillRect(6,-6,5,3);c.fillRect(-12,0,4,3);
+      if(cls!=='standard'){c.fillRect(13,-1,4,3);c.fillRect(-14,-7,3,2);}
+      if(cls==='rich'){c.fillRect(-3,-14,5,3);c.fillRect(6,-11,4,2);}
+      c.fillStyle='#1c2224';c.fillRect(-4,1,8,6);
+      const tin=e.oreId==='tin',oreDark=tin?'#6f7d80':'#8f5734',oreMid=tin?'#899699':'#a86435',oreLight=tin?'#c6ceca':'#d08a4d';
+      const patches=cls==='rich'?[[-14,-2,6,4],[-8,-10,5,5],[-1,-14,5,4],[5,-9,6,5],[12,-4,6,4],[-5,2,6,3],[5,2,5,3],[14,1,4,3]]:cls==='remote'?[[-11,-4,5,4],[-4,-10,5,5],[4,-5,6,4],[11,-1,5,4],[-5,3,5,3],[7,3,4,3]]:[[-9,-4,5,4],[-2,-8,4,5],[5,-3,6,4],[-5,3,5,3],[8,3,4,3]];
+      const visiblePatches=Math.max(1,Math.ceil(patches.length*ratio));
+      for(let i=0;i<visiblePatches;i++){const [ox,oy,w,h]=patches[i];c.fillStyle=i%2?oreDark:oreMid;c.fillRect(ox,oy,w,h);c.fillStyle=oreLight;c.fillRect(ox+1,oy,Math.max(1,w-2),1);}
+      if(mining){const bw=cls==='rich'?26:cls==='remote'?23:20,bh=2,bx=-Math.floor(bw/2),by=cls==='rich'?-23:-18;c.fillStyle='rgba(4,7,9,.84)';c.fillRect(bx-1,by-1,bw+2,bh+2);c.fillStyle='#c9cfcc';c.fillRect(bx,by,Math.round(bw*ratio),bh);}
+      if(mining&&this.activeMining.swingFlash>0){c.globalAlpha=clamp(this.activeMining.swingFlash/.22,0,1);c.fillStyle='#d0b18b';const sx=cls==='rich'?18:12;c.fillRect(sx,-8,2,2);c.fillRect(sx+3,-3,1,1);c.fillRect(sx-3,-12,1,1);}
+    }
+    c.restore();
+  }
+
   drawEntity(e){
     const c=this.ctx,s=this.worldToScreen(e.x,e.y);
     if(['foe','midboss','boss'].includes(e.type)&&e.combatTelegraph==='HEAVY'){const r=this.combatCenterRadiusForReach(Number(e.combatThreatRange)||14,e),pulse=.48+.15*Math.sin(this.time*10);c.save();c.globalAlpha=.08;c.fillStyle='#b64b43';c.beginPath();c.arc(Math.round(s.x),Math.round(s.y),r,0,Math.PI*2);c.fill();c.globalAlpha=pulse;c.strokeStyle='#d45a50';c.lineWidth=2;c.beginPath();c.arc(Math.round(s.x),Math.round(s.y),r,0,Math.PI*2);c.stroke();c.restore();}
     if(e.type==='foe')this.drawFoeSprite(e.foe?.id,s.x,s.y,Math.sin(this.time*5+e.tx)*1.1,1,e.facing||'right');
+    else if(e.type==='ore')this.drawOreVein(s,e);
+    else if(e.type==='smithingstation'){
+      if(e.station==='anvil'&&e.drawAsset){
+        const forging=this.activeSmithingForge,impact=forging?clamp((Number(forging.impactFlash)||0)/.16,0,1):0,shakeX=impact?Math.round(Math.sin(this.time*110)*impact*1.5):0,shakeY=impact?-Math.round(impact):0;
+        const rec=this.authoredAssetRecord(SMITHING_ANVIL_ASSET),img=rec?.ready?rec.img:null,scale=Math.max(.4,Number(e.scale)||1),sx=s.x+shakeX,sy=s.y+shakeY;
+        if(img?.naturalWidth){const max=34*scale,k=Math.min(max/img.naturalWidth,max/img.naturalHeight),w=Math.max(1,Math.round(img.naturalWidth*k)),h=Math.max(1,Math.round(img.naturalHeight*k));c.save();c.imageSmoothingEnabled=false;c.fillStyle='rgba(0,0,0,.40)';c.fillRect(Math.round(sx-w*.42),Math.round(sy+5),Math.max(4,Math.round(w*.84)),3);c.drawImage(img,Math.round(sx-w/2),Math.round(sy+8-h),w,h);c.restore();}
+        else{c.fillStyle='#555b5d';c.fillRect(Math.round(sx-8),Math.round(sy-2),16,6);c.fillRect(Math.round(sx-5),Math.round(sy+4),10,4);}
+        if(forging){const progress=clamp(forging.elapsedMs/Math.max(1,forging.durationMs),0,1),bw=46,bh=3,bx=Math.round(s.x-bw/2),by=Math.round(s.y-28);c.save();c.fillStyle='rgba(3,7,9,.90)';c.fillRect(bx-1,by-1,bw+2,bh+2);c.fillStyle='#626b70';c.fillRect(bx,by,bw,bh);c.fillStyle='#d2a85c';c.fillRect(bx,by,Math.round(bw*progress),bh);c.font='bold 7px monospace';c.textAlign='center';c.fillStyle='#d6d8d3';c.fillText(`FORGING ${String(forging.name||'ITEM').toUpperCase()}`,Math.round(s.x),by-5);c.restore();}
+      }
+    }
     else if(e.type==='chest'){
       c.fillStyle='#5f3f24';c.fillRect(Math.round(s.x-8),Math.round(s.y-5),16,11);c.fillStyle='#b17d3e';c.fillRect(Math.round(s.x-8),Math.round(s.y-5),16,3);c.fillStyle='#c8a15a';c.fillRect(Math.round(s.x-1),Math.round(s.y-2),3,4);
     }else if(e.type==='glint'){
       const a=.45+.45*Math.sin(this.time*5);c.fillStyle=`rgba(225,193,123,${a})`;c.fillRect(Math.round(s.x),Math.round(s.y-4),1,9);c.fillRect(Math.round(s.x-4),Math.round(s.y),9,1);this.queueLightSource(Math.round(s.x),Math.round(s.y-1),{radius:14,cutout:7,color:'rgba(240,201,123,.10)',alpha:.05});
-    }else if(e.type==='hollow'){this.drawHollow(s,e.kind==='stage');this.queueLightSource(Math.round(s.x),Math.round(s.y-8),{radius:28,cutout:12,color:'rgba(240,175,88,.12)',alpha:.08});}
+    }else if(e.type==='hollow'){
+      this.drawHollow(s,e.kind==='stage');
+      const firePulse=.86+.14*(.5+.5*Math.sin(this.time*4.6+((e.depth||0)%7))),fireVis=this.devPlacementConfig?.campfireVisibility||this.defaultDevPlacementConfig().campfireVisibility;
+      // Every Safe Hollow campfire shares this developer-tunable visibility
+      // preset. Dev Tools can edit the clear/feather/falloff radii live without
+      // changing the campfire entity, collision, Safe Hollow data or sprite.
+      this.queueLightSource(Math.round(s.x),Math.round(s.y-8),{radius:Math.max(fireVis.clearRadius,fireVis.featherRadius,fireVis.falloffOuter)+8,cutout:fireVis.clearRadius,feather:fireVis.featherRadius,strength:fireVis.revealStrength,falloffOuter:fireVis.falloffOuter,falloffStrength:fireVis.falloffStrength,color:'rgba(240,175,88,.20)',alpha:.18+.03*firePulse});
+    }
     else if(e.type==='loot'){
       const remaining=Number(e.expiresAt)-Date.now(),blink=Number.isFinite(remaining)&&remaining<=LOOT_BAG_BLINK_MS;
       c.save();
@@ -3716,9 +4749,11 @@ export class World{
     }else if(e.type==='signpost'){
       const x=Math.round(s.x),y=Math.round(s.y);c.fillStyle='rgba(0,0,0,.45)';c.fillRect(x-9,y+8,18,3);c.fillStyle='#5d4329';c.fillRect(x-2,y-5,4,16);c.fillStyle='#795a35';c.fillRect(x-13,y-9,26,9);c.fillStyle='#b58b50';c.fillRect(x-10,y-7,20,2);c.fillStyle='#d0b078';c.fillRect(x+8,y-6,3,3);
     }else if(e.type==='townlocation'){
-      const dep=!!e.location?.departure,pulse=.65+.25*Math.sin(this.time*4);
-      c.fillStyle=dep?'#c29a5a':'#8b8067';c.fillRect(Math.round(s.x-3),Math.round(s.y-3),6,6);
-      c.globalAlpha=.16*pulse;c.fillStyle=dep?'#e4b865':'#c4b38a';c.fillRect(Math.round(s.x-10),Math.round(s.y-10),20,20);c.globalAlpha=1;
+      // Authored NPC artwork is already part of the settlement layer; its entity
+      // exists only for proximity/service interaction and must not add a marker.
+      if(!e.authoredNpc){const dep=!!e.location?.departure,pulse=.65+.25*Math.sin(this.time*4);c.fillStyle=dep?'#c29a5a':'#8b8067';c.fillRect(Math.round(s.x-3),Math.round(s.y-3),6,6);c.globalAlpha=.16*pulse;c.fillStyle=dep?'#e4b865':'#c4b38a';c.fillRect(Math.round(s.x-10),Math.round(s.y-10),20,20);c.globalAlpha=1;}
+    }else if(e.type==='townnpc'){
+      // Static authored sprite; interaction-only runtime entity.
     }else if(e.type==='sidepassage')this.drawSidePassage(s,e.event);
     else if(e.type==='caravan'||e.type==='merchant')this.drawCaravan(s,e.event);
     else if(e.type==='rescue-tracks'){
@@ -3824,17 +4859,31 @@ export class World{
 
   drawPlayer(){
     const c=this.ctx,p=this.player,s=this.worldToScreen(p.x+(p.renderOffsetX||0),p.y+(p.renderOffsetY||0)),walk=p.moving?Math.sin(this.time*12)*1.2:0;
-    const className=String(this.getPlayerClass?.()||'Votary'),sprite=this.getCleanedPlayerSprite(this.getPlayerSprite(className));
+    const className=String(this.getPlayerClass?.()||'Votary'),sprite=this.getCleanedPlayerSprite(this.getPlayerSprite(className)),visualScale=this.playerVisualScale(),renderSize=this.playerSpriteRenderSize();
     const facing=this.playerVisualFacing();
-    c.save();c.translate(Math.round(s.x),Math.round(s.y+walk));
-    c.fillStyle='rgba(0,0,0,.55)';c.fillRect(-7,8,14,3);
+    const miningPreview=!this.activeMining&&!this.activeSmithingForge&&this.devPlacementEnabled&&this.devPlacementSelection==='miningSwing';
+    const hammerPreview=!this.activeSmithingForge&&!this.activeMining&&this.devPlacementEnabled&&this.devPlacementSelection==='smithingHammer';
+    let mineBumpX=0,mineBumpY=0,mineProgress=miningPreview?((this.time%1.6)/1.6):0,mineImpact=0;
+    let hammerProgress=hammerPreview?((this.time%.82)/.82):0,hammerImpact=0;
+    if(this.activeMining){
+      const target=(this.activeEntities||[]).find(e=>e?.id===this.activeMining.id)||this.activeMining.entity;
+      mineProgress=clamp((Number(this.activeMining.elapsedMs)||0)/Math.max(1,Number(this.activeMining.swingMs)||1),0,1);
+      mineImpact=clamp((Number(this.activeMining.impactFlash)||0)/.18,0,1);
+      const dx=(Number(target?.x)||p.x)-p.x,dy=(Number(target?.y)||p.y)-p.y,len=Math.hypot(dx,dy)||1;
+      const drive=Math.sin(mineProgress*Math.PI)*1.4+mineImpact*.8;
+      mineBumpX=dx/len*drive;
+      mineBumpY=dy/len*drive*.7-mineImpact*.6;
+    }
+    if(this.activeSmithingForge){const f=this.activeSmithingForge,cfg=this.devPlacementConfig?.smithingHammer||this.defaultDevPlacementConfig().smithingHammer;hammerProgress=(f.elapsedMs%Math.max(1,cfg.cycleMs||f.cycleMs||820))/Math.max(1,cfg.cycleMs||f.cycleMs||820);hammerImpact=clamp((Number(f.impactFlash)||0)/.16,0,1);const dx=(Number(f.anvilX)||p.x)-p.x,dy=(Number(f.anvilY)||p.y)-p.y,len=Math.hypot(dx,dy)||1,drive=Math.sin(hammerProgress*Math.PI)*.65+hammerImpact*.45;mineBumpX=dx/len*drive;mineBumpY=dy/len*drive*.55-hammerImpact*.35;}
+    c.save();c.translate(Math.round(s.x+mineBumpX),Math.round(s.y+walk+mineBumpY));
+    c.fillStyle='rgba(0,0,0,.55)';c.fillRect(Math.round(-7*visualScale),8,Math.round(14*visualScale),Math.max(3,Math.round(3*visualScale)));
 
     // Lantern light belongs to the delver, not the whole screen. Keep it slightly
     // off-center toward the held lantern so the glow feels attached to the sprite.
     // The sprite's lantern sits on the opposite side from the previous pass, so
     // the glow anchor is intentionally mirrored here.
     const glow=this.devPlacementConfig?.playerLanternGlow||this.defaultDevPlacementConfig().playerLanternGlow;
-    const lanternX=facing==='left'?glow.sideOffset:-glow.sideOffset,lanternY=glow.y;
+    const lanternX=(facing==='left'?glow.sideOffset:-glow.sideOffset)*visualScale,lanternY=glow.y*visualScale;
     const flicker=.95+.035*Math.sin(this.time*13)+.025*Math.sin(this.time*19+1.7),bright=glow.brightness;
     if(this.atmosphereEffectsEnabled){
       c.save();
@@ -3854,24 +4903,58 @@ export class World{
       c.restore();
     }
     if(sprite){
-      const scale=Math.min(PLAYER_SPRITE_SIZE/sprite.naturalWidth,PLAYER_SPRITE_SIZE/sprite.naturalHeight),w=Math.max(1,Math.round(sprite.naturalWidth*scale)),h=Math.max(1,Math.round(sprite.naturalHeight*scale));
+      const scale=Math.min(renderSize/sprite.naturalWidth,renderSize/sprite.naturalHeight),w=Math.max(1,Math.round(sprite.naturalWidth*scale)),h=Math.max(1,Math.round(sprite.naturalHeight*scale));
       c.imageSmoothingEnabled=false;
       // Player art is authored facing right. Keep the last horizontal facing while
       // moving vertically and mirror only for leftward travel.
       if(facing==='left'){c.save();c.scale(-1,1);c.drawImage(sprite,Math.round(-w/2),Math.round(11-h),w,h);c.restore();}
       else c.drawImage(sprite,Math.round(-w/2),Math.round(11-h),w,h);
-      c.fillStyle='rgba(255,224,163,.88)';c.fillRect(Math.round(lanternX-1),Math.round(lanternY-2),3,3);
-      c.fillStyle='rgba(208,131,59,.92)';c.fillRect(Math.round(lanternX),Math.round(lanternY+1),1,2);
+      const lampMark=Math.max(3,Math.round(3*visualScale));
+      c.fillStyle='rgba(255,224,163,.88)';c.fillRect(Math.round(lanternX-lampMark/2),Math.round(lanternY-lampMark*.65),lampMark,lampMark);
+      c.fillStyle='rgba(208,131,59,.92)';c.fillRect(Math.round(lanternX),Math.round(lanternY+visualScale),Math.max(1,Math.round(visualScale)),Math.max(2,Math.round(2*visualScale)));
     }else{
       // Preserve the old delver marker as a resilient fallback if an asset is
       // missing or still loading.
-      c.fillStyle='#2f444f';c.fillRect(-6,-6,12,13);c.fillStyle='#b49f7d';c.fillRect(-4,-10,8,5);c.fillStyle='#171c20';c.fillRect(-5,-11,10,3);c.fillStyle='#d8b661';const lx=facing==='left'?-8:6;c.fillRect(lx,-1,3,5);c.fillStyle='#825c33';c.fillRect(lx+1,4,1,4);
+      c.save();c.scale(visualScale,visualScale);c.fillStyle='#2f444f';c.fillRect(-6,-6,12,13);c.fillStyle='#b49f7d';c.fillRect(-4,-10,8,5);c.fillStyle='#171c20';c.fillRect(-5,-11,10,3);c.fillStyle='#d8b661';const lx=facing==='left'?-8:6;c.fillRect(lx,-1,3,5);c.fillStyle='#825c33';c.fillRect(lx+1,4,1,4);c.restore();
     }
+    if(this.activeMining||miningPreview){
+      const cfg=this.devPlacementConfig?.miningSwing||this.defaultDevPlacementConfig().miningSwing,side=facing==='left'?-1:1;
+      const recoverEnd=.62;
+      let angleDeg;
+      if(mineProgress<recoverEnd){
+        const q=mineProgress/recoverEnd,ease=1-Math.pow(1-q,2);
+        angleDeg=cfg.impactDeg+(cfg.startDeg-cfg.impactDeg)*ease;
+      }else{
+        const q=(mineProgress-recoverEnd)/(1-recoverEnd),ease=q*q;
+        angleDeg=cfg.startDeg+(cfg.impactDeg-cfg.startDeg)*ease;
+      }
+      angleDeg+=mineImpact*4;
+      const handleLength=Math.max(2,cfg.handleLength*visualScale),headWidth=Math.max(3,cfg.headWidth*visualScale),handleThickness=Math.max(1,cfg.handleThickness*visualScale),headThickness=Math.max(1,cfg.headThickness*visualScale);
+      c.save();
+      c.translate(side*cfg.pivotX*visualScale,cfg.pivotY*visualScale-mineImpact*.6);
+      c.scale(side,1);
+      c.rotate(angleDeg*Math.PI/180);
+      // The pivot is the hand at the BOTTOM of the handle. The head is at the
+      // opposite end, so the tool now swings around the grip rather than around
+      // the pick head.
+      c.fillStyle='#7e5832';c.fillRect(-handleThickness/2,-handleLength,handleThickness,handleLength);
+      c.fillStyle='#9da5a8';c.fillRect(-headWidth/2,-handleLength-headThickness/2,headWidth,headThickness);
+      c.fillStyle='#5b6266';c.fillRect(headWidth/2-headThickness,-handleLength-headThickness/2,headThickness,headThickness);
+      c.restore();
+    }
+    if(this.activeSmithingForge||hammerPreview){const cfg=this.devPlacementConfig?.smithingHammer||this.defaultDevPlacementConfig().smithingHammer,side=facing==='left'?-1:1;let angleDeg;if(hammerProgress<.58){const q=hammerProgress/.58,ease=q*q;angleDeg=cfg.startDeg+(cfg.impactDeg-cfg.startDeg)*ease;}else{const q=(hammerProgress-.58)/.42,ease=1-Math.pow(1-q,2);angleDeg=cfg.impactDeg+(cfg.startDeg-cfg.impactDeg)*ease;}angleDeg+=hammerImpact*3;const handleLength=Math.max(2,cfg.handleLength*visualScale),headWidth=Math.max(3,cfg.headWidth*visualScale),handleThickness=Math.max(1,cfg.handleThickness*visualScale),headHeight=Math.max(2,cfg.headHeight*visualScale);c.save();c.translate(side*cfg.pivotX*visualScale,cfg.pivotY*visualScale-hammerImpact*.4);c.scale(side,1);c.rotate(angleDeg*Math.PI/180);c.fillStyle='#7a5430';c.fillRect(-handleThickness/2,-handleLength,handleThickness,handleLength);c.fillStyle='#8c9599';c.fillRect(-headWidth/2,-handleLength-headHeight/2,headWidth,headHeight);c.fillStyle='#b3b9b9';c.fillRect(-headWidth/2,-handleLength-headHeight/2,Math.max(1,headWidth*.18),Math.max(1,headHeight*.35));c.fillStyle='#4b5256';c.fillRect(headWidth/2-Math.max(1,headWidth*.28),-handleLength-headHeight/2,Math.max(1,headWidth*.28),headHeight);c.restore();}
     c.restore();
   }
 
   drawParticle(p){
-    const c=this.ctx,s=this.worldToScreen(p.x,p.y-(1-p.life/p.max)*18),tone=String(p.tone||'player');
+    const c=this.ctx;
+    if(p.kind==='spark'){const s=this.worldToScreen(p.x,p.y),alpha=clamp(p.life/p.max,0,1),size=Math.max(1,Number(p.size)||1);c.save();c.globalAlpha=alpha;c.globalCompositeOperation='screen';c.fillStyle=p.tone||'#f2b65d';c.fillRect(Math.round(s.x),Math.round(s.y),size,size);if(size===1&&alpha>.45)c.fillRect(Math.round(s.x-1),Math.round(s.y),3,1);c.restore();return;}
+    if(p.kind==='chip'){
+      const s=this.worldToScreen(p.x,p.y),alpha=clamp(p.life/p.max,0,1),size=Math.max(1,Number(p.size)||1);
+      c.save();c.globalAlpha=alpha;c.fillStyle=p.shadow||'#3d4341';c.fillRect(Math.round(s.x),Math.round(s.y)+1,size,size);c.fillStyle=p.tone||'#8b908d';c.fillRect(Math.round(s.x),Math.round(s.y),size,size);c.restore();
+      return;
+    }
+    const s=this.worldToScreen(p.x,p.y-(1-p.life/p.max)*18),tone=String(p.tone||'player');
     c.save();c.globalAlpha=clamp(p.life/p.max,0,1);c.textAlign='center';
     c.font=(tone==='playerMiss'||tone==='enemyMiss')?'bold 12px monospace':'bold 10px monospace';
     c.fillStyle=tone==='playerHit'?'#f2f0e9':tone==='playerCrit'?'#e0bd78':tone==='playerMiss'?'#6fa7d8':tone==='enemyMiss'?'#355f8c':tone==='enemyCrit'?'#862d2a':tone==='poison'?'#69aa62':tone==='heal'?'#7fc77a':tone==='enemy'?'#d46b5f':tone==='status'?'#a7aa9a':'#e0bd78';

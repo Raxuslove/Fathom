@@ -208,14 +208,16 @@ const STRATA_NAMED = [
 const STRATA_ADJ = ["Sunken","Weeping","Rimed","Hollow","Black","Ashen","Silent","Forgotten","Bleeding","Nine-Gated","Salt-Eaten"];
 const STRATA_NOUN = ["Gallery","Stair","Cistern","Chancel","Reservoir","Kiln","Almshouse","Rookery","Sluice","Ossuary","Scriptorium"];
 const FATHOMS_PER_STRATUM = 500;
-const BUILD_VERSION = "v0.219.31 · Dev Placeable Light Sources";
+const BUILD_VERSION = "v0.219.50 · Interaction QOL + Forge Handoff + 50/50 Ore";
 const SETTINGS_KEY = "lowfathom:settings";
-const SETTINGS_SCHEMA = 7;
+const SETTINGS_SCHEMA = 8;
 const MINIMAP_SIZE_OPTIONS=["small","medium","large","extra"];
 const MINIMAP_ZOOM_OPTIONS=[0,1,2,3,4];
 const PLAYER_SPRITE_SIZE_OPTIONS=["double"];
 const PLAYER_SPRITE_SIZE_MULTIPLIERS=Object.freeze({double:2});
-const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept",worldZoom:"standard",worldShadows:true,worldEdgeShadows:false,minimapSize:"medium",minimapZoom:2,playerSpriteSize:"double"});
+const CONVERSATION_SPEED_OPTIONS=["instant","fast","normal","slow"];
+const CONVERSATION_SPEED_DELAY=Object.freeze({instant:0,fast:9,normal:22,slow:42});
+const DEFAULT_SETTINGS = Object.freeze({characterIndicators:true,encounterGraceSeconds:15,diceAnimation:true,diceSize:"normal",combatDice:"player",combatFont:"concept",worldZoom:"standard",worldShadows:true,worldEdgeShadows:false,minimapSize:"medium",minimapZoom:2,playerSpriteSize:"double",conversationTextSpeed:"normal"});
 const WINDOW_LAYOUT_KEY="lowfathom:window-layout:v1";
 const COMBAT_FONT_OPTIONS=["concept","slab"];
 const ENCOUNTER_GRACE_OPTIONS = [5,15,30];
@@ -287,6 +289,30 @@ const TOWN_DEFS = Object.freeze([
    ============================================================ */
 const QUEST_DEFS = Object.freeze([
   Object.freeze({
+    id:"dawngate-mining-intro",title:"Ore for the Forge",kind:"mining-intro",
+    giverTownId:"grey-lantern",giverLocationId:null,giverName:"Dawngate Miner",targetName:"Dawngate Miner",repeatable:false,
+    summary:"Mine 10 Copper Ore and 5 Tin Ore, then return to Dawngate's miner.",
+    details:"The miner wants enough copper and tin to prove you can recognize useful veins and work them safely. Progress counts ore as you mine it, so smelting or spending the ore later will not erase the work already done.",
+    lore:"The first lesson is not a lecture: bring back enough metal to make the forge worth lighting.",
+    objectives:Object.freeze([
+      Object.freeze({id:"copper",type:"trade-counter",trade:"mining",resource:"copper",label:"Copper Ore",required:10}),
+      Object.freeze({id:"tin",type:"trade-counter",trade:"mining",resource:"tin",label:"Tin Ore",required:5})
+    ]),
+    reward:Object.freeze({gold:35,tradeXp:80})
+  }),
+  Object.freeze({
+    id:"dawngate-smithing-intro",title:"Learning the Forge",kind:"smithing-intro",
+    giverTownId:"grey-lantern",giverLocationId:null,giverName:"Dawngate Blacksmith",targetName:"Dawngate Blacksmith",repeatable:false,
+    summary:"Smelt 5 Bronze Bars, report back to the blacksmith, then forge any Bronze weapon with his old hammer.",
+    details:"The blacksmith wants you to learn the whole Bronze loop yourself: combine Copper and Tin at the furnace, return once you have five Bronze Bars, then use the hammer he lends you to forge a weapon at the anvil.",
+    lore:"Ore is only useful once somebody knows what heat and a hammer can do to it.",
+    objectives:Object.freeze([
+      Object.freeze({id:"bars",type:"material-count",material:"Bronze Bar",label:"Bronze Bars",required:5}),
+      Object.freeze({id:"weapon",type:"trade-counter",trade:"smithing",resource:"forged-weapon",label:"Bronze weapon",required:1})
+    ]),
+    reward:Object.freeze({gold:45,tradeXp:80})
+  }),
+  Object.freeze({
     id:"grey-lantern-cave-mushrooms",title:"Cave Mushroom Samples",kind:"quota-delivery",
     giverTownId:"grey-lantern",giverLocationId:"guild",giverName:"Dawngate Guild Hall",
     targetTownId:"lantern-city",targetLocationId:"herbalist",targetNpcName:"Mara Venn",targetName:"Mara Venn · Lantern City Herbalist",repeatable:false,
@@ -350,6 +376,8 @@ function ensureQuestState(){
   S.quests.instances=Array.isArray(S.quests.instances)?S.quests.instances:[];
   S.quests.nextSerial=Math.max(1,Math.floor(Number(S.quests.nextSerial)||1));
   S.quests.exploreAccumulator=Math.max(0,Number(S.quests.exploreAccumulator)||0);
+  S.quests.trackedInstanceId=typeof S.quests.trackedInstanceId==="string"?S.quests.trackedInstanceId:"";
+  S.quests.trackerCollapsed=!!S.quests.trackerCollapsed;
   S.inventory=S.inventory||{};
   S.inventory.questItems=Array.isArray(S.inventory.questItems)?S.inventory.questItems:[];
   return S.quests;
@@ -365,6 +393,8 @@ function syncQuestObjectiveProgress(inst){
   for(const obj of def?.objectives||[]){
     const state=inst.objectives[obj.id]||(inst.objectives[obj.id]={current:0,required:obj.required||1});
     if(obj.type==="quota-item"||obj.type==="delivery-item")state.current=questItemCount(inst.instanceId,obj.id);
+    else if(obj.type==="material-count")state.current=miscCount(obj.material||obj.label||obj.id);
+    else if(obj.type==="trade-counter")state.current=Math.max(0,Math.floor(Number(state.current)||0));
     state.required=Math.max(1,Number(obj.required)||1);
   }
 }
@@ -394,7 +424,8 @@ function releaseQuestItems(inst){
 }
 function questPromisedRewardText(inst){
   const r=inst?.promisedRewards||{};if(r.goldPerUnit)return `${formatGold(r.goldPerUnit)} each · up to ${formatGold(r.maxGold||0)}`;
-  if(r.gold)return formatGold(r.gold);return "—";
+  if(r.gold&&r.tradeXp)return `${formatGold(r.gold)} · ${Math.round(Number(r.tradeXp)||0)} Mining XP`;
+  if(r.gold)return formatGold(r.gold);if(r.tradeXp)return `${Math.round(Number(r.tradeXp)||0)} Mining XP`;return "—";
 }
 function questProgressText(inst){
   const def=questDefById(inst?.definitionId);if(!def)return "";syncQuestObjectiveProgress(inst);
@@ -406,17 +437,131 @@ function questProgressText(inst){
     if(r.stage==="located")return `${name} located`;
     return `${Math.max(0,Number(r.leads)||0)} / 2 leads found`;
   }
+  if(def.kind==="mining-intro"){
+    const copper=inst.objectives?.copper||{current:0,required:10},tin=inst.objectives?.tin||{current:0,required:5};
+    if(copper.current>=copper.required&&tin.current>=tin.required)return "Return to the Miner";
+    return `Copper ${copper.current||0}/${copper.required||10} · Tin ${tin.current||0}/${tin.required||5}`;
+  }
+  if(def.kind==="smithing-intro"){
+    const stage=smithingIntroStage(inst);if(stage==="smelt"){const bars=inst.objectives?.bars||{current:0,required:5};return smithingBarsReady(inst)?"Return to the Blacksmith":`Bronze Bars ${bars.current||0}/${bars.required||5}`;}
+    const weapon=inst.objectives?.weapon||{current:0,required:1};return smithingWeaponReady(inst)?"Return to the Blacksmith":`Bronze weapon ${weapon.current||0}/${weapon.required||1}`;
+  }
   const obj=def.objectives?.[0],state=inst.objectives?.[obj?.id];
   if(obj?.type==="quota-item")return `${state?.current||0} / ${state?.required||obj.required} ${obj.item.name}${(state?.required||obj.required)===1?"":"s"}`;
   return state?`${state.current||0} / ${state.required||1}`:"";
 }
+function incrementTradeQuestCounter(trade,resource,qty=1){
+  let changed=false;
+  for(const inst of questInstances("active")){
+    const def=questDefById(inst.definitionId);if(!def)continue;syncQuestObjectiveProgress(inst);
+    for(const obj of def.objectives||[]){
+      if(obj.type!=="trade-counter"||String(obj.trade)!==String(trade)||String(obj.resource)!==String(resource))continue;
+      const st=inst.objectives[obj.id],before=st.current||0;st.current=Math.min(st.required,Math.max(0,before+Math.max(0,Math.floor(Number(qty)||0))));if(st.current!==before)changed=true;
+    }
+  }
+  if(changed){markCharacterNotice("quests");requestRunSave();renderQuestTracker();}
+  return changed;
+}
+function miningIntroQuest(){return questInstanceForDefinition("dawngate-mining-intro");}
+function miningIntroReady(inst=miningIntroQuest()){if(!inst||inst.status!=="active")return false;syncQuestObjectiveProgress(inst);return Object.values(inst.objectives||{}).every(st=>(st.current||0)>=(st.required||1));}
+function smithingIntroQuest(){return questInstanceForDefinition("dawngate-smithing-intro");}
+function smithingIntroStage(inst=smithingIntroQuest()){if(!inst)return "none";inst.smithing=inst.smithing&&typeof inst.smithing==="object"?inst.smithing:{stage:"smelt"};if(!["smelt","forge","done"].includes(inst.smithing.stage))inst.smithing.stage="smelt";return inst.smithing.stage;}
+function smithingBarsReady(inst=smithingIntroQuest()){if(!inst||inst.status!=="active")return false;syncQuestObjectiveProgress(inst);return Number(inst.objectives?.bars?.current||0)>=Number(inst.objectives?.bars?.required||5);}
+function smithingWeaponReady(inst=smithingIntroQuest()){if(!inst||inst.status!=="active")return false;syncQuestObjectiveProgress(inst);return Number(inst.objectives?.weapon?.current||0)>=Number(inst.objectives?.weapon?.required||1);}
+function smithingIntroReady(inst=smithingIntroQuest()){const stage=smithingIntroStage(inst);return stage==="smelt"?smithingBarsReady(inst):stage==="forge"?smithingWeaponReady(inst):false;}
+function completeMiningIntroQuest({renderNow=true,showConfirmation=true}={}){
+  const inst=miningIntroQuest(),def=questDefById(inst?.definitionId);if(!inst||!def||!miningIntroReady(inst))return false;
+  const reward=Math.max(0,Math.round(Number(inst.promisedRewards?.gold)||0)),xp=Math.max(0,Math.round(Number(inst.promisedRewards?.tradeXp)||0));
+  if(reward)S.gold=(S.gold||0)+reward;const practice=xp?awardTradeXp("mining",xp):null;
+  inst.status="completed";inst.completedAt=Date.now();inst.result={reward,tradeXp:xp,full:true};inst.inactiveReason=null;
+  ensureSmithingState().minerHandoff=true;if(S.quests?.trackedInstanceId===inst.instanceId)S.quests.trackedInstanceId="";
+  markCharacterNotice("quests");travelLogAdd(`<b>${esc(def.title)} completed.</b> Received ${formatGold(reward)}${xp?` · ${xp} Mining XP`:""}.`,"good");
+  if(practice?.levelled)travelLogAdd(`<b>Mining Rank ${practice.rank}</b> reached.`,"good");
+  saveRunNow();if(renderNow)render();if(showConfirmation)showQuestRewardConfirmation(inst);return true;
+}
+function advanceSmithingIntroToForge(){
+  const inst=smithingIntroQuest();if(!inst||inst.status!=="active"||smithingIntroStage(inst)!=="smelt"||!smithingBarsReady(inst))return false;
+  inst.smithing=inst.smithing||{};inst.smithing.stage="forge";const grant=grantSmithingHammer();markCharacterNotice("quests");requestRunSave();renderQuestTracker();return grant?.ok!==false;
+}
+function completeSmithingIntroQuest({renderNow=true}={}){
+  const inst=smithingIntroQuest(),def=questDefById(inst?.definitionId);if(!inst||!def||smithingIntroStage(inst)!=="forge"||!smithingWeaponReady(inst))return false;
+  const reward=Math.max(0,Math.round(Number(inst.promisedRewards?.gold)||0)),xp=Math.max(0,Math.round(Number(inst.promisedRewards?.tradeXp)||0));
+  if(reward)S.gold=(S.gold||0)+reward;const practice=xp?awardTradeXp("smithing",xp):null;inst.status="completed";inst.completedAt=Date.now();inst.result={reward,tradeXp:xp,full:true};inst.smithing={stage:"done"};
+  const smith=ensureSmithingState();smith.herbalistHandoff=true;markCharacterNotice("quests");travelLogAdd(`<b>${esc(def.title)} completed.</b> Received ${formatGold(reward)}${xp?` · ${xp} Crafting / Smithing XP`:""}.`,"good");if(practice?.levelled)travelLogAdd(`<b>Crafting / Smithing Rank ${practice.rank}</b> reached.`,"good");
+  saveRunNow();if(renderNow)render();return true;
+}
+
+function trackedQuestInstance(){
+  ensureQuestState();const active=questInstances("active");if(!active.length){S.quests.trackedInstanceId="";return null;}let inst=questInstanceById(S.quests.trackedInstanceId);if(!inst||inst.status!=="active")inst=active[0];S.quests.trackedInstanceId=inst.instanceId;return inst;
+}
+function questTrackerRows(inst,def){
+  syncQuestObjectiveProgress(inst);
+  if(def.kind==="mining-intro"){
+    let rows=(def.objectives||[]).map(obj=>{const st=inst.objectives[obj.id]||{current:0,required:obj.required};return `<span><b>${esc(obj.label||obj.id)}</b><i>${st.current||0} / ${st.required||obj.required}</i></span>`;}).join("");
+    if(miningIntroReady(inst))rows+=`<span><b>Next</b><i>Return to the Miner</i></span>`;return rows;
+  }
+  if(def.kind==="smithing-intro"){
+    const stage=smithingIntroStage(inst),obj=stage==="forge"?def.objectives?.find(o=>o.id==="weapon"):def.objectives?.find(o=>o.id==="bars"),st=inst.objectives?.[obj?.id]||{current:0,required:obj?.required||1};
+    let rows=`<span><b>${esc(obj?.label||"Progress")}</b><i>${st.current||0} / ${st.required||obj?.required||1}</i></span>`;
+    if(smithingIntroReady(inst))rows+=`<span><b>Next</b><i>Return to the Blacksmith</i></span>`;return rows;
+  }
+  return `<span><b>Progress</b><i>${esc(questProgressText(inst))}</i></span>`;
+}
+function questTrackerObjectiveComplete(inst,def){
+  if(!inst||!def||inst.status!=="active")return false;syncQuestObjectiveProgress(inst);
+  if(def.kind==="mining-intro")return miningIntroReady(inst);
+  if(def.kind==="smithing-intro")return smithingIntroReady(inst);
+  const objectives=def.objectives||[];
+  return objectives.length>0&&objectives.every(obj=>{const st=inst.objectives?.[obj.id];return (Number(st?.current)||0)>=(Number(st?.required)||Number(obj.required)||1);});
+}
+function renderQuestTracker(){
+  const root=$("worldQuestTracker"),body=$("worldQuestTrackerBody"),toggle=$("btnWorldQuestTrackerToggle");if(!root||!body||!toggle||!S){if(root)root.hidden=true;return;}
+  const active=questInstances("active").slice().sort((a,b)=>(Number(a.acceptedAt)||0)-(Number(b.acceptedAt)||0));if(!active.length){root.hidden=true;return;}
+  root.hidden=false;root.classList.toggle("collapsed",!!S.quests.trackerCollapsed);toggle.textContent=S.quests.trackerCollapsed?"+":"−";toggle.setAttribute("aria-expanded",String(!S.quests.trackerCollapsed));
+  const html=active.map(inst=>{const def=questDefById(inst.definitionId);if(!def)return "";const ready=questTrackerObjectiveComplete(inst,def);return `<div class="world-quest-tracker-entry${ready?' ready':''}"><button class="world-quest-tracker-name" type="button" data-tracked-quest="${esc(inst.instanceId)}">${esc(def.title)}</button><div class="world-quest-tracker-progress">${questTrackerRows(inst,def)}</div></div>`;}).join("");
+  if(body.dataset.renderHtml!==html){body.innerHTML=html;body.dataset.renderHtml=html;}
+}
+
 function questsAtTownLocation(townId,locationId){return QUEST_DEFS.filter(q=>q.giverTownId===townId&&q.giverLocationId===locationId);}
 function questAtTownLocation(townId,locationId){return questsAtTownLocation(townId,locationId)[0]||null;}
 function questTurnInsAtTownLocation(townId,locationId){
   return questInstances("active").filter(inst=>{const def=questDefById(inst.definitionId);return def?.kind!=="rescue-escort"&&(inst.targetTownId||def?.targetTownId)===townId&&(inst.targetLocationId||def?.targetLocationId)===locationId;});
 }
+function questTurnInReady(inst){
+  if(!inst||inst.status!=="active")return false;const def=questDefById(inst.definitionId);if(!def)return false;syncQuestObjectiveProgress(inst);
+  if(def.kind==="mining-intro")return miningIntroReady(inst);
+  if(def.kind==="smithing-intro")return smithingIntroReady(inst);
+  if(def.kind==="quota-delivery"||def.kind==="delivery")return (def.objectives||[]).some(obj=>questItemCount(inst.instanceId,obj.id)>0);
+  if(def.kind==="rescue-escort")return inst.rescue?.stage==="escorting";
+  return (def.objectives||[]).length>0&&(def.objectives||[]).every(obj=>{const st=inst.objectives?.[obj.id];return (Number(st?.current)||0)>=(Number(st?.required)||Number(obj.required)||1);});
+}
+function worldTownQuestMarker(info={}){
+  if(!S)return null;const townId=String(info.townId||""),locationId=info.locationId==null?null:String(info.locationId),role=String(info.role||"");
+  // The Dawngate miner is a standalone authored NPC rather than a settlement
+  // service location, so its onboarding contract gets an explicit marker path.
+  if(townId==="grey-lantern"&&role==="miner"){
+    const inst=miningIntroQuest();
+    if(!inst)return{kind:"available",asset:"./assets/ui/quest-mark2gold-excl.png",label:"Quest available"};
+    if(inst.status==="active")return miningIntroReady(inst)?{kind:"ready",asset:"./assets/ui/quest-mark2gold.png",label:"Quest ready to turn in"}:{kind:"active",asset:"./assets/ui/quest-mark1.png",label:"Quest in progress"};
+    return null;
+  }
+  if(townId==="grey-lantern"&&role==="blacksmith"){
+    const mine=miningIntroQuest(),smith=smithingIntroQuest();if(mine?.status!=="completed"&&!ensureSmithingState()?.minerHandoff)return null;
+    if(!smith)return{kind:"available",asset:"./assets/ui/quest-mark2gold-excl.png",label:"Forge lesson available"};
+    if(smith.status==="active")return smithingIntroReady(smith)?{kind:"ready",asset:"./assets/ui/quest-mark2gold.png",label:"Forge lesson ready"}:{kind:"active",asset:"./assets/ui/quest-mark1.png",label:"Forge lesson in progress"};
+    return null;
+  }
+  if(!townId||!locationId)return null;
+  const turnIns=questTurnInsAtTownLocation(townId,locationId);
+  if(turnIns.length)return turnIns.some(questTurnInReady)?{kind:"ready",asset:"./assets/ui/quest-mark2gold.png",label:"Quest ready to turn in"}:{kind:"active",asset:"./assets/ui/quest-mark1.png",label:"Quest in progress"};
+  const available=questsAtTownLocation(townId,locationId).some(def=>!questInstanceForDefinition(def.id));
+  if(available)return{kind:"available",asset:"./assets/ui/quest-mark2gold-excl.png",label:"Quest available"};
+  return null;
+}
 function questDestinationText(inst){
   const def=questDefById(inst?.definitionId);if(!inst||!def)return "—";
+  if(def.kind==="mining-intro")return "Dawngate · Miner";
+  if(def.kind==="smithing-intro")return "Dawngate · Blacksmith";
   if(def.kind==="rescue-escort"&&!['escorting','completed'].includes(inst.rescue?.stage)){
     const from=townDefById(def.giverTownId),to=townDefById(def.targetTownId);
     return `${from?.name||"Source"} → ${to?.name||"next settlement"} road · whereabouts unknown`;
@@ -437,13 +582,15 @@ function acceptQuest(defId){
   if(questInstanceForDefinition(defId)&&!def.repeatable)return false;
   const serial=S.quests.nextSerial++,instanceId=`q-${def.id}-${serial}`;
   const originDepth=Number(S.depth)||Number(townDefById(def.giverTownId)?.depth)||0,targetTown=townDefById(def.targetTownId);
-  const targetDepth=targetTown?Number(targetTown.depth):findClearQuestDepth(originDepth+Number(def.targetOffset||0));
+  const targetDepth=(def.kind==="mining-intro"||def.kind==="smithing-intro")?0:(targetTown?Number(targetTown.depth):findClearQuestDepth(originDepth+Number(def.targetOffset||0)));
   const objectives={};for(const obj of def.objectives||[])objectives[obj.id]={current:0,required:Math.max(1,Number(obj.required)||1)};
   const inst={instanceId,definitionId:def.id,status:"active",acceptedAt:Date.now(),acceptedAtDepth:originDepth,acceptedTownId:def.giverTownId,targetDepth,targetTownId:def.targetTownId||null,targetLocationId:def.targetLocationId||null,targetNpcName:def.targetNpcName||null,expiresAtDepth:def.expiresAfterDepth?roundQuarter(originDepth+Number(def.expiresAfterDepth)):null,objectives,promisedRewards:{...(def.reward||{})},result:null,inactiveReason:null};
   if(def.kind==="rescue-escort")inst.rescue=createRescueQuestState(def,inst);
+  if(def.kind==="smithing-intro")inst.smithing={stage:"smelt"};
   S.quests.instances.push(inst);
+  if(!S.quests.trackedInstanceId||def.kind==="mining-intro")S.quests.trackedInstanceId=inst.instanceId;
   for(const obj of def.objectives||[])if(obj.issuedQty)addQuestItem(inst,obj,obj.issuedQty,"issued");
-  if(!targetTown)nudgePendingMerchantFromDepth(targetDepth,5);
+  if(!targetTown&&def.kind!=="mining-intro")nudgePendingMerchantFromDepth(targetDepth,5);
   markCharacterNotice("quests");travelLogAdd(`<b>Quest accepted:</b> ${esc(def.title)} · destination ${esc(questDestinationText(inst))}.`,"beat");saveRunNow();renderTown();renderCharacterSheet();renderTrail();return true;
 }
 function eligibleQuestDropObjectives(source){
@@ -477,6 +624,8 @@ function questRewardConfirmationParts(inst){
   const parts=[],result=inst?.result||{};
   const gold=Math.max(0,Math.round(Number(result.reward)||0));
   if(gold>0)parts.push(formatGold(gold));
+  const tradeXp=Math.max(0,Math.round(Number(result.tradeXp)||0));
+  if(tradeXp>0)parts.push(`${tradeXp} Mining XP`);
   const items=Array.isArray(result.rewardItems)?result.rewardItems:[];
   for(const row of items){
     if(!row)continue;
@@ -520,10 +669,12 @@ function normalizeQuestState(){
   ensureQuestState();for(const inst of S.quests.instances){
     const def=questDefById(inst.definitionId);if(!def){inst.status="inactive";inst.inactiveReason="Quest definition unavailable";continue;}
     if(inst.status==="active"){
-      if(def.targetTownId&&!inst.targetTownId){inst.targetTownId=def.targetTownId;inst.targetLocationId=def.targetLocationId||null;inst.targetNpcName=def.targetNpcName||null;inst.targetDepth=Number(townDefById(def.targetTownId)?.depth)||Number(inst.targetDepth)||0;}
-      if(inst.expiresAtDepth&&Number(S.depth)>Number(inst.expiresAtDepth)+TRAVEL_STEP){inst.status="inactive";inst.inactiveReason="Contract expired";}
-      else if(!inst.targetTownId&&Number(S.depth)>Number(inst.targetDepth)+TRAVEL_STEP&&S.travelEvent?.questInstanceId!==inst.instanceId){inst.status="inactive";inst.inactiveReason="Delivery point missed";}
-      else if(inst.targetTownId&&ensureTownState()?.departed?.[inst.targetTownId]){inst.status="inactive";inst.inactiveReason="Destination left behind";}
+      if(def.kind!=="mining-intro"){
+        if(def.targetTownId&&!inst.targetTownId){inst.targetTownId=def.targetTownId;inst.targetLocationId=def.targetLocationId||null;inst.targetNpcName=def.targetNpcName||null;inst.targetDepth=Number(townDefById(def.targetTownId)?.depth)||Number(inst.targetDepth)||0;}
+        if(inst.expiresAtDepth&&Number(S.depth)>Number(inst.expiresAtDepth)+TRAVEL_STEP){inst.status="inactive";inst.inactiveReason="Contract expired";}
+        else if(!inst.targetTownId&&Number(S.depth)>Number(inst.targetDepth)+TRAVEL_STEP&&S.travelEvent?.questInstanceId!==inst.instanceId){inst.status="inactive";inst.inactiveReason="Delivery point missed";}
+        else if(inst.targetTownId&&ensureTownState()?.departed?.[inst.targetTownId]){inst.status="inactive";inst.inactiveReason="Destination left behind";}
+      }
     }
     if(inst.status!=="active"&&def.kind==="rescue-escort"){
       if(inst.rescue&&inst.status!=="completed")inst.rescue.stage="failed";
@@ -728,6 +879,71 @@ function rescueCombatAbandoned(foe){
    existing engines instead.
    ============================================================ */
 const INTERACTION_DEFS=Object.freeze({
+  "dawngate-miner-intro":Object.freeze({
+    id:"dawngate-miner-intro",kind:"Mining",start:"greeting",
+    nodes:Object.freeze({
+      greeting:Object.freeze({
+        speaker:"Dawngate Miner",text:"Going below? Then don't walk past every bit of stone as if your sword can do all the work.",
+        choices:Object.freeze([Object.freeze({id:"ask",label:"What should I be looking for?",sub:"ask about mining",next:"lesson",wide:true})])
+      }),
+      lesson:Object.freeze({
+        speaker:"Dawngate Miner",text:"Copper and tin. The useful veins tend to sit along chamber edges, side pockets and passages away from the main road. Work them steadily and keep an eye out for trouble.",
+        choices:Object.freeze([Object.freeze({id:"take",label:"I'll give it a try.",sub:"receive a Bronze Pickaxe and take the mining job",next:"accepted",wide:true,style:"reward",effects:Object.freeze([Object.freeze({type:"hook",name:"miner-intro-accept"})])})])
+      }),
+      accepted:Object.freeze({
+        speaker:"Dawngate Miner",text:"Bring me proof you've mined ten copper and five tin by your own hand. Do that, and I'll send you to the blacksmith for the next part.",
+        choices:Object.freeze([Object.freeze({id:"leave",label:"I'll bring it back.",sub:"track Ore for the Forge",end:true,wide:true,style:"reward"})])
+      })
+    })
+  }),
+  "dawngate-miner-progress":Object.freeze({
+    id:"dawngate-miner-progress",kind:"Mining",start:"progress",
+    nodes:Object.freeze({
+      progress:Object.freeze({
+        speaker:"Dawngate Miner",text:active=>`Still working on it? You've mined ${Number(active?.context?.copper)||0}/10 copper and ${Number(active?.context?.tin)||0}/5 tin. Search the chamber edges and side passages; don't just follow the road.`,
+        choices:Object.freeze([Object.freeze({id:"leave",label:"Back to it.",sub:"continue the search",end:true,wide:true})])
+      })
+    })
+  }),
+  "dawngate-miner-ready":Object.freeze({
+    id:"dawngate-miner-ready",kind:"Mining",start:"ready",
+    nodes:Object.freeze({
+      ready:Object.freeze({
+        speaker:"Dawngate Miner",text:"That's enough ore. More importantly, you found it yourself. Ready for your pay?",
+        choices:Object.freeze([Object.freeze({id:"turnin",label:"Turn in the mining job.",sub:"receive Mining XP and coin",next:"handoff",wide:true,style:"reward",effects:Object.freeze([Object.freeze({type:"hook",name:"miner-intro-complete"})])})])
+      }),
+      handoff:Object.freeze({
+        speaker:"Dawngate Miner",text:"Now take what you've learned to the blacksmith. He'll show you the furnace first, then the anvil. Ore is only the beginning of the job.",
+        choices:Object.freeze([Object.freeze({id:"leave",label:"Go see the blacksmith.",sub:"continue the smithing lesson",end:true,wide:true,style:"reward"})])
+      })
+    })
+  }),
+  "dawngate-miner-after":Object.freeze({
+    id:"dawngate-miner-after",kind:"Mining",start:"after",
+    nodes:Object.freeze({
+      after:Object.freeze({
+        speaker:"Dawngate Miner",text:"You've got the mining part. The forge is your next lesson now.",
+        choices:Object.freeze([Object.freeze({id:"leave",label:"Understood.",sub:"return to Dawngate",end:true,wide:true})])
+      })
+    })
+  }),
+  "dawngate-blacksmith-locked":Object.freeze({
+    id:"dawngate-blacksmith-locked",kind:"Blacksmith",start:"locked",nodes:Object.freeze({locked:Object.freeze({speaker:"Dawngate Blacksmith",text:"Got ore on your mind? Talk to the miner first. I don't teach the forge to someone who hasn't learned to tell useful stone from rubble.",choices:Object.freeze([Object.freeze({id:"leave",label:"I'll speak with the miner.",sub:"return to Dawngate",end:true,wide:true})])})})
+  }),
+  "dawngate-blacksmith-intro":Object.freeze({
+    id:"dawngate-blacksmith-intro",kind:"Blacksmith",start:"greeting",nodes:Object.freeze({
+      greeting:Object.freeze({speaker:"Dawngate Blacksmith",text:"Oh, you're the one the miner mentioned. You got some copper and tin for me? Good. About time you learned what to do with it.",choices:Object.freeze([Object.freeze({id:"ask",label:"How do I turn it into something useful?",sub:"learn the furnace",next:"furnace",wide:true})])}),
+      furnace:Object.freeze({speaker:"Dawngate Blacksmith",text:"Use the furnace yourself. Two copper and one tin make one Bronze Bar. Smelt five bars, then come back to me. Don't waste them at the anvil yet—you haven't got a proper hammer.",choices:Object.freeze([Object.freeze({id:"accept",label:"I'll smelt five Bronze Bars.",sub:"start Learning the Forge",end:true,wide:true,style:"reward",effects:Object.freeze([Object.freeze({type:"hook",name:"blacksmith-intro-accept"})])})])})
+    })
+  }),
+  "dawngate-blacksmith-smelt-progress":Object.freeze({id:"dawngate-blacksmith-smelt-progress",kind:"Blacksmith",start:"progress",nodes:Object.freeze({progress:Object.freeze({speaker:"Dawngate Blacksmith",text:active=>`Bring me five Bronze Bars together so I can see the metal came out right. You've got ${Number(active?.context?.bars)||0}/5. Furnace recipe is two copper and one tin per bar. When you reach five, come straight back and I'll give you the hammer for the anvil lesson.`,choices:Object.freeze([Object.freeze({id:"leave",label:"Back to the furnace.",sub:"smelt five Bronze Bars, then return",end:true,wide:true})])})})}),
+  "dawngate-blacksmith-bars-ready":Object.freeze({id:"dawngate-blacksmith-bars-ready",kind:"Blacksmith",start:"ready",nodes:Object.freeze({
+    ready:Object.freeze({speaker:"Dawngate Blacksmith",text:"Five bars. Good. Now you've got metal worth shaping. Here—take my old hammer. It's ugly, but the face is sound.",choices:Object.freeze([Object.freeze({id:"hammer",label:"Take the old hammer.",sub:"unlock the anvil lesson",next:"forge",wide:true,style:"reward",effects:Object.freeze([Object.freeze({type:"hook",name:"blacksmith-bars-ready"})])})])}),
+    forge:Object.freeze({speaker:"Dawngate Blacksmith",text:"Go to the anvil and make yourself a Bronze weapon. Dagger, sword, axe, greatsword—your choice. Bring the finished weapon back so I know you didn't just flatten five bars into scrap.",choices:Object.freeze([Object.freeze({id:"leave",label:"I'll forge a weapon.",sub:"use the Dawngate anvil",end:true,wide:true})])})
+  })}),
+  "dawngate-blacksmith-forge-progress":Object.freeze({id:"dawngate-blacksmith-forge-progress",kind:"Blacksmith",start:"progress",nodes:Object.freeze({progress:Object.freeze({speaker:"Dawngate Blacksmith",text:"Hammer's yours for the lesson. Pick a Bronze weapon at the anvil, confirm it, and keep your arm steady until the work is done.",choices:Object.freeze([Object.freeze({id:"leave",label:"Back to the anvil.",sub:"forge any Bronze weapon",end:true,wide:true})])})})}),
+  "dawngate-blacksmith-forge-ready":Object.freeze({id:"dawngate-blacksmith-forge-ready",kind:"Blacksmith",start:"ready",nodes:Object.freeze({ready:Object.freeze({speaker:"Dawngate Blacksmith",text:"There it is. Not pretty enough for a lord, but it'll hold an edge and you made it yourself. That's the forge lesson done.",choices:Object.freeze([Object.freeze({id:"finish",label:"Finish the lesson.",sub:"receive Smithing XP and coin",next:"handoff",wide:true,style:"reward",effects:Object.freeze([Object.freeze({type:"hook",name:"blacksmith-complete"})])})])}),handoff:Object.freeze({speaker:"Dawngate Blacksmith",text:"Next stop's the herbalist. Metal keeps you armed; knowing what grows down there keeps you alive when steel isn't enough.",choices:Object.freeze([Object.freeze({id:"leave",label:"Go see the herbalist.",sub:"continue the trade-skill introduction",end:true,wide:true,style:"reward"})])})})}),
+  "dawngate-blacksmith-after":Object.freeze({id:"dawngate-blacksmith-after",kind:"Blacksmith",start:"after",nodes:Object.freeze({after:Object.freeze({speaker:"Dawngate Blacksmith",text:"You know the furnace and the anvil now. Keep that hammer. The herbalist's the one I'd speak to next.",choices:Object.freeze([Object.freeze({id:"leave",label:"Understood.",sub:"return to Dawngate",end:true,wide:true})])})})}),
   "zeshava-contract":Object.freeze({
     id:"zeshava-contract",kind:"Guild contract",start:"briefing",
     nodes:Object.freeze({
@@ -1001,6 +1217,13 @@ const INTERACTION_DEFS=Object.freeze({
   })
 });
 let interactionBusy=false;
+let interactionReveal={key:"",text:"",shown:0,complete:true,timer:null};
+function clearInteractionRevealTimer(){if(interactionReveal.timer){clearInterval(interactionReveal.timer);interactionReveal.timer=null;}}
+function interactionRevealDelay(){return Math.max(0,Number(CONVERSATION_SPEED_DELAY[settings.conversationTextSpeed]??CONVERSATION_SPEED_DELAY.normal));}
+function finishInteractionReveal(){
+  const active=activeInteraction();if(!active||interactionReveal.complete)return false;clearInteractionRevealTimer();interactionReveal.shown=interactionReveal.text.length;interactionReveal.complete=true;const el=$("interactionText");if(el)el.textContent=interactionReveal.text;renderInteraction();return true;
+}
+function resetInteractionReveal(){clearInteractionRevealTimer();interactionReveal={key:"",text:"",shown:0,complete:true,timer:null};}
 function ensureInteractionState(){
   if(!S)return null;
   if(!S.interactionState||typeof S.interactionState!=="object"||Array.isArray(S.interactionState))S.interactionState={active:null,pending:null,nextSerial:1};
@@ -1095,6 +1318,20 @@ function activateQueuedInteraction(){
   enterInteractionNode(st.active,st.active.nodeId);saveRunNow();render();return true;
 }
 const INTERACTION_HOOKS={
+  "miner-intro-accept":active=>{
+    const grant=grantBronzePickaxe();let inst=miningIntroQuest();if(!inst){acceptQuest("dawngate-mining-intro");inst=miningIntroQuest();}
+    if(inst){ensureQuestState();S.quests.trackedInstanceId=inst.instanceId;renderQuestTracker();}
+    if(grant?.ok&&!grant.already)travelLogAdd(`<b>Bronze Pickaxe</b> added to the Toolbelt by Dawngate's miner.`,"good");
+    requestRunSave();return `${grant?.already?`<b>Toolbelt:</b> Bronze Pickaxe already equipped.`:`<b>Received:</b> Bronze Pickaxe.`}${inst?`<br><b>Quest:</b> Ore for the Forge`:""}`;
+  },
+  "miner-intro-complete":active=>{
+    const inst=miningIntroQuest(),reward=Math.max(0,Math.round(Number(inst?.promisedRewards?.gold)||0)),xp=Math.max(0,Math.round(Number(inst?.promisedRewards?.tradeXp)||0));
+    const ok=completeMiningIntroQuest({renderNow:false,showConfirmation:false});
+    return ok?`<b>Received:</b> ${esc(formatGold(reward))}${xp?` · ${xp} Mining XP`:""}`:"";
+  },
+  "blacksmith-intro-accept":active=>{let inst=smithingIntroQuest();if(!inst){acceptQuest("dawngate-smithing-intro");inst=smithingIntroQuest();}ensureSmithingState().blacksmithIntro=true;requestRunSave();return inst?`<b>Quest:</b> Learning the Forge<br><b>Goal:</b> Smelt 5 Bronze Bars.`:"";},
+  "blacksmith-bars-ready":active=>{const ok=advanceSmithingIntroToForge(),grant=toolbeltTool("smithing");return ok?`<b>Received:</b> ${esc(grant?.name||"Blacksmith's Old Hammer")}<br><b>Goal:</b> Forge any Bronze weapon.`:"";},
+  "blacksmith-complete":active=>{const inst=smithingIntroQuest(),reward=Math.max(0,Math.round(Number(inst?.promisedRewards?.gold)||0)),xp=Math.max(0,Math.round(Number(inst?.promisedRewards?.tradeXp)||0)),ok=completeSmithingIntroQuest({renderNow:false});return ok?`<b>Received:</b> ${esc(formatGold(reward))}${xp?` · ${xp} Crafting / Smithing XP`:""}`:"";},
   "start-rescue-companion":active=>{const inst=questInstanceById(active?.context?.questInstanceId);return startTemporaryCompanion(inst)?`<b>Escort:</b> ${esc(questDefById(inst?.definitionId)?.subject?.name||"Traveller")} is accompanying you.`:"";},
   "fail-rescue-abandoned":active=>{const inst=questInstanceById(active?.context?.questInstanceId);failRescueQuest(inst,"You left Zeshava Brightsong in the refuge");return "";},
   "complete-rescue-arrival":active=>{const inst=questInstanceById(active?.context?.questInstanceId);if(!inst)return "";const ok=completeRescueQuest(inst);if(ok)setTimeout(()=>showQuestRewardConfirmation(inst),0);return ok?`<b>Quest completed:</b> ${esc(questDefById(inst.definitionId)?.title||"Rescue")}`:"";},
@@ -1112,21 +1349,29 @@ const INTERACTION_HOOKS={
 function endInteraction(){
   const st=ensureInteractionState(),active=st?.active,def=interactionDef(active?.defId);if(!st||!active)return false;
   if(def?.endHook){const hook=INTERACTION_HOOKS[def.endHook];if(typeof hook==="function")hook(active);}
-  st.active=null;interactionBusy=false;saveRunNow();render();return true;
+  st.active=null;interactionBusy=false;resetInteractionReveal();saveRunNow();render();return true;
 }
 function renderInteraction(){
   const sheet=$("interactionSheet");if(!sheet)return;
   const active=activeInteraction(),def=interactionDef(active?.defId),node=def?.nodes?.[active?.nodeId];
-  sheet.hidden=!active||!def||!node;if(sheet.hidden)return;
-  $("interactionKind").textContent=def.kind||"Conversation";$("interactionSpeaker").textContent=node.speaker||"Traveller";$("interactionText").textContent=interactionNodeText(node,active);
+  sheet.hidden=!active||!def||!node;if(sheet.hidden){resetInteractionReveal();return;}
+  const full=interactionNodeText(node,active),key=`${active.sessionId}:${active.nodeId}`;
+  if(interactionReveal.key!==key||interactionReveal.text!==full){
+    clearInteractionRevealTimer();const delay=interactionRevealDelay();interactionReveal={key,text:full,shown:delay?0:full.length,complete:!delay,timer:null};
+    if(delay){interactionReveal.timer=setInterval(()=>{if(!activeInteraction()||interactionReveal.key!==key){clearInteractionRevealTimer();return;}interactionReveal.shown=Math.min(interactionReveal.text.length,interactionReveal.shown+1);const el=$("interactionText");if(el)el.textContent=interactionReveal.text.slice(0,interactionReveal.shown);if(interactionReveal.shown>=interactionReveal.text.length){clearInteractionRevealTimer();interactionReveal.complete=true;renderInteraction();}},delay);}
+  }
+  $("interactionKind").textContent=def.kind||"Conversation";$("interactionSpeaker").textContent=node.speaker||"Traveller";$("interactionText").textContent=interactionReveal.complete?full:full.slice(0,interactionReveal.shown);
   const result=$("interactionResult"),html=active.nodeResults?.[active.nodeId]||"";result.hidden=!html;result.innerHTML=html;
-  const actions=$("interactionActions");actions.innerHTML=(node.choices||[]).filter(choice=>interactionConditionMet(choice.showWhen,active)).map(choice=>{
+  const prompt=$("interactionRevealPrompt");if(prompt)prompt.hidden=interactionReveal.complete;
+  const actions=$("interactionActions");if(!interactionReveal.complete){actions.innerHTML="";return;}
+  actions.innerHTML=(node.choices||[]).filter(choice=>interactionConditionMet(choice.showWhen,active)).map(choice=>{
     const enabled=interactionConditionMet(choice.enabledWhen,active),baseSub=interactionChoiceSub(choice,active),sub=enabled?baseSub:(choice.disabledSub||baseSub||"Unavailable");
     const cls=["interaction-choice",choice.wide?"wide":"",choice.style||""].filter(Boolean).join(" ");
     return `<button class="${cls}" type="button" data-interaction-choice="${esc(choice.id)}"${enabled?"":" disabled"}><b>${esc(choice.label||"Continue")}</b><span>${esc(sub)}</span></button>`;
   }).join("");
 }
 async function handleInteractionChoice(choiceId){
+  if(!interactionReveal.complete){finishInteractionReveal();return;}
   if(interactionBusy)return;const active=activeInteraction(),def=interactionDef(active?.defId),node=def?.nodes?.[active?.nodeId],choice=node?.choices?.find(c=>c.id===choiceId);
   if(!active||!choice||!interactionConditionMet(choice.showWhen,active)||!interactionConditionMet(choice.enabledWhen,active))return;
   interactionBusy=true;renderInteraction();
@@ -1705,6 +1950,53 @@ const SKILL_DEFS = {
 };
 const SKILL_ORDER = ["perception","investigation","stealth","acrobatics","athletics","survival","persuasion","deception"];
 
+/* v0.219.36: Trade Skills are long-term professions, deliberately separate from
+   adventuring Skills. Ordinary trade work is deterministic: no percentile roll,
+   no governing-attribute aptitude and no class proficiency layer. */
+const TRADE_SKILL_DEFS = Object.freeze({
+  mining:Object.freeze({name:"Mining",desc:"Extract ore veins with a pickaxe carried on the Toolbelt."}),
+  herbalism:Object.freeze({name:"Herbalism",desc:"Gather and prepare useful plants, fungi and other natural reagents."}),
+  cooking:Object.freeze({name:"Cooking",desc:"Turn gathered ingredients into food and expedition provisions."}),
+  smithing:Object.freeze({name:"Crafting / Smithing",desc:"Work raw materials into equipment, tools and useful crafted goods."}),
+  fishing:Object.freeze({name:"Fishing",desc:"Harvest fish and other waterborne resources where the delve allows it."}),
+  delving:Object.freeze({name:"Archaeology / Delving",desc:"Recover, examine and work carefully around buried remains and old sites."})
+});
+const TRADE_SKILL_ORDER = Object.freeze(["mining","herbalism","cooking","smithing","fishing","delving"]);
+const TRADE_XP_BASE = 100;
+const TRADE_XP_PER_RANK = 10;
+const TRADE_TOOL_DEFS = Object.freeze({
+  bronze_pickaxe:Object.freeze({id:"bronze_pickaxe",name:"Bronze Pickaxe",slot:"pickaxe",trade:"mining",tier:1,baseSwingMs:2400}),
+  blacksmith_old_hammer:Object.freeze({id:"blacksmith_old_hammer",name:"Blacksmith's Old Hammer",slot:"smithing",trade:"smithing",tier:1})
+});
+const TOOLBELT_SLOT_DEFS = Object.freeze([
+  Object.freeze({id:"pickaxe",label:"Pickaxe"}),
+  Object.freeze({id:"herbalism",label:"Herbalism"}),
+  Object.freeze({id:"cooking",label:"Cooking"}),
+  Object.freeze({id:"smithing",label:"Smithing"}),
+  Object.freeze({id:"fishing",label:"Fishing"}),
+  Object.freeze({id:"delving",label:"Delving"})
+]);
+const SMELTING_RECIPES = Object.freeze({
+  bronze:Object.freeze({id:"bronze",name:"Bronze Bar",inputs:Object.freeze({"Copper Ore":2,"Tin Ore":1}),output:"Bronze Bar",smithingXp:4})
+});
+const BRONZE_FORGE_RECIPES = Object.freeze([
+  Object.freeze({id:"bronze_dagger",name:"Bronze Dagger",bars:2,kind:"weapon",family:"dagger",stat:"DEX",hands:1,weaponContribution:6.3}),
+  Object.freeze({id:"bronze_shortsword",name:"Bronze Shortsword",bars:3,kind:"weapon",family:"shortsword",stat:"DEX",hands:1,weaponContribution:6.3}),
+  Object.freeze({id:"bronze_longsword",name:"Bronze Longsword",bars:3,kind:"weapon",family:"sword",stat:"STR",hands:1,weaponContribution:6.3}),
+  Object.freeze({id:"bronze_axe",name:"Bronze Axe",bars:3,kind:"weapon",family:"axe",stat:"STR",hands:1,weaponContribution:6.3}),
+  Object.freeze({id:"bronze_greatsword",name:"Bronze Greatsword",bars:5,kind:"weapon",family:"greatsword",stat:"STR",hands:2,weaponContribution:12.7,greatWeapon:true}),
+  Object.freeze({id:"bronze_buckler",name:"Bronze Buckler",bars:3,kind:"armor",family:"shield",slot:"leftHand",armor:12}),
+  Object.freeze({id:"bronze_helm",name:"Bronze Helm",bars:3,kind:"armor",family:"armor",slot:"hat",armor:7}),
+  Object.freeze({id:"bronze_gloves",name:"Bronze Gloves",bars:2,kind:"armor",family:"armor",slot:"gloves",armor:7}),
+  Object.freeze({id:"bronze_boots",name:"Bronze Boots",bars:2,kind:"armor",family:"armor",slot:"boots",armor:7})
+]);
+const EQUIPMENT_DURABILITY_MAX=100;
+const EQUIPMENT_DURABILITY_BASIC_WEAR=.22;
+const EQUIPMENT_DURABILITY_POWER_WEAR=.45;
+const BRONZE_BAR_REPAIR=35;
+const SCRAP_REPAIR_COST=5;
+const SCRAP_REPAIR_AMOUNT=10;
+
 /* Session 9E: displayed Skill Rank is an Elo-like logarithmic expertise rating.
    A fixed rating gap always means the same relative competence at Rank 10 or 1000.
    Challenges are authored to the identity of the content; depth changes the mix of
@@ -1759,6 +2051,8 @@ let creatorDraft = {name:"", folk:null, trade:null, origin:null, className:null,
 let combatExpandedAbility = null;
 let charExpandedAbility = null;
 let charView = "overview";
+let charSkillsCollapsed = false;
+let charTradesCollapsed = false;
 // v0.208.0: Journal/Bestiary moved out of the Character sheet into one
 // persistent, non-modal leather notebook window.
 let journalBookChapter="bestiary";
@@ -1789,7 +2083,7 @@ let combatLogCollapsed = true;
 let combatHistoryOpen = false;
 
 /* Session 8 persistence runtime. */
-const SAVE_SCHEMA = 30;
+const SAVE_SCHEMA = 34;
 const SAVE_KEY = "lowfathom:run";
 const LEGACY_SAVE_KEYS = ["lowfathom:run:v1"];
 const SAVE_QUARANTINE_KEY = "lowfathom:run:quarantine";
@@ -2209,6 +2503,143 @@ function humanTraitsComplete(draft=creatorDraft){
 
 function skillState(id){ return S?.skills?.[id] || null; }
 function skillXpNeeded(rank=0){ return Math.max(1,Math.round(SKILL_XP_BASE + SKILL_XP_PER_RANK_GROWTH*Math.max(0,Number(rank)||0))); }
+function ensureTradeSkills(){
+  if(!S) return null;
+  if(!S.tradeSkills || typeof S.tradeSkills!=="object" || Array.isArray(S.tradeSkills)) S.tradeSkills={};
+  for(const id of TRADE_SKILL_ORDER){
+    if(!S.tradeSkills[id] || typeof S.tradeSkills[id]!=="object" || Array.isArray(S.tradeSkills[id])) S.tradeSkills[id]={rank:0,xp:0};
+    S.tradeSkills[id].rank=Math.max(0,Math.floor(Number(S.tradeSkills[id].rank)||0));
+    S.tradeSkills[id].xp=Math.max(0,Number(S.tradeSkills[id].xp)||0);
+  }
+  return S.tradeSkills;
+}
+function tradeSkillState(id){ensureTradeSkills();return S?.tradeSkills?.[id]||null;}
+function tradeXpNeeded(rank=0){return Math.max(1,Math.round(TRADE_XP_BASE+TRADE_XP_PER_RANK*Math.max(0,Number(rank)||0)));}
+function awardTradeXp(id,amount){
+  const st=tradeSkillState(id);if(!st||!TRADE_SKILL_DEFS[id])return{awarded:0,rank:0,xp:0,next:tradeXpNeeded(0),levelled:false};
+  let gain=Math.max(0,Math.round(Number(amount)||0));if(!gain)return{awarded:0,rank:st.rank,xp:st.xp,next:tradeXpNeeded(st.rank),levelled:false};
+  st.xp+=gain;let levelled=false;
+  while(st.xp>=tradeXpNeeded(st.rank)){st.xp-=tradeXpNeeded(st.rank);st.rank++;levelled=true;}
+  if(levelled)markCharacterNotice("skills");
+  return{awarded:gain,rank:st.rank,xp:st.xp,next:tradeXpNeeded(st.rank),levelled};
+}
+function ensureToolbeltState(){
+  if(!S)return null;
+  if(!S.toolbelt || typeof S.toolbelt!=="object" || Array.isArray(S.toolbelt))S.toolbelt={};
+  for(const slot of TOOLBELT_SLOT_DEFS)if(!(slot.id in S.toolbelt))S.toolbelt[slot.id]=null;
+  return S.toolbelt;
+}
+function toolbeltTool(slot){const belt=ensureToolbeltState();const id=belt?.[slot]||null;return id?TRADE_TOOL_DEFS[id]||null:null;}
+function grantBronzePickaxe(){
+  const belt=ensureToolbeltState();if(!belt)return{ok:false};
+  if(belt.pickaxe)return{ok:true,already:true,tool:toolbeltTool("pickaxe")};
+  belt.pickaxe="bronze_pickaxe";markCharacterNotice("equipment");render();requestRunSave();
+  return{ok:true,already:false,tool:TRADE_TOOL_DEFS.bronze_pickaxe};
+}
+function grantSmithingHammer(){
+  const belt=ensureToolbeltState();if(!belt)return{ok:false};if(belt.smithing)return{ok:true,already:true,tool:toolbeltTool("smithing")};
+  belt.smithing="blacksmith_old_hammer";markCharacterNotice("equipment");requestRunSave();return{ok:true,already:false,tool:TRADE_TOOL_DEFS.blacksmith_old_hammer};
+}
+function ensureSmithingState(){
+  if(!S)return null;
+  if(!S.smithing||typeof S.smithing!=="object"||Array.isArray(S.smithing))S.smithing={};
+  S.smithing.minerHandoff=!!S.smithing.minerHandoff;S.smithing.blacksmithIntro=!!S.smithing.blacksmithIntro;S.smithing.herbalistHandoff=!!S.smithing.herbalistHandoff;S.smithing.herbalistIntroSeen=!!S.smithing.herbalistIntroSeen;
+  return S.smithing;
+}
+function ensureDurabilityState(){if(!S)return null;if(!S.itemDurability||typeof S.itemDurability!=="object"||Array.isArray(S.itemDurability))S.itemDurability={};return S.itemDurability;}
+function ensureItemLocks(){if(!S)return null;if(!S.itemLocks||typeof S.itemLocks!=="object"||Array.isArray(S.itemLocks))S.itemLocks={};return S.itemLocks;}
+function itemLocked(itemId){return !!ensureItemLocks()?.[itemId];}
+function setItemLocked(itemId,locked){if(!itemId||!equipmentItemDef(itemId))return false;const locks=ensureItemLocks();if(locked)locks[itemId]=true;else delete locks[itemId];if(locked){merchantSellSelection?.equipment?.delete(itemId);backpackDismantleSelection?.delete(itemId);}requestRunSave();renderPack(false);if(smithingStationOpen==="anvil")renderSmithingStation();return true;}
+function itemDurabilityRecord(itemId){
+  if(!itemId||!equipmentItemDef(itemId))return null;const map=ensureDurabilityState();let rec=map[itemId];
+  if(!rec||typeof rec!=="object"||Array.isArray(rec))rec=map[itemId]={cur:EQUIPMENT_DURABILITY_MAX,max:EQUIPMENT_DURABILITY_MAX,wear:0};
+  rec.max=Math.max(1,Math.round(Number(rec.max)||EQUIPMENT_DURABILITY_MAX));rec.cur=clamp(Math.round(Number(rec.cur)||0),0,rec.max);rec.wear=Math.max(0,Number(rec.wear)||0);return rec;
+}
+function itemDurabilityText(itemId){const d=itemDurabilityRecord(itemId);return d?`${d.cur} / ${d.max}`:"—";}
+function wearEquipmentDurability(itemId,amount){
+  const d=itemDurabilityRecord(itemId);if(!d||d.cur<=0)return d;d.wear+=Math.max(0,Number(amount)||0);const whole=Math.floor(d.wear);if(whole>0){d.wear-=whole;d.cur=Math.max(0,d.cur-whole);requestRunSave();}return d;
+}
+function wearEquippedWeapon(amount){const id=S?.equipment?.rightHand||S?.equippedWeapon;if(!id)return null;return wearEquipmentDurability(id,amount);}
+function miscCount(name){return Math.max(0,Math.floor(Number(S?.inventory?.misc?.[name])||0));}
+function removeMisc(name,qty=1){qty=Math.max(0,Math.floor(Number(qty)||0));if(!qty)return 0;const have=miscCount(name),take=Math.min(have,qty);if(take<=0)return 0;S.inventory.misc[name]=have-take;if(S.inventory.misc[name]<=0)delete S.inventory.misc[name];return take;}
+function smithingCanSmeltBronze(){return Math.min(Math.floor(miscCount("Copper Ore")/2),miscCount("Tin Ore"));}
+function smeltBronze(qty=1){
+  if(!S)return false;const lesson=smithingIntroQuest(),wasReady=lesson?.status==="active"&&smithingIntroStage(lesson)==="smelt"&&smithingBarsReady(lesson);
+  const max=smithingCanSmeltBronze(),amount=qty==="max"?max:Math.min(max,Math.max(1,Math.floor(Number(qty)||1)));if(amount<=0)return false;
+  removeMisc("Copper Ore",amount*2);removeMisc("Tin Ore",amount);addMisc("Bronze Bar",amount);const practice=awardTradeXp("smithing",amount*SMELTING_RECIPES.bronze.smithingXp);renderQuestTracker();
+  travelLogAdd(`Smelted <b>${amount} Bronze Bar${amount===1?"":"s"}</b>.`,"good");
+  const nowReady=lesson?.status==="active"&&smithingIntroStage(lesson)==="smelt"&&smithingBarsReady(lesson);
+  if(nowReady&&!wasReady){
+    markCharacterNotice("quests");travelLogAdd(`<b>Learning the Forge:</b> You have five Bronze Bars. Return to the <b>Dawngate Blacksmith</b> and show him the bars to receive the hammer.`,"beat");
+    showRouteSpeech?.({speaker:S.name,text:"That's five bars. The blacksmith wanted to see these.",who:"player",type:"thought",duration:4200,priority:2});
+  }
+  if(practice.levelled)travelLogAdd(`<b>Crafting / Smithing Rank ${practice.rank}</b> reached.`,"good");render();renderPack(false);requestRunSave();return true;
+}
+function createBronzeCraftedItem(recipe){
+  const id=generatedInstanceId(),item={id,generated:true,crafted:true,material:"bronze",rarity:"Common",base:recipe.name.replace(/^Bronze\s+/i,""),name:recipe.name,affixes:{},desc:`Forged in Dawngate from Bronze Bars. A practical early-delver ${recipe.kind==="weapon"?"weapon":"piece of equipment"}.`};
+  if(recipe.kind==="weapon")Object.assign(item,{kind:"weapon",family:recipe.family,stat:recipe.stat,hands:recipe.hands,greatWeapon:!!recipe.greatWeapon,slot:"rightHand",slots:["rightHand"],weaponContribution:Number(recipe.weaponContribution)});
+  else Object.assign(item,{kind:"armor",family:recipe.family||"armor",slot:recipe.slot,slots:[recipe.slot],armor:Number(recipe.armor)||0});
+  stampItemEconomy(item,{recalculateGeneratedIlvl:true});item.stats=generatedStatsLines(item);addGeneratedEquipment(item);itemDurabilityRecord(id);return item;
+}
+function forgeBronze(recipeId){
+  const recipe=BRONZE_FORGE_RECIPES.find(r=>r.id===recipeId);if(!recipe)return false;const bars=miscCount("Bronze Bar");if(bars<recipe.bars)return false;
+  removeMisc("Bronze Bar",recipe.bars);const item=createBronzeCraftedItem(recipe),practice=awardTradeXp("smithing",15+recipe.bars*5);if(recipe.kind==="weapon"&&smithingIntroStage()==="forge")incrementTradeQuestCounter("smithing","forged-weapon",1);travelLogAdd(`Forged <b>${esc(item.name)}</b>.`,"good");markCharacterNotice("equipment");if(practice.levelled)travelLogAdd(`<b>Crafting / Smithing Rank ${practice.rank}</b> reached.`,"good");render();renderPack(false);requestRunSave();return item;
+}
+function beginBronzeForgeAnimation(recipeId){
+  const recipe=BRONZE_FORGE_RECIPES.find(r=>r.id===recipeId);if(!recipe||miscCount("Bronze Bar")<recipe.bars)return false;
+  const durationMs=3200+recipe.bars*700;
+  const bridge=window.LowfathomWorldBridge;
+  if(!bridge?.startForgeAnimation)return false;
+  const started=bridge.startForgeAnimation({recipeId:recipe.id,name:recipe.name,bars:recipe.bars,durationMs});
+  if(!started)return false;
+  smithingForgePending=null;closeSmithingStation();return true;
+}
+function ownedEquipmentIds(){ensureEquipmentState();return [...new Set([...(S.inventory.equipment||[]),...Object.values(S.equipment||{}).filter(Boolean)])];}
+function dismantleScrapYield(itemId){const def=equipmentItemDef(itemId);return def?Math.max(1,Math.min(30,Math.round(computedIntrinsicValue(def)/55))):0;}
+function dismantleEquipment(itemId){
+  ensureEquipmentState();if(!itemId||itemLocked(itemId)||Object.values(S.equipment||{}).includes(itemId)||!(S.inventory.equipment||[]).includes(itemId))return false;const def=equipmentItemDef(itemId),yieldN=dismantleScrapYield(itemId);if(!def||yieldN<=0)return false;
+  removeEquipmentFromBag(itemId);addMisc("Scrap Metal",yieldN);delete S.itemDurability?.[itemId];delete S.itemLocks?.[itemId];if(S.generatedItems?.[itemId])delete S.generatedItems[itemId];travelLogAdd(`Dismantled <b>${esc(def.name)}</b> into <b>${yieldN} Scrap Metal</b>.`,"note");requestRunSave();return true;
+}
+function dismantleSelectedEquipment(){
+  const ids=[...backpackDismantleSelection].filter(id=>!itemLocked(id)&&(S?.inventory?.equipment||[]).includes(id)&&equipmentItemDef(id));
+  if(!ids.length)return false;
+  const yieldN=ids.reduce((sum,id)=>sum+dismantleScrapYield(id),0),rare=ids.filter(id=>{const r=String(equipmentItemDef(id)?.rarity||"Common");return !["Salvage","Poor","Common","Uncommon"].includes(r);});
+  const names=ids.slice(0,8).map(id=>equipmentItemDef(id)?.name||id).join("\n• "),more=ids.length>8?`\n…and ${ids.length-8} more.`:"";
+  const warning=rare.length?`\n\nWARNING: ${rare.length} selected item${rare.length===1?" is":"s are"} Rare or better.`:"";
+  if(!confirm(`Dismantle ${ids.length} selected item${ids.length===1?"":"s"}?\n\n• ${names}${more}\n\nYou will receive ${yieldN} Scrap Metal.${warning}\n\nThis cannot be undone.`))return false;
+  let done=0;for(const id of ids)if(dismantleEquipment(id))done++;
+  backpackDismantleSelection.clear();backpackDismantleMode=false;render();renderPack(false);requestRunSave();return done>0;
+}
+function repairEquipment(itemId,method="scrap"){
+  const def=equipmentItemDef(itemId),d=itemDurabilityRecord(itemId);if(!def||!d||d.cur>=d.max)return false;let restored=0;
+  if(method==="bronze"){if(def.material!=="bronze"||miscCount("Bronze Bar")<1)return false;removeMisc("Bronze Bar",1);restored=BRONZE_BAR_REPAIR;}
+  else{if(miscCount("Scrap Metal")<SCRAP_REPAIR_COST)return false;removeMisc("Scrap Metal",SCRAP_REPAIR_COST);restored=SCRAP_REPAIR_AMOUNT;}
+  d.cur=Math.min(d.max,d.cur+restored);d.wear=0;travelLogAdd(`Repaired <b>${esc(def.name)}</b> to <b>${d.cur}/${d.max}</b> durability.`,"good");render();requestRunSave();return true;
+}
+let smithingStationOpen=null;
+function closeSmithingStation(){smithingStationOpen=null;smithingForgePending=null;const el=$("smithingSheet");if(el)el.hidden=true;}
+function openSmithingStation(station="anvil"){
+  if(!S||over)return false;smithingStationOpen=station==="furnace"?"furnace":"anvil";renderSmithingStation();const el=$("smithingSheet");if(el)el.hidden=false;return true;
+}
+function renderSmithingStation(){
+  const sheet=$("smithingSheet"),title=$("smithingTitle"),body=$("smithingBody");if(!sheet||!title||!body||!S||!smithingStationOpen)return;
+  if(smithingStationOpen==="furnace"){
+    smithingForgePending=null;
+    title.textContent="Dawngate Furnace";const copper=miscCount("Copper Ore"),tin=miscCount("Tin Ore"),can=smithingCanSmeltBronze();
+    const lesson=smithingIntroQuest(),lessonActive=lesson?.status==="active"&&smithingIntroStage(lesson)==="smelt",lessonBars=lessonActive?(lesson.objectives?.bars?.current||0):0;
+    body.innerHTML=`<div class="smithing-tabs"><button class="active" type="button">BRONZE</button></div><div class="smithing-recipe"><div><b>Bronze Bar</b><span>2 Copper Ore + 1 Tin Ore</span></div><strong class="${can?"":"bad"}">${copper} Copper · ${tin} Tin</strong></div><p class="smithing-note">You can smelt <b>${can}</b> Bronze Bar${can===1?"":"s"} from the materials in your Backpack.</p>${lessonActive?`<p class="smithing-note"><b>Blacksmith lesson:</b> ${lessonBars}/5 Bronze Bars. Make <b>five</b>, then return to the Blacksmith. He gives you the hammer after inspecting them.</p>`:""}<div class="smithing-actions"><button data-smelt-bronze="1" ${can<1?"disabled":""}>Smelt 1</button><button data-smelt-bronze="max" ${can<1?"disabled":""}>Smelt Max · ${can}</button></div>`;
+  }else{
+    title.textContent="Dawngate Anvil";const bars=miscCount("Bronze Bar"),scrap=miscCount("Scrap Metal"),hammer=toolbeltTool("smithing"),lesson=smithingIntroQuest(),lessonForge=lesson?.status==="active"&&smithingIntroStage(lesson)==="forge";
+    if(smithingForgePending&&!BRONZE_FORGE_RECIPES.some(r=>r.id===smithingForgePending))smithingForgePending=null;
+    const recipes=BRONZE_FORGE_RECIPES.map(r=>{const can=Math.floor(bars/r.bars),ok=bars>=r.bars&&!!hammer,selected=smithingForgePending===r.id;return `<button class="smithing-forge-row ${ok?"":"locked"} ${selected?"selected":""}" type="button" data-select-forge-bronze="${r.id}" ${ok?"":"disabled"}><span><b>${esc(r.name)}</b><i>${r.kind==="weapon"?`${cap(r.family)} · ${r.hands===2?"2-handed":"1-handed"}`:`${esc(EQUIPMENT_SLOT_LABELS[r.slot]||r.slot)}`}</i></span><strong class="${ok?"":"bad"}">${bars} / ${r.bars} Bronze Bar${r.bars===1?"":"s"}<small>${hammer?`can make ${can}`:"hammer required"}</small></strong></button>`;}).join("");
+    const chosen=BRONZE_FORGE_RECIPES.find(r=>r.id===smithingForgePending),forgeConfirm=chosen&&bars>=chosen.bars?`<div class="smithing-confirm"><b>Ready to forge ${esc(chosen.name)}</b><span>This will consume ${chosen.bars} Bronze Bar${chosen.bars===1?"":"s"}. Selecting a recipe does not spend materials until you confirm.</span><div class="smithing-actions"><button data-confirm-forge-bronze="${chosen.id}">Confirm Forge</button><button data-cancel-forge-bronze>Cancel</button></div></div>`:"";
+    const damaged=ownedEquipmentIds().map(id=>({id,def:equipmentItemDef(id),d:itemDurabilityRecord(id)})).filter(x=>x.def&&x.d&&x.d.cur<x.d.max);
+    const repairs=damaged.length?damaged.map(x=>`<div class="smithing-maint-row"><span><b>${esc(x.def.name)}</b><i>Durability ${x.d.cur}/${x.d.max}</i></span><div><button data-repair-item="${esc(x.id)}" data-repair-method="bronze" ${x.def.material==="bronze"&&bars>0?"":"disabled"}>1 Bronze Bar · +${BRONZE_BAR_REPAIR}</button><button data-repair-item="${esc(x.id)}" data-repair-method="scrap" ${scrap>=SCRAP_REPAIR_COST?"":"disabled"}>${SCRAP_REPAIR_COST} Scrap · +${SCRAP_REPAIR_AMOUNT}</button></div></div>`).join(""):`<p class="smithing-note">No equipment currently needs repair.</p>`;
+    const lessonNote=lessonForge?`<p class="smithing-note"><b>Blacksmith's lesson:</b> Forge any Bronze <b>weapon</b>. Armor can still be made, but it will not finish this step.</p>`:(!hammer?`<p class="smithing-note bad">You need a Smithing hammer before you can forge equipment. Speak to the blacksmith.</p>`:"");
+    body.innerHTML=`<div class="smithing-tabs"><button class="active" type="button">BRONZE</button></div><div class="smithing-material-line"><b>Bronze Bars</b><span>${bars}</span></div>${lessonNote}<div class="smithing-forge-list">${recipes}</div>${forgeConfirm}<h3>Repair</h3><div class="smithing-material-line"><b>Scrap Metal</b><span>${scrap}</span></div>${repairs}<h3>Dismantling</h3><p class="smithing-note">Dismantling is managed from Backpack → Equipment so multiple items can be reviewed together. Locked equipment cannot be dismantled or sold.</p><div class="smithing-actions"><button data-open-dismantle-mode>Open Dismantle Mode</button></div>`;
+  }
+}
+
 function skillBasePractice(rank=0){ return SKILL_BASE_PRACTICE * (1 + Math.max(0,Number(rank)||0)/SKILL_PRACTICE_GROWTH_DIVISOR); }
 function skillAgainstOdds(result){ return !!(result?.success && !result?.automatic && Math.round((Number(result.chance)||0)*100)<=SKILL_AGAINST_ODDS_PCT); }
 function signed(n){ return n >= 0 ? `+${n}` : `${n}`; }
@@ -2443,6 +2874,8 @@ function newDelver(profile){
     depth:0, encounter:0, seenFoes:{}, seenTravelEvents:{}, travelEvent:null,
     exploreActivity:0, exploreElapsedMs:0, exploreDepth:0,
     skills:Object.fromEntries(SKILL_ORDER.map(id => [id,{rank:0,xp:0}])), skillPracticeSources:{}, skillDiagnostics:{},
+    tradeSkills:Object.fromEntries(TRADE_SKILL_ORDER.map(id => [id,{rank:0,xp:0}])),
+    toolbelt:Object.fromEntries(TOOLBELT_SLOT_DEFS.map(slot=>[slot.id,null])),
     travelMode:"stopped", travelSinceEvent:0, travelLog:[], restRecovery:REST_RECOVERY_REQUIRED,
     runPacing:{foregroundMs:0,movementMs:0,milestones:{}},
     inventory:{
@@ -2467,7 +2900,8 @@ function newDelver(profile){
     interactionState:{active:null,pending:null,nextSerial:1},
     temporaryCompanion:null,
     townState:{currentId:"grey-lantern",visited:{"grey-lantern":true},departed:{},services:{}},
-    quests:{instances:[],nextSerial:1,exploreAccumulator:0},
+    quests:{instances:[],nextSerial:1,exploreAccumulator:0,trackedInstanceId:"",trackerCollapsed:false},
+    smithing:{minerHandoff:false,blacksmithIntro:false,herbalistHandoff:false,herbalistIntroSeen:false},itemDurability:{},itemLocks:{},
     turn:1, combatActor:"player", combatExtraTurns:{player:0,enemy:0}, combatTimeline:null, reactionMax:3, reactionPoints:3, reactionAvailable:false, reactionWindow:false, protectionMax:0, protectionSource:null, defencePrepared:null, negateNextAttack:null, foe:null
   };
 
@@ -2488,6 +2922,7 @@ function newDelver(profile){
   $("sheet").hidden = true;
   $("restAbilityPick").hidden = true;
   $("charSheet").hidden = true;
+  closeSmithingStation();
 
   travelLogAdd(`You begin in <b>Dawngate</b>, the village at Fathom 0. The outer gate leads into the Forest Plains.`, "beat");
   say(`<p class="note">You begin in Dawngate. Walk the village, prepare, then leave through the outer gate when you are ready.</p>`);
@@ -3166,6 +3601,13 @@ let merchantSellGearScope="backpack";
 let merchantPendingPurchase=null;
 let merchantSellSelection={equipment:new Set(),backpack:new Set()};
 let merchantSellQuantities={};
+let backpackDismantleMode=false;
+let backpackDismantleSelection=new Set();
+let smithingForgePending=null;
+function itemLockButtonHtml(itemId){const locked=itemLocked(itemId);return `<button class="pack-mini-btn item-lock-btn ${locked?"locked":""}" type="button" data-toggle-item-lock="${esc(itemId)}" aria-pressed="${locked?"true":"false"}" title="${locked?"Unlock this item":"Lock this item against selling and dismantling"}">${locked?"🔒 Unlock":"🔓 Lock"}</button>`;}
+function dismantleSelectionYield(){return [...backpackDismantleSelection].reduce((sum,id)=>sum+(!itemLocked(id)&&equipmentItemDef(id)?dismantleScrapYield(id):0),0);}
+function toggleBackpackDismantleMode(force=null){backpackDismantleMode=force==null?!backpackDismantleMode:!!force;if(!backpackDismantleMode)backpackDismantleSelection.clear();packActiveTab="equipment";renderPack(false);}
+function toggleDismantleSelection(itemId){if(!itemId||itemLocked(itemId)||!(S?.inventory?.equipment||[]).includes(itemId))return;const set=backpackDismantleSelection;if(set.has(itemId))set.delete(itemId);else set.add(itemId);renderPack(false);}
 function rememberEquipmentFilterScroll(){
   document.querySelectorAll(".equipment-filter-row[data-equipment-filter-context]").forEach(row=>{
     equipmentFilterScrollLeft[row.dataset.equipmentFilterContext]=row.scrollLeft;
@@ -3225,7 +3667,7 @@ function setBackpackFilter(id){
 }
 function backpackMiscCategory(name){
   const n=String(name||"").toLowerCase();
-  if(/dust|shard|fragment|scrap|reagent|ore|ingot|salvage|essence/.test(n)) return "materials";
+  if(/dust|shard|fragment|scrap|reagent|ore|ingot|bar|metal|salvage|essence/.test(n)) return "materials";
   if(/spellbook|book|scroll|page|map|journal|tome|ledger|writ|lexicon/.test(n)) return "texts";
   if(/key|quest|seal|objective/.test(n)) return "quest";
   return "other";
@@ -3533,7 +3975,15 @@ function renderEquipmentInfo(items){
     return m?`<div class="equipment-info-stat"><span>${esc(m[1].trim())}</span><strong>${esc(m[2])}</strong></div>`:`<div class="equipment-info-stat"><span>${esc(stat)}</span><strong>•</strong></div>`;
   }).join("");
   const compatible=S.inventory.equipment.filter(id=>compatibleEquipmentSlots(id).includes(slot)).length;
-  root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b class="${rarityClass(item.rarity)}">${esc(item.name)}</b><span class="equipment-info-meta"><span class="${rarityClass(item.rarity)}">${esc(item.rarity)}</span> · iLv ${item.ilvl}${item.twoHanded?" · two-handed":""}${equipmentItemDualWieldable(item.id)?" · dual-wieldable":""}</span><div class="equipment-economy"><span>Intrinsic ${Math.round(computedIntrinsicValue(item))}</span><b>${formatGoldHtml(computedItemGoldValue(item))}</b></div><div class="equipment-info-stats">${stats}</div><p class="info-note">${esc(item.desc||"")}</p><dl><div><dt>Backpack</dt><dd>${compatible} match${compatible===1?"":"es"}</dd></div></dl><button class="equipment-info-action" type="button" data-equipment-inline-unequip="${slot}">Remove</button>`;
+  root.innerHTML=`<em>Equipment info</em><span class="equipment-info-slot">${esc(label)}</span><b class="${rarityClass(item.rarity)}">${esc(item.name)}</b><span class="equipment-info-meta"><span class="${rarityClass(item.rarity)}">${esc(item.rarity)}</span> · iLv ${item.ilvl}${item.twoHanded?" · two-handed":""}${equipmentItemDualWieldable(item.id)?" · dual-wieldable":""}</span><div class="equipment-economy"><span>Intrinsic ${Math.round(computedIntrinsicValue(item))}</span><b>${formatGoldHtml(computedItemGoldValue(item))}</b></div><div class="equipment-economy"><span>Durability</span><b>${itemDurabilityText(item.id)}</b></div><div class="equipment-info-stats">${stats}</div><p class="info-note">${esc(item.desc||"")}</p><dl><div><dt>Backpack</dt><dd>${compatible} match${compatible===1?"":"es"}</dd></div></dl><button class="equipment-info-action" type="button" data-equipment-inline-unequip="${slot}">Remove</button>`;
+}
+function renderToolbeltUI(){
+  const root=$("equipmentToolbelt");if(!root||!S)return;
+  const belt=ensureToolbeltState();
+  root.innerHTML=TOOLBELT_SLOT_DEFS.map(slot=>{
+    const tool=toolbeltTool(slot.id),empty=!tool;
+    return `<div class="toolbelt-slot${empty?" empty":""}"><span class="toolbelt-kind">${esc(slot.label)}</span><span class="toolbelt-item">${tool?esc(tool.name):"—"}</span><span class="toolbelt-tier">${tool?`Tier ${tool.tier}`:"empty"}</span></div>`;
+  }).join("");
 }
 function renderEquipmentUI(){
   if(!S) return;
@@ -3549,6 +3999,7 @@ function renderEquipmentUI(){
   const bodyRoot=$("equipmentBodyGrid");
   if(bodyRoot) bodyRoot.innerHTML=EQUIPMENT_BODY_LAYOUT.map(([slot,row,col])=>equipmentSlotButton(slot,items[slot],`grid-row:${row};grid-column:${col}`,items)).join("");
   renderEquipmentInfo(items);
+  renderToolbeltUI();
   const list=$("equipmentCompactList"); if(list) list.hidden=true;
   const expand=$("btnEquipmentExpand");
   if(expand){expand.classList.remove("open");expand.setAttribute("aria-expanded","false");expand.textContent="⌄";expand.title="Open equipment inventory";}
@@ -3558,13 +4009,13 @@ function renderEquipmentUI(){
       const blocked=equipmentSlotBlocked(slot,items),item=blocked?null:items[slot],label=EQUIPMENT_SLOT_LABELS[slot];
       const frame=item?rarityFrameClass(item.rarity):"";
       const nameClass=item?rarityClass(item.rarity):"";
-      return `<button class="equipment-compact-item${item?` ${frame}`:" empty"}" type="button" data-equipment-slot="${slot}"><small>${esc(label)}</small><b class="${nameClass}">${blocked?"Used by Main Hand":item?esc(item.name):"Empty"}</b><span class="compact-rarity-meta">${blocked?"Two-handed":item?`<span class="${nameClass}">iLv ${item.ilvl}</span> · ${esc(item.rarity)}`:"—"}</span>${item?raritySparkles(item.rarity,`compact:${slot}:${item.id}`):""}</button>`;
+      return `<button class="equipment-compact-item${item?` ${frame}`:" empty"}" type="button" data-equipment-slot="${slot}"><small>${esc(label)}</small><b class="${nameClass}">${blocked?"Used by Main Hand":item?esc(item.name):"Empty"}</b><span class="compact-rarity-meta">${blocked?"Two-handed":item?`<span class="${nameClass}">iLv ${item.ilvl}</span> · ${esc(item.rarity)} · DUR ${itemDurabilityText(item.id)}`:"—"}</span>${item?raritySparkles(item.rarity,`compact:${slot}:${item.id}`):""}</button>`;
     }).join("");
     const bag=sortedBackpackEquipment(equipmentFilter);
     const bagHtml=bag.length?bag.map(id=>{
       const d=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentCompareHtml(id,target);
       const frame=rarityFrameClass(d.rarity);
-      return `<button class="equipment-compact-item equipment-backpack-item ${frame}" type="button" data-equipment-item="${id}" data-equipment-target="${target||""}"><small>Backpack · ${esc(EQUIPMENT_SLOT_LABELS[target]||d.slot)}</small><b class="${rarityClass(d.rarity)}">${esc(d.name)}</b><span class="compact-rarity-meta"><span class="${rarityClass(d.rarity)}">iLv ${d.itemLevel}</span> · <span class="${rarityClass(d.rarity)}">${esc(d.rarity)}</span> · ${formatGoldHtml(computedItemGoldValue(d))}</span><span class="equipment-compare">${cmp}</span>${raritySparkles(d.rarity,`bagcompact:${id}`)}</button>`;
+      return `<button class="equipment-compact-item equipment-backpack-item ${frame}" type="button" data-equipment-item="${id}" data-equipment-target="${target||""}"><small>Backpack · ${esc(EQUIPMENT_SLOT_LABELS[target]||d.slot)}</small><b class="${rarityClass(d.rarity)}">${esc(d.name)}</b><span class="compact-rarity-meta"><span class="${rarityClass(d.rarity)}">iLv ${d.itemLevel}</span> · <span class="${rarityClass(d.rarity)}">${esc(d.rarity)}</span> · DUR ${itemDurabilityText(id)} · ${formatGoldHtml(computedItemGoldValue(d))}</span><span class="equipment-compare">${cmp}</span>${raritySparkles(d.rarity,`bagcompact:${id}`)}</button>`;
     }).join(""):`<div class="equipment-filter-empty">No carried equipment matches this filter.</div>`;
     compact.innerHTML=`${equippedHtml}<div class="equipment-list-subhead">Backpack equipment · automatic comparison</div><div class="equipment-filter-row" data-equipment-filter-context="equipment">${equipmentFilterButtonsHtml()}</div>${bagHtml}`;
   }
@@ -3628,7 +4079,7 @@ function renderEquipmentInspect(){
     return `<div class="equipment-inspect-special"><b>Compared with ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}</b><br>${lines.join("<br>")}</div>`;
   })():"";
   const canUnequip=!candidate;
-  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName" class="${rarityClass(item.rarity)}">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity ${rarityClass(item.rarity)}">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>Gold value</span><b>${formatGoldHtml(computedItemGoldValue(item))}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9F</b><br>Intrinsic Value is the mechanical accounting unit. Slot-normalized finished value determines iLv. Appraised Gold Value then applies a restrained rarity scarcity premium; future merchant buy/sell margins and CHA can modify transaction prices without changing combat power.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
+  root.innerHTML=`<div class="equipment-inspect-head"><div><em>${candidate?`Backpack → ${esc(EQUIPMENT_SLOT_LABELS[comp.target]||label)}`:esc(label)}</em><h3 id="equipmentInspectName" class="${rarityClass(item.rarity)}">${esc(item.name)}</h3></div><span class="equipment-inspect-rarity ${rarityClass(item.rarity)}">${esc(item.rarity||"Common")}</span></div><div class="equipment-inspect-meta"><div><span>Item level</span><b>${item.itemLevel}</b></div><div><span>Gold value</span><b>${formatGoldHtml(computedItemGoldValue(item))}</b></div><div><span>Durability</span><b>${itemDurabilityText(item.id)}</b></div><div><span>${candidate?"Target":"Slot"}</span><b>${esc(candidate?(EQUIPMENT_SLOT_LABELS[comp.target]||label):label)}</b></div></div><div class="equipment-inspect-stats">${stats}</div>${compare}<div class="equipment-inspect-full" ${equipmentInspectExpanded?"":"hidden"}><p><b>Full details</b><br>${esc(item.desc||"")}</p><p><b>Session 9F</b><br>Intrinsic Value is the mechanical accounting unit. Slot-normalized finished value determines iLv. Appraised Gold Value then applies a restrained rarity scarcity premium; future merchant buy/sell margins and CHA can modify transaction prices without changing combat power.</p></div><div class="equipment-inspect-actions">${candidate?`<button class="primary" type="button" data-equipment-equip="${itemId}" data-equipment-target="${comp.target}">Equip</button>`:`<button class="primary" type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`}${candidate?`<button type="button" data-equipment-full>${equipmentInspectExpanded?"Quick view":"Full details"}</button>`:canUnequip?`<button type="button" data-equipment-unequip="${slot}">Unequip</button>`:`<button type="button" data-equipment-close>Close</button>`}</div>`;
 }
 function toggleEquipmentList(){
   equipmentListExpanded=false;
@@ -3652,6 +4103,7 @@ function questStatusLabel(inst){
 function questResultText(inst){
   const def=questDefById(inst?.definitionId),result=inst?.result||{};
   if(def?.kind==="rescue-escort")return `${result.rescued||def.subject?.name||"Traveller"} reached ${townDefById(inst.targetTownId)?.name||"the destination"} · ${formatGold(result.reward||0)} paid`;
+  if(def?.kind==="mining-intro")return `10 Copper + 5 Tin mined · ${formatGold(result.reward||0)} · ${Math.round(Number(result.tradeXp)||0)} Mining XP`;
   return `${result.delivered||0}/${result.required||0} delivered · ${formatGold(result.reward||0)} paid`;
 }
 function renderQuestPage(){
@@ -3688,6 +4140,18 @@ function renderCharacterSheet(){
     const def=SKILL_DEFS[id],st=skillState(id),rating=skillRating(id),apt=skillAptitude(id),prof=proficiencyBonus(id),rankNotice=skillHasRankNotice(id);
     return `<div class="char-field-skill${rankNotice?" has-rank-notice":""}"><div><b>${esc(def.name)}${rankNotice?`<span class="skill-rank-new">New rank</span>`:""}</b><p><strong>${def.stat}</strong> · ${esc(def.desc)} · aptitude ${signed(formatRating(apt))}${prof?` · class proficiency ${signed(prof)}`:""}</p></div><div class="char-field-progress"><strong>Rank ${st.rank} · Rating ${formatRating(rating)}</strong><span>${st.xp}/${skillXpNeeded(st.rank)} XP</span></div></div>`;
   }).join("");
+
+  ensureTradeSkills();
+  const tradeRoot=$("charTrades");
+  if(tradeRoot)tradeRoot.innerHTML=TRADE_SKILL_ORDER.map(id=>{
+    const def=TRADE_SKILL_DEFS[id],st=tradeSkillState(id);
+    return `<div class="char-field-skill"><div><b>${esc(def.name)}</b><p>${esc(def.desc)}</p></div><div class="char-field-progress"><strong>Rank ${st.rank}</strong><span>${st.xp}/${tradeXpNeeded(st.rank)} XP</span></div></div>`;
+  }).join("");
+  const skillsBody=$("charSkillsBody"),tradesBody=$("charTradesBody"),skillsToggle=$("btnCharSkillsCollapse"),tradesToggle=$("btnCharTradesCollapse");
+  if(skillsBody)skillsBody.hidden=charSkillsCollapsed;
+  if(tradesBody)tradesBody.hidden=charTradesCollapsed;
+  if(skillsToggle){skillsToggle.textContent=charSkillsCollapsed?"+":"−";skillsToggle.setAttribute("aria-expanded",charSkillsCollapsed?"false":"true");skillsToggle.setAttribute("aria-label",charSkillsCollapsed?"Expand Skills":"Collapse Skills");skillsToggle.title=charSkillsCollapsed?"Expand Skills":"Collapse Skills";}
+  if(tradesToggle){tradesToggle.textContent=charTradesCollapsed?"+":"−";tradesToggle.setAttribute("aria-expanded",charTradesCollapsed?"false":"true");tradesToggle.setAttribute("aria-label",charTradesCollapsed?"Expand Trades":"Collapse Trades");tradesToggle.title=charTradesCollapsed?"Expand Trades":"Collapse Trades";}
 
   const seen=[...FOES,BOSS_PROFILE].filter(f=>S.seenFoes?.[f.id]||knowledgeReads(f.id)>0);
   $("charBestiary").innerHTML=seen.length?seen.map(f=>{
@@ -4024,6 +4488,7 @@ function closePack(){
   rememberPackViewState();
   if(S) S.packMode=null;
   packReturnTarget=null;
+  backpackDismantleMode=false;backpackDismantleSelection.clear();
   $("packSheet").hidden=true;
   syncBrowseTravelUI();
 }
@@ -4122,9 +4587,9 @@ function renderPack(rememberView=true){
       filterBar.innerHTML=`<div class="merchant-scope"><button class="${merchantSellGearScope==="backpack"?"active":""}" data-merchant-gear-scope="backpack">Backpack Gear</button><button class="${merchantSellGearScope==="equipped"?"active":""}" data-merchant-gear-scope="equipped">Equipped Gear</button></div><div class="equipment-filter-row" data-equipment-filter-context="pack">${equipmentFilterButtonsHtml()}</div>`;
       const rows=merchantEquipmentSellRows();
       root.innerHTML=rows.length?rows.map(row=>{
-        const g=equipmentItemDef(row.itemId), selected=merchantSellSelection.equipment.has(row.itemId), payout=merchantSellValueForEquipment(row.itemId), frame=rarityFrameClass(g?.rarity||"Common");
-        return `<div class="pack-item compact equipment-pack ${frame}">${g?raritySparkles(g.rarity,`sell:${row.itemId}`):""}<div class="pack-item-top"><b class="${rarityClass(g?.rarity||"Common")}">${esc(g?.name||row.itemId)}<span class="pack-tag ${row.equipped?"equipped":""}">${esc(row.location)}</span></b><strong class="${rarityClass(g?.rarity||"Common")}">iLv ${g?.itemLevel||0}</strong></div><div class="merchant-stock-meta"><span>${esc(g?.rarity||"Common")} · ${esc(equipmentTypeLabel(g))} · IV ${Math.round(computedIntrinsicValue(g))}</span></div>${merchantEquipmentStatsHtml(g)}${merchantEquipmentCompareHtml(row.itemId)}<p>${esc(g?.desc||"")}</p>${row.equipped?`<div class="merchant-equip-warning"><b>Equipped item.</b> Selling this immediately removes it from your current loadout.</div>`:""}<div class="merchant-price-row"><span>Merchant offers</span><b>${formatGoldHtml(payout)}</b></div><div class="pack-actions"><button class="merchant-check ${selected?"on":""}" data-merchant-toggle-equip="${row.itemId}" data-equipped-warning="${row.equipped?"1":"0"}">${selected?"Selected":row.equipped?"Select equipped ⚠":"Select"}</button></div></div>`;
-      }).join("")+(()=>{ const total=merchantSelectedEquipmentPayout(), count=merchantSellSelection.equipment.size, afford=merchantCanAfford(total); return `<div class="merchant-summary"><b>${count} item${count===1?"":"s"} selected · ${formatGoldHtml(total)}</b><span>${afford?`Merchant can pay. Purse remaining after sale: ${formatGoldHtml((currentMerchant()?.purse||0)-total)}`:`Merchant cannot afford this bundle yet.`}</span><div class="pack-actions"><button class="pack-mini-btn good" ${count&&afford?"":"disabled"} data-merchant-sell-equipment>Sell selected</button></div></div>`; })():`<div class="pack-note">No sellable equipment matches this filter.</div>`;
+        const g=equipmentItemDef(row.itemId),locked=itemLocked(row.itemId),selected=!locked&&merchantSellSelection.equipment.has(row.itemId),payout=merchantSellValueForEquipment(row.itemId),frame=rarityFrameClass(g?.rarity||"Common");
+        return `<div class="pack-item compact equipment-pack ${frame} ${locked?"dismantle-locked":""}">${g?raritySparkles(g.rarity,`sell:${row.itemId}`):""}<div class="pack-item-top"><b class="${rarityClass(g?.rarity||"Common")}">${esc(g?.name||row.itemId)}<span class="pack-tag ${row.equipped?"equipped":""}">${esc(row.location)}</span>${locked?`<span class="pack-tag">Locked</span>`:""}</b><strong class="${rarityClass(g?.rarity||"Common")}">iLv ${g?.itemLevel||0}</strong></div><div class="merchant-stock-meta"><span>${esc(g?.rarity||"Common")} · ${esc(equipmentTypeLabel(g))} · IV ${Math.round(computedIntrinsicValue(g))}</span></div>${merchantEquipmentStatsHtml(g)}${merchantEquipmentCompareHtml(row.itemId)}<p>${esc(g?.desc||"")}</p>${row.equipped?`<div class="merchant-equip-warning"><b>Equipped item.</b> Selling this immediately removes it from your current loadout.</div>`:""}${locked?`<div class="merchant-equip-warning"><b>Locked.</b> Unlock it here if you intentionally want to sell it.</div>`:""}<div class="merchant-price-row"><span>Merchant offers</span><b>${formatGoldHtml(payout)}</b></div><div class="pack-actions-split"><div class="pack-actions"><button class="merchant-check ${selected?"on":""}" data-merchant-toggle-equip="${row.itemId}" data-equipped-warning="${row.equipped?"1":"0"}" ${locked?"disabled":""}>${locked?"Protected":selected?"Selected":row.equipped?"Select equipped ⚠":"Select"}</button></div>${itemLockButtonHtml(row.itemId)}</div></div>`;
+      }).join("")+(()=>{ const valid=[...merchantSellSelection.equipment].filter(id=>!itemLocked(id)&&equipmentItemDef(id)),total=valid.reduce((sum,id)=>sum+merchantSellValueForEquipment(id),0),count=valid.length,afford=merchantCanAfford(total); return `<div class="merchant-summary"><b>${count} item${count===1?"":"s"} selected · ${formatGoldHtml(total)}</b><span>${afford?`Merchant can pay. Purse remaining after sale: ${formatGoldHtml((currentMerchant()?.purse||0)-total)}`:`Merchant cannot afford this bundle yet.`}</span><div class="pack-actions"><button class="pack-mini-btn good" ${count&&afford?"":"disabled"} data-merchant-sell-equipment>Sell selected</button></div></div>`; })():`<div class="pack-note">No sellable equipment matches this filter.</div>`;
       $("packNote").textContent="Select one or more equipped or backpack gear pieces, then sell them as a bundle if the merchant can afford the total.";
     }else{
       filterBar.innerHTML=`<div class="merchant-note-quiet"><b>Sell Pack</b> Choose a quantity from each carried stack. Only the selected units are removed and paid for.</div>`;
@@ -4147,10 +4612,12 @@ function renderPack(rememberView=true){
   });
 
   if(packActiveTab==="equipment"){
-    filterBar.innerHTML=`<div class="equipment-filter-row" data-equipment-filter-context="pack">${equipmentFilterButtonsHtml()}</div>`;
+    const selectedCount=backpackDismantleSelection.size,selectedYield=dismantleSelectionYield();
+    const toolbar=backpackDismantleMode?`<div class="dismantle-toolbar"><span><b>Dismantle Mode</b> · ${selectedCount} selected · ${selectedYield} Scrap Metal</span><div><button class="pack-mini-btn" type="button" data-dismantle-mode="off">Cancel</button><button class="pack-mini-btn warn" type="button" data-dismantle-confirm ${selectedCount?"":"disabled"}>Dismantle Selected</button></div></div>`:`<div class="dismantle-toolbar"><span>Lock important gear to protect it from selling and dismantling.</span><div><button class="pack-mini-btn warn" type="button" data-dismantle-mode="on">Dismantle Mode</button></div></div>`;
+    filterBar.innerHTML=`<div class="equipment-filter-row" data-equipment-filter-context="pack">${equipmentFilterButtonsHtml()}</div>${toolbar}`;
     const filteredEquipment=sortedBackpackEquipment(equipmentFilter);
     root.innerHTML=filteredEquipment.length?filteredEquipment.map(id=>{
-      const g=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentComparison(id,target,equipmentFilter);
+      const g=equipmentItemDef(id),target=recommendedEquipmentSlot(id,null,equipmentFilter),cmp=equipmentComparison(id,target,equipmentFilter),locked=itemLocked(id),selected=backpackDismantleSelection.has(id);
       const armorDelta=(cmp.armorAfter??0)-(cmp.armorBefore??0),strikeDelta=(cmp.strikeAfter??0)-(cmp.strikeBefore??0);
       const attrConsequences=STAT_KEYS.map(stat=>{const d=(cmp.attributesAfter?.[stat]||0)-(cmp.attributesBefore?.[stat]||0);return d?`<span class="equipment-delta ${deltaClass(d)}">${stat} ${deltaText(d)}</span>`:"";}).join("");
       const specialConsequences=[];
@@ -4159,10 +4626,11 @@ function renderPack(rememberView=true){
       const critDelta=(cmp.affixesAfter?.crit?.pct||0)-(cmp.affixesBefore?.crit?.pct||0);if(Math.abs(critDelta)>.001)specialConsequences.push(`<span class="equipment-delta ${deltaClass(critDelta)}">Crit Chance ${deltaText(critDelta,2)}%</span>`);
       const affixConsequences=[["Boss","bossDamage","pct"],["Reflect","reflect","pct"],["Lifesteal","lifesteal","pct"]].map(([label,key,prop])=>{const d=(cmp.affixesAfter?.[key]?.[prop]||0)-(cmp.affixesBefore?.[key]?.[prop]||0);return d?`<span class="equipment-delta ${deltaClass(d)}">${label} ${deltaText(d)}%</span>`:"";}).join("");
       const consequences=`${Math.abs(armorDelta)>.001?`<span class="equipment-delta ${deltaClass(armorDelta)}">Armor ${deltaText(armorDelta)}</span>`:""}${attrConsequences}${Math.abs(strikeDelta)>.05?`<span class="equipment-delta ${deltaClass(strikeDelta)}">Attack Rating ${deltaText(strikeDelta,1)}</span>`:""}${specialConsequences.join("")}${affixConsequences}`;
-      const frame=rarityFrameClass(g.rarity);
-      return `<div class="pack-item compact equipment-pack ${frame}">${raritySparkles(g.rarity,`pack:${id}`)}<div class="pack-item-top"><b class="${rarityClass(g.rarity)}">${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span></b><strong class="${rarityClass(g.rarity)}">iLv ${g.itemLevel}</strong></div><div class="equipment-economy"><span>Intrinsic ${Math.round(computedIntrinsicValue(g))}</span><b>${formatGoldHtml(computedItemGoldValue(g))}</b></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta power">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta power">Gear ${deltaText(cmp.gearDelta,1)}</span><span class="equipment-delta power">Value ${deltaText(cmp.valueDelta||0)}</span>${consequences}</div><div class="pack-actions"><button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button></div></div>`;
+      const frame=rarityFrameClass(g.rarity),modeClass=selected?"dismantle-selected":locked&&backpackDismantleMode?"dismantle-locked":"";
+      const primary=backpackDismantleMode?`<button class="pack-mini-btn ${selected?"warn":""}" type="button" data-dismantle-toggle="${id}" ${locked?"disabled":""}>${locked?"Protected":selected?`Selected · ${dismantleScrapYield(id)} Scrap`:`Select · ${dismantleScrapYield(id)} Scrap`}</button>`:`<button class="pack-mini-btn good" data-equip-equipment="${id}" data-equipment-target="${target||""}">Equip → ${esc(EQUIPMENT_SLOT_LABELS[target]||"slot")}</button>`;
+      return `<div class="pack-item compact equipment-pack ${frame} ${modeClass}">${raritySparkles(g.rarity,`pack:${id}`)}<div class="pack-item-top"><b class="${rarityClass(g.rarity)}">${esc(g.name)}<span class="pack-tag">${esc(EQUIPMENT_SLOT_LABELS[target]||g.slot)}</span>${locked?`<span class="pack-tag">Locked</span>`:""}</b><strong class="${rarityClass(g.rarity)}">iLv ${g.itemLevel}</strong></div><div class="equipment-economy"><span>Intrinsic ${Math.round(computedIntrinsicValue(g))}</span><b>${formatGoldHtml(computedItemGoldValue(g))}</b></div><p>${esc(g.desc||"")}</p><div class="pack-compare"><span class="equipment-delta power">iLv ${deltaText(cmp.itemDelta)}</span><span class="equipment-delta power">Gear ${deltaText(cmp.gearDelta,1)}</span><span class="equipment-delta power">Value ${deltaText(cmp.valueDelta||0)}</span>${consequences}</div><div class="pack-actions-split"><div class="pack-actions">${primary}</div>${itemLockButtonHtml(id)}</div></div>`;
     }).join(""):`<div class="pack-note">No carried equipment matches this filter.</div>`;
-    $("packNote").textContent="Equipment is filtered by compatible slot. Newly acquired gear stays at the top so fresh loot is easy to find.";
+    $("packNote").textContent=backpackDismantleMode?"Dismantle Mode: select any number of unlocked backpack items, review the Scrap total, then confirm once. Equipped and locked items are protected.":"Equipment is filtered by compatible slot. Lock important gear to protect it from merchant sales and dismantling.";
   }else{
     filterBar.innerHTML=`<div class="equipment-filter-row">${backpackFilterButtonsHtml()}</div>`;
     const rows=[];
@@ -4978,7 +5446,8 @@ function openTownMerchantService(serviceId){
   return true;
 }
 function townLocationQuestMarkerClass(townId,loc){
-  if(questTurnInsAtTownLocation(townId,loc.id).length)return " quest-target";
+  const rows=questTurnInsAtTownLocation(townId,loc.id);
+  if(rows.length)return rows.some(questTurnInReady)?" quest-target-ready":" quest-target-active";
   const offered=questsAtTownLocation(townId,loc.id);
   if(offered.some(def=>!questInstanceForDefinition(def.id)))return " quest-available";
   return "";
@@ -6821,6 +7290,8 @@ function render(){
   renderActiveBoon();
   renderBoonChoice();
   renderWorldLootSheet();
+  renderQuestTracker();
+  if(smithingStationOpen)renderSmithingStation();
   renderTravelLogCollapse();
   renderWorldRecoverButton(true);
 
@@ -7821,7 +8292,7 @@ function merchantBackpackSellRows(){
 }
 function merchantSelectedEquipmentPayout(){
   let total=0;
-  for(const id of merchantSellSelection.equipment) total+=merchantSellValueForEquipment(id);
+  for(const id of merchantSellSelection.equipment)if(!itemLocked(id))total+=merchantSellValueForEquipment(id);
   return total;
 }
 function merchantSelectedBackpackPayout(){
@@ -7874,6 +8345,7 @@ function merchantBuyStock(stockId,confirmed=false){
 }
 function cancelMerchantPurchase(){ merchantPendingPurchase=null; renderPack(false); }
 function merchantToggleSellEquipment(itemId){
+  if(itemLocked(itemId)){merchantSellSelection.equipment.delete(itemId);renderPack(false);return;}
   const set=merchantSellSelection.equipment;
   if(set.has(itemId)) set.delete(itemId); else set.add(itemId);
   renderPack(false);
@@ -7885,7 +8357,7 @@ function merchantToggleSellBackpack(key){
 }
 function merchantSellSelectedEquipment(){
   const m=currentMerchant(); if(!m) return;
-  const ids=[...merchantSellSelection.equipment].filter(id=>equipmentItemDef(id));
+  const ids=[...merchantSellSelection.equipment].filter(id=>equipmentItemDef(id)&&!itemLocked(id));
   if(!ids.length) return;
   const total=ids.reduce((sum,id)=>sum+merchantSellValueForEquipment(id),0);
   if(!merchantCanAfford(total)) return;
@@ -8641,7 +9113,7 @@ function worldCombatUsePower(){
   if(available<spec.minCost)return {ok:false,reason:`Need ${Math.ceil(spec.minCost-available)} more ${cap(spec.primary)}`};
   const spend=spec.primary==="focus"?available:Math.max(0,Number(spec.cost)||0);
   r[spec.primary]=Math.max(0,available-spend);
-  f.hostile=true;
+  f.hostile=true;wearEquippedWeapon(EQUIPMENT_DURABILITY_POWER_WEAR);
   const mult=spec.primary==="focus"?1.5+spend/100:Math.max(.1,Number(spec.mult)||1);
   const hit=rnd()<worldCombatPlayerHitChance();
   if(!hit){requestRunSave();return {ok:true,hit:false,damage:0,critical:false,power:true,label:spec.label,spent:spend,resource:spec.primary};}
@@ -8663,6 +9135,7 @@ function worldCombatPlayerAttack(usePower=false){
   if(primary==="momentum")worldCombatMomentumIdleMs=0;
   const sharpened=boonActive("whetstone")&&!f.whetstoneUsed;
   if(sharpened)f.whetstoneUsed=true;
+  wearEquippedWeapon(EQUIPMENT_DURABILITY_BASIC_WEAR);
   const hit=rnd()<worldCombatPlayerHitChance();
   if(!hit){
     // An accuracy 0 still represents an aggressive committed swing. It earns
@@ -9897,6 +10370,7 @@ function normalizeSettings(value){
     if(typeof value.worldEdgeShadows==="boolean") next.worldEdgeShadows=value.worldEdgeShadows;
     if(MINIMAP_SIZE_OPTIONS.includes(value.minimapSize)) next.minimapSize=value.minimapSize;
     if(PLAYER_SPRITE_SIZE_OPTIONS.includes(value.playerSpriteSize)) next.playerSpriteSize=value.playerSpriteSize;
+    if(CONVERSATION_SPEED_OPTIONS.includes(value.conversationTextSpeed)) next.conversationTextSpeed=value.conversationTextSpeed;
     const minimapZoom=Math.round(Number(value.minimapZoom));
     if(MINIMAP_ZOOM_OPTIONS.includes(minimapZoom)) next.minimapZoom=minimapZoom;
   }
@@ -10005,6 +10479,7 @@ function initFloatingWindowDragging(){
 }
 function applyMinimapSize(){document.body.dataset.minimapSize=MINIMAP_SIZE_OPTIONS.includes(settings?.minimapSize)?settings.minimapSize:DEFAULT_SETTINGS.minimapSize;requestAnimationFrame(()=>window.LowfathomWorldBridge?.world?.refreshMinimap?.());}
 function setMinimapSize(size){if(!MINIMAP_SIZE_OPTIONS.includes(size))return;settings.minimapSize=size;applyMinimapSize();saveSettingsNow();renderSettingsSheet();}
+function setConversationTextSpeed(speed){if(!CONVERSATION_SPEED_OPTIONS.includes(speed))return;settings.conversationTextSpeed=speed;saveSettingsNow();if(activeInteraction()){resetInteractionReveal();renderInteraction();}renderSettingsSheet();}
 function persistMinimapZoom(level){const n=Math.round(Number(level));if(!MINIMAP_ZOOM_OPTIONS.includes(n))return;settings.minimapZoom=n;saveSettingsNow();}
 function clearCurrentCharacterIndicators(){
   if(!S) return;
@@ -10247,6 +10722,8 @@ function resetSkillDiagnostics(){
 function renderSettingsSheet(){
   const sheet=$("settingsSheet");
   if(!sheet) return;
+  const buildLabel=$("settingsBuildVersion");
+  if(buildLabel) buildLabel.textContent=BUILD_VERSION;
   const creatorVisible=!$("creator")?.hidden;
   sheet.classList.toggle("travel-browse",!!S && !over && !S.foe && !creatorVisible);
   if(!sheet.hidden && over && !creatorVisible){
@@ -10302,6 +10779,7 @@ function renderSettingsSheet(){
   document.querySelectorAll("[data-minimap-size]").forEach(btn=>{
     btn.classList.toggle("selected",btn.dataset.minimapSize===settings.minimapSize);
   });
+  document.querySelectorAll("[data-conversation-speed]").forEach(btn=>{btn.classList.toggle("selected",btn.dataset.conversationSpeed===settings.conversationTextSpeed);});
   const pacingEl=$("runPacingDiagnostics");
   if(pacingEl){
     if(!S)pacingEl.innerHTML=`<div class="settings-note">Start or load a delver to collect run pacing.</div>`;
@@ -10971,6 +11449,45 @@ function migrateSave29To30(snapshot){
   }
   return next;
 }
+function migrateSave30To31(snapshot){
+  const next=cloneForSave(snapshot);next.schema=31;
+  const state=isSaveRecord(next.state)?next.state:null;
+  if(state){
+    state.tradeSkills=isSaveRecord(state.tradeSkills)?state.tradeSkills:{};
+    for(const id of TRADE_SKILL_ORDER){
+      const cur=isSaveRecord(state.tradeSkills[id])?state.tradeSkills[id]:{};
+      state.tradeSkills[id]={rank:Math.max(0,Math.floor(Number(cur.rank)||0)),xp:Math.max(0,Number(cur.xp)||0)};
+    }
+    state.toolbelt=isSaveRecord(state.toolbelt)?state.toolbelt:{};
+    for(const slot of TOOLBELT_SLOT_DEFS)if(!(slot.id in state.toolbelt))state.toolbelt[slot.id]=null;
+    next.state=state;
+  }
+  return next;
+}
+function migrateSave31To32(snapshot){
+  const next=cloneForSave(snapshot);next.schema=32;
+  const state=isSaveRecord(next.state)?next.state:null;
+  if(state){
+    state.itemDurability=isSaveRecord(state.itemDurability)?state.itemDurability:{};
+    state.smithing=isSaveRecord(state.smithing)?state.smithing:{};
+    state.smithing.minerHandoff=!!state.smithing.minerHandoff;state.smithing.blacksmithIntro=!!state.smithing.blacksmithIntro;state.smithing.herbalistHandoff=!!state.smithing.herbalistHandoff;state.smithing.herbalistIntroSeen=!!state.smithing.herbalistIntroSeen;
+    state.quests=isSaveRecord(state.quests)?state.quests:{instances:[],nextSerial:1,exploreAccumulator:0};
+    state.quests.trackedInstanceId=typeof state.quests.trackedInstanceId==="string"?state.quests.trackedInstanceId:"";
+    state.quests.trackerCollapsed=!!state.quests.trackerCollapsed;
+    next.state=state;
+  }
+  return next;
+}
+function migrateSave32To33(snapshot){
+  const next=cloneForSave(snapshot);next.schema=33;
+  const state=isSaveRecord(next.state)?next.state:null;
+  if(state){state.itemLocks=isSaveRecord(state.itemLocks)?state.itemLocks:{};next.state=state;}
+  return next;
+}
+function migrateSave33To34(snapshot){
+  const next=cloneForSave(snapshot);next.schema=34;const state=isSaveRecord(next.state)?next.state:null;
+  if(state){state.smithing=isSaveRecord(state.smithing)?state.smithing:{};state.smithing.herbalistHandoff=!!state.smithing.herbalistHandoff;state.smithing.herbalistIntroSeen=!!state.smithing.herbalistIntroSeen;next.state=state;}return next;
+}
 const SAVE_MIGRATIONS={
   1:migrateSave1To2,
   2:migrateSave2To3,
@@ -11000,7 +11517,11 @@ const SAVE_MIGRATIONS={
   26:migrateSave26To27,
   27:migrateSave27To28,
   28:migrateSave28To29,
-  29:migrateSave29To30
+  29:migrateSave29To30,
+  30:migrateSave30To31,
+  31:migrateSave31To32,
+  32:migrateSave32To33,
+  33:migrateSave33To34
 };
 function migrateRunSnapshot(snapshot){
   if(!isSaveRecord(snapshot) || !Number.isInteger(snapshot.schema)) throw new Error("Missing or invalid save schema.");
@@ -11207,6 +11728,11 @@ function normalizeRestoredRun(){
     S.skills[id].rank=Math.max(0,Math.floor(Number(S.skills[id].rank)||0));
     S.skills[id].xp=Math.max(0,Number(S.skills[id].xp)||0);
   }
+  ensureTradeSkills();
+  ensureToolbeltState();
+  ensureSmithingState();
+  ensureDurabilityState();
+  ensureItemLocks();
   S.hollowStates=S.hollowStates||{};
   S.bossDefeated=S.bossDefeated||{};S.midBossDefeated=S.midBossDefeated||{};S.midBossVariants=S.midBossVariants||{};
   S.seenFoes=S.seenFoes||{};
@@ -11638,9 +12164,44 @@ function worldUiBlocking(){
   const pack=$("packSheet"),character=$("charSheet");
   if(pack&&!pack.hidden&&!pack.classList.contains("world-floating"))return true;
   if(character&&!character.hidden&&!character.classList.contains("world-floating"))return true;
-  return ["creator","settingsSheet","lootHistorySheet","sheet","combatHistorySheet","infoSheet","boonPick","restAbilityPick","interactionSheet","questRewardSheet","worldLootSheet"].some(id=>{
+  return ["creator","settingsSheet","lootHistorySheet","sheet","combatHistorySheet","infoSheet","boonPick","restAbilityPick","interactionSheet","questRewardSheet","worldLootSheet","smithingSheet"].some(id=>{
     const el=$(id); return !!el && !el.hidden;
   });
+}
+function worldCloseTopUi(){
+  // ESC closes the top-most ordinary popup. Required/death/creation flows are
+  // deliberately not dismissed here because they are not optional browse windows.
+  if(activeInteraction())return endInteraction();
+  if($("smithingSheet")&&!$("smithingSheet").hidden){closeSmithingStation();return true;}
+  if($("questRewardSheet")&&!$("questRewardSheet").hidden){closeQuestRewardConfirmation();return true;}
+  if($("worldLootSheet")&&!$("worldLootSheet").hidden){closeWorldLoot();return true;}
+  if($("infoSheet")&&!$("infoSheet").hidden){closeInfoSheet();return true;}
+  if($("settingsSheet")&&!$("settingsSheet").hidden){closeSettingsSheet();return true;}
+  if($("journalBook")&&!$("journalBook").hidden){closeDelverJournal();return true;}
+  if($("packSheet")&&!$("packSheet").hidden){backFromPack();return true;}
+  if($("charSheet")&&!$("charSheet").hidden){closeCharacterSheet();return true;}
+  if($("lootHistorySheet")&&!$("lootHistorySheet").hidden){closeLootHistory();return true;}
+  if($("combatHistorySheet")&&!$("combatHistorySheet").hidden){setCombatHistoryOpen(false);return true;}
+  if($("sheet")&&!$("sheet").hidden){closeAbilitySheet();return true;}
+  return false;
+}
+function worldActivateUiPrimary(){
+  // Interact doubles as the controller-style confirm key while a popup is open.
+  // Destructive bulk actions (dismantling/reset) are intentionally excluded.
+  if(activeInteraction()){
+    if(finishInteractionReveal())return true;
+    const active=activeInteraction(),def=interactionDef(active?.defId),node=def?.nodes?.[active?.nodeId];
+    const choice=(node?.choices||[]).find(c=>interactionConditionMet(c.showWhen,active)&&interactionConditionMet(c.enabledWhen,active));
+    if(choice){void handleInteractionChoice(choice.id);return true;}return false;
+  }
+  if($("questRewardSheet")&&!$("questRewardSheet").hidden){closeQuestRewardConfirmation();return true;}
+  const focused=document.activeElement;
+  if(focused instanceof HTMLButtonElement&&!focused.disabled&&focused.offsetParent!==null&&!focused.matches('[data-dismantle-confirm],.danger,[data-settings-reset]')){focused.click();return true;}
+  if($("smithingSheet")&&!$("smithingSheet").hidden){
+    const confirmBtn=$("smithingBody")?.querySelector('[data-confirm-forge-bronze]:not(:disabled)');if(confirmBtn){confirmBtn.click();return true;}
+    const smeltBtn=$("smithingBody")?.querySelector('[data-smelt-bronze="1"]:not(:disabled)');if(smeltBtn){smeltBtn.click();return true;}
+  }
+  return false;
 }
 function worldDepthEvent(beforeDepth,afterDepth){
   // Active World v0.203.5: depth progression is bookkeeping, never collision.
@@ -11878,7 +12439,7 @@ function worldEventDescriptors(){
   }
   // Non-town delivery/hand-in locations also become physical route objects.
   for(const inst of questInstances("active")){
-    if(inst.targetTownId||questDefById(inst.definitionId)?.kind==="rescue-escort")continue;
+    const kind=questDefById(inst.definitionId)?.kind;if(inst.targetTownId||kind==="rescue-escort"||kind==="mining-intro"||kind==="smithing-intro")continue;
     if(!Number.isFinite(Number(inst.targetDepth)))continue;
     out.push({type:"quest-target",id:`quest-target:${inst.instanceId}`,depth:Number(inst.targetDepth),title:questDefById(inst.definitionId)?.targetName||"Quest destination",questInstanceId:inst.instanceId});
   }
@@ -11992,6 +12553,53 @@ function worldTowns(){
     locations:(t.locations||[]).filter(loc=>!loc.departure).map(loc=>({id:loc.id,name:loc.name,type:loc.type||"Location",service:loc.service||null,departure:false,npcName:loc.npcName||null,description:loc.description||"",status:loc.status||""}))
   }));
 }
+function worldMiningConfig(oreId="copper"){
+  if(!S||over)return{canMine:false,reason:"No active delver."};
+  const pickaxe=toolbeltTool("pickaxe"),rank=tradeSkillState("mining")?.rank||0;
+  if(!pickaxe)return{canMine:false,reason:"You need a pickaxe on your Toolbelt. Talk to Dawngate's miner."};
+  const requiredTier=oreId==="copper"?1:1;
+  if((Number(pickaxe.tier)||0)<requiredTier)return{canMine:false,reason:`${pickaxe.name} cannot work this vein.`};
+  const speedBonus=Math.min(.40,Math.max(0,rank)*.0125);
+  const baseSwing=Math.max(1400,Number(pickaxe.baseSwingMs)||2400);
+  return{canMine:true,toolId:pickaxe.id,toolName:pickaxe.name,toolTier:pickaxe.tier,rank,swingMs:Math.max(1400,Math.round(baseSwing*(1-speedBonus)))};
+}
+function worldMineOreUnit(detail={}){
+  if(!S||over)return{ok:false};
+  const cfg=worldMiningConfig(detail.oreId||"copper");if(!cfg.canMine)return{ok:false,reason:cfg.reason};
+  const itemName=detail.itemName||"Copper Ore";
+  addMisc(itemName,1);
+  const practice=awardTradeXp("mining",10);
+  incrementTradeQuestCounter("mining",detail.oreId||"copper",1);
+  if(practice.levelled)travelLogAdd(`<b>Mining Rank ${practice.rank}</b> reached.`,"good");
+  render();requestRunSave();
+  return{ok:true,itemName,qty:1,trade:"mining",xp:practice.awarded,rank:practice.rank,rankUp:practice.levelled};
+}
+function worldInteractTownNpc(npc){
+  if(!S||!npc)return false;
+  const role=String(npc.role||"");
+  if(role==="miner"){
+    const inst=miningIntroQuest();
+    if(!inst)return startInteraction("dawngate-miner-intro",{npcId:npc.id||null});
+    if(inst.status==="active"&&miningIntroReady(inst))return startInteraction("dawngate-miner-ready",{questInstanceId:inst.instanceId});
+    if(inst.status==="active"){
+      syncQuestObjectiveProgress(inst);const copper=inst.objectives?.copper,tin=inst.objectives?.tin;
+      return startInteraction("dawngate-miner-progress",{questInstanceId:inst.instanceId,copper:copper?.current||0,tin:tin?.current||0});
+    }
+    return startInteraction("dawngate-miner-after",{questInstanceId:inst.instanceId});
+  }
+  if(role==="blacksmith"){
+    const mine=miningIntroQuest(),smith=smithingIntroQuest(),state=ensureSmithingState();
+    if(mine?.status!=="completed"&&!state.minerHandoff)return startInteraction("dawngate-blacksmith-locked",{npcId:npc.id||null});
+    if(!smith)return startInteraction("dawngate-blacksmith-intro",{npcId:npc.id||null});
+    if(smith.status==="active"){
+      const stage=smithingIntroStage(smith);syncQuestObjectiveProgress(smith);
+      if(stage==="smelt")return smithingBarsReady(smith)?startInteraction("dawngate-blacksmith-bars-ready",{questInstanceId:smith.instanceId,bars:smith.objectives?.bars?.current||0}):startInteraction("dawngate-blacksmith-smelt-progress",{questInstanceId:smith.instanceId,bars:smith.objectives?.bars?.current||0});
+      if(stage==="forge")return smithingWeaponReady(smith)?startInteraction("dawngate-blacksmith-forge-ready",{questInstanceId:smith.instanceId}):startInteraction("dawngate-blacksmith-forge-progress",{questInstanceId:smith.instanceId});
+    }
+    return startInteraction("dawngate-blacksmith-after",{questInstanceId:smith.instanceId});
+  }
+  return false;
+}
 function worldCurrentState(){
   if(!S)return null;const resources=worldCombatResourceSnapshot();
   return {name:String(S.name||""),slot:currentRunSlot,depth:Number(S.depth)||0,hp:Number(S.hp)||0,hpMax:Number(S.hpMax)||1,xp:Number(S.xp)||0,xpNeed:Math.max(1,xpToNext(S.level)),level:Number(S.level)||1,statPoints:Number(S.statPoints)||0,resources,foe:S.foe?{key:S.foe.key,name:S.foe.name,hp:S.foe.hp,hpMax:S.foe.hpMax,defeated:!!S.foe.defeated,worldRealtime:!!S.foe.worldRealtime,hostile:!!S.foe.hostile,evading:!!S.foe.evading,worldEntityId:S.foe.worldEntityId||null,worldLootRecordId:S.foe.worldLootRecordId||null}:null,over:!!over,town:currentTown()?.id||null,townLocationOpenId:townLocationOpenId||null,townDepartureArmed:!!townDepartureArmed,travelEvent:!!S.travelEvent,hollow:!!S.activeHollow,interaction:!!activeInteraction()};
@@ -12004,6 +12612,7 @@ window.LowfathomLegacy={
   advanceDepth:worldAdvanceDepth,activeMovement:worldActiveMovement,activeSideMovement:worldActiveSideMovement,movementStopped:worldMovementStopped,noteRunForeground,noteRunMovement,engageFoe:worldEngageFoe,engageScriptedFoe:worldEngageScriptedFoe,
   enterTown:worldEnterTownById,leaveTown:worldLeaveTownById,getTownState:worldTownState,townCanMove:worldTownCanMove,openTownLocation:worldOpenTownLocation,closeTownLocation:worldCloseTownLocation,departTown:worldDepartTown,
   useHollow:worldUseHollow,investigateGlint:worldInvestigateGlint,openChest:worldOpenChest,expireWorldLoot:expireWorldLootRecord,
+  getMiningConfig:worldMiningConfig,mineOreUnit:worldMineOreUnit,interactTownNpc:worldInteractTownNpc,getTownQuestMarker:worldTownQuestMarker,openSmithingStation,completeBronzeForge:forgeBronze,finishInteractionText:finishInteractionReveal,closeTopUi:worldCloseTopUi,activateUiPrimary:worldActivateUiPrimary,
   getWorldEvents:worldEventDescriptors,triggerWorldEvent:worldTriggerEvent,retireWorldEvent:worldRetireEvent,getCompanion:worldCompanionState,
   getSideArea:worldSideAreaState,triggerSideStage:worldTriggerSideStage,triggerSideFinale:worldTriggerSideFinale,exitSideArea:worldExitSideArea,
   saveWorld:worldSaveSnapshot,restoreWorld:worldRestoreSnapshot,render:()=>render(),requestSave:()=>requestRunSave(),
@@ -12065,6 +12674,8 @@ $("packTabs").addEventListener("click", e => {
   if(tab && !tab.disabled) setPackTab(tab.dataset.packTab);
 });
 $("packFilterBar").addEventListener("click", e => {
+  const dismantleMode=e.target.closest("[data-dismantle-mode]");if(dismantleMode){toggleBackpackDismantleMode(dismantleMode.dataset.dismantleMode==="on");return;}
+  const dismantleConfirm=e.target.closest("[data-dismantle-confirm]");if(dismantleConfirm&&!dismantleConfirm.disabled){dismantleSelectedEquipment();return;}
   const merchantScope=e.target.closest("[data-merchant-gear-scope]");
   if(merchantScope){merchantSellGearScope=merchantScope.dataset.merchantGearScope;merchantSellSelection.equipment.clear();renderPack(false);return;}
   const equipment=e.target.closest("[data-equipment-filter]");
@@ -12074,6 +12685,8 @@ $("packFilterBar").addEventListener("click", e => {
 });
 $("packDynamicItems").addEventListener("click", e => {
   const filter=e.target.closest("[data-equipment-filter]"); if(filter){setEquipmentFilter(filter.dataset.equipmentFilter);return;}
+  const lock=e.target.closest("[data-toggle-item-lock]");if(lock){const id=lock.dataset.toggleItemLock;setItemLocked(id,!itemLocked(id));return;}
+  const dismantleToggle=e.target.closest("[data-dismantle-toggle]");if(dismantleToggle&&!dismantleToggle.disabled){toggleDismantleSelection(dismantleToggle.dataset.dismantleToggle);return;}
   const bandage=e.target.closest("[data-use-bandage]"); if(bandage){useBandage();return;}
   const weapon=e.target.closest("[data-equip-weapon]"); if(weapon){equipWeapon(weapon.dataset.equipWeapon);return;}
   const equipment=e.target.closest("[data-equip-equipment]"); if(equipment){equipEquipmentItem(equipment.dataset.equipEquipment,equipment.dataset.equipmentTarget||null);return;}
@@ -12172,6 +12785,20 @@ $("charQuests")?.addEventListener("click",e=>{
   const more=e.target.closest("[data-quest-more]");if(more){charExpandedQuest=charExpandedQuest===more.dataset.questMore?null:more.dataset.questMore;renderQuestPage();return;}
   const del=e.target.closest("[data-quest-delete]");if(del)deleteInactiveQuest(del.dataset.questDelete);
 });
+$("btnCharSkillsCollapse")?.addEventListener("click",()=>{charSkillsCollapsed=!charSkillsCollapsed;renderCharacterSheet();});
+$("btnCharTradesCollapse")?.addEventListener("click",()=>{charTradesCollapsed=!charTradesCollapsed;renderCharacterSheet();});
+$("btnWorldQuestTrackerToggle")?.addEventListener("click",()=>{if(!S)return;ensureQuestState();S.quests.trackerCollapsed=!S.quests.trackerCollapsed;renderQuestTracker();requestRunSave();});
+$("worldQuestTrackerBody")?.addEventListener("click",e=>{const b=e.target.closest("[data-tracked-quest]");if(!b||!S)return;questListView="active";charView="quests";charExpandedQuest=b.dataset.trackedQuest;clearCharacterNotice("quests");openCharacterSheet();renderQuestPage();});
+$("btnSmithingClose")?.addEventListener("click",closeSmithingStation);
+$("smithingSheet")?.addEventListener("click",e=>{
+  if(e.target.id==="smithingSheet"||e.target.classList.contains("smithing-scrim")){closeSmithingStation();return;}
+  const smelt=e.target.closest("[data-smelt-bronze]");if(smelt&&!smelt.disabled){smeltBronze(smelt.dataset.smeltBronze);renderSmithingStation();return;}
+  const selectForge=e.target.closest("[data-select-forge-bronze]");if(selectForge&&!selectForge.disabled){smithingForgePending=selectForge.dataset.selectForgeBronze;renderSmithingStation();return;}
+  const confirmForge=e.target.closest("[data-confirm-forge-bronze]");if(confirmForge&&!confirmForge.disabled){if(!beginBronzeForgeAnimation(confirmForge.dataset.confirmForgeBronze))renderSmithingStation();return;}
+  const cancelForge=e.target.closest("[data-cancel-forge-bronze]");if(cancelForge){smithingForgePending=null;renderSmithingStation();return;}
+  const repair=e.target.closest("[data-repair-item]");if(repair&&!repair.disabled){repairEquipment(repair.dataset.repairItem,repair.dataset.repairMethod||"scrap");renderSmithingStation();return;}
+  const openDismantle=e.target.closest("[data-open-dismantle-mode]");if(openDismantle){closeSmithingStation();openPack(null,"equipment");backpackDismantleMode=true;backpackDismantleSelection.clear();renderPack(false);return;}
+});
 $("btnEquipmentExpand").addEventListener("click", toggleEquipmentList);
 $("equipmentRingRail").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)selectEquipmentSlot(b.dataset.equipmentSlot);});
 $("equipmentBodyGrid").addEventListener("click", e => {const b=e.target.closest("[data-equipment-slot]");if(b)selectEquipmentSlot(b.dataset.equipmentSlot);});
@@ -12212,6 +12839,7 @@ $("btnSettingNotices").addEventListener("click", () => setCharacterIndicators(!s
 $("btnSettingDice").addEventListener("click", () => setDiceAnimation(!settings.diceAnimation));
 $("btnSettingWorldShadows")?.addEventListener("click", () => setWorldShadows(!(settings.worldShadows!==false)));
 $("btnSettingWorldEdgeShadows")?.addEventListener("click", () => setWorldEdgeShadows(!(settings.worldEdgeShadows===true)));
+document.querySelectorAll("[data-conversation-speed]").forEach(btn=>btn.addEventListener("click",()=>setConversationTextSpeed(btn.dataset.conversationSpeed)));
 document.getElementById("worldZoomChoices")?.addEventListener("click",e=>{const b=e.target.closest("[data-world-zoom]");if(b)setWorldZoom(b.dataset.worldZoom);});
 document.getElementById("playerSpriteSizeChoices")?.addEventListener("click",e=>{const b=e.target.closest("[data-player-sprite-size]");if(b)setPlayerSpriteSize(b.dataset.playerSpriteSize);});
 document.getElementById("minimapSizeChoices")?.addEventListener("click",e=>{const b=e.target.closest("[data-minimap-size]");if(b)setMinimapSize(b.dataset.minimapSize);});
@@ -12266,10 +12894,12 @@ $("worldLootSheet")?.addEventListener("click", async e=>{
   const investigate=e.target.closest("[data-world-loot-investigate]");if(investigate){investigate.disabled=true;await resolveWorldLootSearch();return;}
   if(e.target.closest("[data-world-loot-close]")||e.target.id==="worldLootSheet")closeWorldLoot();
 });
+$("interactionCopy")?.addEventListener("click",()=>finishInteractionReveal());
 $("interactionActions")?.addEventListener("click", async e=>{
   const b=e.target.closest("[data-interaction-choice]");if(!b||b.disabled)return;
   await handleInteractionChoice(b.dataset.interactionChoice);
 });
+window.addEventListener("keydown",e=>{if(activeInteraction()&&(e.code==="KeyE"||e.code==="Space")&&!e.repeat&&!interactionReveal.complete){e.preventDefault();e.stopPropagation();finishInteractionReveal();}},true);
 $("btnCombatPack").addEventListener("click", () => {
   if(!S || over || !S.foe) return;
   armed=null;
